@@ -228,48 +228,37 @@ can start sweeping it into partition mode.
 whole partition removed, a changed cell leaving its siblings intact, and a mixed
 add/edit/remove sequence. Disabling the outbox turns three of them red.
 
-**The 250,000 cap now bounds the RUN, not each push.** It was applied per
-invocation, so 203,799 then 226,069 each "passed" while the run spent 429,868.
-A `D1_RUN_LEDGER` file, shared by every push in a job, is debited *before* each
-write (a failed import still bills) and subtracted from the *result* of the
-cycle guard — subtracting it from the input let the guard's own floor swallow
-it, which would have disabled the ledger in exactly the exhausted-allowance
-state where it matters most.
+**⚠️ The D1 write cost guard was REMOVED on 2026-08-12**, at the owner's
+direction. Nothing refuses a push on cost any more, at any size, in any lane.
+Gone: the per-push ceiling (`--max-billed-rows`, default 2.5M, exit 3), the
+cycle-aware cap that tightened as the 50M allowance filled (`EXHAUSTED_CYCLE_CAP`,
+250,000), the `D1_RUN_LEDGER` that made both cumulative across a run, and with
+them `effective_cap`, `EXIT_BUDGET`, `tests/test_ledger_retry_semantics.py` and
+`tests/test_workflow_ledger_wiring.py`. `--max-billed-rows` and `--no-cycle-check`
+survive as accepted no-ops so existing workflow files keep running.
 
-**⚠️ The ledger and the automatic retry contradicted each other — resolved
-2026-08-05.** Booking before the write and retrying `EXIT_PUSH_FAILED` cannot
-both be right:
+What is left is **reporting plus avoidance, no enforcement**: the per-table
+estimate still prints on every push (marked advisory), the digest and
+content-hash skips still stop unchanged rows being generated at all, and
+`scripts/healthcheck.py` still reads cycle usage — after the fact, with no power
+to stop anything. `src/d1_usage.py` outlived the guard for exactly that reason.
 
-```
-attempt 1  books 203,799  ->  wrangler blips  ->  exit 4 (retryable)
-attempt 2  cap is now 250,000 - 203,799 = 46,201
-           estimate 203,799 > 46,201        ->  exit 3 (TERMINAL)
-```
+Two consequences to design around rather than rediscover:
 
-A service-side blip became a permanent budget refusal, and the operator read
-*"a validation or budget refusal is deterministic … Nothing was written"* —
-neither half true. Whether a half-finished import bills is not observable from
-here: if it did, retrying spends twice; if it did not, the ledger has
-over-booked and the retry is refused for nothing. So `audit_d1.terminal_exits()`
-adds `EXIT_PUSH_FAILED` to the terminal set **while a ledger is active** — one
-attempt, then a human. Without a ledger it stays retryable, which is what the
-non-audit callers rely on. Reproduced end-to-end before fixing.
-
-⚠️ **The first version of that fix reached only one of the two retry loops.**
-`audit_d1` has two — `replace_partitions()` and `push_to_d1()` — as separate
-copies of the same seven lines, and the ledger rule landed in the first while
-the second went on retrying exit 4 into a guaranteed budget refusal. Both now go
-through a single `stop_if_terminal()`, and a test asserts there is exactly one
-definition and two call sites, because the duplication *was* the bug. Each loop
-is tested both ways: one attempt under a ledger, the full three without.
-
-**The ledger's wiring is now gated** (`tests/test_workflow_ledger_wiring.py`):
-every workflow that pushes to D1 more than once must give each pushing step the
-same run-scoped path. `check_docs_sync.py` covers workflows, `secrets.*` and
-Worker bindings, not this — the gap was the reason to add a test, not to skip
-one. Writing it found the **same defect in two more lanes**:
-`refresh-bddk-bulletins.yml` and `refresh-data.yml` each push twice
-(rows, then the `api_series` full rebuild) and had no shared ledger. Both fixed.
+- **A campaign is now cheap but no longer declared.** The digest machinery below
+  makes a re-run cost what it *changed*; nothing makes anyone state what they
+  are about to spend. July 2026's overage shape — three campaign days at 12.4M,
+  15.1M and 9.4M against a ~14.6M/month quiet baseline — would run to completion
+  today, announcing itself in the log and stopping nowhere.
+- **The retry is simple again.** Booking before the write and retrying
+  `EXIT_PUSH_FAILED` used to contradict each other: attempt 1 booked 203,799,
+  wrangler blipped to a retryable exit 4, and attempt 2 met a cap of
+  250,000 − 203,799 = 46,201 and refused *terminally* — a service-side blip
+  surfacing as a permanent budget refusal. With no ledger and no cap that trap
+  is gone, `audit_d1.TERMINAL_EXITS` is just `(EXIT_VALIDATION,)`, and exit 4 is
+  unconditionally retryable. Still true and still unresolved by any of this: a
+  lost response ("import polling failed") means D1 may have committed and billed
+  the file without anyone seeing the answer.
 
 *(prior status, for the record)* Normalisation wired and the 11 held filings
 verified on a copy before any push (2026-08-05): `src/audit_reports/units.py` is the one detector (the analyst
@@ -1699,7 +1688,10 @@ reader at `/banks/[ticker]/calls/[period]`.
   skipped the upload, leaving PASHA's rows in D1 and absent from the snapshot.
   And `_COVERAGE_INCREMENTAL` is **enabled**: the full rebuild asked 161,728
   rows to restate a barely-changed table, which is what breached the 250,000
-  run cap in the first place.
+  run cap in the first place. *(That cap is gone as of 2026-08-12. Both fixes
+  stand on their own: the ordering protects against any late-step failure, not
+  just a refusal, and the incremental rollup is now one of the few things still
+  holding write volume down.)*
 
 - **⚠️ PROCESS: a migration was applied live against an explicit instruction not
   to run one (2026-08-05).** The instruction was *"Commit and push only these

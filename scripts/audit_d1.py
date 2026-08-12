@@ -36,75 +36,50 @@ from src.audit_reports import r2_storage  # noqa: E402
 # ONLY step needed to get its table cleared + pushed. A hand-kept copy of this
 # list here is what silently dropped fx_position/repricing from D1 for weeks.
 from src.audit_reports.registry import AUDIT_TABLES  # noqa: E402,F401
-from scripts.push_to_d1 import (  # noqa: E402
-    EXIT_BUDGET, EXIT_PUSH_FAILED, EXIT_VALIDATION, run_wrangler,
-)
+from scripts.push_to_d1 import EXIT_VALIDATION, run_wrangler  # noqa: E402
 
-# Retrying these cannot help and actively harms: a deterministic refusal
+# Retrying this cannot help and actively harms: a deterministic refusal
 # retried is a refusal defeated. Attempt one used to create the missing
 # table and refuse; attempt two saw it as pre-existing and proceeded.
-TERMINAL_EXITS = (EXIT_VALIDATION, EXIT_BUDGET)
-
-
-def terminal_exits() -> tuple[int, ...]:
-    """TERMINAL_EXITS, plus EXIT_PUSH_FAILED when a run ledger is active.
-
-    push_to_d1 books its estimate BEFORE calling wrangler, because an import
-    that dies half way still bills. That makes a retry unanswerable:
-
-        attempt 1  books 203,799  -> wrangler blips -> exit 4 (retryable)
-        attempt 2  cap is now 250,000 - 203,799 = 46,201
-                   estimate 203,799 > 46,201       -> exit 3 (TERMINAL)
-
-    A service-side blip became a permanent budget refusal, and the operator read
-    "a validation or budget refusal is deterministic ... Nothing was written" —
-    neither half of which was true there. Whether a failed import billed is
-    not observable from here: if it did, retrying spends twice; if it did not,
-    the ledger has over-booked and the retry is refused for nothing. Neither
-    branch is safe to automate, so under a ledger the loop stops after one
-    attempt and a human decides. Without a ledger there is no double-booking to
-    worry about and exit 4 stays retryable, which is what the non-audit callers
-    rely on.
-    """
-    if os.environ.get("D1_RUN_LEDGER"):
-        return (*TERMINAL_EXITS, EXIT_PUSH_FAILED)
-    return TERMINAL_EXITS
+#
+# EXIT_BUDGET was the other member until 2026-08-12, when the cost guard was
+# removed. Nothing refuses a push on cost now, so exit 4 (transport) is once
+# again unconditionally retryable — see the note in stop_if_terminal.
+TERMINAL_EXITS = (EXIT_VALIDATION,)
 
 
 def stop_if_terminal(rc: int, what: str) -> None:
     """Exit when `rc` must not be retried. Used by BOTH retry loops.
 
     They were separate copies of the same seven lines, and that is precisely how
-    the ledger rule ended up in `replace_partitions` and not in `push_to_d1`:
-    one loop stopped after a single attempt under a ledger while the other kept
-    retrying exit 4 into a guaranteed budget refusal. One function now, so a
-    future rule cannot land in half the lane again.
+    a rule once ended up in `replace_partitions` and not in `push_to_d1`: one
+    loop stopped after a single attempt while the other kept retrying. One
+    function now, so a future rule cannot land in half the lane again.
+
+    Until 2026-08-12 an active D1_RUN_LEDGER also made EXIT_PUSH_FAILED
+    terminal. push_to_d1 booked its estimate BEFORE calling wrangler (an import
+    that dies half way still bills), so a transient blip on attempt 1 left
+    attempt 2 facing a cap already spent — a service-side hiccup surfacing as a
+    permanent budget refusal. With no ledger and no cap, that trap is gone and
+    the retry is plainly safe on cost.
+
+    It is worth being clear about what retrying still does NOT settle: a lost
+    response ("import polling failed") is exactly the case where D1 accepted the
+    request and the answer never arrived. The import is atomic, so D1 committed
+    the whole file or none of it — which is not the same as knowing which. A
+    retry is content-safe (scoped DELETE + INSERT OR REPLACE, so replaying a
+    committed file reproduces the same rows) and it is no longer refusable, but
+    a commit nobody saw was still billed. Nothing now notices that.
     """
-    if rc == EXIT_PUSH_FAILED and rc in terminal_exits():
-        sys.exit(
-            f"[d1] {what} failed (exit {rc}) and a run ledger is active "
-            f"(D1_RUN_LEDGER={os.environ.get('D1_RUN_LEDGER')}), so this "
-            "attempt's estimate is already booked against the run's cap.\n"
-            "  NOT retrying: whether a half-finished import billed is not "
-            "observable from here. If it did, a retry spends twice; if it did "
-            "not, the ledger has over-booked and the retry would be refused as "
-            "a budget breach — a transient blip reported as a deterministic "
-            "refusal.\n"
-            "  The remote OUTCOME IS UNKNOWN. The import is atomic, so D1 either "
-            "committed the whole file or none of it — that is not the same as "
-            "knowing which, and a lost response ('import polling failed') is "
-            "precisely the case where the request was accepted and the answer "
-            "never arrived.\n"
-            "  VERIFY D1 before clearing the ledger or re-running.")
     if rc in TERMINAL_EXITS:
-        # This one CAN say nothing was written: a validation or budget refusal
-        # is decided inside push_to_d1 before wrangler is invoked at all, so no
-        # request ever reached D1. Do not copy this wording to a path that has
-        # already called out.
-        sys.exit(f"[d1] {what} refused (exit {rc}) — a validation or budget "
-                 "refusal is deterministic, so retrying would only defeat it. "
-                 "Nothing was written: the refusal happens before any remote "
-                 "call. Fix the cause and re-run.")
+        # This one CAN say nothing was written: a validation refusal is decided
+        # inside push_to_d1 before wrangler is invoked at all, so no request
+        # ever reached D1. Do not copy this wording to a path that has already
+        # called out.
+        sys.exit(f"[d1] {what} refused (exit {rc}) — a validation refusal is "
+                 "deterministic, so retrying would only defeat it. Nothing was "
+                 "written: the refusal happens before any remote call. Fix the "
+                 "cause and re-run.")
 
 # --- audit-lane constants -------------------------------------------------
 DB = REPO / "data" / "bank_audit.db"

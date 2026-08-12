@@ -62,6 +62,12 @@ pushes are workflow dispatches. Local is for editing, planning and light checks.
 Never re-stamp a row whose values did not change; done carelessly, a five-cell
 correction bills for hundreds of thousands of rows.
 
+Since **2026-08-12 nothing enforces this**: the write cost guard was removed, so
+no push is refused at any size. `push_to_d1.py` still prints an estimate, and
+`healthcheck.py` still reads the cycle — both after the fact, neither a stop.
+The rule is now carried entirely by not *generating* a pointless write: compare
+before stamping, and leave the content-hash and partition-digest skips alone.
+
 **`null` is not `0`.** A disclosure a bank never made and a figure it disclosed as
 zero are different facts, and every layer — extractor, validator, API, both UIs —
 keeps them apart. Rendering `null` as `0` invents data.

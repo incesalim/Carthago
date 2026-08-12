@@ -5,6 +5,33 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-12 — **The D1 write cost guard is removed.** No push is refused on cost
+any more, at any size, in any lane. Gone: `--max-billed-rows` (the 2.5M per-push
+ceiling that exited 3), the cycle-aware cap that tightened as the 50M allowance
+filled, the `D1_RUN_LEDGER` that made both cumulative across a workflow run, and
+`EXIT_BUDGET` with them. `--max-billed-rows` and `--no-cycle-check` are still
+accepted and ignored so existing workflow files keep running; `EXIT_BUDGET`'s
+exit code 3 is left unused rather than recycled.
+
+Kept deliberately: the per-table billed-row **estimate still prints on every
+push**, now marked advisory. Removing the refusal was the ask; removing the
+number would only have made the spend invisible. Also unchanged — and now the
+only things holding the bill down — the content-hash and partition-digest skips
+that stop an unchanged row being generated at all, and `scripts/healthcheck.py`,
+which still reads cycle usage but reports after the fact and stops nothing.
+
+`audit_d1.TERMINAL_EXITS` collapses to `(EXIT_VALIDATION,)`, so a transport
+failure (exit 4) is unconditionally retryable again: the ledger's book-before-write
+had made a retried blip land on a cap it had already spent, turning a transient
+into a permanent refusal. `push_to_d1.py`, `audit_d1.py`, five workflow files,
+`tests/test_d1_write_budget.py`, `tests/test_write_amplification.py`; deleted
+`tests/test_ledger_retry_semantics.py` and `tests/test_workflow_ledger_wiring.py`.
+
+*(This supersedes an unreleased 2026-08-08 change that had raised the
+exhausted-cycle floor from 250,000 to 1,000,000, after both BDDK lanes refused
+two days running on the `api_series` rebuild's ~237,456 billed rows and shipped
+no bulletin, EVDS or news rows either. That constant no longer exists.)*
+
 2026-08-07 — **/admin now answers "who has published this quarter?" directly.**
 A filing-season panel above the coverage matrix tracks the in-window quarter per
 bank: extracted, acquired-awaiting-extraction, **results out but audit report

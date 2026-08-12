@@ -194,9 +194,6 @@ jobs:
         if: steps.sync.outputs.changed == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          # Retained even though this is now one push: it preserves the run-level
-          # budget contract if another batched step is ever added.
-          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         # 168h window — a new quarter's reports trickle in over weeks, so a wide
         # window is harmless (INSERT OR REPLACE is idempotent).
         # --table-set audit-refresh is every registry-derived bank_audit_* table

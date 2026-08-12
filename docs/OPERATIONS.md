@@ -602,55 +602,70 @@ written account-wide (bddk-data 58.6M + gazelhan 9.5M) against the 50M included 
 comfortably inside the allowance. **The entire overage is campaign days** — Jul
 15 (12.4M), Jul 17 (15.1M) and Jul 26 (9.4M) alone are 36.9M of the 68.1M.
 
-**The guard: `push_to_d1.py` prices every push before it runs.**
+**`push_to_d1.py` prices every push before it runs — and stops nothing.**
 
-Added 2026-08-04, because the two rules below only ever made the *quiet* days
-cheap. Every campaign day that blew the allowance ran to completion without
-announcing what it was about to write, and nothing stopped it. Now:
+> ⚠️ **The cost guard was REMOVED on 2026-08-12.** No push is refused on cost,
+> at any size, in any lane. What follows describes what is left; the removed
+> mechanism is recorded below it so the reasoning is not lost.
 
 - **The estimate is printed on every push**, with a per-table breakdown. Billed
   rows are estimated structurally — `1 + index_count` per row, doubled for a
   full rebuild's `DELETE` — which lands near the measured 3.6x for the usual
-  table mix. It is an estimate for authorising a push, never a report of spend;
-  read actuals from the analytics query above.
+  table mix. It is an estimate, never a report of spend; read actuals from the
+  analytics query above. It is now **advisory**: the line says so, and the push
+  proceeds regardless of the number.
 - **A single row over D1's 100,000-byte statement limit fails locally**, naming
   the table and row, instead of shipping a file doomed to return a bare
   `SQLITE_TOOBIG`. Byte-sized batching handles every other case, but no batch
   size can send one oversized row: D1 permits a 2 MB *row* and caps a
   *statement* at 100 KB, so a value in between has to go to R2 with a reference
-  kept in D1, or be split.
-- **A push over `--max-billed-rows` FAILS (exit 3)**, it does not warn. Default
-  **2,500,000**: a whole-audit-corpus push is 1,678,540 and the pending one-off
-  prose push is 1,110,204, so both clear it, while July's smallest campaign day
-  (9.4M) does not. Raise it deliberately — and because the number then lives in
-  the workflow file, the cost is reviewable in a diff instead of discovered on
-  the invoice.
-- **The cap tightens itself as the cycle fills.** Before pushing, the script
-  reads rows-written for the current cycle from `d1AnalyticsAdaptiveGroups`
-  (needs `CLOUDFLARE_API_TOKEN` + `CF_ACCOUNT_TAG`/`R2_ACCOUNT_ID`; skipped when
-  absent, or with `--no-cycle-check`). The cap becomes
-  `min(declared, max(remaining_headroom, 250,000))` — so 100k of headroom left
-  will **not** wave a 2.5M push through to land 2.4M past the allowance, which
-  the first version did: the guard would have "passed" the very run that blew the
-  budget. The 250,000 floor keeps routine crons alive when headroom is gone;
-  campaigns wait for the 11th. Freezing everything was July's *other* mistake:
-  four days with nothing watching the data, for a bill the crons were not causing.
-- **An unreadable API means unknown, not zero.** The cycle reading returns `None`
-  on any failure and the declared cap is used unchanged — it neither relaxes nor
-  tightens. A missing reading reported as "plenty of headroom" is precisely the
-  silent-wrong shape this repo keeps rediscovering.
+  kept in D1, or be split. **This one still refuses** — it is a correctness
+  guard, not a cost guard, and a doomed file helps nobody.
+- **`--check-only` prices without executing**, and now always exits 0. Use it to
+  see a number before paying for it.
+- **`--max-billed-rows` and `--no-cycle-check` are accepted and ignored.** Kept
+  as no-ops so existing workflow files and pasted command lines keep working; a
+  removed flag would have turned a dead argument into a dead lane.
 
-Pinned by `tests/test_d1_write_budget.py` (cycle boundary is the 11th, a spent
-cycle never *raises* a lower declared cap, a dead API cannot take the push down).
+**What actually holds the bill down now**, all of it upstream — none of it a
+stop, and none of it able to catch a deliberate over-large push:
 
-⚠️ The per-push cap bounds **one invocation, not a day**. July's campaign days
-were several pushes each and no single one would have tripped 2.5M — the
-cycle-aware layer is what closes that, and it only works where the analytics
-credentials are present.
+- **Partition digests** and the **content-hash skip** below: a table or
+  partition whose rows are byte-identical to the last push is not sent at all.
+  This is the primary defence and its tests are the ones that survived.
+- **`upsert_validation` / `upsert_pl_roles` / `build_stages` compare before
+  stamping**, so an unchanged row never enters the push window.
+- **`scripts/healthcheck.py`** still reads rows-written for the cycle and is now
+  the **only** thing watching the allowance. It reports after the fact; it
+  cannot stop anything. If a campaign is going to be caught, it is caught here,
+  once the rows are already billed.
+
+<details>
+<summary>What the guard was, 2026-08-04 → 2026-08-12</summary>
+
+A per-push ceiling (`--max-billed-rows`, default **2,500,000**) that exited 3
+rather than warning; a second cap that tightened as the billing cycle's 50M
+allowance was spent (`min(declared, max(remaining_headroom, floor))`, floor
+250,000); and a `D1_RUN_LEDGER` file making both cumulative across the several
+pushes in one workflow run. An unreadable analytics API meant *unknown*, not
+zero, so the declared cap was used unchanged.
+
+It caught the shape it was built for and also produced two days of false
+refusals: a routine BDDK push carrying the `api_series` rebuild bills ~237,456
+for that table alone, which the 250,000 floor could not clear, and a refusal was
+self-sustaining because the content-hash skip only records a hash after a
+successful push. Removing the guard outright was the owner's call on 2026-08-12.
+
+Reference figures, still accurate: a whole-audit-corpus push is **1,678,540**
+billed rows; the one-off prose push is **1,110,204**; July's three campaign days
+were 12.4M, 15.1M and 9.4M. Nothing now distinguishes any of these from a daily
+cron.
+</details>
 
 **Partition digests: a campaign costs what it CHANGED, not what it touched.**
 
-The guard above makes a campaign *declared*. This makes it *cheap*. The windowed
+This is the mechanism that survived the guard, and with nothing refusing a push
+it carries the whole load: a campaign is no longer *declared*, only *cheap*. The windowed
 `bank_audit_*` tables key on the extraction stamp, so re-running the fleet after
 an extractor fix re-pushed every partition it touched — including every partition
 the fix did not alter. Each `(table, bank_ticker|period|kind)` now carries a
@@ -714,9 +729,10 @@ SQL error, a network blip, a cancelled runner — left the partitions deleted wi
 nothing local aware they needed restoring.
 
 **A preflight cannot fix that**, and the earlier claim here that the two "cannot
-disagree" was wrong: two remote calls cannot be made atomic, the cost guard reads
-cycle usage independently in each, and headroom genuinely moves between them. An
-accepted check could still be followed by a refused push *after* the delete.
+disagree" was wrong: two remote calls cannot be made atomic. (The cost-guard half
+of that argument is moot since 2026-08-12 — nothing refuses a push now — but the
+atomicity half stands on its own, and a SQL error or a cancelled runner between
+two calls is just as destructive as a refusal was.)
 
 `audit_d1.replace_partitions(parts, db, tables)` is now the only path.
 `push_to_d1 --replace-partitions <file>` takes an explicit
@@ -1046,7 +1062,7 @@ code reads to be named here, and this one is load-bearing.
 
 | Env key | Used by |
 |---|---|
-| `D1_RUN_LEDGER` | Path to a per-RUN file that `scripts/push_to_d1.py` debits before each write. It was introduced after a 2026Q2 audit run sent 203,799 then 226,069 estimated rows, each below a per-call 250,000 cap. Routine audit and bulletin workflows now batch into **one** D1 call, but the ledger remains the guard if another call is ever added; every pushing step must share `${{ runner.temp }}/d1_run_ledger.json` (`tests/test_workflow_ledger_wiring.py`). With a ledger, `EXIT_PUSH_FAILED` is terminal because nobody can observe whether a half-finished import billed. Wired in `refresh-audit.yml`, `refresh-bddk-bulletins.yml`, `refresh-data.yml` |
+| ~~`D1_RUN_LEDGER`~~ | **Retired 2026-08-12 with the cost guard.** Was a per-RUN file `push_to_d1.py` debited before each write, so a cap bounded the run rather than each invocation. Nothing reads it now; a leftover value in an environment is inert. Removed from `refresh-audit.yml`, `refresh-bddk-bulletins.yml`, `refresh-data.yml` and `backfill-audit-source-capture.yml` |
 
 Actions **variables** (same screen, "Variables" tab — not secrets):
 

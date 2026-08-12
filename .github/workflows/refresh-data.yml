@@ -88,7 +88,6 @@ jobs:
         if: steps.refresh.outputs.changed == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         # 168h (7 days) window — covers the weekly cron interval. Idempotent
         # via INSERT OR REPLACE; re-running overwrites unchanged rows safely.
         # Covers monthly / weekly / EVDS tables. The bank_audit_* tables are

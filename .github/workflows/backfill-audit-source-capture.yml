@@ -74,11 +74,6 @@ jobs:
 
       - name: Capture source evidence
         env:
-          # Step-level, not job-level: the `runner` context is unavailable in a
-          # job's `env` and GitHub rejects the whole file at push time (the only
-          # trace is a 0-second "workflow file issue" run). Both D1-writing
-          # steps share this one run-scoped path so the cap bounds the run.
-          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
           LANES: ${{ inputs.lanes }}
           BANKS: ${{ inputs.banks }}
           PERIODS: ${{ inputs.periods }}
@@ -96,8 +91,6 @@ jobs:
 
       - name: Refresh coverage matrix
         if: ${{ !inputs.dry_run }}
-        env:
-          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         run: python scripts/sync_audit_expected.py --push
 
       - name: Audit data-quality check (alert-only)

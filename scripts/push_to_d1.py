@@ -40,13 +40,9 @@ WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
 from src.audit_reports.registry import AUDIT_TABLES as _AUDIT_TABLES    # noqa: E402
-# Cycle usage lives in its own stdlib-only module so scripts/healthcheck.py can
-# read it too without pulling this file's whole import chain into the
-# minimal-deps health-check job.
-from src.d1_usage import (  # noqa: E402
-    D1_MONTHLY_ALLOWANCE,
-    cycle_rows_written,
-)
+# NB: this file no longer reads the billing cycle. `src/d1_usage.py` still
+# exists and is still read by scripts/healthcheck.py, which is now the ONLY
+# place cycle usage is observed — see the note above `billed_estimate`.
 from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
 from src.earnings.schema import init_schema as _init_earnings_schema    # noqa: E402
 from src.faaliyet.schema import init_schema as _init_faaliyet_schema    # noqa: E402
@@ -168,9 +164,13 @@ _FULL_REBUILD = {
 # column exists, nullable, and the ALTER rewrote no rows), which was the one
 # ordering constraint. The full rebuild was also actively harmful by then: the
 # PASHA run booked 122,438 rows for the audit tables and the coverage spine then
-# asked for 166,041 more, breaching the 250,000 run cap and stranding the
-# snapshot upload. 161,728 of that was this table restating rows that had not
-# changed.
+# asked for 166,041 more, breaching the 250,000 run cap of the day and stranding
+# the snapshot upload. 161,728 of that was this table restating rows that had
+# not changed.
+#
+# That cap is gone (2026-08-12) and this switch matters MORE, not less, for it:
+# a restated row no longer trips anything, so not generating it is the only
+# thing keeping the cost down.
 _COVERAGE_INCREMENTAL = True
 if _COVERAGE_INCREMENTAL:                      # pragma: no cover - off by default
     _FULL_REBUILD.discard("bank_audit_coverage")
@@ -318,17 +318,6 @@ def record_hash(conn: sqlite3.Connection, table: str, digest: str) -> None:
         "VALUES (?, ?, CURRENT_TIMESTAMP)", (table, digest))
     conn.commit()
 
-# Ceiling on ESTIMATED billed rows for a single push, before it refuses to run.
-#
-# Sized to clear every legitimate push and stop a runaway. The largest routine
-# campaign is a whole-audit-corpus re-push — 440,545 rows across the audit tables
-# at a ~4x index factor ≈ 1.8M billed — and the pending one-off prose push is
-# ~369k rows ≈ 1.1-1.5M. 2.5M clears both with headroom. For scale: July 2026's
-# three campaign days billed 12.4M, 15.1M and 9.4M, every one of them silently.
-#
-# This is a floor on deliberateness, not a budget: a caller who genuinely needs
-# more passes --max-billed-rows, and because that lands in the workflow file the
-# number is reviewable in a diff rather than discovered on the invoice.
 # Exit codes with MEANINGS, so a caller can tell "retrying cannot help" from
 # "the network hiccuped". audit_d1's helpers retry every nonzero child exit, and
 # a deterministic refusal retried is a refusal defeated: the first attempt used
@@ -336,26 +325,37 @@ def record_hash(conn: sqlite3.Connection, table: str, digest: str) -> None:
 # proceeded to a DELETE-only replacement against live D1.
 EXIT_OK = 0
 EXIT_VALIDATION = 2     # bad scope, unknown table, unprovable outbox — terminal
-EXIT_BUDGET = 3         # the cost guard refused — terminal
+# 3 was EXIT_BUDGET, retired 2026-08-12 with the cost guard. Left UNUSED rather
+# than recycled: a workflow or wrapper still branching on "exit 3 means refused"
+# would otherwise read some new meaning into an old number.
 EXIT_PUSH_FAILED = 4    # wrangler/transport — the only genuinely retryable one
 
-DEFAULT_MAX_BILLED_ROWS = 2_500_000
-
-# The per-push cap above bounds ONE invocation. It cannot bound a day: July's
-# campaign days were several pushes each, and no single one of them would have
-# tripped a 2.5M ceiling. So the cap also tightens when the cycle's allowance is
-# already spent — read from Cloudflare's own analytics, not guessed.
+# --- no cost guard lives here any more -------------------------------------
 #
-# ⚠️ The billing cycle is the 11th → the 10th, NOT the calendar month. Reasoning
-# off a calendar month has produced the wrong days-remaining twice. The allowance
-# and the reading itself live in src/d1_usage.py, imported above.
-
-# Once the allowance is gone every further row bills at $1/M. Routine lanes must
-# keep running — freezing the whole pipeline was July's *other* mistake, and it
-# cost four days of unwatched data for a bill the crons were not causing — but a
-# campaign should wait for the cycle to roll over. This cap passes a daily cron
-# (thousands of rows) and stops a backfill (millions).
-EXHAUSTED_CYCLE_CAP = 250_000
+# Removed 2026-08-12 at the owner's direction. What used to be here: a per-push
+# ceiling on estimated billed rows (--max-billed-rows, default 2.5M), a second
+# cap that tightened when the billing cycle's 50M allowance was spent
+# (EXHAUSTED_CYCLE_CAP), and a run ledger that made both cumulative across the
+# several pushes in one workflow run. A push over the line exited 3 and wrote
+# nothing.
+#
+# NOTHING REFUSES A PUSH ON COST NOW. The pricing below still runs and still
+# prints, because a cost nobody sees is a cost nobody manages — that half was
+# never the problem. But the number is advisory: this script will write whatever
+# it is pointed at, including the shapes that put July 2026 18.1M rows over the
+# allowance (three campaign days at 12.4M, 15.1M and 9.4M).
+#
+# What still stands between a mistake and the invoice, all of it upstream of
+# here and none of it a stop:
+#   * the content-hash skip below — a table whose rows are byte-identical to the
+#     last push is not re-sent at all. This is now the main defence, which is why
+#     its tests are the ones that survived the guard's removal.
+#   * per-partition digests (--skip-unchanged-partitions) on the audit lane.
+#   * upsert_validation / upsert_pl_roles / build_stages comparing before
+#     stamping, so an unchanged row never enters the push window to begin with.
+#   * scripts/healthcheck.py, which still reads rows-written for the cycle and
+#     is now the ONLY thing watching the allowance. It reports; it cannot stop
+#     anything. If cost is to be caught, it is caught there, after the fact.
 
 # D1 rejects any SQL statement over 100,000 bytes with SQLITE_TOOBIG. We build
 # multi-row INSERTs, so the batcher flushes on BYTES as well as on row count and
@@ -639,91 +639,6 @@ def touched_partitions(conn: sqlite3.Connection, hours: int) -> set[str] | None:
             "SELECT bank_ticker, period, kind FROM bank_audit_extractions "
             f"WHERE extracted_at >= datetime('now', '-{hours} hours')")
     }
-
-
-# A single workflow run calls this script more than once — the 2026Q2 audit
-# refresh pushed the audit tables, then the coverage spine. The cap was applied
-# per INVOCATION, so two pushes of 203,799 and 226,069 estimated rows each
-# "passed" a 250,000 cap while the run as a whole spent 429,868. The ledger
-# below makes the cap cumulative: set D1_RUN_LEDGER to a path (the workflow
-# points every push in a run at the same file) and each push counts what the
-# earlier ones already spent.
-RUN_LEDGER_ENV = "D1_RUN_LEDGER"
-
-
-def _ledger_path() -> Path | None:
-    p = os.environ.get(RUN_LEDGER_ENV)
-    return Path(p) if p else None
-
-
-def run_ledger_spent() -> int:
-    """Estimated billed rows already committed by earlier pushes in this run."""
-    p = _ledger_path()
-    if p is None or not p.is_file():
-        return 0
-    try:
-        return int(json.loads(p.read_text(encoding="utf-8")).get("estimated", 0))
-    except (ValueError, OSError):
-        # A corrupt ledger must not read as "nothing spent" — that is the
-        # failure-open direction, and this guard exists to fail closed.
-        raise SystemExit(
-            f"{RUN_LEDGER_ENV}={p} is unreadable; refusing to push blind")
-
-
-def run_ledger_add(estimated: int) -> None:
-    """Record what this push is about to spend, before it spends it."""
-    p = _ledger_path()
-    if p is None:
-        return
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps({"estimated": run_ledger_spent() + int(estimated)}),
-                 encoding="utf-8")
-
-
-def effective_cap(declared: int, used: int | None,
-                  run_spent: int = 0) -> tuple[int, str]:
-    """(cap, why) — the declared cap, tightened when the cycle is spent.
-
-    `used is None` leaves the declared cap alone: an unobservable cycle must not
-    silently relax OR tighten the rule, or the guard's behaviour depends on
-    whether an API answered.
-
-    `run_spent` is what earlier pushes in the SAME workflow run already booked.
-    It is subtracted from the RESULT, not from `declared` — taking it off the
-    input lets the cycle guard's own floor swallow it (min(2.3M, 250k) is still
-    250k), and the run ledger would silently stop applying in exactly the state
-    where it matters most: an exhausted allowance.
-    """
-    cap, why = _cycle_cap(declared, used)
-    if run_spent:
-        cap = max(0, cap - run_spent)
-        why = f"{why}; {run_spent:,} already booked earlier in this run"
-    return cap, why
-
-
-def _cycle_cap(declared: int, used: int | None) -> tuple[int, str]:
-    """The declared cap tightened by what the billing cycle has left."""
-    # ASCII only in these strings: they reach stderr on the refusal path, and
-    # stderr is NOT reconfigured to UTF-8 (only stdout is, at the top of this
-    # file), so a dash here mojibakes on a Windows console. Same reason as the
-    # note in resolve_tables.
-    if used is None:
-        return declared, "cycle usage unknown - per-push cap only"
-    headroom = D1_MONTHLY_ALLOWANCE - used
-    if headroom <= 0:
-        return (min(declared, EXHAUSTED_CYCLE_CAP),
-                f"allowance SPENT ({used:,}/{D1_MONTHLY_ALLOWANCE:,}) - "
-                f"campaign-sized pushes are held until the cycle rolls over")
-    # Positive headroom is not a blank cheque. Returning the full declared cap
-    # here let a 2.5M push through on 100k of remaining allowance and sail 2.4M
-    # past it — the guard would have "passed" the very run that blew the budget.
-    # The floor keeps routine lanes working when headroom is nearly gone, which
-    # is the same trade EXHAUSTED_CYCLE_CAP makes: crons run, campaigns wait.
-    cap = min(declared, max(headroom, EXHAUSTED_CYCLE_CAP))
-    if cap < declared:
-        return cap, (f"only {headroom:,} rows of allowance left this cycle - "
-                     f"cap tightened from {declared:,}")
-    return declared, f"{headroom:,} rows of allowance left this cycle"
 
 
 def index_count(conn: sqlite3.Connection, table: str) -> int:
@@ -1193,14 +1108,15 @@ def main() -> int:
                              "derived from src/audit_reports/registry.py; "
                              "'audit-refresh' adds the three coverage-spine tables. "
                              "The latter is for whole refreshes, not partition replacement.")
-    parser.add_argument("--max-billed-rows", type=int, default=DEFAULT_MAX_BILLED_ROWS,
-                        help="Refuse the push if the estimated BILLED rows exceed "
-                             "this (default %(default)s). Billed != logical: D1 "
-                             "counts index maintenance, and a full rebuild pays for "
-                             "its DELETE as well. The default clears every routine "
-                             "lane and a whole-audit-corpus push, and stops a "
-                             "runaway campaign. Raise it deliberately, in the "
-                             "workflow file, so the cost is reviewable in the diff.")
+    # --max-billed-rows was retired with the cost guard on 2026-08-12. It is
+    # accepted and IGNORED rather than rejected, so an old workflow file or a
+    # pasted command line does not die on an unrecognised flag; the value is
+    # never read. Drop the argument when the last caller stops passing it.
+    parser.add_argument("--max-billed-rows", type=int, default=None,
+                        help="IGNORED (accepted for compatibility). The cost "
+                             "guard this bounded was removed on 2026-08-12; no "
+                             "push is refused on cost. Estimated billed rows are "
+                             "still printed per table before every push.")
     parser.add_argument("--skip-unchanged-partitions", action="store_true",
                         help="Skip partitions whose rows are byte-identical to what "
                              "was last pushed (a fleet re-extraction then costs what "
@@ -1230,17 +1146,16 @@ def main() -> int:
                              "and then pushing, which left the rows gone whenever "
                              "the second call did not happen.")
     parser.add_argument("--check-only", action="store_true",
-                        help="Generate the SQL and apply the cost guard, then exit "
-                             "WITHOUT executing: 0 if the push would be affordable, "
-                             "3 if it would be refused. Callers that DELETE "
-                             "partitions in D1 before pushing must run this first, "
-                             "or a refusal lands after the rows are already gone.")
+                        help="Generate the SQL and print the estimated cost, then "
+                             "exit WITHOUT executing. Always 0 now that nothing "
+                             "refuses on cost — it reports what a push WOULD write "
+                             "rather than whether it would be allowed.")
+    # --no-cycle-check went with the guard: nothing reads the billing cycle here
+    # any more. Accepted and ignored for the same reason as --max-billed-rows.
     parser.add_argument("--no-cycle-check", action="store_true",
-                        help="Skip reading this cycle's rows-written from Cloudflare. "
-                             "The per-push cap still applies. Use when the analytics "
-                             "API is unavailable and the push is known-small; the "
-                             "reading is skipped automatically anyway when "
-                             "CLOUDFLARE_API_TOKEN / CF_ACCOUNT_TAG are absent.")
+                        help="IGNORED (accepted for compatibility). This script no "
+                             "longer reads cycle usage at all; scripts/healthcheck.py "
+                             "is the only remaining reader.")
     parser.add_argument("--db", type=str, default=str(DB),
                         help="SQLite staging DB to push from (default data/bddk_data.db). "
                              "The audit pipeline passes data/bank_audit.db so it can sync "
@@ -1428,44 +1343,23 @@ def main() -> int:
     # 50M monthly allowance and the whole overage was three campaign days
     # (12.4M + 15.1M + 9.4M); none of those runs announced what they were about
     # to write, and nothing stopped them.
+    #
+    # This announces. Since 2026-08-12 nothing stops them either: the estimate is
+    # REPORT-ONLY and the push proceeds at any size. Read it in the run log, or
+    # after the fact in scripts/healthcheck.py's cycle reading.
     est_total = sum(billed.values()) + sum(billed_pending.values())
     for t, v in billed_pending.items():
         billed[t] = billed.get(t, 0) + v
 
-    # Second layer: what is left of THIS cycle's allowance. The per-push cap
-    # cannot see that a day has already run eight pushes; this can.
-    used = None
-    if not args.no_cycle_check:
-        acct = os.environ.get("CF_ACCOUNT_TAG") or os.environ.get("R2_ACCOUNT_ID")
-        tok = os.environ.get("CLOUDFLARE_API_TOKEN")
-        if acct and tok:
-            used = cycle_rows_written(acct, tok)
-    cap, why = effective_cap(args.max_billed_rows, used, run_ledger_spent())
-
-    print(f"\nestimated billed rows: {est_total:,}   (cap {cap:,} — {why})")
+    print(f"\nestimated billed rows: {est_total:,}   (advisory — nothing is capped)")
     # Every table, not the top 8. The truncated list is what made the 2026Q2
     # per-table figures fail to sum to the total when they were read back.
     for tbl, n in sorted(billed.items(), key=lambda kv: -kv[1]):
         if n:
             print(f"   {n:>10,}  {tbl}")
-    if est_total > cap:
-        print(
-            f"\nREFUSING TO PUSH: estimated {est_total:,} billed rows exceeds the "
-            f"{cap:,} cap.\n"
-            f"  ({why})\n"
-            f"  D1 bills rows WRITTEN at $1.00/M after 50M a cycle, counts index\n"
-            f"  maintenance, and a full rebuild pays for its DELETE too.\n"
-            f"  If this much writing is intended, say so explicitly:\n"
-            f"    --max-billed-rows {est_total + est_total // 10}\n"
-            f"  Putting the number in the workflow file makes the cost reviewable\n"
-            f"  in the diff instead of discovered on the invoice. Cheaper first:\n"
-            f"  narrow --hours, narrow --only-tables, or wait for the cycle to\n"
-            f"  roll over on the 11th.",
-            file=sys.stderr)
-        return EXIT_BUDGET
 
     if args.check_only:
-        print("check-only: this push would be accepted")
+        print("check-only: not executing")
         return 0
 
     sql_path = Path(tempfile.gettempdir()) / "d1_incremental.sql"
@@ -1477,16 +1371,11 @@ def main() -> int:
         print("dry-run — skipping wrangler execute")
         return 0
 
-    # Book the spend BEFORE the write, not after. If wrangler dies mid-import
-    # the rows are still billed, and a later push in the same run must not get
-    # to spend the cap a second time on the strength of a failure.
-    run_ledger_add(est_total)
-
     rc = run_wrangler(sql_path)
     if rc != 0:
-        # Remapped: wrangler's own code could collide with EXIT_VALIDATION /
-        # EXIT_BUDGET and make a retryable transport failure look terminal (or
-        # the reverse). Callers branch on meaning, not on wrangler's number.
+        # Remapped: wrangler's own code could collide with EXIT_VALIDATION (or
+        # the retired 3) and make a retryable transport failure look terminal —
+        # or the reverse. Callers branch on meaning, not on wrangler's number.
         print(f"wrangler failed with exit code {rc}", file=sys.stderr)
         return EXIT_PUSH_FAILED
     if pending:
