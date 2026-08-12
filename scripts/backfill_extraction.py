@@ -38,7 +38,24 @@ from scripts.audit_d1 import (  # noqa: E402
     DB, PUSH_WINDOW_HOURS,
     pull_snapshot, ensure_d1_schema, clear_d1_partitions, push_snapshot,
 )
-from scripts.sync_audit_reports import extract_from_r2  # noqa: E402
+from scripts.sync_audit_reports import (  # noqa: E402
+    _restrict_to_latest_period, extract_from_r2, list_r2_pdfs,
+)
+
+
+def latest_period_in_r2(banks: set[str]) -> dict[str, str]:
+    """{ticker: newest period PRESENT IN R2} for `banks`.
+
+    ⚠️ Must be R2, not `bank_audit_extractions`. The two disagree exactly when a
+    quarter has been acquired but not yet extracted — which is the normal state
+    during a filing season, and the state any extraction stall creates. This
+    function is the shared answer so the DELETE below and `extract_from_r2`
+    cannot pick different quarters; when they did, `--latest-period` cleared the
+    DB's newest period (2026Q1) while the extractor re-read R2's newest (2026Q2),
+    leaving 2026Q1 with no extraction log row and nothing to rebuild it.
+    """
+    rows = [(t, p) for (t, p, _k, _key) in list_r2_pdfs() if t.upper() in banks]
+    return {t.upper(): p.upper() for t, p in _restrict_to_latest_period(rows)}
 
 
 def main() -> None:
@@ -81,9 +98,23 @@ def main() -> None:
         where = f"bank_ticker IN ({ph})"
         params: tuple = tuple(banks)
         if args.latest_period:
-            where += (" AND (bank_ticker, period) IN (SELECT bank_ticker, MAX(period) "
-                      f"FROM bank_audit_extractions WHERE bank_ticker IN ({ph}) GROUP BY bank_ticker)")
-            params = tuple(banks) * 2
+            # Scope the clear to the SAME quarter extract_from_r2 will re-read —
+            # the newest in R2. This used to be MAX(period) from
+            # bank_audit_extractions, and the two are only equal while every
+            # acquired PDF has been extracted. Whenever R2 was ahead (a live
+            # filing season, or any extraction stall) the clear took the older
+            # quarter and the re-extract took the newer, so the older one lost
+            # its log row and was never rebuilt.
+            latest = latest_period_in_r2(banks)
+            if not latest:
+                sys.exit("[backfill] --latest-period: no R2 PDFs for the named "
+                         "banks; refusing to clear anything.")
+            pairs = " OR ".join(["(bank_ticker=? AND period=?)"] * len(latest))
+            where += f" AND ({pairs})"
+            for t, p in sorted(latest.items()):
+                params += (t, p)
+            print("[backfill] latest period per bank (from R2): "
+                  + ", ".join(f"{t}:{p}" for t, p in sorted(latest.items())))
         for bank, period, kind in skips:
             where += " AND NOT (bank_ticker=? AND period=? AND kind=?)"
             params += (bank.upper(), period.upper(), kind.lower())
