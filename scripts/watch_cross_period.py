@@ -31,7 +31,9 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import math
 import sqlite3
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -45,10 +47,31 @@ from src.audit_reports.triage import value_columns     # noqa: E402
 
 DEFAULT_OUT = REPO / "docs" / "knowledge" / "triage"
 
-#: A clean power of ten, and the tolerance for calling a move "clean". Unit
-#: changes are exact; genuine growth of ~1000× is not, and lands off these.
-_SCALE_FACTORS = (1000.0, 100.0, 0.01, 0.001)
-_SCALE_TOL = 0.005
+#: How far from a power of ten a move may land and still count as one, in
+#: DECADES: 0.25 is a factor of ~1.8 either side.
+#:
+#: ⚠️ This was ±0.5% around an exact ×1000, which meant the check fired only if
+#: the bank's balance sheet had not moved AT ALL between the two quarters.
+#: Measured on the real seam it exists for — ANADOLU 2026Q2 unconsolidated,
+#: stored 1000x small — the ratio is 0.00109, not 0.001, because the bank also
+#: grew 9%. It was 0.00105 at 5% growth and 0.00121 at 21%. Every one of those
+#: missed. The repo had already written the evidence down and not applied it
+#: here: TEB's 2026Q2 ratio is recorded in PROJECT_STATE as "950.6 (not exactly
+#: 1000 because the bank also grew ~5%)", and the SQL sweep that found it used a
+#: deliberately wide band, `> 50 or < 0.02`.
+#:
+#: So the test is on the ORDER OF MAGNITUDE, not on an exact multiple. A quarter
+#: of real change never crosses a decade; a unit error always does. At 0.25 a
+#: genuine 5x move stays clear (0.30 decades) while an 8x move is reported —
+#: which is worth a look regardless, and this lane only ever raises an alert.
+_SCALE_DECADE_TOL = 0.25
+
+#: Ratios that an actual denomination change can produce. `units.UNIT_SCALE` is
+#: {bin: 1, milyon: 1_000, milyar: 1_000_000}, so every confusion between two of
+#: them is ×1000 or ×1,000,000, either direction. ×10 and ×100 are real findings
+#: worth printing, but they are not a reporting unit and must not raise the
+#: alarm that is.
+_UNIT_RATIOS = frozenset({1e3, 1e6, 1e-3, 1e-6})
 
 #: Rows are compared only in their CURRENT-period form. A 'prior' row restates
 #: an earlier year-end and legitimately differs from the previous filing's
@@ -107,14 +130,18 @@ def load(conn: sqlite3.Connection, table: str, bank: str, period: str,
 
 
 def scale_factor(now: float, before: float) -> float | None:
-    """The clean power of ten between two values, if there is one."""
-    if not before or not now:
+    """The power of ten between two values, if the move spans whole decades.
+
+    Sign changes are not scale changes — a provision flipping +x to -x is a
+    different question — so both values must share a sign.
+    """
+    if not before or not now or (now > 0) != (before > 0):
         return None
-    ratio = now / before
-    for f in _SCALE_FACTORS:
-        if abs(ratio - f) <= abs(f) * _SCALE_TOL:
-            return f
-    return None
+    decades = math.log10(abs(now / before))
+    nearest = round(decades)
+    if nearest == 0 or abs(decades - nearest) > _SCALE_DECADE_TOL:
+        return None
+    return 10.0 ** nearest
 
 
 def compare(conn: sqlite3.Connection, table: str, bank: str, kind: str,
@@ -134,7 +161,11 @@ def compare(conn: sqlite3.Connection, table: str, bank: str, kind: str,
             continue
         for col, v in vals.items():
             prev_v = before[k].get(col)
-            if prev_v is None or abs(v) < min_amount:
+            # Material in EITHER quarter. Testing only `now` hid the exact case
+            # this exists for: a shrunk-by-1000 row is tiny by construction, so
+            # ANADOLU's 212.6bn of assets became 212,600 and fell under the
+            # 1,000,000 floor — the error made itself invisible to the check.
+            if prev_v is None or max(abs(v), abs(prev_v)) < min_amount:
                 continue
             f = scale_factor(v, prev_v)
             if f is not None:
@@ -150,14 +181,30 @@ def compare(conn: sqlite3.Connection, table: str, bank: str, kind: str,
     if not (shifts or gone or new):
         return None
 
-    by_factor = collections.Counter(s["factor"] for s in shifts)
+    # One row moving by a decade is a correction; a statement moving TOGETHER by
+    # a factor that is actually a unit ratio is the filing changing denomination.
+    #
+    # Two things this got wrong, both visible in its own output as rows moved
+    # "7/5" — more rows than the statement has:
+    #
+    #  * it counted CELLS against ROWS. `shifts` holds one entry per (row,
+    #    column), so a 4-row table with three value columns could report 12
+    #    against 4 and clear any share test. Distinct rows is the honest count.
+    #  * it accepted any power of ten. A Turkish filing denominates in bin,
+    #    milyon or milyar, so a unit confusion is ×1000 or ×1,000,000 and never
+    #    ×10 — yet ×10 in the 4-row FX-position table was 13 of the 30 findings
+    #    on a corpus with no unit error left in it. A single currency moving a
+    #    decade is an FX question, not a denomination change.
+    by_rows: dict[float, set[str]] = collections.defaultdict(set)
+    for s in shifts:
+        by_rows[s["factor"]].add(s["row"])
     unit_switch = None
-    if by_factor:
-        f, n = by_factor.most_common(1)[0]
-        # One row moving by 1000× is a correction; most of a statement moving by
-        # the SAME factor is the filing changing its reporting unit.
-        if n >= 3 and n >= 0.4 * len(now):
-            unit_switch = {"factor": f, "rows": n, "of": len(now)}
+    for f, rows in sorted(by_rows.items(), key=lambda kv: -len(kv[1])):
+        if f not in _UNIT_RATIOS:
+            continue
+        if len(rows) >= 3 and len(rows) >= 0.6 * len(now):
+            unit_switch = {"factor": f, "rows": len(rows), "of": len(now)}
+        break
     return {
         "bank_ticker": bank, "period": period, "prior_period": before_p,
         "kind": kind, "table": table,
@@ -220,10 +267,49 @@ def write_report(findings: list[dict], out_dir: Path, scanned: int) -> Path:
     return path
 
 
+def alert_unit_switches(findings: list[dict]) -> None:
+    """Ping Telegram/Discord when a partition looks denominated differently from
+    the quarter before it.
+
+    ONLY unit switches. The seam report also lists ×10 moves, rows that vanished
+    and rows that appeared, and there are thousands of those across the corpus —
+    real questions, but a daily message carrying them is a daily message nobody
+    reads. A unit switch is the one finding here that is silent everywhere else
+    in the system and wrong every time it appears: the corpus baseline is zero
+    across 15,638 seams and 4.5 years.
+    """
+    switches = [f for f in findings if f["unit_switch"]]
+    if not switches:
+        print("[watch] no reporting-unit change against the prior quarter",
+              flush=True)
+        return
+    lines = []
+    for f in switches[:6]:
+        u = f["unit_switch"]
+        lines.append(f"• {f['bank_ticker']} {f['prior_period']}→{f['period']} "
+                     f"{f['kind'][:5]} {f['table'].replace('bank_audit_', '')}: "
+                     f"×{u['factor']:g} on {u['rows']}/{u['of']} rows")
+    more = f"\n…and {len(switches) - 6} more" if len(switches) > 6 else ""
+    msg = (f"🚨 Audit reporting-unit change: {len(switches)} partition(s) are "
+           f"denominated differently from the quarter before.\n"
+           + "\n".join(lines) + more +
+           "\nEvery in-filing identity still passes when this happens — check "
+           "the filing's declared unit before trusting the figures.")
+    try:
+        subprocess.run([sys.executable, str(REPO / "scripts" / "notify.py"), msg],
+                       check=False)
+    except Exception as e:                                       # noqa: BLE001
+        print(f"[watch] notify failed: {e}", file=sys.stderr)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
+    ap.add_argument("--alert", action="store_true",
+                    help="send a Telegram/Discord message when a partition's "
+                         "denomination moved against the prior quarter, and "
+                         "always exit 0 (alert-only; never blocks a pipeline).")
     ap.add_argument("--table", help="one table; default = every validated lane")
     ap.add_argument("--bank")
     ap.add_argument("--since", default="", help="only periods >= this, e.g. 2025Q1")
@@ -235,7 +321,10 @@ def main() -> int:
     db_path = Path(args.db)
     if not db_path.exists():
         print(f"no audit DB at {db_path}")
-        return 1
+        # Alert-only callers are wired into a pipeline that has already written
+        # its rows; a missing snapshot is their problem to report, not a reason
+        # for this step to take the job down with it.
+        return 0 if args.alert else 1
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
 
@@ -278,6 +367,8 @@ def main() -> int:
         print(f"report → {path.relative_to(REPO)}")
     except ValueError:
         print(f"report → {path}")
+    if args.alert:
+        alert_unit_switches(findings)
     return 0
 
 

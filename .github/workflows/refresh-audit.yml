@@ -189,6 +189,27 @@ jobs:
         # of these steps.
         run: python scripts/sync_audit_expected.py --db data/bank_audit.db
 
+      - name: Cross-period unit watch (alert-only)
+        if: steps.sync.outputs.changed == 'true'
+        # The ONLY check in this pipeline that can see a reporting-unit error.
+        # Every validator the audit lane runs argues INSIDE one filing —
+        # TL+FC=Total, parent=Σchildren, closing=opening+flows — and a uniform
+        # change of denomination scales both sides of each, so all of them foot
+        # while every stored figure is wrong by 1000x. It has happened twice:
+        # TEB 2026Q2, caught by hand, and ANADOLU 2026Q2, which sat live for
+        # days because this comparison existed only in a MANUAL workflow and
+        # nobody ran it. Hence: here, daily, beside the extraction that creates
+        # the risk.
+        #
+        # Alert-only by construction — it opens no PDF, writes no row, touches
+        # neither D1 nor R2, and exits 0 under --alert even with no snapshot, so
+        # it can never take down a run whose data is already written.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/watch_cross_period.py --db data/bank_audit.db --alert
+
       - name: Audit data-quality check (alert-only)
         if: steps.sync.outputs.changed == 'true'
         # Flags silent extraction errors — a quarter whose lines are identical to

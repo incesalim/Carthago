@@ -275,6 +275,85 @@ def test_previous_quarter_wraps_the_year():
     assert scale_factor(1_150, 1_000) is None
 
 
+def test_a_unit_error_is_still_seen_through_a_quarter_of_growth():
+    """THE regression. This check was ±0.5% around an exact ×1000, so it fired
+    only if the bank's balance sheet had not moved at all between the quarters —
+    which never happens. On the seam it exists for, ANADOLU 2026Q2 stored 1000x
+    small, the ratio is 0.00109 rather than 0.001 because the bank also grew 9%,
+    and the check said nothing. TEB's was 950.6 for the same reason."""
+    from watch_cross_period import scale_factor
+    base = 30_000_000
+    for growth in (1.00, 1.02, 1.05, 1.09, 1.21, 1.5):
+        assert scale_factor(base * growth / 1000, base) == 0.001, growth
+        assert scale_factor(base * growth * 1000, base) == 1000.0, growth
+    # and ordinary quarters stay quiet, including a doubling
+    for growth in (0.85, 1.0, 1.09, 1.5, 2.0):
+        assert scale_factor(base * growth, base) is None, growth
+
+
+def test_a_sign_flip_is_not_a_scale_change():
+    """A provision going +x to -x is a different question, and log10 of a
+    negative ratio is not a number."""
+    from watch_cross_period import scale_factor
+    assert scale_factor(-1_000_000, 1_000) is None
+    assert scale_factor(1_000_000, -1_000) is None
+
+
+def _seam(now_vals, before_vals, table="bank_audit_balance_sheet"):
+    """Run `compare` over one hand-built seam. Returns the finding or None."""
+    import sqlite3
+
+    from src.audit_reports.schema import init_schema
+    from watch_cross_period import compare, row_key_columns
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    for period, vals in (("2026Q1", before_vals), ("2026Q2", now_vals)):
+        conn.executemany(
+            "INSERT INTO bank_audit_balance_sheet (bank_ticker, period, kind, "
+            "statement, item_order, hierarchy, item_name, amount_total) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            [("B", period, "unconsolidated", "assets", i, f"{i}.", f"row {i}", v)
+             for i, v in enumerate(vals)])
+    conn.commit()
+    conn.row_factory = sqlite3.Row
+    present = {c[1] for c in conn.execute(
+        f"PRAGMA table_info({table})").fetchall()}
+    return compare(conn, table, "B", "unconsolidated", "2026Q2",
+                   row_key_columns(present), ["amount_total"], 1_000_000)
+
+
+def test_a_shrunken_partition_is_material_on_what_it_WAS():
+    """Materiality tested only the current value, so a row shrunk by 1000 fell
+    under the floor and the error hid itself: ANADOLU's 212.6bn of assets became
+    212,600 against a min-amount of 1,000,000."""
+    before = [30_000_000, 55_000_000, 20_000_000, 60_000_000, 25_000_000]
+    now = [v * 1.09 / 1000 for v in before]      # every row now far below the floor
+    f = _seam(now, before)
+    assert f and f["unit_switch"], "a 1000x shrink must not hide under the floor"
+    assert f["unit_switch"]["factor"] == 0.001
+
+
+def test_a_decade_move_is_reported_but_is_not_a_unit_alarm():
+    """×10 is a real finding and gets printed, but bin/milyon/milyar only ever
+    differ by 1000, so it must not raise the alarm. Thirteen of the thirty
+    'unit changes' on a corpus with no unit error left in it were ×10 in the
+    four-row FX table."""
+    before = [30_000_000, 55_000_000, 20_000_000, 60_000_000, 25_000_000]
+    f = _seam([v * 10 for v in before], before)
+    assert f and f["scale_shifts"], "the ×10 move should still be reported"
+    assert f["unit_switch"] is None, "×10 is not a denomination"
+
+
+def test_the_row_share_counts_rows_not_cells():
+    """`shifts` holds one entry per (row, column), so counting it against the
+    row total could report 'moved 7/5' — more rows than the statement has — and
+    clear any share test on a wide table."""
+    before = [30_000_000] + [50_000_000] * 9      # 10 rows
+    now = [before[0] / 1000] + before[1:]          # exactly ONE row shifted
+    f = _seam(now, before)
+    assert f and f["unit_switch"] is None, "one row in ten is a correction"
+
+
 class _Row(dict):
     """A stand-in for sqlite3.Row: item access plus .keys()."""
 
