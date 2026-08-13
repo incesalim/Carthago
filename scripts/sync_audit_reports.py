@@ -72,23 +72,23 @@ UA = {
 }
 # Banks whose CDN blocks bare requests — supply Referer to bypass.
 #
-# VAKBN and ZIRAATK were added 2026-08-13 after both refused the runner on the
-# 2026Q2 files: four fetches returned `not-pdf:b'<!DOCTYP'` within a second,
-# which is a WAF page, not a slow download. The same URLs with the exact headers
-# above return the real 2.8 MB documents from a Turkish address, so the trigger
-# is the request looking origin-less, not the URL. A Referer is the cheapest
-# thing that distinguishes the two; if it stops working the fallback is to fetch
-# the bytes elsewhere and put them in R2 under `r2_storage.make_key`, which is
-# all the scrape step does anyway.
+# ⚠️ A Referer does NOT rescue VAKBN or ZIRAATK, and both were tried and removed
+# on 2026-08-13. Their 2026Q2 files are the only four targets in the fleet that
+# refuse this runner: without a Referer both answer `not-pdf:b'<!DOCTYP'` inside
+# a second, and *with* one ZIRAATK returns a different reject page while VAKBN
+# stops answering at all and burns the full 120s timeout — strictly worse, since
+# a hanging target is what fed the systemic alarm that stalled this lane for six
+# days. The same URLs with the exact headers above return the real 2.8 MB
+# documents from a Turkish address, so the block is on who is asking, not what
+# is asked for, and no header fixes that. Route those two through BdrUyg when it
+# publishes the quarter (see AUDIT_BANK_CATALOG.md).
 REFERERS = {
-    "TSKB":    "https://www.tskb.com.tr/en/investor-relations/financial-information",
-    "QNBFB":   "https://www.qnb.com.tr/en/investor-relations/financial-information",
-    "PASHA":   "https://www.pashabank.com.tr/tr/yatirimci-iliskileri",
-    "AKTIF":   "https://www.aktifbank.com.tr/hakkimizda/finansal-bilgiler/denetim-raporlari",
-    "VAKIFK":  "https://www.vakifkatilim.com.tr/",
-    "DUNYAK":  "https://dunyakatilim.com.tr/yatirimci-iliskileri",
-    "VAKBN":   "https://www.vakifbank.com.tr/tr/bankamiz/yatirimci-iliskileri/finansal-bilgiler",
-    "ZIRAATK": "https://www.ziraatkatilim.com.tr/yatirimci-iliskileri/finansal-bilgileri",
+    "TSKB":   "https://www.tskb.com.tr/en/investor-relations/financial-information",
+    "QNBFB":  "https://www.qnb.com.tr/en/investor-relations/financial-information",
+    "PASHA":  "https://www.pashabank.com.tr/tr/yatirimci-iliskileri",
+    "AKTIF":  "https://www.aktifbank.com.tr/hakkimizda/finansal-bilgiler/denetim-raporlari",
+    "VAKIFK": "https://www.vakifkatilim.com.tr/",
+    "DUNYAK": "https://dunyakatilim.com.tr/yatirimci-iliskileri",
 }
 
 def _restrict_to_latest_period(rows: list, t_idx: int = 0, p_idx: int = 1) -> list:
