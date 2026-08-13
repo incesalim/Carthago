@@ -542,7 +542,8 @@
           "2025Q2": "https://www.denizbank.com/medium/document-file-10384.vsf",
           "2025Q3": "https://www.denizbank.com/medium/document-file-10897.vsf",
           "2025Q4": "https://www.denizbank.com/medium/document-file-11193.vsf",
-          "2026Q1": "https://www.denizbank.com/medium/document-file-11464.vsf"
+          "2026Q1": "https://www.denizbank.com/medium/document-file-11464.vsf",
+          "2026Q2": "https://www.denizbank.com/medium/document-file-11775.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.denizbank.com/medium/document-file-6823.vsf",
@@ -561,7 +562,8 @@
           "2025Q2": "https://www.denizbank.com/medium/document-file-10385.vsf",
           "2025Q3": "https://www.denizbank.com/medium/document-file-10899.vsf",
           "2025Q4": "https://www.denizbank.com/medium/document-file-11195.vsf",
-          "2026Q1": "https://www.denizbank.com/medium/document-file-11463.vsf"
+          "2026Q1": "https://www.denizbank.com/medium/document-file-11463.vsf",
+          "2026Q2": "https://www.denizbank.com/medium/document-file-11776.vsf"
         }
       }
     },
@@ -1244,7 +1246,8 @@
           "2025Q2": "https://www.alternatifbank.com.tr/uploads/20250805112826639.pdf",
           "2025Q3": "https://www.alternatifbank.com.tr/uploads/20251107175324639.pdf",
           "2025Q4": "https://www.alternatifbank.com.tr/uploads/20260219112046181536.pdf",
-          "2026Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-124-KONSOLIDE-2026-03.zip"
+          "2026Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-124-KONSOLIDE-2026-03.zip",
+          "2026Q2": "https://www.alternatifbank.com.tr/uploads/20260804155219639.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.alternatifbank.com.tr/uploads/20220429075605639.pdf",
@@ -1263,7 +1266,8 @@
           "2025Q2": "https://www.alternatifbank.com.tr/uploads/20250805113329639.pdf",
           "2025Q3": "https://www.alternatifbank.com.tr/uploads/20251107180353639.pdf",
           "2025Q4": "https://www.alternatifbank.com.tr/uploads/20260219132613639.pdf",
-          "2026Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-124-SOLO-2026-03.zip"
+          "2026Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-124-SOLO-2026-03.zip",
+          "2026Q2": "https://www.alternatifbank.com.tr/uploads/20260804160210639.pdf"
         }
       },
       "_note": "2026Q1 sourced from BDDK BdrUyg (institution code 124) — Alternatifbank FILED it (BdrUyg lists SOLO + KONSOLIDE 2026-03) but had not yet published it on its own IR site, whose newest report is still 31.12.2025. BdrUyg serves a ZIP; fetch_pdf_bytes unwraps it and verifies BDDK's chain via src/scrapers/_http.bddk_verify()."
