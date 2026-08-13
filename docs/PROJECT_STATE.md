@@ -49,6 +49,8 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_source_lines` | BRSA PDFs, bounded disclosure pages for 8 completeness-targeted lanes | **schema + automatic capture complete 2026-08-07; historical population pending the manual backfill** | Local/R2 snapshot only, never D1: every PyMuPDF-reconstructed physical line + printed numeric tokens + `mapped_key`. Near-full lanes (`equity_change`, `loans_by_sector`, `npl_movement`) treat an unmapped numeric data row as validation failure; selected-summary lanes retain the deliberately omitted detail for inspection without redefining their analytical schemas. |
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
+| `bank_audit_document_pages/_blocks/_lines/_cells/_notes` | BRSA PDFs, **every page** | **schema + engine complete 2026-08-07; corpus backfill run locally over the 162-PDF sample, fleet run pending** | Local only, in its own `data/bank_audit_capture.db` (like `bank_audit_prose.db`) — **never D1, never the audit snapshot**. Document-scoped, not lane-scoped: every table the filing prints, including ones no parser targets. Rows→`_lines` (with `role` ∈ data/heading/footnote/paragraph/furniture and `logical_row` grouping wrapped labels), columns→`_blocks.col_x` (right-edge clusters, so headers that wrap or letter-space don't matter), cells→`_cells` (`col_index` + parsed `value`), notes→`_notes` (marker, full wrapped text, and `linked_lines_json` — the rows printing that marker). `/Rotate 90` pages go through `page.rotation_matrix`, so the landscape 17-column equity statement reads as rows. Writes no analytical row, so it is safe over the settled BS/P&L. Per-partition JSONL mirror in `data/audit_capture/` |
+| `bank_audit_document_manifest` | Derived from the capture ledger | **migration `0043`; written by `scripts/backfill_document_capture.py`** | The only part of full-document capture that reaches D1: one row per filing with page/table-page/block/line/cell/note counts plus `content_hash` (text), `shape_hash` (template with values masked) and `grid_hash` (block/column/row geometry — the signal a lane parser is about to break), plus `vector_page_count` — pages whose tables are drawn glyph outlines and so could not be read at all (`capture_status='partial'`). Unchanged rows are not restamped |
 | `bank_audit_extractions` | extraction log | one row per PDF | **1,093 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-13). 2026Q2 is the live edge at **42 partitions across 24 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
@@ -650,6 +652,345 @@ change. **TSKB 2026Q2** is not a bug — both URLs on TSKB's own IR page serve
 14-page KAP notifications, so the bank has not filed; R2 holds two stale cover
 sheets that scrape, extraction and coverage all correctly refuse
 (`pdf_present=0 / missing`), and it self-heals when the real report appears.
+
+**Full-document table capture added 2026-08-07 (fleet backfill pending).** The
+completeness contract below is lane-scoped: it can only see pages a lane locator
+finds. `src/audit_reports/document_capture.py` takes the same idea
+document-scoped — every page of every filing, every table it prints, as rows,
+inferred columns and cells, with each footnote linked to the rows carrying its
+marker. Columns are clustered from the right edges of the figures rather than
+read off a header row, which is why wrapped, letter-spaced and missing headers
+do not matter; `/Rotate 90` pages go through `page.rotation_matrix`, so the
+landscape 17-column equity statement reads as rows instead of noise. It calls no
+analytical upsert, so it is safe over the frozen BS/P&L. The ledger lives in its
+own `data/bank_audit_capture.db` (plus a per-partition JSONL mirror in
+`data/audit_capture/`) and its own R2 object — never the audit snapshot, which
+every workflow downloads. Only `bank_audit_document_manifest` reaches D1: one row
+per filing carrying counts and three hashes (`content_hash` text, `shape_hash`
+template-with-values-masked, `grid_hash` block/column/row geometry — the signal a
+lane parser is about to break). Run it with
+`backfill-document-capture.yml`.
+
+**Fleet capture completed locally 2026-08-13 — 1,095/1,095 filings, zero
+failures, 6,219s.** The corpus is **122,583 blocks, 5,418,465 lines, 11,172,412
+cells and 64,608 notes (60,155 linked to the rows carrying their marker —
+93.1%)**. Footprint: **3.09 GB ledger + 2.55 GB JSONL**, with the source PDFs a
+further 2.65 GB when kept (`--pdf-dir`, gitignored at `data/audit_pdfs/`, which
+makes a re-capture a local read instead of a 3.3 GB re-fetch).
+`--jsonl-gzip` cuts the export by ~85% at the cost of plain-text grep.
+
+⚠️ **Two published estimates were wrong and are superseded by that run.** The
+earlier 162-PDF sample projected ~6.6M cells; the fleet holds **11.2M**, because
+the engine places more per filing than when the projection was written. And
+`backfill_document_capture.py` still says the corpus is "~10 GB" in two comments
+— the R2 objects total **3.33 GB** across 1,148 PDFs (mean 2.9 MB, largest
+57.8 MB). Prefer the measured figures above; the projections were never
+re-measured after the engine changed.
+
+**The capture is now READ by a check — `scripts/check_capture_reconcile.py`
+(2026-08-13).** Until this, nothing consumed the ledger: it was evidence with no
+consumer. Every per-partition validator is an *internal* identity, and a uniform
+unit change scales both sides equally, so none of them can see a partition stored
+at the wrong reporting scale — that is how TEB 2026Q2 landed 1000× small with a
+clean validation run. The capture is the external anchor: a stored figure should
+be a printed cell times the scale its declared unit implies, and the unit itself
+is read off the captured text by `units.regex_unit`, so no PDF is needed.
+
+⚠️ **The direction matters and is easy to get backwards.** `UNIT_SCALE` maps
+milyon→×1000, so a correctly ingested Milyon filing stores printed×1000 — "stored
+÷1000 is printed" is the HEALTHY state. The bug is the reverse: figures fitting a
+factor OTHER than the filing's own declaration. A first draft of the check tested
+this backwards and would have failed every properly ingested Milyon filing;
+`tests/test_capture_reconcile.py` pins both directions.
+
+**Fleet result 2026-08-13: 1,050 partitions reconciled, median 97.3%** (p1 94.4%,
+11 below 95%), **zero `unit_scale` findings and zero unreadable declarations** —
+the TEB class of failure is absent fleet-wide, which nothing else in the pipeline
+could establish. Two errors, both open: FIBA 2023Q3 (19.0%, the missed vector
+filing described below) and **ISCTR 2025Q1 consolidated (61.3%, 396/646, lanes
+cash_flow 11% / oci 14% / profit_loss 40% — undiagnosed, and unlike FIBA it is
+lane-specific rather than document-wide, so it is a different cause)**.
+`MIN_RATE=0.85` sits below p1 by ~9 points, so it is not firing on normal spread.
+
+**Where the capture now stands, and what the remaining findings are (measured
+2026-08-07).** Holdout of twelve banks never tuned against: **1,304 of 1,435
+tables clean (90.9%)**, no dead columns, 1,650 of 1,717 blocks with named
+columns.
+
+**The holdout generalised — confirmed fleet-wide 2026-08-13.** Linting all 1,095
+captured filings gives **110,707 of 122,583 tables clean (90.3%)**, against the
+holdout's 90.9%. That is the number this section exists to establish: the tuning
+did not overfit to the twelve. (The superseded engine, still on disk as
+`data/bank_audit_capture.stale.db`, lints at **50.2%** over the 191 filings it
+covered, which is the before-picture for that gap.) Fleet finding totals:
+`fragment_label` 4,204, `empty_row` 4,112, `no_column_headers` 3,843,
+`row_without_label` 2,066, `prose_row_in_table` 1,597, `note_without_table`
+1,230, `note_link_missed` 869, `unreadable_page` 225, `weak_column` 173,
+`note_truncated` 136. `unreadable_page` matches the manifest's vector-page count
+exactly, so lint and capture agree on the size of the hole.
+
+The residue is largely NOT defect:
+
+| finding | count | what it is |
+|---|---|---|
+| `no_column_headers` | 64 | 13 tables genuinely print no header; 11 have TEXT columns the value-clustering cannot see; the rest a hard tail |
+| `fragment_label` | 44 | structurally blind to fragments repaired by merging — measure lower-case row labels (287) instead |
+| `unreadable_page` | 40 | Fibabanka's vector filings; needs OCR, not parsing |
+| `row_without_label` | 31 | mixed; 8 were lint error, fixed |
+| `empty_row` | 30 | header fragments, period captions, wrapped-label pieces |
+| `note_link_missed` | 11 | legal citations, correctly unlinked |
+| `prose_row_in_table` | 8 | genuine narrative inside a table |
+| `weak_column` | 3 | genuinely sparse real columns |
+
+`prose_row_in_table` fell **24 → 8** by fixing the LINT, not the capture: a long
+label ending in a full stop is not narrative, because BRSA writes
+capital-deduction rows as whole sentences ("Investments of Bank to Banks that
+invest in Bank's additional equity … compatible with Article 7.") with their
+figures in columns beside them. What marks a row as narrative is that its
+figures sit INSIDE the sentence — the same inline-versus-channel distinction the
+capture uses. 16 of the 24 were real rows.
+
+**Columns one row could fill (fixed 2026-08-07).** The residue of the dead-column
+prune: a phantom that exactly one row reaches. A single cell is NOT sufficient
+evidence — a footnote-reference column legitimately carries a value on 4 of 38
+rows on TSKB's balance sheet — so the prune fires only where that one cell can
+be shown never to have been a cell: a figure sitting inline in the row's own
+label ("Less than 1 Year" → 1, "II. TMS 8 Uyarınca" → 8, "ayında 1.229 milyar
+TL" → 1.229), or the row's own section numbering ("9.3.", "5.10.2"). Measured
+over the 15-filing set: **single-cell columns 21 → 3**, the three survivors
+being genuinely sparse real values, with blocks, rows and **total cells all
+unchanged** — a pruned column's figure stays captured, it simply stops claiming
+a column it never belonged to. Holdout clean **89.5% → 90.2%**.
+
+**Columns no row could fill (fixed 2026-08-07).** A column is inferred from
+value edges before prose rows are dropped and before cells are matched to it
+within tolerance, so a cluster could survive holding nothing. Most came from a
+figure inside a row label — "Less than 1 Year", "Longer than 5 Years" put a
+bare 1 and 5 in the label region — and Garanti p131 carried two such columns
+8pt apart. 21 of the 30 sat first in their table. Empty columns are now pruned
+after cells are assigned and the survivors reindexed: **dead columns 30 → 0
+with blocks, rows, cells and placed cells all unchanged**, holdout clean
+**88.2% → 89.5%**.
+
+Refusing the edge instead — letting only channel-reached values vote — was
+measured and reverted: it removed 403 columns to kill 12 dead ones, costing 9
+blocks, 139 rows and 1,563 placed cells, because a narrow table sets adjacent
+figures closer than a channel and their columns stopped being found at all.
+Pruning after the fact cannot lose data, which is why it is the safe form of
+the same idea. A phantom column holding ONE cell still survives as
+`weak_column`; that is the residue.
+
+**A table could take the header of the table above it (fixed 2026-08-07).**
+Garanti stacks four tables on one page, and the reach-back that finds a header
+above a block was finding the PREVIOUS table's as well as its own. Mapped
+together the two produce fragments the plausibility filter discards, so a table
+with a perfectly good header printed one line above it rendered as "c0 c1";
+where both tables carried the same header, the result was a doubled "Current
+Period Current Period". A candidate separated from the block by a line
+belonging to another block is now dropped — a header cannot sit on the far side
+of a different table.
+
+Measured directly over 1,717 blocks with columns rather than by the lint count:
+**5 tables gained a header, 0 lost one, and 113 had a wrong header corrected** —
+"Net Gross Current Period" → "Current Period", "Loans Corporate / Commercial
+Loans" → "Corporate / Commercial Loans". `no_column_headers` fell 70 → 65 and
+holdout clean reached **88.2%**, with +0 blocks, rows and cells. The lint sees
+only the 5; the 113 are invisible to it, which is why the direct measure is the
+one to steer by here.
+
+**A label could not wrap over a figureless line (fixed 2026-08-07).** Albaraka's
+exposure classes print a row over three lines — "3 Receivables from" (the row
+number alone) / "administrative units and non-" / "commercial enterprises 68.234
+…". The column-completion walk stops at the first line that carries no figures,
+so the head stayed a labelled row with none and the figures sat under a
+fragment. It now steps over such a line when the line RESUMES the label in lower
+case; an upper-case line is the next row, not this one's continuation.
+
+**The lint disagreed, and the lint was wrong.** `fragment_label` rose 42 → 44
+and clean tables fell by one, because that rule only fires on a SINGLE-line row
+(`len(parts) == 1`) — merging a fragment into its head exempts the row from the
+check rather than counting it as repaired, so the rule can never see the defect
+it is named for. Measured directly over every logical row in the 15-filing set
+instead: labels beginning in lower case fell **342 → 287**, and 57 lines joined
+the rows they belong to, with +0 blocks and +0 cells. Prefer that measure over
+`fragment_label` when judging this class.
+
+**Row 1 of a table could not wrap (fixed 2026-08-07).** A merge is barred from
+starting on a block's first line, because that line is the column header far
+more often than it is a wrapped label. BRSA risk-class tables open straight onto
+a wrapped data row — "1 Receivables from central" / "governments or central
+banks 34.833.367 …" — and because the row number is itself a cell, the cell-less
+wrap branch never saw the line either. Row 1 of every such table lost half its
+label while rows 2..n merged correctly, across Albaraka, ICBC, TEB and Halkbank
+alike. The bar now lifts only when the first line opens with a row marker AND
+the next resumes in lower case, which no header does. `fragment_label` fell
+**50 → 42**, holdout clean **87.6% → 87.9%**, 172 lines regrouped with +0
+blocks, rows and cells; every regrouped block was inspected and none was a
+header.
+
+Still split: a THREE-line wrap whose head holds only the row number
+("3 Receivables from" / "administrative units and non-" + figures /
+"commercial enterprises"). The middle and tail bind; the number-only head does
+not. Pre-existing, unchanged by this fix.
+
+**A row could take the NEXT row's label (fixed 2026-08-07).** Garanti's
+landscape deposit table prints every long label on its own line above its
+figures — "Public Sector Deposits" / figures / "Commercial Deposits" / figures.
+The rule that binds a wrapped label TAIL printed under a row's figures bound
+each of those labels to the row above, so one logical row carried "Public
+Sector Deposits Commercial Deposits" against Public Sector's figures while
+Commercial's figures were left with no label at all. That is a **mislabelled**
+row, not a missing one — wrong data rather than absent data, and it surfaced
+only as a `row_without_label` count on the orphaned half.
+
+Orthography cannot separate a tail from a new label: a real tail is title-cased
+as often as not ("Financial Assets At Fair Value Through Other" / figures /
+"Comprehensive Income"), and requiring a lower-case resume orphaned exactly
+those — it regrouped 1,287 lines and broke the TSKB three-line row this
+document records as recovered in iteration 15. What separates them is what
+follows: a new row's label is followed by its own figures, a tail is not. With
+that test, 5 lines change across fifteen filings and both cases are right.
+`row_without_label` fell 41 → 39 from the fix and to **31** once the lint
+stopped reading a date as an amount ("30.09.2023" contains "0.092", so every row
+of an FX-rate table identified by its date read as one that had lost its label).
+Holdout clean **87.2% → 87.6%**, +0 blocks, rows and cells.
+
+**A note that owned no table linked to nothing (fixed 2026-08-07).** Every one
+of the three linking passes was gated on the note having an owning block, so a
+footnote on a page with no table recorded its relationship nowhere — Garanti's
+ratings pages print "(*) Latest date in risk ratings or outlooks" under
+"MOODY'S (October 2025) (*)" with no table anywhere on the page. Ownerless
+notes now link to the lines carrying their marker, **but only for star markers**:
+"(1)" and "(i)" are equally how a filing cites a regulation — Halkbank prints
+"Clause 2, Paragraph (1) and (2) of the Regulation" as ordinary text — so
+linking those would invent a reference the filing never makes. Across the
+12-bank holdout `note_link_missed` fell **44 → 11**, the 11 being exactly the
+non-star citations that must stay unlinked, and notes linked to rows rose
+**716 → 749** with +0 blocks, rows and cells.
+
+**Sideways margin text was being dealt across table rows (fixed 2026-08-07).**
+Garanti prints "The accompanying notes are an integral part of these
+consolidated financial statements" rotated 90° down the left margin of its
+landscape equity statement. Each word sits at its own y, so y-bucketing handed
+one word to each table row: "accompanying VII. Capital Reserves…", "notes XI.
+Profit Distribution", "are 11.2 Transfers to Reserves" — the sentence dealt
+across the table, one card per row. `_sideways_x` now finds such a column by
+which dimension stays CONSTANT down it: every rotated word is one glyph-height
+wide with height proportional to its length (12 words at x=30, all 5.98 wide,
+heights 4.55–31.83), where an upright column is the transpose (roman numerals
+all 9.96 tall, widths 5.25–17.74). The words are pulled out of the row
+clustering but NOT discarded — Albaraka names the row groups of its
+credit-ratings table the same way — each column becoming one line, ordered by
+the writing direction PyMuPDF reports per span, because Garanti's advances down
+the page (0,+1) and Albaraka's up it (0,−1). `fragment_label` fell 56 → 50 and
+holdout clean reached **87.2%**, with +0 blocks and the other twelve filings
+byte-identical.
+
+Two false positives were measured and fixed before shipping, neither visible in
+any lint count: judging each word by its own aspect ratio condemned the roman
+numerals on every contents page (`III.`, `VII.` are narrow enough to be taller
+than wide), and constancy without scale condemned columns of `-` placeholders —
+which is how a BRSA statement prints *not disclosed* — plus real amounts of
+equal digit count (VAKIFK p53 lost 45.400.031, 33.896.880, 81.550.957).
+
+**A numeric header read as a data row (fixed 2026-08-07).** The header test
+asked only whether a line had a figure aligned to a column, on the assumption
+that a header's own figures are dates sitting nowhere near one. A header can be
+numeric by nature: Halkbank names its risk-weight columns "0% 10% 20% 50% 75%
+100%", each printed over the column it labels, and dates its shareholder columns
+"31 December 2025 | 31 December 2024" above the amounts. Both read as data, so
+the tables rendered "c0 c1 c2" with the header one line above the figures. A
+relaxed test (`_aligned_amounts`) now runs as a **last resort**, and header
+figures are admitted as header words there. `no_column_headers` fell **110 → 70**
+on the 12-bank holdout and clean tables **84.3% → 87.1%**, with +0 blocks, rows
+and cells.
+
+Ordering was measured, not assumed. Running the relaxed test *first* answered
+for tables whose caption would have answered better — Garanti p11 went from
+"TL | CURRENT PERIOD FC | Total | …" to "March | December", 96 headers changed
+against 16 gained. Placed last, it only fills silence: 18 gained, 2 changed and
+both improved. Allowing a bare percentage to be a header fragment then recovered
+the risk-weight tables themselves (ALBRK p82/p83 from nine empty columns to
+"0% 10% 20% 25% 35% 50% 75% 100% 150% 250%").
+
+Still open on this path: a header row admitted this way is also kept as the
+table's first data row (Halkbank p97 prints its percentages twice), and a header
+INSIDE the block that the relaxed test still rejects leaves the table unlabelled
+(Halkbank p10).
+
+**A column can hold text, and those columns were being dropped (fixed
+2026-08-07).** Garanti's board table prints "Süleyman Sözen | Chairman |
+29.05.1997 | University | 45 years" — five columns, every boundary a wide
+channel, of which only two hold figures. `_infer_columns` clusters value edges,
+so it saw two columns, filed "45" under "Education", and lost "Chairman" and
+"University" outright; they survived only by being swallowed into a row label
+that read as the entire line. `_channel_fields` now splits a line into the
+fields it prints, the label is the first field, and every later field that is
+not purely figures is captured as a text cell. **+11,045 cells across eight
+filings with +0 blocks and +6 rows** — additive, no table gained or lost. A
+mixed field is kept whole: Akbank answers "Aracın muhasebesel olarak takip
+edildiği hesap" with "Sermaye Benzeri Krediler (347011 Muhasebe Hesabı)", and
+an earlier version that skipped any field containing a figure reduced that to
+"(347011".
+
+Text cells that match no value-derived column keep `col_index=NULL` — recorded
+but unplaced. Clustering the field edges so they would get real columns **was
+measured and reverted**: it cost 30 blocks and 272 rows across eight filings
+(Akbank alone −11 and −72), because the extra edges shift cluster support until
+blocks stop reaching their terminal column. The board table's grid is therefore
+still two columns wide; its text is captured, not placed.
+
+**Narrative was being minted into tables (fixed 2026-08-07).** Turkish prose
+defeats column clustering by being too regular: consecutive sentences opening
+"4 Mart 2003 tarihinde…", "28 Kasım 2006 tarihinde…" put the day at the left
+margin and the year at a near-constant x, because the month names are similar
+widths. Those dates clustered into two clean columns and passed every structural
+test the capture had — the run footed, the rows were long, the figures were
+substantial — so Fibabanka's corporate history was captured as a 4×2 grid of day
+and year fragments. `_every_figure_is_inline` now rejects a block in which every
+figure is reached at word spacing rather than across a column channel; the gap
+to a figure's **left** is the discriminator (88–237pt in a real table against
+2.4–3.0pt in a sentence). Measured over the 12-bank holdout: **55 phantom blocks
+removed of 1,490**, clean tables **81.7% → 84.3%**, with `no_column_headers`
+140→112, `fragment_label` 78→52 and `weak_column` 51→21 falling as a consequence.
+Judging by the word that FOLLOWS a figure was tried first and is wrong — every
+amount in Akbank's FX valuation table is followed by "TL" at word spacing, so
+that version deleted a real 6-row table while every lint count improved. It was
+caught by diffing captured blocks, which is now the check that gates this rule.
+
+**Some filings are legible on screen and unreadable to any extractor (detected
+2026-08-07).** Fibabanka typesets its statements and converts the glyphs to
+vector outlines: the balance sheet renders perfectly and carries no text at all —
+28,366 curve segments and 35 extracted words on the page. The capture of
+`FIBA 2022Q1 consolidated` therefore returned **13 tables and 71 rows from 92
+pages**, where its twelve readable peers return 1,200–2,500 rows, and nothing in
+the output said so; it read as a small bank filing a short report. `_probe_text_layer`
+now measures path items per extracted word on any page that yielded no table.
+The corpus separates cleanly — drawn pages score **54–2,050**, every typed page
+(ruled statement grids included) scores **0–1** — so the threshold sits in an
+empty band two orders of magnitude wide. Affected pages are stamped
+`bank_audit_document_pages.text_layer='vector'`, counted into
+`bank_audit_document_manifest.vector_page_count`, and the filing's
+`capture_status` becomes `partial`; `lint_document_capture.py` reports each one
+as `unreadable_page`. Measured over the **full fleet (2026-08-13)**: **13 of
+1,095 filings** carry a drawn page, 225 pages in all — FIBA 9 filings / 209
+pages, ATBANK 2 / 12, DUNYAK 1 / 3, TAKAS 1 / 1. (The earlier partial-corpus
+figure was "18 of 307", which overstated the rate ~4× and missed DUNYAK and
+TAKAS entirely.) 39 of 92 pages in FIBA 2022Q1 are drawn, the balance sheet,
+P&L and cash flow among them. Recovering those rows needs OCR, which the capture
+engine deliberately does not do; what it does is refuse to report the gap as data.
+
+⚠️ **The probe misses a filing of this kind (open, found 2026-08-13).** FIBA
+2023Q3 consolidated is stamped `captured` with `vector_page_count=0`, yet yields
+**10 blocks and 2,546 cells from 93 pages** against FIBA's own average of 89
+blocks / 8,474 cells — and only `check_capture_reconcile.py` saw it (19.0% of
+stored figures absent from the capture). Its pages score below the paths-per-word
+band, plausibly because `_probe_text_layer` runs only on a page that yielded NO
+table, so a page with typed labels and drawn figures produces a small table and
+is never probed. Mechanism unconfirmed; do not "fix" the threshold before
+reproducing it.
+A page carrying typed prose above a drawn table (FIBA p.29) keeps its prose and
+is still flagged, because its tables are gone.
 
 **Source-table completeness contract added 2026-08-07 (historical backfill pending).**
 The stable audit tables no longer have to pretend that their schema proves the whole PDF

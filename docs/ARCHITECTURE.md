@@ -152,10 +152,11 @@ knows is running:
 | `summarize-regulations.yml` | Sun 06:00 UTC | `summarize_regulations.py` → `regulation_briefings` (weekly Kimi briefing; needs `KIMI_API_TOKEN`) |
 | `generate-reads.yml` | Sun 07:30 UTC | `generate_read_headlines.py` → `read_headlines` (free-LLM rewrite of the one-sentence lead on each T1 tab; number-validated, and shown only while its `det_hash` matches the live page) |
 
-Six more workflows are **manual dispatch only**. Five exist to load or strengthen
+Seven more workflows are **manual dispatch only**. Six exist to load or strengthen
 history, not to keep it fresh: `backfill-audit.yml`,
-`backfill-audit-source-capture.yml`, `backfill-faaliyet.yml`,
-`backfill-nonbank.yml` and `backfill-tefas.yml`. The sixth,
+`backfill-audit-source-capture.yml`, `backfill-document-capture.yml`,
+`backfill-faaliyet.yml`,
+`backfill-nonbank.yml` and `backfill-tefas.yml`. The seventh,
 `repair-loans-zeros.yml`, is a one-time idempotent correction — it re-derives the
 zeros `_save_loans` discarded (falsy `or` chains turned every reported 0 into
 NULL) from the raw responses already on disk. Recipes in
@@ -195,6 +196,19 @@ D1. It never calls an analytical upsert. Near-full lanes fail on an unknown nume
 source row; selected-summary lanes retain/count their intentionally omitted detail.
 New extracts do this in the normal transaction; this workflow only closes the
 historical gap.
+
+**`backfill-document-capture.yml`** (dispatch-only) — the same idea taken from
+lane-scoped to **document-scoped**. It reads every page of every filing and
+records each table the bank prints — rows, inferred columns, cells — plus the
+footnotes that qualify them, linked to the rows carrying their marker. Its point
+is that a table nobody has written a parser for yet is captured anyway, so
+adding a lane later is a query against the ledger instead of a fleet re-read of
+1,050 PDFs. It writes no analytical row, so it is safe over the settled BS/P&L.
+The ledger (5.4M lines / 11.2M cells, measured over the full fleet 2026-08-13)
+goes to its own R2 object and its own
+local `data/bank_audit_capture.db`, never into the audit snapshot that every
+workflow downloads; only `bank_audit_document_manifest` — one row per filing —
+reaches D1.
 
 **`measure-free-provision.yml`** (dispatch-only) — the same read-only posture,
 aimed at one extractor. It downloads every audit PDF from R2, re-runs
