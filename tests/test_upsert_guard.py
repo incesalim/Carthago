@@ -119,3 +119,55 @@ def test_balance_sheet_pair_is_protected_only_when_full_gate_passes():
     assert c.execute(
         "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
         (B,)).fetchone()[0] == 2
+
+
+# --- the guard cannot protect a partition whose UNIT moved --------------------
+
+def _seed_extraction_unit(c: sqlite3.Connection, unit: str) -> None:
+    c.execute(
+        "INSERT OR REPLACE INTO bank_audit_extractions "
+        "(bank_ticker, period, kind, pdf_path, source_unit, success) "
+        "VALUES (?,?,?,?,?,1)", (B, P, K, "x.pdf", unit))
+    c.commit()
+
+
+def test_a_changed_unit_defeats_the_passes_validation_guard():
+    """ANADOLU 2026Q2 unconsolidated, 2026-08-13. Stored under a misdetected
+    `bin` while the filing prints Milyon, so every amount was 1000x small and
+    every identity still passed — a uniform scale change divides both sides.
+    After the detector was fixed, the re-extraction rewrote `source_unit` to
+    `milyon` and this guard protected all the wrong figures on the strength of
+    the validation the error is invisible to. The partition came out MORE
+    inconsistent: metadata claiming a scale the figures did not have."""
+    c = _conn()
+    _seed_balance_sheet(c, cross_failed=0)     # passing — normally protected
+    _seed_extraction_unit(c, "bin")
+    upsert_report(c, B, P, K, _empty(), "x.pdf",
+                  unit=UnitContext(source_unit="milyon", factor=1_000))
+    assert c.execute(
+        "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
+        (B,)).fetchone()[0] == 0, "stale-scale rows must not survive a unit change"
+
+
+def test_the_same_unit_still_protects_a_passing_statement():
+    """The override is narrow: only a MOVED unit defeats the guard. A routine
+    re-extract of a partition whose unit is unchanged stays non-destructive."""
+    c = _conn()
+    _seed_balance_sheet(c, cross_failed=0)
+    _seed_extraction_unit(c, "bin")
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
+    assert c.execute(
+        "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
+        (B,)).fetchone()[0] == 2
+
+
+def test_a_first_extraction_is_not_treated_as_a_unit_change():
+    """No prior extractions row means nothing to contradict — the guard applies
+    as usual rather than being skipped by a None != 'milyon' comparison."""
+    c = _conn()
+    _seed_balance_sheet(c, cross_failed=0)     # passing, and no extractions row
+    upsert_report(c, B, P, K, _empty(), "x.pdf",
+                  unit=UnitContext(source_unit="milyon", factor=1_000))
+    assert c.execute(
+        "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
+        (B,)).fetchone()[0] == 2

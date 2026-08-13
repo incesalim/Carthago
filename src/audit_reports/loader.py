@@ -77,6 +77,37 @@ def upsert_report(
 
     from .validator import statement_passes
 
+    # A CHANGED reporting unit defeats the non-destructive guard below, because
+    # the guard's evidence is validation and validation cannot see a unit.
+    #
+    # ANADOLU 2026Q2 unconsolidated, 2026-08-13: stored under a misdetected
+    # `bin` when the filing prints Milyon, so every amount sat 1000x small —
+    # total assets 212.6bn against 0.2bn — and every identity still passed,
+    # because a uniform scale change divides both sides of each one. The
+    # detector was then fixed and the partition re-extracted with --force. The
+    # extraction ran, `source_unit` was rewritten to `milyon`... and `_keep`
+    # protected all the wrong figures, on the strength of the very validation
+    # the error is invisible to. The push then reported "none changed" and the
+    # partition was left MORE inconsistent than before: metadata saying the
+    # figures had been scaled, sitting on figures that had not.
+    #
+    # So the guard is skipped exactly when the unit moved. This is narrower than
+    # --force-overwrite (which discards the passing/failing distinction for
+    # everything) and it makes a detector fix self-healing: re-extract and the
+    # partition corrects itself, instead of needing a flag that no workflow
+    # currently exposes.
+    prior_unit_row = cur.execute(
+        'SELECT source_unit FROM bank_audit_extractions '
+        'WHERE bank_ticker=? AND period=? AND kind=?',
+        (bank_ticker, period, kind)).fetchone()
+    prior_unit = prior_unit_row[0] if prior_unit_row else None
+    unit_changed = prior_unit is not None and prior_unit != unit.source_unit
+    if unit_changed:
+        print(f"  [unit] {bank_ticker} {period} {kind}: {prior_unit} -> "
+              f"{unit.source_unit}; every stored amount is at the old scale, so "
+              f"the passes-validation guard is skipped for this partition",
+              flush=True)
+
     def _keep(lane_key: str) -> bool:
         """Protect this registered lane's stored rows (skip the re-write)?
 
@@ -86,7 +117,7 @@ def upsert_report(
         that relationship graph.
         """
         gates = registry.validation_gate(lane_key)
-        return bool(gates) and (not force) and all(
+        return bool(gates) and (not force) and (not unit_changed) and all(
             statement_passes(conn, bank_ticker, period, kind, statement)
             for statement in gates
         )
