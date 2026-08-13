@@ -284,6 +284,13 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
         "source_data_row_count", "mapped_data_row_count",
         "unmapped_data_row_count", "normalized_row_count",
     }),
+    # Full-document capture's footprint: page/line/cell/note tallies only. It
+    # summarises how much of each filing was captured — it holds no figure the
+    # filing printed, so nothing here is ever unit-scaled.
+    "bank_audit_document_manifest": frozenset({
+        "page_count", "table_page_count", "block_count", "line_count",
+        "cell_count", "note_count", "linked_note_count",
+    }),
 }
 
 

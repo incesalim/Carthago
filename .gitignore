@@ -78,6 +78,19 @@ scripts/_weekly_catalogue.json
 # NB: data/metric_knowledge/ is NOT scratch — it's the committed banking-metric
 # knowledge registry (hand-curated reference data; see docs/BANKING_METRICS.md).
 data/eye/
+# Full-document capture: the per-partition JSONL mirror of every table in every
+# filing (~2.5 GB at fleet scale). Local/R2 evidence, never the repo. The ledger
+# DB beside it (data/bank_audit_capture.db) is already covered by *.db.
+data/audit_capture/
+# Superseded-engine capture, set aside during the 2026-08-13 fleet re-run so the
+# new ledger was unambiguous. Safe to delete once nothing needs the before/after
+# comparison; ignored meanwhile so a `git add -A` cannot sweep it in.
+data/audit_capture.stale/
+# The filing PDFs themselves, kept on disk so the capture engine can be re-run
+# over the whole fleet without re-fetching 3.3 GB from R2 each time
+# (backfill_document_capture.py --pdf-dir). R2 remains the authority; this is a
+# local cache and never enters the repo — the data carries BDDK/KAP terms.
+data/audit_pdfs/
 data/fleet_scratch.db
 data/_anomalies_*.txt
 data/run_*.cmd

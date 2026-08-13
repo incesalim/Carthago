@@ -94,6 +94,7 @@ SYNC_TABLES = [
     "bank_audit_extractions",
     "bank_audit_pl_roles",
     "bank_audit_capture_manifest",
+    "bank_audit_document_manifest",
     "evds_series",
     "news_items",
     "news_item_banks",
@@ -732,6 +733,11 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table in ("bank_audit_extractions", "bank_audit_capture_manifest"):
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
+    elif table == "bank_audit_document_manifest":
+        # Stamped only when a count or hash actually moved (document_store
+        # compares before writing), so the window ships genuinely re-captured
+        # filings and nothing else.
+        where = f"WHERE captured_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_validation":
         where = f"WHERE validated_at >= datetime('now', '-{hours} hours')"
     elif table in ("bank_audit_pl_roles", "bank_audit_coverage"):

@@ -173,16 +173,16 @@ def test_factor_one_takes_the_same_path_as_factor_one_thousand():
         {"amount_tl": 3.0, "item_order": 1}
 
 
-def test_thirteen_tables_carry_money_and_eight_carry_none():
-    """13 + 8 = the 21 D1 audit tables. Pinned so adding a table forces
+def test_thirteen_tables_carry_money_and_nine_carry_none():
+    """13 + 9 = the 22 D1 audit tables. Pinned so adding a table forces
     a deliberate classification rather than a silent default to not-money."""
     money = set(U.MONEY_COLUMNS)
     none = {"bank_audit_liquidity", "bank_audit_profile", "bank_audit_opinion",
             "bank_audit_validation", "bank_audit_extractions",
             "bank_audit_pl_roles", "bank_audit_prose",
-            "bank_audit_capture_manifest"}
+            "bank_audit_capture_manifest", "bank_audit_document_manifest"}
     assert len(money) == 13
-    assert len(none) == 8
+    assert len(none) == 9
     assert money | none == set(AUDIT_TABLES)
     for t in none:
         assert U.money_columns(t) == frozenset()

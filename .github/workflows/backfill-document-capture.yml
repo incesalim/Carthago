@@ -1,0 +1,96 @@
+name: Backfill full-document capture
+
+# Manual fleet capture of EVERY table each filing prints — rows, columns, cells
+# and the notes that qualify them. It writes no analytical row, so it is safe
+# over the settled balance-sheet and P&L partitions.
+#
+# The raw ledger (~5.4M lines / ~6.6M cells corpus-wide) never reaches D1: it is
+# uploaded to R2 as its own object, exactly like the prose lane's local DB. Only
+# `bank_audit_document_manifest` — one row per filing — is pushed.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "ALL or a single ticker"
+        type: string
+        default: "ALL"
+      period:
+        description: "Single YYYYQn; blank = all"
+        type: string
+        default: ""
+      limit:
+        description: "Maximum PDFs after filters; 0 = all"
+        type: number
+        default: 0
+      push_manifest:
+        description: "Push the compact manifest to D1 (raw ledger never goes)"
+        type: boolean
+        default: true
+      upload_ledger:
+        description: "Upload the raw capture DB to R2"
+        type: boolean
+        default: true
+      dry_run:
+        description: "Capture and report only; no local, R2 or D1 writes"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: Document capture -> local ledger + D1 manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (wrangler)
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Capture every table
+        env:
+          BANKS: ${{ inputs.banks }}
+          PERIOD: ${{ inputs.period }}
+          LIMIT: ${{ inputs.limit }}
+          PUSH: ${{ inputs.push_manifest && '--push' || '' }}
+          LEDGER: ${{ inputs.upload_ledger && '--upload-ledger' || '' }}
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          args=(--from-r2 --pull-snapshot --limit "$LIMIT")
+          [ "$BANKS" != "ALL" ] && args+=(--bank "$BANKS")
+          [ -n "$PERIOD" ] && args+=(--period "$PERIOD")
+          [ -n "$PUSH" ] && args+=("$PUSH")
+          [ -n "$LEDGER" ] && args+=("$LEDGER")
+          [ -n "$DRY" ] && args+=("$DRY")
+          python scripts/backfill_document_capture.py "${args[@]}"
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

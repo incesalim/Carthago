@@ -224,7 +224,13 @@ def validation_gate(key: str) -> tuple[str, ...]:
 # Not statement types — but every audit D1 push and every partition clear must
 # carry them.
 INFRA_TABLES: list[str] = ["bank_audit_validation", "bank_audit_extractions",
-                           "bank_audit_pl_roles", "bank_audit_capture_manifest"]
+                           "bank_audit_pl_roles", "bank_audit_capture_manifest",
+                           # Full-document capture's compact footprint. The raw
+                           # ledger it summarises lives in its own local DB
+                           # (data/bank_audit_capture.db, ~6.6M cells) and never
+                           # reaches D1; this one row per filing is the whole D1
+                           # contract. See src/audit_reports/document_store.py.
+                           "bank_audit_document_manifest"]
 
 # Every bank_audit_* table the audit lane writes: one per registered statement
 # type (deduped — the balance sheet carries three sub-statements) plus the infra
