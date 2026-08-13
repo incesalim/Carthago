@@ -49,7 +49,7 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_source_lines` | BRSA PDFs, bounded disclosure pages for 8 completeness-targeted lanes | **schema + automatic capture complete 2026-08-07; historical population pending the manual backfill** | Local/R2 snapshot only, never D1: every PyMuPDF-reconstructed physical line + printed numeric tokens + `mapped_key`. Near-full lanes (`equity_change`, `loans_by_sector`, `npl_movement`) treat an unmapped numeric data row as validation failure; selected-summary lanes retain the deliberately omitted detail for inspection without redefining their analytical schemas. |
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
-| `bank_audit_extractions` | extraction log | one row per PDF | **1,073 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-12). 2026Q2 is the live edge at **23 partitions**. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
+| `bank_audit_extractions` | extraction log | one row per PDF | **1,093 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-13). 2026Q2 is the live edge at **42 partitions across 24 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
@@ -68,6 +68,105 @@ acquisition reads IR pages, and a bank files on KAP days before its own site
 catches up. As of **2026-08-01** seven banks have released 2026Q2 reports —
 KLNMA (07-24), TEB (07-26), AKBNK (07-28), TSKB (07-29), GARAN (07-30),
 YKBNK (07-31) and ENPARA. The other 30 are still at 2026Q1.
+
+**2026Q2 stands at 42 partitions / 24 banks (2026-08-13)**, up from 23 / 13 the
+day before. Eleven banks were added in one pass — ATBANK, BURGAN, EMLAK, ODEA,
+SKBNK, TAKAS, ZIRAATD, ZIRAATK, DENIZ, ALNTF, VAKBN — and **most had been
+sitting on published filings for weeks**: DENIZ filed 07-24 and ALNTF 08-04.
+
+**That backlog is structural, not an oversight.** `DISCOVERY_BANKS` holds 13
+banks; for the other 25 a published filing is invisible until its URL is added
+by hand, and nothing reports that it is missing. Expect to repeat this every
+quarter until discovery covers more of the fleet. Three of the eleven could not
+have been reached by substituting the date into the bank's own 2026Q1 URL:
+SKBNK appended `-062026`, EMLAK renamed the document
+`_sinirli-denetim-raporu_`, and ODEA's CMS serves an opaque
+`document-file-1648.vsf`. Naming is per-filing, not per-bank. **EMLAK is in
+`DISCOVERY_BANKS` and still needed the hand-add**, because its skeleton changed
+and discovery therefore matched nothing; the new entry repairs it.
+
+Sourcing quirks found in the same pass are in
+[AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md): **VAKBN and ZIRAATK refuse the
+GitHub runner** (WAF page in under a second; the same URLs with the same headers
+return the real 2.8 MB documents from a Turkish address — a Referer makes VAKBN
+strictly worse, so 2026Q2 was hand-acquired into R2 and the durable route is
+BdrUyg, institutions `015` and `209`), and **DENIZ and ALNTF keep their document
+list one level below the configured `ir_page`, rendered in JS** — invisible to
+any HTTP probe, plain in a browser.
+
+**14 banks are still behind.** TSKB is serving a 14-page KAP cover sheet, which
+the gate correctly refuses. The other 13 have not filed: AKTIF, COLENDI, DUNYAK,
+EXIM, HAYATK, HSBC, ICBCT, ISCTR, KUVEYT, QNBFB, TFKB, TOMK, VAKIFK. ANADOLU's
+consolidated half is unfiled too. The unconsolidated deadline is 14 August and
+consolidated ~13 September, so most land in the coming weeks.
+
+**⚠️ ANADOLU 2026Q2 unconsolidated was stored 1000× small and was live for
+days (fixed 2026-08-13).** Total assets read **₺0.2bn against ₺212.6bn** the
+quarter before. Every in-filing identity passed, because a uniform change of
+denomination scales both sides of each one. Three separate defects had to line
+up, and each is worth knowing on its own:
+
+1. **The unit detector believed whichever declaration came first.** A filing
+   that switched to Milyon usually leaves stale boilerplate behind, and *which*
+   text is stale differs by bank. Measured over all 44 2026Q2 filings in R2,
+   **12 contradict themselves inside the front 22 pages**: ANADOLU's auditor
+   letter (p4) is stale at `bin` against 17 statement pages saying Milyon;
+   **ATBANK consolidated is the exact mirror**, 16 stale page headers saying
+   `Bin` against p4 and the change note; HALKB consolidated is bilingual with
+   one stale English page. No positional or statistical rule survives all
+   three — majority reads ATBANK wrong and would store a *correct* partition
+   1000× too big. The tie is now broken by **authority**: the sentence stating
+   the filing *changed* presentation currency wins outright (11 of the 12),
+   then unanimity (32 of 44), then a strict majority (HALKB alone), then
+   UNKNOWN, which `scale_factor` turns into a refusal. 44/44 correct, with
+   ground truth taken from the cross-period anchor, not from any declaration.
+   A latent crash went with it: `'MİLYON'.lower()` is `'mi̇lyon'` (i + combining
+   dot above), not a `_NORM` key — live in the corpus (EMLAK ×14, ZIRAATK ×7,
+   GARAN ×1) and never fired only because it was never the *first* match.
+2. **A re-extraction could not correct it.** `upsert_report` is
+   non-destructive: a lane whose rows pass validation is left alone. Its
+   evidence is validation, and validation is the one thing a unit error cannot
+   fail — so the guard protected the wrong figures *because* they were wrong in
+   the only way it cannot see, rewrote `source_unit` to `milyon`, and left the
+   partition claiming a scale its figures did not have. The guard now steps
+   aside when the resolved unit differs from the one recorded for the
+   partition, which makes a detector fix self-healing. (`--force` re-extracts;
+   only `--force-overwrite` defeats the guard, and no workflow exposes it.)
+3. **Nothing was watching.** See the watch entry below.
+
+Repaired by `purge-partition.yml` + a targeted re-extract, since the earlier
+run had already flipped `source_unit` and defeated the new trigger: **₺231.7bn,
+QoQ 1.09**, inside the sector's 1.02–1.21 band. A sweep for any total-assets
+ratio below 0.8 or above 1.5, both kinds, now returns nothing.
+
+**`watch_cross_period.py` runs daily in `refresh-audit.yml`, alert-only
+(2026-08-13)** — the only check in the pipeline that can see a reporting-unit
+error, and until now it existed solely in a manual workflow nobody ran. **It
+could not have fired as written**, for two reasons found by benching it against
+the real seam rather than by reading it:
+
+- `scale_factor` accepted a power of ten only within **±0.5%**, so it fired
+  only if the bank's balance sheet had not moved *at all* between the quarters.
+  ANADOLU's ratio is 0.00109, not 0.001, because the bank also grew 9%. The
+  evidence was already in this document and unapplied — TEB's is recorded as
+  "950.6 (not exactly 1000 because the bank also grew ~5%)", and the sweep that
+  caught TEB used `> 50 or < 0.02`. Now judged on order of magnitude: within
+  0.25 decades of a non-zero power of ten.
+- materiality tested the **current** value only, so a row shrunk by 1000 fell
+  under the floor — ₺212.6bn became 212,600 against a 1,000,000 minimum. The
+  error hid itself from the check written to find it. Now material in either
+  quarter.
+
+Tightened the other way too, or it would cry wolf daily: on a corpus with no
+unit error left in it the old heuristic claimed **30** reporting-unit changes,
+counting **cells against rows** (its own output reads "moved 7/5", more rows
+than the statement has) and accepting **×10**, which no Turkish denomination can
+produce — bin, milyon and milyar differ by 1000, and 13 of the 30 were ×10 in
+the four-row FX table. Now distinct rows, a unit-ratio factor, a 0.6 share.
+Measured end to end: **0 findings over 15,638 seams** on the live snapshot;
+replaying the real ANADOLU bug into a copy raises exactly **3**, all that
+partition (`balance_sheet` ×0.001 on 69/101 rows, `credit_quality`,
+`fx_position`). Silent until it is not.
 
 **KAP is the earliest signal, and it is already wired up.** `src/news/sources/kap.py`
 returns `disclosureClass: "FR"` rows carrying `year` / `ruleType` / `period`
