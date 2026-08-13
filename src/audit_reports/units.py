@@ -28,6 +28,7 @@ refused: UNKNOWN means "look at this filing", never "assume thousands".
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,6 +49,37 @@ _NORM = {
     "milyon": "milyon", "million": "milyon",
     "milyar": "milyar", "billion": "milyar",
 }
+
+# The sentence a filing prints when it CHANGES presentation currency:
+#   "…finansal tabloların sunum para birimi Bin Türk Lirası (Bin TL) yerine
+#    Milyon Türk Lirası (Milyon TL) olarak değiştirilmiştir."
+# The unit after `yerine` ("instead of") is the one in force. This is the only
+# statement in a filing that is about the CURRENT unit rather than repeating a
+# header, which is why it outranks every other declaration — see `regex_unit`.
+_TRANSITION_TR = re.compile(
+    r"para\s+birimi.{0,80}?(bin|milyon|milyar)\s+t[uü]rk\s+liras[iı]"
+    r".{0,60}?yerine\s+(bin|milyon|milyar)\s+t[uü]rk\s+liras[iı]"
+    r".{0,120}?de[gğ]i[sş]tir", re.I | re.S)
+
+# English counterpart. NO filing in the 2026Q2 corpus exercises this — every
+# bank that switched printed the Turkish sentence, including the bilingual ones
+# — so it is pinned by a unit test rather than by measurement. It is here so an
+# English-only filer that switches is not silently left to the majority tier.
+_TRANSITION_EN = re.compile(
+    r"presentation\s+currency.{0,120}?\bfrom\s+(thousand|million|billion)s?"
+    r".{0,80}?\bto\s+(thousand|million|billion)s?", re.I | re.S)
+
+# `'MİLYON'.lower()` is 'mi̇lyon' — U+0130 lowercases to i + COMBINING DOT
+# ABOVE, which is not a _NORM key and used to raise KeyError. UNIT_RE matches
+# the form under re.I, so the crash was one filing away the whole time: it fires
+# only when the dotted-İ spelling is the FIRST declaration, and in the 2026Q2
+# corpus (EMLAK ×14, ZIRAATK ×7, GARAN ×1) it never was.
+_TR_FOLD = str.maketrans({"İ": "i", "ı": "i"})
+
+
+def _fold(word: str) -> str:
+    """Turkish-safe lowercase for a _NORM lookup."""
+    return word.translate(_TR_FOLD).lower().replace("̇", "")
 
 #: Stored denomination. History is `bin`; everything normalises to it.
 CANONICAL_UNIT = "bin"
@@ -71,12 +103,61 @@ def within_sweep(period: str) -> bool:
 
 
 def regex_unit(pages: list[str]) -> str | None:
-    """First unit declaration in the front pages, normalised; None = UNKNOWN."""
-    for text in pages[:FRONT_PAGES]:
-        m = UNIT_RE.search(text)
+    """The unit a filing's figures are printed in; None = UNKNOWN.
+
+    ⚠️ NOT the first declaration. A filing that switched to Milyon commonly
+    leaves stale boilerplate behind, and which text is stale differs by bank —
+    measured over all 44 2026Q2 filings in R2, of which **12 contradict
+    themselves inside the front 22 pages**:
+
+    - ANADOLU unconsolidated — the AUDITOR'S LETTER (p4) is stale at "bin"
+      while all 17 statement pages say Milyon. First-match read `bin`, the
+      partition stored 1000x small, and every in-filing identity still footed:
+      total assets went 212.6bn -> 0.2bn and nothing caught it.
+    - ATBANK consolidated — the exact mirror. 16 STATEMENT-PAGE HEADERS are
+      stale at "Bin" and only p4 plus the change note say Milyon. So the
+      opposite rule ("headers beat the letter") breaks this one, and so does
+      majority: 16 bin vs 2 milyon, with milyon the truth.
+    - HALKB consolidated — bilingual, and the single ENGLISH page is stale
+      ("thousand Turkish Lira") against 16 Turkish pages saying Milyon.
+
+    No position rule survives all three. The resolution is by AUTHORITY:
+
+    1. the explicit transition statement, if present. It states what the unit
+       now IS, rather than repeating a header, and it is printed by exactly the
+       filings whose boilerplate is inconsistent — 11 of those 12;
+    2. otherwise a unanimous declaration (32 of 44);
+    3. otherwise a strict majority of pages (HALKB, the 12th);
+    4. otherwise UNKNOWN, refused upstream by `scale_factor`.
+
+    Tier 3 is the weak one and would have read ATBANK wrong — it is safe only
+    because tier 1 takes that filing first, and that is causal rather than
+    lucky: stale headers are a SYMPTOM of the switch, and a bank that switches
+    prints the note. If a filing ever reaches tier 3 with a wide split, treat
+    the answer as unverified: the only instrument that can see a unit error is
+    `scripts/watch_cross_period.py`, and it is manual.
+    """
+    pages = pages[:FRONT_PAGES]
+
+    joined = "\n".join(pages)
+    for pattern in (_TRANSITION_TR, _TRANSITION_EN):
+        m = pattern.search(joined)
         if m:
-            return _NORM[m.group(1).lower()]
-    return None
+            return _NORM[_fold(m.group(2))]
+
+    per_page: list[str] = []
+    for text in pages:
+        for m in UNIT_RE.finditer(text):
+            key = _fold(m.group(1))
+            if key in _NORM:
+                per_page.append(_NORM[key])
+    if not per_page:
+        return None
+
+    tally = Counter(per_page).most_common()
+    if len(tally) == 1:
+        return tally[0][0]
+    return tally[0][0] if tally[0][1] > tally[1][1] else None
 
 
 def detect_unit_from_pdf(pdf_path: str) -> str | None:

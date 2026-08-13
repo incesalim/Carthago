@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -316,6 +317,81 @@ def test_a_declaration_past_the_window_is_not_found():
 
 def test_no_declaration_is_unknown_not_bin():
     assert U.regex_unit(["balance sheet", "cash flow"]) is None
+
+
+# --- filings that contradict themselves --------------------------------------
+#
+# 12 of the 44 2026Q2 filings in R2 declare two different units inside the front
+# 22 pages, because switching to Milyon left stale boilerplate behind. WHICH
+# text is stale differs by bank, so no position rule and no counting rule works
+# on its own. Each shape below is taken from a real filing.
+
+_HEADER = "(Tutarlar aksi belirtilmedikçe {} Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+_LETTER = "Bankamız kayıtlarına uygun olarak, aksi belirtilmediği müddetçe {} Türk Lirası cinsinden hazırlanmış"
+_SWITCH = ("finansal tabloların sunum para birimi Bin Türk Lirası (Bin TL) yerine "
+           "Milyon Türk Lirası (Milyon TL) olarak değiştirilmiştir.")
+
+
+def test_a_stale_auditor_letter_does_not_beat_the_statement_pages():
+    """ANADOLU 2026Q2 unconsolidated. The letter on p4 still said `bin` while
+    all 17 statement pages said Milyon; first-match believed the letter and the
+    partition stored 1000x small — 212.6bn of assets became 0.2bn, and every
+    in-filing identity still footed because they all scale together."""
+    pages = ["cover", "", "", _LETTER.format("bin")] + \
+            [_HEADER.format("Milyon")] * 10 + [_SWITCH]
+    assert U.regex_unit(pages) == "milyon"
+
+
+def test_the_switch_note_beats_stale_headers_AND_the_majority():
+    """ATBANK 2026Q2 consolidated — the mirror image, and the reason neither
+    "headers win" nor "majority wins" is the rule. Here 16 statement-page
+    headers are the stale text and only the letter plus the switch note say
+    Milyon. Counting pages gives 16 bin vs 2 milyon and would store this filing
+    1000x TOO BIG."""
+    pages = ["cover", "", "", _LETTER.format("milyon")] + \
+            [_HEADER.format("Bin")] * 16 + [_SWITCH]
+    assert U.regex_unit(pages) == "milyon"
+    # and the tier that would have got it wrong, in isolation:
+    assert Counter(["bin"] * 16 + ["milyon"] * 2).most_common(1)[0][0] == "bin"
+
+
+def test_one_stale_translated_page_loses_to_the_majority():
+    """HALKB 2026Q2 consolidated: bilingual, and the single English page still
+    read "thousand Turkish Lira" against 16 Turkish pages saying Milyon. It is
+    the one conflicting filing in the corpus with no switch note, so it is the
+    only one tier 3 decides."""
+    pages = [_HEADER.format("Milyon")] * 16 + \
+            ["(Amounts expressed in thousand Turkish Lira (TRY) unless otherwise stated.)"]
+    assert U.regex_unit(pages) == "milyon"
+
+
+def test_an_even_split_with_no_switch_note_refuses():
+    """Nothing establishes the unit, so UNKNOWN — which `scale_factor` turns
+    into a refusal to store. A coin-flip here is a silent 1000x error."""
+    pages = [_HEADER.format("Bin"), _HEADER.format("Milyon")]
+    assert U.regex_unit(pages) is None
+    with pytest.raises(ValueError, match="UNKNOWN"):
+        U.scale_factor(U.regex_unit(pages))
+
+
+def test_the_dotted_capital_I_normalises_instead_of_crashing():
+    """`'MİLYON'.lower()` is 'mi̇lyon' (i + COMBINING DOT ABOVE), which is not a
+    _NORM key. UNIT_RE matches the spelling, so the lookup used to raise
+    KeyError. Live in the corpus — EMLAK ×14, ZIRAATK ×7, GARAN ×1 — and it
+    never fired only because it was never the FIRST declaration."""
+    assert U.regex_unit(["MİLYON TÜRK LİRASI"]) == "milyon"
+    assert U.regex_unit(["BİN TÜRK LİRASI"]) == "bin"
+    assert U._fold("MİLYON") == "milyon"
+
+
+def test_the_english_switch_note_is_read_too():
+    """No 2026Q2 filing exercises this — every bank that switched printed the
+    Turkish sentence, bilingual ones included — so this pins the English arm by
+    construction rather than by measurement."""
+    pages = [_HEADER.format("Bin")] * 8 + [
+        "The presentation currency of the financial statements has been changed "
+        "from thousands of Turkish Lira to millions of Turkish Lira."]
+    assert U.regex_unit(pages) == "milyon"
 
 
 # --- end to end: credit_quality -> stages, scaled exactly once ---------------
