@@ -119,6 +119,7 @@ carthago/
 │   └── seeds/                      ← gitignored · bulk data-seed dumps (scripts/archive/generate_d1_migrations.py)
 │
 ├── data/                           ← all data (mostly gitignored)
+│   ├── README.md                   ← map of everything in data/ — tracked vs local vs disposable
 │   ├── banks/                      ← URL config + BDDK bank list (committed)
 │   └── external_reports/           ← reference PDFs (BBVA, IMF, …) [local]
 │   # Not in git; live in cloud storage:
@@ -126,6 +127,8 @@ carthago/
 │   #   state/bank_audit.db.gz      ← R2 bucket bddk-audit-reports (audit lane snapshot)
 │   #   audit_reports/*.pdf         ← R2 bucket bddk-audit-reports, by ticker
 │   #   bddk_data.db / bank_audit.db ← rebuilt in each cron run from the R2 snapshot
+│
+├── reports/                        ← generated one-off outputs (scripts/generate_presentation.py) [gitignored]
 │
 └── .github/workflows/              ← 31 workflows — every scheduled job + every manual backfill
     ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: daily-frequency EVDS → D1
