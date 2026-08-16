@@ -55,6 +55,33 @@ draft. Every regeneration now carries an addendum naming what was wrong.
 `tests/test_briefing_facts.py` + `tests/test_briefing_validate.py` — including
 the checker's own two false verdicts, pinned so neither can return.
 
+## FIXED (F): citations were decorative — the model could cite anything
+
+**Status:** fixed 2026-08-16, same afternoon as (E). The repaired 13/13
+briefing attributed the policy corridor (37% / 40% / 35.5%) to the same-day
+**Türkiye–Syria deposit-agreement release** — whose body contains no
+percentage at all — while `ANO2026-28`, the actual Press Release on Interest
+Rates, sat one id away. Right figures, wrong instrument, wrong date chip:
+`buildChangelog` keys each bullet's date and link on its cited id, and
+nothing verified the id states the figure.
+
+**Shipped:** `src/news/briefing_citations.py`. Deterministic and
+precision-first: a citation survives only if its body states every percentage
+the bullet asserts as current (the bullet's own "down from X" values
+excluded; matched numerically in `4%` / `37 percent` form — calibrated
+against the production D1 bodies of ANO2026-21/-06/-28/-31). Repair is
+strip-then-ask, never auto-repoint (picking "the newest release containing
+40%" would re-derive supersession by content — the mechanism behind the
+reverted supersession note): unsupported and hallucinated ids are stripped, a
+figure-bearing bullet left uncited gets ONE re-citation retry, and if that
+fails it is dropped — the page refuses uncited bullets anyway, and a figure
+nobody can check must not ship. `check_briefing_facts.py` audits the stored
+briefing against the same feed (`fetch_feed_items`, shared) and **any
+miscited bullet fails the publication gate** like a missing section. Bullets
+without percentages are only checked for the id existing: subject-matching
+prose against 8,000-char bodies is the false-positive machine this lane
+already rejected twice.
+
 ## FIXED (A): the weekly briefing was running with **no baseline**
 
 **Status:** fixed 2026-07-19. Kept here because the *shape* of this bug —

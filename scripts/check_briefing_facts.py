@@ -42,21 +42,42 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
+from src.news.briefing_citations import audit_citations, fetch_feed_items  # noqa: E402
 from src.news.briefing_facts import FACTS, score  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
+# The generator's --body-cap default: the citation audit must see the same
+# truncation the model (and its citation gate) saw.
+_BODY_CAP = 3000
 
-def load_local() -> dict:
+
+def load_local() -> tuple[dict, int | None]:
     with sqlite3.connect(str(DB_PATH)) as conn:
         row = conn.execute(
-            "SELECT categories_json, generated_at, model FROM regulation_briefings "
-            "ORDER BY generated_at DESC LIMIT 1"
+            "SELECT categories_json, generated_at, model, window_days "
+            "FROM regulation_briefings ORDER BY generated_at DESC LIMIT 1"
         ).fetchone()
     if not row:
         raise SystemExit("no briefing in the local DB")
     print(f"[facts] local briefing {row[1]} ({row[2]})")
-    return json.loads(row[0])
+    return json.loads(row[0]), row[3]
+
+
+def citation_findings(payload: dict, window_days: int) -> list[tuple[str, dict]]:
+    """Every (section, finding) where a cited id is unknown to the feed or its
+    body does not state the bullet's figures — the misattribution class the
+    2026-08-16 briefing shipped (the policy corridor cited to the same-day
+    Türkiye–Syria deposit-agreement release)."""
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        items = fetch_feed_items(conn, window_days, _BODY_CAP)
+    items_by_id = {it["id"]: it for it in items}
+    out: list[tuple[str, dict]] = []
+    for c in payload.get("categories", []):
+        for f in audit_citations(c.get("bullets", []), items_by_id):
+            if f["unknown"] or f["unsupported"]:
+                out.append((c.get("name", "?"), f))
+    return out
 
 
 def load_d1() -> dict:
@@ -87,8 +108,16 @@ def main() -> int:
                          "also turn the run red.")
     args = ap.parse_args()
 
-    payload = load_d1() if args.d1 else load_local()
+    if args.d1:
+        payload, window_days = load_d1(), None
+    else:
+        payload, window_days = load_local()
     res = score(payload)
+    # Citations are auditable only against the local feed (the same news_items
+    # the generator read); --d1 fetches just the briefing row, so it skips them.
+    bad_cites = citation_findings(payload, window_days) if window_days else []
+    if window_days is None:
+        print("[facts] citations: skipped in --d1 mode (feed not fetched from D1)")
 
     print(f"\n{'verdict':<10}{'fact':<16}{'want':<7}{'section'}")
     for r in res["results"]:
@@ -104,10 +133,19 @@ def main() -> int:
         if r["verdict"] in ("MISSING", "STALE", "CONTRADICTED"):
             extra = f"  (superseded {r['stale']} also printed)" if r["verdict"] == "CONTRADICTED" else ""
             print(f"  {r['verdict']:<13}{r['id']:<16}{r['source']}{extra}")
+    if window_days is not None:
+        if bad_cites:
+            print(f"\ncitations: {len(bad_cites)} bullet(s) cite a source that "
+                  f"does not state their figures:")
+            for sect, f in bad_cites:
+                bad_ids = ", ".join(f["unknown"] + f["unsupported"])
+                print(f"  MISCITED [{sect}] {bad_ids}: {f['text'][:100]}")
+        else:
+            print("citations: every cited source states its bullet's figures.")
 
     if args.alert:
         bad = [r for r in res["results"] if r["verdict"] in ("CONTRADICTED", "STALE", "MISSING")]
-        if bad or res["missing_sections"]:
+        if bad or res["missing_sections"] or bad_cites:
             sys.path.insert(0, str(REPO_ROOT / "scripts"))
             from notify import notify
             lines = [f"⚠️ Regulation briefing scored {res['score']:.0%} "
@@ -117,6 +155,9 @@ def main() -> int:
             for r in bad[:8]:
                 lines.append(f"• {r['verdict']}: {r['id']} — want {r['value']} "
                              f"[{r['section']}]")
+            for sect, f in bad_cites[:4]:
+                bad_ids = ", ".join((f["unknown"] + f["unsupported"])[:3])
+                lines.append(f"• MISCITED [{sect}]: {bad_ids} — {f['text'][:60]}")
             notify("\n".join(lines))
             print("[facts] alert sent")
 
@@ -126,6 +167,12 @@ def main() -> int:
     if res["missing_sections"]:
         print(f"\nFAIL: {len(res['missing_sections'])} expected section(s) produced "
               f"nothing: {', '.join(res['missing_sections'])}", file=sys.stderr)
+        return 1
+    if bad_cites:
+        # A wrong citation is a wrong instrument link and a wrong date chip on
+        # the page — a fail condition like a missing section, not a style note.
+        print(f"\nFAIL: {len(bad_cites)} bullet(s) cite sources that do not "
+              f"state their figures", file=sys.stderr)
         return 1
     if args.fail_under is not None and res["score"] < args.fail_under:
         print(f"\nFAIL: {res['score']:.0%} < {args.fail_under:.0%}", file=sys.stderr)

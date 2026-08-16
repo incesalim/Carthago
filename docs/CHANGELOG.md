@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-16.
 
+2026-08-16 — **A briefing bullet can no longer cite a release that does not
+state its figures.** The repaired 13/13 briefing attributed the policy
+corridor to the same-day Türkiye–Syria deposit-agreement release (zero
+percentages in its body) — right numbers, wrong instrument, wrong date chip,
+since the page keys each bullet's date and link on its cited id.
+`src/news/briefing_citations.py`: a citation survives only if its body states
+every percentage the bullet asserts as current (transition "down from X"
+values excluded; `4%`/`37 percent` forms, calibrated against production D1
+bodies). Repair is strip-then-ask, never auto-repoint: bad ids stripped, one
+re-citation retry, then the bullet is dropped — the page refuses uncited
+bullets anyway. `check_briefing_facts.py` audits the stored briefing against
+the same shared feed and any miscited bullet fails the publication gate.
+`docs/regulation_followups.md` §F.
+
 2026-08-16 — **The regulation briefing's fact checklist became a publication
 gate instead of a Telegram apology.** The morning's weekly run scored 69%
 (9/13) — stored, pushed, live — because the checklist ran only after the

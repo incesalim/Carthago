@@ -42,6 +42,12 @@ sys.stdout.reconfigure(encoding="utf-8")
 from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 from src.news import briefing_facts, kimi  # noqa: E402
 from src.news._htmltext import fix_mojibake  # noqa: E402
+from src.news.briefing_citations import (  # noqa: E402
+    citation_addendum,
+    drop_uncited_figures,
+    fetch_feed_items,
+    strip_unsupported,
+)
 from src.news.briefing_validate import describe, find_contradictions  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 
@@ -49,7 +55,7 @@ DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-08-16.v24-fact-gate"
+PROMPT_VERSION = "2026-08-16.v25-citation-gate"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -140,8 +146,9 @@ HOW TO COMPILE:
   - Lead with the rule (the number), not the regulator. Translate Turkish to
     clear English. Group tightly-coupled sub-rules into one BBVA-style bullet;
     otherwise give each distinct rule its own bullet.
-  - Cite source ids verbatim in source_ids (e.g. "tcmb:ANO2026-21", "bddk:2286").
-    The baseline itself needs no id.
+  - Cite source ids verbatim in source_ids (e.g. "tcmb:ANO2026-21", "bddk:2286"),
+    and cite ONLY an id whose OWN body states the bullet's figures — a same-day
+    release on a different topic is not a source. The baseline itself needs no id.
 
 EXCLUDE (never bullets): market observations / MPC commentary ("loan growth was
 2.7%"), single-bank licensing, data-publication notices, internal HR notices.
@@ -194,27 +201,10 @@ def clean_bullets(raw) -> list[dict]:
 
 # --- data ------------------------------------------------------------------
 
-def fetch_input(conn: sqlite3.Connection, window_days: int, body_cap: int) -> list[dict]:
-    rows = conn.execute(
-        """SELECT source, external_id, published_at, title, body_text
-           FROM news_items
-           WHERE source IN ('tcmb', 'bddk')
-             AND body_text IS NOT NULL
-             AND length(body_text) > 50
-             AND published_at >= datetime('now', '-' || ? || ' days')
-           ORDER BY published_at DESC""",
-        (window_days,),
-    ).fetchall()
-    items: list[dict] = []
-    for src, ext_id, published_at, title, body in rows:
-        items.append({
-            "id": f"{src}:{ext_id}",
-            "source": src,
-            "date": (published_at or "")[:10],
-            "title": title,
-            "body": body[:body_cap],
-        })
-    return items
+# The feed query lives in src/news/briefing_citations.fetch_feed_items — one
+# query, one shape, shared with the after-the-fact checker so the generator's
+# citation gate and check_briefing_facts.py can never audit different feeds.
+fetch_input = fetch_feed_items
 
 
 def compute_input_hash(items: list[dict], baseline: dict | None) -> str:
@@ -538,6 +528,7 @@ def main() -> int:
             prev_sections = {}
 
     t0 = time.time()
+    items_by_id = {it["id"]: it for it in items}
     categories: list[dict] = []
     models: set[str] = set()
     providers: set[str] = set()
@@ -588,7 +579,49 @@ def main() -> int:
                 print(f"[briefing] {name}: still contradicting and no previous "
                       f"version — DROPPING the section", flush=True)
 
-        # Gate 2 — the hand-verified fact checklist, the SAME instrument
+        # Gate 2 — citations. "Every claim carries its source" is the page's
+        # contract (buildChangelog in web/app/lib/regulation.ts refuses an
+        # uncited bullet), and on 2026-08-16 the model cited the same-day
+        # Türkiye–Syria deposit-agreement release for the policy corridor —
+        # right figures, wrong instrument, wrong date chip. An id survives only
+        # if its own body states the bullet's percentages; a figure-bearing
+        # bullet left uncited gets ONE re-citation retry and is dropped if that
+        # fails, because the page would not render it anyway.
+        kept, cite_stripped, cite_dead = strip_unsupported(kept, items_by_id)
+        for cf in cite_stripped:
+            print(f"[briefing] {name}: citation stripped "
+                  f"{', '.join(cf['unknown'] + cf['unsupported'])} from: "
+                  f"{cf['text'][:90]}", flush=True)
+        if cite_dead:
+            print(f"[briefing] {name}: {len(cite_dead)} bullet(s) lost every "
+                  f"citation — re-citation retry", flush=True)
+            rc_bullets, rc_model, rc_provider = generate_category(
+                name, desc, context, args.cat_retries,
+                addendum=citation_addendum(cite_dead))
+            rc_kept = enforce_category(name, rc_bullets)
+            rc_stale = set(briefing_facts.stale_bare_indexes(rc_kept))
+            rc_kept = [b for i, b in enumerate(rc_kept) if i not in rc_stale]
+            rc_kept, _, rc_dead = strip_unsupported(rc_kept, items_by_id)
+            if rc_kept and len(rc_dead) < len(cite_dead) \
+                    and not find_contradictions([b["text"] for b in rc_kept]) \
+                    and len(briefing_facts.section_missing_facts(name, rc_kept)) \
+                        <= len(briefing_facts.section_missing_facts(name, kept)):
+                kept = rc_kept
+                if rc_model:
+                    models.add(rc_model)
+                if rc_provider:
+                    providers.add(rc_provider)
+                print(f"[briefing] {name}: re-citation repaired "
+                      f"{len(cite_dead) - len(rc_dead)} of {len(cite_dead)}", flush=True)
+            else:
+                print(f"[briefing] {name}: re-citation retry not better — "
+                      f"keeping draft", flush=True)
+        kept, cite_dropped = drop_uncited_figures(kept)
+        for b in cite_dropped:
+            print(f"[briefing] {name}: DROPPED uncited figure bullet: "
+                  f"{b['text'][:90]}", flush=True)
+
+        # Gate 3 — the hand-verified fact checklist, the SAME instrument
         # scripts/check_briefing_facts.py scores after the store. Until
         # 2026-08-16 it ran only there, alert-only, so a briefing failing it
         # shipped anyway (69% that morning: January's overdraft cap printed
@@ -615,6 +648,11 @@ def main() -> int:
             r_kept = enforce_category(name, r_bullets)
             r_stale = set(briefing_facts.stale_bare_indexes(r_kept))
             r_kept = [b for i, b in enumerate(r_kept) if i not in r_stale]
+            # The retry passes the same citation bar as the draft it replaces:
+            # a repaired fact whose bullet cites nothing that states it would
+            # be un-renderable and un-checkable — not a repair.
+            r_kept, _, _ = strip_unsupported(r_kept, items_by_id)
+            r_kept, _ = drop_uncited_figures(r_kept)
             r_missing = briefing_facts.section_missing_facts(name, r_kept)
             # Accept only a draft that is strictly better on the checklist and
             # clean on the contradiction gate — a repair may not trade defects.

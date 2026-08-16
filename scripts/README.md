@@ -60,7 +60,7 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | `check_body_freshness.py` | `news_items.body_text` stays fresh enough for the compiled `/regulation` figures. | `healthcheck.yml` | gate |
 | `check_bot_answers.py` | The Q&A bot still answers its pinned eval questions correctly. | `healthcheck.yml` | gate |
 | `check_bot_schema.py` | The bot's schema prompt ↔ the live D1 schema. | `healthcheck.yml` | gate |
-| `check_briefing_facts.py` | The briefing states the hand-verified published figures (checklist in `src/news/briefing_facts.py`, shared with the generator's own gate). **Publication gate** since 2026-08-16: `--fail-under 0.75` blocks the D1 push + snapshot, keeping last week's verified text live. | `summarize-regulations.yml`; `test-openrouter.yml` | gate |
+| `check_briefing_facts.py` | The briefing states the hand-verified published figures (checklist in `src/news/briefing_facts.py`) AND every cited release states its bullet's figures (`src/news/briefing_citations.py`) — both shared with the generator's own gates. **Publication gate** since 2026-08-16: `--fail-under 0.75` or any miscited bullet blocks the D1 push + snapshot, keeping last week's verified text live. | `summarize-regulations.yml`; `test-openrouter.yml` | gate |
 
 ## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, TKBB, KAP, TEFAS)
 | Script | Purpose | Run by | Class |
