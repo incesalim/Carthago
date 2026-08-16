@@ -19,7 +19,7 @@ name: Test OpenRouter key (scratch)
 # never runs push_to_d1.py. The briefing it generates lands only in the runner's
 # ephemeral SQLite. Hence no `bddk-pipeline` concurrency group — nothing to lock.
 #
-# Scratch lane — delete this workflow and scripts/scratch_test_openrouter.py
+# Scratch lane — delete this workflow and scripts/scratch/scratch_test_openrouter.py
 # once the OpenRouter question is settled.
 on:
   workflow_dispatch:
@@ -105,7 +105,7 @@ jobs:
 
       - name: Probe OpenRouter
         if: inputs.task == 'smoke' || inputs.task == 'usage'
-        run: python scripts/scratch_test_openrouter.py ${{ inputs.task == 'usage' && '--usage' || '' }}
+        run: python scripts/scratch/scratch_test_openrouter.py ${{ inputs.task == 'usage' && '--usage' || '' }}
 
       # ---------------- unit-detection bench ----------------
       # Can an LLM read a filing's reporting unit as well as a regex can? The
@@ -124,7 +124,7 @@ jobs:
 
       - name: List free + nemotron models
         if: inputs.task == 'freelist'
-        run: python scripts/scratch_bench_unit_detection.py --list-free
+        run: python scripts/scratch/scratch_bench_unit_detection.py --list-free
 
       - name: Bench unit detection (regex vs LLM)
         if: inputs.task == 'unit'
@@ -139,7 +139,7 @@ jobs:
         # regulation task's pinned upstream and would not serve the model this
         # bench picks. Unpinned routing is right for a one-off classification.
         run: >
-          python scripts/scratch_bench_unit_detection.py
+          python scripts/scratch/scratch_bench_unit_detection.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.variants != '' && format('--variants {0}', inputs.variants) || '' }}
           ${{ inputs.sample != '0' && format('--sample {0}', inputs.sample) || '' }}
@@ -172,7 +172,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           BENCH_DELAY: "2"
         run: >
-          python scripts/scratch_bench_vision_extract.py
+          python scripts/scratch/scratch_bench_vision_extract.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.sample != '0' && format('--limit {0}', inputs.sample) || '' }}
 
@@ -229,7 +229,7 @@ jobs:
           # total request limit reached (32/32)" mid-sweep at 2s.
           BENCH_DELAY: "4"
         run: >
-          python scripts/scratch_bench_text_cells.py
+          python scripts/scratch/scratch_bench_text_cells.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.sample != '0' && format('--repair {0} --control {0}', inputs.sample) || '' }}
           ${{ inputs.llm_check != '0' && format('--fields {0}', inputs.llm_check) || '' }}
@@ -272,7 +272,7 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: >
-          python scripts/scratch_one_pdf_deepseek.py
+          python scripts/scratch/scratch_one_pdf_deepseek.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.category != '' && format('--statement {0}', inputs.category) || '' }}
 
@@ -290,10 +290,10 @@ jobs:
         run: |
           M='${{ inputs.model_id }}'; M=${M:-deepseek/deepseek-v4-flash-0731}
           echo "################ FLAT (the representation used all day) ################"
-          python scripts/scratch_one_hard_row.py --model "$M" --flat || true
+          python scripts/scratch/scratch_one_hard_row.py --model "$M" --flat || true
           echo
           echo "################ X-ALIGNED ################"
-          python scripts/scratch_one_hard_row.py --model "$M"
+          python scripts/scratch/scratch_one_hard_row.py --model "$M"
 
       # ---------------- regulation task ----------------
 
@@ -349,7 +349,7 @@ jobs:
           else
             time python scripts/summarize_regulations.py --only-category "$CAT" --force
           fi
-          python scripts/scratch_dump_briefing.py "OpenRouter / $KIMI_MODEL"
+          python scripts/scratch/scratch_dump_briefing.py "OpenRouter / $KIMI_MODEL"
           python scripts/check_briefing_facts.py
 
       - name: Same section on the incumbent (Kimi) for A/B
@@ -367,4 +367,4 @@ jobs:
           else
             time python scripts/summarize_regulations.py --only-category "$CAT" --force
           fi
-          python scripts/scratch_dump_briefing.py "Kimi (incumbent)"
+          python scripts/scratch/scratch_dump_briefing.py "Kimi (incumbent)"

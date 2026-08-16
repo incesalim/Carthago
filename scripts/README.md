@@ -5,9 +5,17 @@ This is the index for the Python entry points. Each row says **what** the script
 belongs to, and its **class**:
 
 - **pipeline** — load-bearing; invoked by a scheduled workflow. Don't break these.
+- **gate** — a standalone CI/health check (`check_*.py`); fails a build or alerts
+  when the thing it guards drifts.
 - **operational** — run by hand or `/admin` for an ongoing purpose (backfills, repairs).
-- **diagnostic** — inspection / profiling only; in `scripts/diagnostics/`.
+- **diagnostic** — inspection / profiling only; in `scripts/diagnostics/` (plus a
+  few by-hand tools listed in the lane tables).
+- **scratch** — one-off benches / probes that answered a question; in
+  `scripts/scratch/`. Read-only on production.
 - **archived** — one-off campaign / migration that's done; in `scripts/archive/` for reference.
+
+This index is itself CI-gated: `check_scripts_index.py` fails the build when a
+script exists with no row here, or a row names a script that is gone.
 
 The lanes themselves are described in [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md); the
 audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUDIT_PIPELINE.md).
@@ -23,6 +31,36 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `_bank_types.py` | BDDK bank-type code taxonomy (library; no `__main__`). | imported by `verify_chart_spec`, tests | pipeline (lib) |
 | `check_pipeline_graph_sync.py` | Stdlib-only CI gate: every ingestion workflow ↔ `/pipeline` graph node stays in sync (both directions), and every node `href` resolves to a real route. Scratch lanes that move no production data are exempt via `SCRATCH_WORKFLOWS`, and an exemption naming a deleted workflow fails the gate. | `ci.yml` | pipeline |
 | `metric_knowledge.py` | CLI over the banking-metrics knowledge registry (`data/metric_knowledge/registry.json`): list / show / validate. | by hand | operational |
+| `setup_telegram_webhook.py` | `set` / `info` / `check` the Q&A-bot Telegram webhook; `check --alert` is the daily drift probe. | `telegram-webhook.yml`; `healthcheck.yml` | pipeline |
+| `build_api_catalog.py` | Rebuild the `/api/v1` series catalogue (`api_series` — a full-rebuild table, pushed by name). | `refresh-data.yml` | pipeline |
+| `audit_d1.py` | Shared D1/R2 helpers (remote exec, retry semantics) for the audit repair scripts. Library, no `__main__`. | imported | pipeline (lib) |
+| `generate_presentation.py` | One-off HTML/PDF presentation from live data → `reports/`. | by hand | operational |
+| `make_brand_assets.py` | Regenerate brand assets (icons, OG images). | by hand | operational |
+| `fetch_bank_logos.py` | Fetch bank logos → `web/app/lib/bank-logos.generated.ts`. | by hand | operational |
+| `fetch_bddk_english_labels.py` | Fetch BDDK's English series labels → `data/bddk_labels_en.json`. | by hand | operational |
+
+## CI gates (`check_*.py`)
+
+Four more gates live in the lane tables (`check_pipeline_graph_sync`,
+`check_amount_integrity` above; `check_audit_quality`,
+`check_capture_reconcile` in the audit tables).
+
+| Script | Guards | Run by | Class |
+|---|---|---|---|
+| `check_scripts_index.py` | THIS index ↔ the scripts that exist, both directions. | `ci.yml` | gate |
+| `check_docs_sync.py` | OPERATIONS/ADMIN/TELEGRAM_BOT name every workflow, secret and env key the code reads. | `ci.yml` | gate |
+| `check_schema_naming.py` | D1 migrations ≥ 0022 follow SCHEMA_CONVENTIONS.md. | `ci.yml` | gate |
+| `check_no_pdfplumber.py` | PDF extraction stays fitz-only. | `ci.yml` | gate |
+| `check_prose_claims.py` | A dashboard sentence asserting a direction/level/ranking is computed, not typed. | `ci.yml` | gate |
+| `check_contrast.py` | Every text token clears WCAG AA 4.5:1 on every surface it sits on, both themes. | `ci.yml` | gate |
+| `check_calendar_fresh.py` | The hand-typed MPC calendar fallback keeps ≥ 90 days of runway. | `ci.yml` | gate |
+| `check_workflow_state.py` | `data/workflow_state.json` ↔ which workflows are actually enabled on GitHub. | `ci.yml` | gate |
+| `check_agents_registry.py` | `/admin/agents` dispatch forms ↔ each workflow's declared inputs. | `ci.yml` | gate |
+| `check_public_api.py` | The published `/api/v1` contract still answers as documented. | `healthcheck.yml` | gate |
+| `check_body_freshness.py` | `news_items.body_text` stays fresh enough for the compiled `/regulation` figures. | `healthcheck.yml` | gate |
+| `check_bot_answers.py` | The Q&A bot still answers its pinned eval questions correctly. | `healthcheck.yml` | gate |
+| `check_bot_schema.py` | The bot's schema prompt ↔ the live D1 schema. | `healthcheck.yml` | gate |
+| `check_briefing_facts.py` | The regulation briefing's figures reconcile against compiled sources. | `summarize-regulations.yml`; `test-openrouter.yml` | gate |
 
 ## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, TKBB, KAP, TEFAS)
 | Script | Purpose | Run by | Class |
@@ -40,6 +78,8 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `update_tuik.py` | TÜİK veriportali Excel detail (GDP expenditure, PPI MIG) → `evds_series` as `TUIK.*` codes. | `refresh.py` | pipeline |
 | `update_faaliyet.py` | Bank annual-report (faaliyet) franchise stats → `faaliyet_franchise`; `--backfill`. | `refresh.py`; `backfill-faaliyet.yml` | pipeline |
 | `update_presentations.py` | IR investor-presentation decks (static URLs + auto-discovery) → `bank_earnings`. | `refresh-presentations-weekly.yml` | pipeline |
+| `update_transcripts.py` | Earnings-call transcripts (8 listed banks with English calls) → `bank_call_transcripts`; `--json-dir` writes inspection dumps. | `refresh-transcripts-weekly.yml` (manual, no cron yet) | pipeline |
+| `notify_new_bddk.py` | Positive Telegram ping when a weekly/monthly BDDK period newly lands; quiet otherwise. | `refresh-bddk-bulletins.yml` | pipeline |
 
 ## News / regulation lane
 | Script | Purpose | Run by | Class |
@@ -47,6 +87,7 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `sync_news.py` | KAP + TCMB + BDDK + press feeds → `news_items`. | `refresh-news-daily.yml` | pipeline |
 | `summarize_regulations.py` | LLM (Kimi) weekly regulation briefing → `regulation_briefings`. | `summarize-regulations.yml` | pipeline |
 | `ingest_policy_baseline.py` | Ingest TCMB annual Monetary-Policy PDF as briefing baseline. | by hand, ~annually | operational |
+| `generate_read_headlines.py` | Free-LLM rewrite of each T1 tab's one-sentence lead; number-validated, shown only while its `det_hash` matches the page → `read_headlines`. | `generate-reads.yml` | pipeline |
 
 ## Audit lane — pipeline
 One scheduled arrival path plus a manual diagnostic (same `bddk-audit` group). During filing
@@ -60,6 +101,7 @@ locally → **one** D1 push → snapshot; it stops after discovery when nothing 
 | `check_audit_quality.py` | 10 alert-only anomaly families (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl/pl_sign/free-provision); delta-alerts against the R2 baseline. | `refresh-audit.yml`, `backfill-audit.yml`, `reextract-statement.yml` | pipeline |
 | `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | both audit workflows (bootstrap) | pipeline |
 | `sync_audit_expected.py` | Build `bank_audit_expected` (profile census ∪ R2 PDFs) + `bank_audit_statement_types` + `bank_audit_coverage` (the /admin coverage matrix spine). `--push` = full-rebuild D1 push, no R2 write. | `acquire-audit.yml`, `refresh-audit.yml`; by hand | pipeline |
+| `watch_cross_period.py` | Cross-period unit watch — the only check that can see a reporting-unit change, since every in-filing identity scales out. Alert-only. | `refresh-audit.yml`; `audit-triage.yml` | pipeline |
 
 ## Audit lane — operational (backfills + manual corrections)
 | Script | Purpose | Run by | Class |
@@ -80,6 +122,23 @@ locally → **one** D1 push → snapshot; it stops after discovery when nothing 
 | `compute_bank_metrics.py` | Derive a per-bank KPI snapshot from audit data. | by hand | operational |
 | `fleet_evidence.py` | Dry-run full re-extraction to `fleet_scratch.db`; bucket improved/unchanged/regressed (the non-regression gate). Never writes prod/D1/R2. | by hand before a backfill | operational |
 | `run_phase3_batches.py` | Gated batchwise re-extraction (aborts on regression). | by hand (large repair) | operational |
+| `purge_partition.py` | Remove one `(bank, period[, kind])` in the one order that sticks: snapshot → local delete → D1 delete → re-upload snapshot → coverage re-sync. For extractions that validate green but are known wrong. | `purge-partition.yml`; by hand | operational |
+| `repair_loans_zeros.py` | Re-derive the zeros `_save_loans`'s falsy-`or` chains discarded, from `raw_api_responses` on disk — fills NULLs only, refuses disagreements. | `repair-loans-zeros.yml` | operational |
+| `triage_partitions.py` | Assign each failing partition a deterministic mechanical CAUSE from the PDF (`column_slip` / `dropped_cell` / `anchor_miss` / …), page + token evidence attached. | `audit-triage.yml`; by hand | operational |
+| `measure_free_provision_change.py` | Corpus-wide diff of a `classify_free_provision` change against stored values; returns an artifact, writes nothing. | `measure-free-provision.yml` | operational |
+| `backfill_prose.py` | Historical prose backfill over local PDFs → `data/bank_audit_prose.db` (merge + push recipe in OPERATIONS.md). | by hand | operational |
+| `extract_audit_text.py` | Dump one filing's reconstructed text/lines for inspection. | by hand | diagnostic |
+| `lint_document_capture.py` | Say what is wrong with one filing's document capture. | by hand | diagnostic |
+
+## Analyst lane (`scripts/analyst/`)
+
+| Script | Purpose | Run by | Class |
+|---|---|---|---|
+| `detect.py` | Deterministic detectors over the audit snapshot → `analyst_signals` + `analyst_basis_metadata`, staged into `data/analyst.db`. No LLM. | `analyst-daily.yml` | pipeline |
+| `score_reports.py` | Structure/lead/coverage scoring over memo run artifacts (informational — the figure guard already gates). | `analyst-daily.yml` | pipeline |
+| `prepare_filing_text.py` | Filing-page text pack for the V2 research loop's read-only tools. | `analyst-research.yml` | pipeline |
+| `extract_stage_definitions.py` | Per-bank IFRS-9 stage definitions from the prose corpus → `web/app/lib/analyst/stage-definitions.ts` (generated module). | by hand | operational |
+| `eval_research.py` | Analyst-V2 evaluation harness over `data/analyst_eval/cases.json`. | by hand | diagnostic |
 
 ## Audit lane — diagnostics (`scripts/diagnostics/`)
 | Script | Purpose | Class |
@@ -99,6 +158,29 @@ locally → **one** D1 push → snapshot; it stops after discovery when nothing 
 | `backfill_credit_quality.py` | Re-extract the IFRS-9 credit-quality footnote fleet-wide after a fix. | operational backfill |
 | `backfill_npl_history.py` | Re-extract NPL Stage-3 movement history (chunked by period). | operational backfill |
 
+## Scratch (`scripts/scratch/`) — one-off benches + probes
+
+Each answered a specific question and stays as the record of the method. All are
+read-only on production: they pull PDFs into `data/_bench/` and write no D1/R2.
+`test-openrouter.yml` is the only workflow that runs any of them.
+
+| Script | The question it answered |
+|---|---|
+| `scratch_test_openrouter.py` | Does the `OPEN_ROUTER_API` secret work, and what does DeepSeek cost? |
+| `scratch_dump_briefing.py` | Print the newest local `regulation_briefings` row so two providers' output can be compared. |
+| `scratch_bench_unit_detection.py` | Can an LLM read a filing's reporting unit as well as the regex? (No — see PROJECT_STATE.) |
+| `scratch_bench_vision_extract.py` | Can a vision model extract the statements a human had to correct? |
+| `scratch_bench_text_cells.py` | Can a text LLM recover the cells a human had to correct? |
+| `scratch_bench_validator_gate.py` | Would the validators CATCH a wrong LLM figure? (The 79.9% / 52.6% / 38.7% blind-spot measurement.) |
+| `scratch_one_pdf_deepseek.py` | One text PDF, one model, every row checked against what we store. |
+| `scratch_one_hard_row.py` | One page where the deterministic extractor failed — can any model read it? |
+| `scratch_probe_absent_cause.py` | Is the 14% `npl_movement` ceiling real, or a matcher blind spot? |
+| `scratch_probe_retrieval_ceiling.py` | What is the ceiling of the retrieval step, before any model is called? |
+| `scratch_probe_drawn_pages.py` | How much of the corpus is drawn (vector outlines) rather than typed? |
+| `scratch_probe_split_digits.py` | How widespread is digit-splitting in the audit text layer? |
+| `scratch_probe_wrapped_cells.py` | How many hand corrections are the wrapped-cell shape? |
+| `scratch_probe_stale_overrides.py` | Which hand corrections are now obsolete — already fixed by the extractor? |
+
 ## Archived (`scripts/archive/`) — done, kept for reference
 `extract_all_audit_reports.py`, `scrape_all_banks.py` (local-PDF flow, replaced by R2-based
 `sync_audit_reports`), `migrate_pdfs_to_r2.py` (one-time R2 migration), `reextract_all.py`
@@ -110,4 +192,8 @@ backfills `backfill_2020_2023.py` / `backfill_weekly_2020_2023.py` / `backfill_w
 statements — superseded by the manual-overlay path), `normalize_hierarchy_keys.py` (one-time
 trailing-dot hierarchy-key migration; the loader now normalises on write), and
 `load_partitions_batch.py` (batch variant of `load_partition` for the manual-transcription
-campaign).
+campaign). Archived 2026-08-16, the frozen-lane cleanup trio:
+`dedup_hierarchy_rows.py` (one-time removal of duplicate/junk hierarchy rows from the
+frozen BS/P&L tables), its OCI sibling `clean_oci_header_rows.py` (page-artefact rows
+in `bank_audit_oci`), and `normalize_roman_hierarchy.py` (one-time roman-hierarchy
+normalization, companion to `loader._canon_hier`).

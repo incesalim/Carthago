@@ -36,7 +36,7 @@ from pathlib import Path
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.news.free_llm import SYSTEM, NUM_RE, _well_formed, unknown_numbers  # noqa: E402
 

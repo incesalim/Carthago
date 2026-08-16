@@ -101,6 +101,11 @@ jobs:
         # count. Escape hatch: `prose-ok: <reason>` (none in force today).
         # Stdlib-only.
         run: python scripts/check_prose_claims.py
+      - name: Scripts index
+        # scripts/README.md must index every script that exists and nothing
+        # that doesn't. 47 of ~95 had silently drifted out of it before this
+        # gate existed (2026-08-16). Stdlib-only.
+        run: python scripts/check_scripts_index.py
       - name: Pytest
         run: pytest
 

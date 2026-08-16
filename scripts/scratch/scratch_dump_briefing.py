@@ -18,7 +18,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parents[1] / "data" / "bddk_data.db"
+DB_PATH = Path(__file__).resolve().parents[2] / "data" / "bddk_data.db"
 
 
 def main() -> int:

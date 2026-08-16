@@ -42,7 +42,7 @@ For anything not listed, the commented `.gitignore` is the authority.
 |---|---|
 | `audit_pdfs/` | Flat fleet mirror of every filing PDF (`<TICKER>_<period>_<kind>.pdf`, ~1,095 files) so capture/extraction can re-run without re-downloading ~3.3 GB from R2 |
 | `eye/` | The older hand-assembled diagnostic set (~180 filings) that local extractor tests and scripts default to (`tests/test_market_risk_extractors.py`, `scripts/backfill_document_capture.py`, `scripts/backfill_prose.py`). Kept on purpose for offline test runs |
-| `_bench/` | PDF cache the `scripts/scratch_*.py` probes pull into — regenerable from R2 |
+| `_bench/` | PDF cache the `scripts/scratch/scratch_*.py` probes pull into — regenerable from R2 |
 | `external_reports/` | Third-party reference PDFs (BBVA, IMF, …) — never redistributed |
 | `albaraka_reports/` | `/economy` chart-reproduction sources (bop/budget/growth/inflation/trade) — the name is historical, not ALBRK-specific |
 

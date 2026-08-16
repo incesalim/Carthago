@@ -34,7 +34,7 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Detection. Lifted verbatim from src/analyst/extract_basis_metadata.py, which
-# promoted it from the July bench (scripts/scratch_bench_unit_detection.py).
+# promoted it from the July bench (scripts/scratch/scratch_bench_unit_detection.py).
 # 22 pages, not 8: the shorter window missed 15 Q4 filings whose declaration
 # lands on p7-p17, behind the full annual audit opinion.
 # ---------------------------------------------------------------------------

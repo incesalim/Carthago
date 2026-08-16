@@ -40,13 +40,13 @@ from pathlib import Path
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.audit_reports import r2_storage  # noqa: E402
 
 BASE = "https://openrouter.ai/api/v1"
 HEADERS_EXTRA = {"HTTP-Referer": "https://carthago.app", "X-Title": "carthago"}
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DELAY = float(os.environ.get("BENCH_DELAY", "2"))
 
 # Lanes with an unambiguous (row -> amount) shape. Balance sheet deliberately

@@ -24,14 +24,14 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.audit_reports import validator as v  # noqa: E402
 from scripts.revalidate_audit_db import (  # noqa: E402
     _bs_rows, _oci_rows, _pl_rows,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 # The confidently-wrong answers the text-cell bench produced: model said
 # found=true and returned a figure that is not what is printed. Each is

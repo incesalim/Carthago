@@ -14,7 +14,7 @@ nothing stores today:
   `reporting_unit = NULL` + `unit_source = 'pending_regex'` — never a silent
   `bin`. UNKNOWN means "look at this filing", not "assume thousands".
 
-The regex is the July bench's (`scripts/scratch_bench_unit_detection.py`): 22
+The regex is the July bench's (`scripts/scratch/scratch_bench_unit_detection.py`): 22
 front pages, untruncated text — the old 8-page window missed 15 Q4 filings whose
 declaration lands p7–p17 behind the full annual opinion. It now lives in
 `src.audit_reports.units` and is imported here, not duplicated.

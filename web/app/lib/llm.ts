@@ -84,7 +84,7 @@ const PROVIDERS: Provider[] = [
     model: "nvidia/nemotron-3-super-120b-a12b:free",
     keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
     // OpenRouter attributes usage to a referring app. Same pair the Python
-    // lanes send (scripts/scratch_test_openrouter.py, summarize_regulations.py).
+    // lanes send (scripts/scratch/scratch_test_openrouter.py, summarize_regulations.py).
     headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
     // ⚠️ THIS LINE IS WHY NEMOTRON IS USABLE HERE. nemotron-3 is a REASONING
     // model (its endpoint advertises reasoning / reasoning_effort /

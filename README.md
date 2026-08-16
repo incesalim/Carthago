@@ -97,8 +97,9 @@ carthago/
 │   ├── update_*.py                 ← one lane each (monthly, weekly, tbb, tefas, kap, …)
 │   ├── reextract_statement.py      ← targeted single-statement repair
 │   ├── purge_partition.py          ← remove one (bank, period, kind) everywhere
-│   ├── check_*.py                  ← the 17 standalone CI gates
-│   ├── backfill_*.py, watch_cross_period.py, scratch_*.py  ← backfills + diagnostics
+│   ├── check_*.py                  ← the 18 standalone CI gates
+│   ├── backfill_*.py, watch_cross_period.py                ← backfills + diagnostics
+│   ├── scratch/                    ← one-off benches + probes (read-only on production)
 │   └── archive/                    ← retired one-shots (kept for the record)
 │
 ├── web/                            ← Next.js 16 + OpenNext (Cloudflare Workers)

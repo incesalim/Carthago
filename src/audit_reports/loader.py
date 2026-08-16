@@ -32,7 +32,7 @@ from .units import UnitContext
 # roman code that is itself mis-extracted CONTENT (a post-merger line keyed "X" where
 # "X." = Other Provisions already exists — a collision; and TOMK 2023Q3 "XI" whose
 # content is Other Operating Expenses, semantically XII.). Those are content bugs, not
-# dot bugs; the one-time backfill (scripts/normalize_roman_hierarchy.py) skips them
+# dot bugs; the one-time backfill (scripts/archive/normalize_roman_hierarchy.py) skips them
 # via a collision guard + a semantic guard, and they can't recur because BS/PL are
 # frozen (never re-extracted).
 _HIER_TRAILING_DOT = re.compile(r"^(\d+(?:\.\d+)+)\.$")
