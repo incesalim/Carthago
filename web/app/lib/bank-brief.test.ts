@@ -149,6 +149,30 @@ describe("engineGate", () => {
     expect(g.ready).toBe(true);
     expect(g.fundingNote).toBeNull();
   });
+
+  // The panel excludes Takasbank by design (heatmap.ts `ensure`), so its Desk
+  // once said "This bank has filed 0 quarters" while the same page's Financials
+  // tab showed 17 audited quarters. The gate must never repeat that sentence.
+  it("does not claim a peer-excluded bank never filed (the TAKAS case)", () => {
+    const g = engineGate([], { auditedQuarters: 17, peerExcluded: true });
+    expect(g.ready).toBe(false);
+    expect(g.reason).toContain("17 audited quarters are on file");
+    expect(g.reason).toContain("excluded from the peer ratio panel");
+    expect(g.reason).not.toContain("has filed 0 quarters");
+  });
+
+  it("says the panel is the gap — not the filings — for an unexcluded bank the panel missed", () => {
+    const g = engineGate([], { auditedQuarters: 6 });
+    expect(g.ready).toBe(false);
+    expect(g.reason).toContain("6 audited quarters are on file");
+    expect(g.reason).toContain("ratio panel holds no rows");
+  });
+
+  it("still reports genuinely absent filings as absent", () => {
+    const g = engineGate([], { auditedQuarters: 0 });
+    expect(g.ready).toBe(false);
+    expect(g.reason).toContain("has filed 0 quarters");
+  });
 });
 
 describe("bankFlags", () => {

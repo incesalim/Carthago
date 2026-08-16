@@ -4,7 +4,7 @@
  * subsidiaries chip card. The fuller view (radial map, capital breakdown,
  * indirect holders, subsidiaries table) was retired in the redesign.
  */
-import type { KapOwnershipRow } from "@/app/lib/kap";
+import { holderShortName, isFreeFloatHolder, type KapOwnershipRow } from "@/app/lib/kap";
 import { Card } from "@/app/components/ui/card";
 
 const PCT = new Intl.NumberFormat("en-US", {
@@ -14,34 +14,8 @@ const PCT = new Intl.NumberFormat("en-US", {
 const fmtPct = (v: number | null | undefined): string =>
   v == null ? "—" : `${PCT.format(v)}%`;
 
-/** A "free float / other" catch-all holder (Turkish "DİĞER" / "HALKA AÇIK"). */
-function isOther(name: string | null): boolean {
-  const t = (name ?? "").trim().toLocaleUpperCase("tr-TR");
-  return t === "DİĞER" || t.includes("HALKA AÇIK") || t.includes("FREE FLOAT");
-}
 const holderLabel = (name: string | null): string =>
-  isOther(name) ? "Other / free float" : name ?? "—";
-
-/** Title-case, Turkish-aware (so İ/ı fold correctly). */
-function titleCase(s: string): string {
-  return s
-    .toLocaleLowerCase("tr-TR")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toLocaleUpperCase("tr-TR") + w.slice(1))
-    .join(" ");
-}
-
-/** "AK PORTFÖY YÖNETİMİ A.Ş." → "Ak Portföy Yönetimi" — strip the legal suffix,
- *  title-case, and cap to the first few words so it reads as a chip. */
-function shortName(name: string | null): string {
-  let s = (name ?? "").trim();
-  s = s.replace(/\s*ANON[İI]M\s+Ş[İI]RKET[İI]\s*$/giu, "");
-  s = s.replace(/\s*A\.?\s*Ş\.?\s*$/iu, "");
-  s = titleCase(s);
-  const words = s.split(/\s+/).filter(Boolean);
-  return words.length > 4 ? `${words.slice(0, 4).join(" ")}…` : s;
-}
+  isFreeFloatHolder(name) ? "Other / free float" : name ?? "—";
 
 /** Associates (İştirak) are excluded from the subsidiary chips — the mock shows
  *  core holdings, not minority sector-consortium stakes. */
@@ -58,7 +32,7 @@ export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) 
   const subsCore = subsAll.filter((r) => !isAssociate(r.relation));
   const subRows = subsCore.length > 0 ? subsCore : subsAll;
   const subNames = Array.from(
-    new Set(subRows.map((r) => shortName(r.holder)).filter(Boolean)),
+    new Set(subRows.map((r) => holderShortName(r.holder)).filter(Boolean)),
   );
 
   if (shareholders.length === 0 && subNames.length === 0) return null;
@@ -73,7 +47,7 @@ export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) 
           </div>
           <div className="space-y-3">
             {shareholders.map((r) => {
-              const other = isOther(r.holder);
+              const other = isFreeFloatHolder(r.holder);
               const w = Math.min(Math.max(r.ratio_pct ?? 0, 0), 100);
               return (
                 <div key={r.seq} className="text-xs">

@@ -3,11 +3,13 @@
  *
  * Self-contained on purpose (the page is 1,800 lines): it runs its own
  * queries, and the whole analyst_notes/analyst_signals read follows the
- * read-headlines pattern — UNCACHED direct read, try/catch, silent fallback —
- * because those tables do not exist in D1 until the 2026-08-01 write freeze
- * lifts (migration 0037 is authored, unapplied). The badge, by contrast, is
- * built entirely from tables that are already live (bank_audit_opinion + the
- * sweep-established reporting unit), so it renders for every bank today.
+ * read-headlines pattern — UNCACHED direct read, try/catch, silent fallback.
+ * The tables are live in D1 (migration 0037 applied; the 2026-08-01 write
+ * freeze has lifted), but the guarded read stays: memo generation is a
+ * dispatch-run workflow, not a cron, so most banks simply have no memo yet.
+ * The badge, by contrast, is built entirely from tables that predate the
+ * analyst lane (bank_audit_opinion + the sweep-established reporting unit),
+ * so it renders for every bank today.
  */
 import { SecHead } from "@/app/components/desk";
 import { classifyBasisLead } from "@/app/lib/analyst/sections";
@@ -213,8 +215,10 @@ export default async function AnalystSection({
         </>
       ) : (
         <p className="text-[11.5px] text-muted-foreground">
-          Analysis pending — memos are generated in CI (<span className="font-mono text-[10.5px]">analyst-daily.yml</span>) and
-          publish here when the D1 write freeze lifts. The badge above is live data.
+          Analysis pending — no memo has been generated for this bank and quarter yet.
+          Memos come from the dispatch-run analyst workflow
+          (<span className="font-mono text-[10.5px]">analyst-daily.yml</span>) and appear
+          here once generated and pushed. The badge above is live data.
         </p>
       )}
     </section>

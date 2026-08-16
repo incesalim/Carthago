@@ -206,7 +206,19 @@ export interface EngineGate {
  */
 export const BUILD_OUT_QUARTERS = 8;
 
-export function engineGate(rows: BankMetricRow[]): EngineGate {
+export function engineGate(
+  rows: BankMetricRow[],
+  opts?: {
+    /** Quarters actually on file for this bank (from its own statement
+     *  periods), independent of the ratio panel. Lets the gate tell "never
+     *  filed" apart from "the panel does not carry this bank". */
+    auditedQuarters?: number;
+    /** True when the bank is deliberately excluded from the peer ratio panel
+     *  (`PEER_EXCLUDED_TICKERS` — Takasbank: market infrastructure, not a
+     *  lender). */
+    peerExcluded?: boolean;
+  },
+): EngineGate {
   const latest = rows[rows.length - 1];
   const filings = rows.length;
   const first = rows[0]?.period ?? null;
@@ -228,6 +240,22 @@ export function engineGate(rows: BankMetricRow[]): EngineGate {
           ? "No deposit cost or spread: this bank takes no deposits — it funds itself in the market, so the ladder starts at what the assets earn. These rows are absent because they do not exist for this funding model, not because the figures are missing."
           : "No deposit cost or spread: we hold no deposits line for this period, so the funding leg cannot be formed. The rest of the ladder stands on its own.";
     return { ready, filings, firstPeriod: first, reason: null, fundingNote };
+  }
+  // The panel is a RANKING, not the universe (heatmap.ts `ensure` refuses
+  // peer-excluded banks): Takasbank has no rows HERE while holding years of
+  // filings on its own Financials tab. Saying "has filed 0 quarters" about 17
+  // audited quarters was a false sentence on a section built never to print one.
+  const audited = opts?.auditedQuarters ?? 0;
+  if (filings === 0 && audited > 0) {
+    return {
+      ready: false,
+      filings,
+      firstPeriod: first,
+      fundingNote: null,
+      reason: opts?.peerExcluded
+        ? `${audited} audited quarter${audited === 1 ? " is" : "s are"} on file, but this institution is deliberately excluded from the peer ratio panel — market infrastructure, not a lender — so yield, funding cost, spread, cost of risk and ROE are not computed for it. The statements themselves are under Financials.`
+        : `${audited} audited quarter${audited === 1 ? " is" : "s are"} on file, but the ratio panel holds no rows for this bank, so yield, funding cost, spread, cost of risk and ROE were not computed. The statements themselves are under Financials.`,
+    };
   }
   return {
     ready: false,

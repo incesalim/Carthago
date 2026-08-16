@@ -36,6 +36,39 @@ export interface KapOwnershipRow {
   relation: string | null;
 }
 
+/**
+ * A "free float / other" catch-all holder (Turkish "DİĞER" / "HALKA AÇIK").
+ * It is the residual of the shareholder grid, not an owner — anything picking
+ * "the owner" must skip it (the /banks Desk once crowned Akbank's owner as
+ * "DİĞER 59.3%" while Sabancı Holding sat at 40.8%). The AUTHORITATIVE
+ * free-float percentage is the separate `free_float` item, not this row.
+ */
+export function isFreeFloatHolder(name: string | null): boolean {
+  const t = (name ?? "").trim().toLocaleUpperCase("tr-TR");
+  return t === "DİĞER" || t.includes("HALKA AÇIK") || t.includes("FREE FLOAT");
+}
+
+/** Title-case, Turkish-aware (so İ/ı fold correctly). */
+function titleCaseTr(s: string): string {
+  return s
+    .toLocaleLowerCase("tr-TR")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toLocaleUpperCase("tr-TR") + w.slice(1))
+    .join(" ");
+}
+
+/** "AK PORTFÖY YÖNETİMİ A.Ş." → "Ak Portföy Yönetimi" — strip the legal suffix,
+ *  title-case, and cap to the first few words so it reads as a chip. */
+export function holderShortName(name: string | null): string {
+  let s = (name ?? "").trim();
+  s = s.replace(/\s*ANON[İI]M\s+Ş[İI]RKET[İI]\s*$/giu, "");
+  s = s.replace(/\s*A\.?\s*Ş\.?\s*$/iu, "");
+  s = titleCaseTr(s);
+  const words = s.split(/\s+/).filter(Boolean);
+  return words.length > 4 ? `${words.slice(0, 4).join(" ")}…` : s;
+}
+
 /** All ownership rows for one bank, grid order preserved. */
 export async function bankOwnership(ticker: string): Promise<KapOwnershipRow[]> {
   return cachedAll<KapOwnershipRow>(

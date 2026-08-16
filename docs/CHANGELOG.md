@@ -3,7 +3,27 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-08-04.
+Last verified: 2026-08-16.
+
+2026-08-16 — **The bank Desk stopped crowning the free-float bucket as "owner"
+and stopped telling Takasbank it never filed.** A page-by-page review of the
+live site found three untrue sentences. (1) The Desk's identity strip picked
+the largest KAP shareholder row as "Owner", and for any dispersed-ownership
+bank the largest row is the "Diğer" residual — Akbank printed `OWNER DİĞER
+59.3%` while Sabancı Holding sat one tab away at 40.8%. The pick now skips
+free-float rows (`isFreeFloatHolder`, shared from `kap.ts`), prints the legal
+name through `holderShortName`, and a bank with only a residual reads
+`free float N%`. (2) The TTM engine gate reported "This bank has filed 0
+quarters" for Takasbank — the panel it counts is the peer RANKING, which
+excludes TAKAS by design, while the same page's Financials tab holds 17
+audited quarters. `engineGate` now receives the bank's own filed-quarter
+count plus the exclusion flag and says which of the three cases is true
+(never filed / panel doesn't carry it / deliberately excluded), pinned by
+tests. (3) Every bank page's analyst section still promised memos "when the
+D1 write freeze lifts" — the freeze lifted 2026-08-07; the copy (and the
+`/pipeline` transcripts sublabel) now state the actual gate: generation is a
+dispatch-run workflow. `web/app/banks/[ticker]/`, `web/app/lib/bank-brief.ts`,
+`web/app/lib/kap.ts`, `web/app/lib/bank-brief.test.ts`.
 
 2026-08-12 — **A third of all Q4 filings were being judged "not a report".**
 `report_validity` scanned the first **6** pages for a filing's structural

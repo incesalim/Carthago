@@ -87,7 +87,7 @@ import { LDR_AUDITED } from "@/app/lib/ldr";
 import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
 import { callsByTicker, TRANSCRIPT_BANKS } from "@/app/lib/transcripts";
-import { bankOwnership } from "@/app/lib/kap";
+import { bankOwnership, holderShortName, isFreeFloatHolder } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
 import { evdsSeries } from "@/app/lib/metrics";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
@@ -119,7 +119,7 @@ import {
   indentLevel,
   type StandardLine,
 } from "@/app/lib/standard_lines";
-import { bankDisplayName, BANK_TYPE_BY_TICKER } from "@/app/lib/bank_names";
+import { bankDisplayName, BANK_TYPE_BY_TICKER, isPeerExcluded } from "@/app/lib/bank_names";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -728,7 +728,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     : [];
 
   // The engine — TTM margin ladder, or the gate that explains its absence.
-  const gate = engineGate(perfRows);
+  // `allPeriods` is what the bank actually filed (its own statement periods);
+  // `perfRows` is the peer panel, which excludes TAKAS by design — the gate
+  // needs both so it never claims a filed bank "has filed 0 quarters".
+  const gate = engineGate(perfRows, {
+    auditedQuarters: allPeriods.length,
+    peerExcluded: isPeerExcluded(ticker),
+  });
   const pctOf = (v: number | null | undefined) => (v == null ? null : v * 100);
   const engineRows: EngineRow[] = gate.ready
     ? ([
@@ -906,16 +912,25 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   if (assetsRank) identityItems.push({ k: "Rank", v: `#${assetsRank.rank} of ${assetsRank.n} by assets` });
   if (profile?.branches_total) identityItems.push({ k: "Branches", v: profile.branches_total.toLocaleString() });
   if (profile?.personnel) identityItems.push({ k: "Staff", v: profile.personnel.toLocaleString() });
-  // Largest disclosed shareholder — the same rows the Ownership section reads
-  // (item = "shareholder", minus the "Toplam" total line).
-  const topHolder = ownership
-    .filter((r) => r.item === "shareholder" && !/^toplam$/i.test((r.holder ?? "").trim()))
+  // Largest disclosed NAMED shareholder — the same rows the Ownership section
+  // reads (item = "shareholder"), minus the "Toplam" total line AND the
+  // "Diğer / free float" residual. The residual is the biggest row for any
+  // dispersed-ownership bank, and picking by size alone crowned Akbank's owner
+  // as "DİĞER 59.3%" while Sabancı Holding sat one tab away at 40.8%.
+  const holderRows = ownership.filter(
+    (r) => r.item === "shareholder" && !/^toplam$/i.test((r.holder ?? "").trim()),
+  );
+  const topHolder = holderRows
+    .filter((r) => !isFreeFloatHolder(r.holder))
     .sort((a, b) => (b.ratio_pct ?? 0) - (a.ratio_pct ?? 0))[0];
+  const freeFloatResidual = holderRows.find((r) => isFreeFloatHolder(r.holder));
   identityItems.push({
     k: "Owner",
     v: topHolder?.holder
-      ? `${topHolder.holder}${topHolder.ratio_pct != null ? ` ${topHolder.ratio_pct.toFixed(1)}%` : ""}`
-      : "— not filed to KAP",
+      ? `${holderShortName(topHolder.holder)}${topHolder.ratio_pct != null ? ` ${topHolder.ratio_pct.toFixed(1)}%` : ""}`
+      : freeFloatResidual
+        ? `free float${freeFloatResidual.ratio_pct != null ? ` ${freeFloatResidual.ratio_pct.toFixed(1)}%` : ""}`
+        : "— not filed to KAP",
   });
   void cpiYoY;
 
