@@ -54,8 +54,20 @@ def main():
                     help="Cap on Google News redirect-token decodes per run "
                          f"(default {google_news.MAX_DECODE_PER_RUN}); the rest "
                          "are picked up on subsequent runs")
-    ap.add_argument("--kap-days", type=int, default=90,
-                    help="KAP look-back window in days (default 90)")
+    # 7, not the 90 it read until 2026-08-16 — and that is a reduction in name
+    # only. KAP caps a byCriteria response at 2000 rows without saying so, so
+    # "90" was served about a week and the daily lane had silently been running
+    # a ~7-day window for its whole life. Now that kap.fetch pages, the number
+    # became literal, and a literal 90 is expensive in the one place this repo
+    # cannot afford it: upsert_items is INSERT OR REPLACE, which resets
+    # fetched_at, and push_to_d1 windows news_items on fetched_at — so every row
+    # the fetch returns is re-stamped and re-shipped to D1 every single day.
+    # Measured: ~50 bank items over 6 days against ~800 over 90. A wider window
+    # is a backfill, and backfills pass it explicitly.
+    ap.add_argument("--kap-days", type=int, default=7,
+                    help="KAP look-back window in days (default 7; wider is a "
+                         "backfill — every row fetched is re-stamped and "
+                         "re-pushed, see the comment above)")
     ap.add_argument("--tcmb-years-back", type=int, default=5,
                     help="How many calendar years of TCMB press releases to fetch (default 5)")
     ap.add_argument("--tcmb-years", type=int, nargs="+", default=None,

@@ -130,3 +130,25 @@ def test_rows_repeated_across_slices_are_not_duplicated(monkeypatch):
         lambda *a, **k: [_row(disclosureIndex=99, stockCodes="AKBNK",
                               subject="Finansal Rapor")])
     assert [i.ticker for i in kap.fetch(days_back=30)] == ["AKBNK"]
+
+
+# --- the daily window is a cost decision -------------------------------------
+
+def test_the_default_window_stays_narrow():
+    """`--kap-days` read 90 while KAP's undeclared 2000-row cap served about a
+    week of it. Paging made the number literal, and news_items is upserted with
+    INSERT OR REPLACE — which resets fetched_at, which is exactly what
+    push_to_d1 windows news_items on. A literal 90 would re-stamp and re-ship
+    every row it returns, every day, for nothing."""
+    from pathlib import Path as _P
+
+    repo = _P(__file__).resolve().parents[1]
+    src = (repo / "scripts" / "sync_news.py").read_text(encoding="utf-8")
+    assert 'ap.add_argument("--kap-days", type=int, default=7' in src, \
+        "the daily KAP window must stay narrow; widen per-invocation instead"
+
+    # And the backfill route exists, so widening is a dispatch input rather
+    # than an edit to the default.
+    wf = (repo / ".github" / "workflows" / "refresh-news-daily.yml").read_text(
+        encoding="utf-8")
+    assert "kap_days:" in wf and "--kap-days $KAP_DAYS" in wf

@@ -26,6 +26,16 @@ on:
         options: [tcmb, bddk, both]
         required: false
         default: tcmb
+      # Blank = the script's default (7 days). Widen ONLY for a deliberate
+      # backfill: news_items is upserted with INSERT OR REPLACE, which resets
+      # fetched_at, and the D1 push windows on fetched_at — so every row the
+      # fetch returns is re-stamped and billed again. 30 days is what backfilled
+      # the unlisted banks' 2026Q2 filings after the title-matching pass landed.
+      kap_days:
+        description: "KAP look-back window in days (blank = 7; wider = backfill, re-pushes every row it returns)"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -99,15 +109,27 @@ jobs:
           PY
 
       - name: Sync news (KAP + TCMB + BDDK + press + Google News)
+        # Forwarded via env (never interpolated into the command line) so the
+        # dispatch input is passed as one quoted argument and can't inject shell.
+        env:
+          KAP_DAYS: ${{ inputs.kap_days }}
         run: |
+          KAP_ARG=""
+          if [ -n "$KAP_DAYS" ]; then
+            case "$KAP_DAYS" in
+              ''|*[!0-9]*) echo "kap_days must be a positive integer"; exit 1 ;;
+            esac
+            KAP_ARG="--kap-days $KAP_DAYS"
+            echo "== KAP backfill window: $KAP_DAYS days =="
+          fi
           if [ "${{ inputs.refresh_bodies }}" = "true" ]; then
             SRC='${{ inputs.body_source }}'
             EXTRA=""
             if [ "$SRC" != "both" ]; then EXTRA="--${SRC}-only"; fi
             echo "== refreshing bodies (source=$SRC) =="
-            python scripts/sync_news.py --refresh-bodies $EXTRA
+            python scripts/sync_news.py --refresh-bodies $EXTRA $KAP_ARG
           else
-            python scripts/sync_news.py
+            python scripts/sync_news.py $KAP_ARG
           fi
 
       - name: Setup Node (for wrangler)
