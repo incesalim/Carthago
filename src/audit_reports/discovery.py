@@ -49,6 +49,22 @@ DISCOVERY_BANKS: set[str] = {
     "PASHA", "TEB", "TFKB", "TSKB", "VAKIFK", "ZIRAAT",
 }
 
+# (ticker, reason) for every discovery attempt that failed in this process.
+#
+# The fail-safe below is right — a dead IR page must not take the sync down —
+# but returning `[]` makes "this bank's site refused us" and "this bank has not
+# filed" the same observation, and the caller cannot tell them apart. VAKIFK's
+# 2026Q2 sat unacquired for nine days behind exactly that: its host answers this
+# machine and times out from the GitHub runner, so every run logged one stderr
+# line nobody reads and fell back to a static config that had no 2026Q2 entry.
+#
+# Collected rather than alerted: a geo-blocked host fails on EVERY run, and a
+# daily ping that is always the same bank is a muted ping. The consequence —
+# a published quarter we do not hold — is what raises the alert, in
+# healthcheck.filing_gap_problem. This list is for the run log and the job
+# summary, so the cause is one click from the symptom.
+DISCOVERY_FAILURES: list[tuple[str, str]] = []
+
 # ---------------------------------------------------------------------------
 # Periods & quarter-end dates
 # ---------------------------------------------------------------------------
@@ -235,6 +251,7 @@ def discover_targets(ticker: str, bank_cfg: dict) -> list[tuple[str, str, str]]:
         print(f"[discover] {ticker}: {len(found)} report(s) from IR page", flush=True)
         return found
     except Exception as e:  # noqa: BLE001 — discovery must never break the sync
+        DISCOVERY_FAILURES.append((ticker.upper(), f"{type(e).__name__}: {e}"))
         print(f"[discover] {ticker}: FAILED ({type(e).__name__}: {e}) — "
               f"falling back to static config", file=sys.stderr, flush=True)
         return []

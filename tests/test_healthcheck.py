@@ -95,3 +95,71 @@ def test_monthly_freshness_shape_for_the_admin_panel():
     stale = healthcheck.monthly_freshness("2026-05", probe=lambda y, m: True)
     assert stale["status"] == "stale"
     assert "missed a release" in stale["note"]
+
+
+# --- the filing-season gap ---------------------------------------------------
+#
+# Every other check here asks whether data we HAVE went stale, and none of them
+# could see 2026Q2: thirteen banks had published, the audit lane held none of
+# them, and each daily run exited green because `new=0` is also what a quarter
+# nobody filed looks like. The gap between a KAP results_filing and an
+# extraction is the one comparison that separates those two worlds.
+from datetime import date  # noqa: E402
+
+
+def _gap_row(ticker, filed_on, period="2026Q2"):
+    return {"ticker": ticker, "period": period, "filed_on": filed_on}
+
+
+def test_no_gap_is_silent():
+    assert healthcheck.filing_gap_problem([], today=date(2026, 8, 16)) is None
+
+
+def test_a_bank_that_filed_and_was_not_acquired_alerts():
+    msg = healthcheck.filing_gap_problem(
+        [_gap_row("ISCTR", "2026-08-03")], today=date(2026, 8, 16))
+    assert msg and "ISCTR" in msg and "2026Q2" in msg and "13d" in msg
+
+
+def test_a_filing_inside_the_grace_window_is_not_yet_a_problem():
+    """KAP precedes the bank's own IR page — TEB filed 07-23, the PDF appeared
+    07-26. Alerting on the filing day would fire on every bank every quarter."""
+    today = date(2026, 8, 16)
+    assert healthcheck.filing_gap_problem(
+        [_gap_row("KUVEYT", "2026-08-14")], today=today) is None
+    assert healthcheck.filing_gap_problem(
+        [_gap_row("KUVEYT", "2026-08-12")], today=today) is not None
+
+
+def test_the_oldest_gap_is_named_first():
+    msg = healthcheck.filing_gap_problem(
+        [_gap_row("ICBCT", "2026-08-10"), _gap_row("TSKB", "2026-07-29")],
+        today=date(2026, 8, 16))
+    assert msg.index("TSKB") < msg.index("ICBCT"), msg
+    assert "2 bank(s)" in msg
+
+
+def test_a_broken_filed_on_never_takes_the_health_check_down():
+    assert healthcheck.filing_gap_problem(
+        [_gap_row("X", None), _gap_row("Y", "not-a-date")],
+        today=date(2026, 8, 16)) is None
+
+
+def test_the_query_is_flattened_before_it_reaches_wrangler(monkeypatch):
+    """`wrangler d1 execute --command` does not survive an embedded newline;
+    the readable triple-quoted SQL below would fail every run."""
+    seen = {}
+
+    class _Res:
+        returncode = 0
+        stdout = '[{"results": []}]'
+        stderr = ""
+
+    def _run(cmd, **kw):
+        seen["cmd"] = cmd
+        return _Res()
+
+    monkeypatch.setattr(healthcheck.subprocess, "run", _run)
+    healthcheck.query_d1_rows(healthcheck.FILING_GAP_SQL)
+    assert "\n" not in seen["cmd"][-1]
+    assert "bank_earnings" in seen["cmd"][-1]

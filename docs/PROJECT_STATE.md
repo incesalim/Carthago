@@ -96,11 +96,73 @@ BdrUyg, institutions `015` and `209`), and **DENIZ and ALNTF keep their document
 list one level below the configured `ir_page`, rendered in JS** — invisible to
 any HTTP probe, plain in a browser.
 
-**14 banks are still behind.** TSKB is serving a 14-page KAP cover sheet, which
-the gate correctly refuses. The other 13 have not filed: AKTIF, COLENDI, DUNYAK,
-EXIM, HAYATK, HSBC, ICBCT, ISCTR, KUVEYT, QNBFB, TFKB, TOMK, VAKIFK. ANADOLU's
-consolidated half is unfiled too. The unconsolidated deadline is 14 August and
-consolidated ~13 September, so most land in the coming weeks.
+**⚠️ "The other 13 have not filed" was wrong — twelve of them had (2026-08-16).**
+The line this replaces named AKTIF, COLENDI, DUNYAK, EXIM, HAYATK, HSBC, ICBCT,
+ISCTR, KUVEYT, QNBFB, TFKB, TOMK and VAKIFK as unfiled on 2026-08-13. Queried
+against KAP directly, **35 of 38 banks had filed 2026Q2** — İş Bankası ten days
+before that sentence was written, on 08-03. Only COLENDI has no filing on any
+source, and ATBANK/TAKAS are not KAP members (both already acquired from their
+own sites). The claim was never checked because nothing could check it: see
+*the acquisition gap* below.
+
+**Where 2026Q2 actually stands (2026-08-16).** Filing date is KAP's; "held"
+means a successful extraction.
+
+| State | Banks |
+|---|---|
+| Filed and held | 24 — AKBNK, ALBRK, ALNTF, ANADOLU (unconsolidated only), ATBANK, BURGAN, DENIZ, EMLAK, ENPARA, FIBA, GARAN, HALKB, ING, KLNMA, ODEA, PASHA, SKBNK, TAKAS, TEB, VAKBN, YKBNK, ZIRAAT, ZIRAATD, ZIRAATK |
+| Filed, acquired 08-16 | 8 — AKTIF, DUNYAK, HAYATK, ICBCT, KUVEYT, QNBFB, TFKB, VAKIFK (13 partitions; consolidated halves of AKTIF/KUVEYT/VAKIFK are not published yet, deadline ~13 Sep) |
+| Filed, **not on the bank's own site** | 5 — ISCTR (KAP 08-03; IR page serves the June Excel only, no PDF — verified in a browser), TSKB (KAP 07-29; IR URLs still serve the 14-page cover sheet), EXIM (08-06), TOMK (08-13), HSBC (08-13) — all three list only 2026Q1 |
+| No filing on any source | 1 — COLENDI |
+
+Nothing can be acquired for the middle-lower group until the bank posts the PDF;
+the daily refresh will take them the day it appears, and `filing_gap_problem`
+now names them until it does.
+
+**⚠️ The acquisition gap: nothing could report a filing we never fetched
+(fixed 2026-08-16).** Thirteen banks published 2026Q2 and the lane held none of
+them, while every daily run reported `new=0 changed=False` and exited green —
+which is also exactly what a quarter nobody filed looks like. Four independent
+causes, each fixed:
+
+1. **Discovery covers 13 of 38 banks**, so for the other 25 a published filing
+   is invisible until a URL is hand-added. Nine of the thirteen sat there.
+   *Unfixed by design* — widening `DISCOVERY_BANKS` needs per-bank validation —
+   but no longer silent, see (4).
+2. **Three of the thirteen were inside `DISCOVERY_BANKS` and failed anyway.**
+   VAKIFK's host answers a Turkish address and times out from the GitHub runner
+   (`ConnectTimeout`, in every run log since 08-05); TFKB returned 2 links
+   against 34–36 for a healthy bank, its skeleton having drifted; EXIM's Q2 is
+   not on its IR page at all. `discover_targets` catches everything and returns
+   `[]`, so *blocked* and *not published* were the same observation.
+3. **A real filing was refused as a KAP cover sheet.** `_KAP_COVER_RX` was
+   tested before the page floor over a 16-page window, and "Kamuyu Aydınlatma
+   Platformu" is an ordinary Turkish sentence — ICBCT's 91-page filings say it
+   on page 8, recounting a 2015 share transfer. Both halves were rejected with
+   the basis read correctly off the front matter. The fingerprint is now
+   consulted **only below `_MIN_REPORT_PAGES`**, where it distinguishes two
+   short documents; above it the page floor and the marker check already decide.
+   TSKB's genuine 14-page cover sheet is still refused, twice over.
+4. **No check could express "a bank filed and we don't hold it".** The systemic
+   alarm's denominator is targets we *attempted*, and a bank with no URL is
+   never attempted; `healthcheck` measured staleness of data we have. The
+   evidence was already in the database — `bank_earnings` carries a KAP
+   `results_filing` per (bank, period) — and nothing compared the two.
+   `healthcheck.filing_gap_problem` now does, with a 4-day grace because KAP
+   legitimately precedes a bank's own IR page (TEB filed 07-23, PDF 07-26).
+   Discovery failures surface as a job warning rather than a Telegram ping: a
+   geo-blocked host fails every single run, and a daily alert that is always the
+   same bank gets muted.
+
+**The KAP lane could only see 12 of 38 banks (fixed 2026-08-16).** It matched a
+disclosure to a bank on `stockCodes`, which KAP leaves empty for a member with
+no listed shares — so every unlisted bank's filing was dropped before anything
+looked at it. A second pass now matches the member's own title, for financial
+reports only, and the lane sees **35 of 38**. Two supporting facts found on the
+way: `byCriteria` caps a response at **2000 rows** with no flag or continuation
+token (2026-07-20→08-16 returned exactly 2000 against 8,379 counted a day at a
+time), so `fetch` now pages in 3-day slices; and `wrangler d1 execute --command`
+does not survive an embedded newline, which is why `query_d1_rows` flattens.
 
 **⚠️ ANADOLU 2026Q2 unconsolidated was stored 1000× small and was live for
 days (fixed 2026-08-13).** Total assets read **₺0.2bn against ₺212.6bn** the

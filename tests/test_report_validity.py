@@ -157,6 +157,58 @@ def test_a_long_document_with_no_markers_at_all_is_still_refused():
     assert ok is False and "no-report-markers" in why, why
 
 
+# --- the phrase is not the document ------------------------------------------
+#
+# "Kamuyu Aydınlatma Platformu" is a sentence a bank writes about itself, not
+# only a banner on a KAP notification. ICBCT's 2026Q2 filings recount a 2015
+# share transfer announced on KAP, on page 8 — inside the 16-page window — and
+# both were refused as cover sheets: 91 pages of real statements, consolidation
+# basis read correctly off the front matter, discarded over a phrase in a note.
+#
+# The fingerprint separates two SHORT documents. Above the page floor it has
+# nothing to say, so it is not asked.
+
+def _real_report_mentioning_kap(pages: int = 91) -> bytes:
+    """A genuine filing whose notes mention KAP, the way ICBCT's does."""
+    import fitz
+    doc = fitz.open()
+    for i in range(pages):
+        pg = doc.new_page()
+        if i == 0:
+            pg.insert_textbox(fitz.Rect(40, 40, 560, 760),
+                              "ICBC TURKEY BANK A.S. 30 HAZIRAN 2026 TARIHI "
+                              "ITIBARIYLA KONSOLIDE OLMAYAN FINANSAL TABLOLAR "
+                              "BIRINCI BOLUM Genel Bilgiler (Tutarlar aksi "
+                              "belirtilmedikce Bin Turk Lirasi olarak)", fontsize=9)
+        elif i == 8:
+            pg.insert_textbox(fitz.Rect(40, 40, 560, 760),
+                              "Ilgili izinlerin tamamlanmasini muteakiben Banka "
+                              "tarafindan 28 Nisan 2015 tarihinde Kamuyu "
+                              "Aydinlatma Platformu'nda satis islemine iliskin "
+                              "olarak duyuru yapilmistir.", fontsize=9)
+        else:
+            pg.insert_text((72, 72), f"page {i}", fontsize=9)
+    out = doc.tobytes()
+    doc.close()
+    return out
+
+
+def test_a_real_filing_that_merely_mentions_kap_is_not_a_cover_sheet():
+    ok, why = _sync().report_validity(_real_report_mentioning_kap())
+    assert ok is True, why
+
+
+def test_the_kap_fingerprint_is_only_consulted_below_the_page_floor():
+    """Pinned: re-promoting the fingerprint above the floor re-breaks ICBCT."""
+    M = _sync()
+    src = (REPO / "scripts" / "sync_audit_reports.py").read_text(encoding="utf-8")
+    body = src.split("def report_validity")[1].split("def ")[0]
+    assert body.index("pages < _MIN_REPORT_PAGES") < body.index("_KAP_COVER_RX"), \
+        "the page floor must be tested before the KAP fingerprint"
+    # And the floor still sits above a notification's length.
+    assert M._MIN_REPORT_PAGES > 14
+
+
 # --- 1. an invalid object keeps the partition pending ------------------------
 
 def test_an_invalid_object_does_not_count_as_acquired(tmp_path, monkeypatch):

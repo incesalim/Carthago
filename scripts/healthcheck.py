@@ -1,5 +1,6 @@
 """Daily data-freshness health check against D1 → alert via notify() when a
-source is stale or audit extractions are failing.
+source is stale, audit extractions are failing, or a bank has published a
+quarter the audit lane never acquired (see `filing_gap_problem`).
 
 Run in CI with CLOUDFLARE_API_TOKEN (for wrangler) and the Telegram/Discord
 secrets set. Exits 0 even when it alerts — the webhook *is* the alert, so we
@@ -35,7 +36,8 @@ from src.d1_usage import (  # noqa: E402
 # `downloaded_at` the day a month lands, so an age check reads "stale" for the
 # weeks between releases even when we hold the latest data. It gets a
 # schedule-aware check instead (see monthly_problem). Audit is excluded from
-# staleness (banks publish quarterly) — it's covered by the failure count.
+# staleness (banks publish quarterly) — it's covered by the failure count and,
+# for the quarter that never arrived at all, by filing_gap_problem.
 THRESHOLDS = [
     # 13 days, not the 8 it was until 2026-08-04. `weekly` is checked on
     # MAX(downloaded_at), and that column changed MEANING on that date: the
@@ -210,10 +212,27 @@ def hours_since(ts: str | None) -> float | None:
     return (datetime.now(timezone.utc) - dt).total_seconds() / 3600
 
 
-def query_d1() -> dict:
+def query_d1(sql: str = SQL) -> dict:
+    rows = query_d1_rows(sql)
+    if not rows:
+        raise RuntimeError("query returned no rows")
+    return rows[0]
+
+
+def query_d1_rows(sql: str) -> list[dict]:
+    """Every row of a read-only query. `query_d1` is the one-row case.
+
+    The statement is flattened to one line first. `wrangler d1 execute
+    --command` does not survive an embedded newline: measured on Windows
+    2026-08-16 it failed every attempt, twice with `exit 1` and twice with a
+    libuv assertion (`UV_HANDLE_CLOSING`, exit 3221226505). The module's own
+    SQL constant is newline-free by construction, which is why nothing had hit
+    this before; a readable triple-quoted query is the natural way to write the
+    next one.
+    """
     cmd = [
         "npx", "--yes", "wrangler", "d1", "execute", "bddk-data",
-        "--remote", "--json", "--command", SQL,
+        "--remote", "--json", "--command", " ".join(sql.split()),
     ]
     res = subprocess.run(
         cmd, cwd=str(WEB), capture_output=True, text=True, shell=os.name == "nt"
@@ -221,10 +240,74 @@ def query_d1() -> dict:
     if res.returncode != 0:
         raise RuntimeError(f"wrangler exit {res.returncode}: {res.stderr[-500:]}")
     data = json.loads(res.stdout)
-    rows = (data[0] if isinstance(data, list) else data)["results"]
-    if not rows:
-        raise RuntimeError("query returned no rows")
-    return rows[0]
+    return (data[0] if isinstance(data, list) else data)["results"]
+
+
+# --- the filing-season gap ---------------------------------------------------
+#
+# Every other check here asks whether data we HAVE has gone stale. None of them
+# can see data we never acquired, and that is the failure this lane actually
+# has: on 2026-08-16, thirteen banks had published 2026Q2 — İş Bankası ten days
+# earlier — and the audit pipeline held nothing for any of them. Each daily run
+# reported `new=0 changed=False` and exited green, which is also exactly what a
+# quarter in which nobody filed looks like.
+#
+# The signal was already in the database. `bank_earnings` carries a KAP
+# `results_filing` per (bank, period); `bank_audit_extractions` carries what we
+# extracted. The gap between them is the alert, and no calendar is needed: the
+# period tracked is simply the newest one anyone has filed.
+#
+# Grace, because a KAP filing genuinely precedes the bank's own IR page — TEB
+# filed on 07-23 and the PDF appeared on 07-26. Alerting on the filing day would
+# fire on every bank every quarter and get muted.
+FILING_GAP_GRACE_DAYS = 4
+
+FILING_GAP_SQL = """
+SELECT e.ticker AS ticker, e.period AS period,
+       MIN(substr(e.event_date, 1, 10)) AS filed_on
+FROM bank_earnings e
+WHERE e.kind = 'results_filing'
+  AND e.period = (SELECT MAX(period) FROM bank_earnings WHERE kind='results_filing')
+  AND NOT EXISTS (
+        SELECT 1 FROM bank_audit_extractions x
+        WHERE x.bank_ticker = e.ticker AND x.period = e.period AND x.success = 1)
+GROUP BY e.ticker, e.period
+ORDER BY filed_on, ticker
+"""
+
+
+def filing_gap_problem(rows: list[dict] | None = None,
+                       today: date | None = None) -> str | None:
+    """Alert text for banks that published the quarter but are not in the lane.
+
+    Silent when nothing is overdue. Never raises on a query failure — a check
+    that takes the health-check down teaches you to ignore the health check.
+    """
+    if rows is None:
+        try:
+            rows = query_d1_rows(FILING_GAP_SQL)
+        except Exception as e:                                   # noqa: BLE001
+            print(f"filing-gap check unavailable: {e}", file=sys.stderr)
+            return None
+    today = today or datetime.now(timezone.utc).date()
+    overdue = []
+    for r in rows:
+        filed_on = r.get("filed_on")
+        if not filed_on:
+            continue
+        try:
+            age = (today - date.fromisoformat(filed_on)).days
+        except ValueError:
+            continue
+        if age >= FILING_GAP_GRACE_DAYS:
+            overdue.append((r.get("ticker"), age))
+    if not overdue:
+        return None
+    period = rows[0].get("period", "?")
+    overdue.sort(key=lambda t: -t[1])
+    listed = ", ".join(f"{t} ({a}d)" for t, a in overdue)
+    return (f"{period} published but not acquired: {len(overdue)} bank(s) — "
+            f"{listed}")
 
 
 def d1_spend_problem(used: int | None = None) -> str | None:
@@ -284,6 +367,10 @@ def main() -> int:
     failed = row.get("audit_failed") or 0
     if failed > AUDIT_FAILED_ALERT:
         problems.append(f"Audit extractions failing: {failed} (baseline ~20)")
+
+    gap = filing_gap_problem()
+    if gap:
+        problems.append(gap)
 
     spend = d1_spend_problem()
     if spend:

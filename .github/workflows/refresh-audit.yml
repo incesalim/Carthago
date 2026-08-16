@@ -164,6 +164,14 @@ jobs:
           print(f"handoff: changed={result['changed']} "
                 f"new={result.get('scrape', {}).get('new', 0)} "
                 f"extracted={result.get('extract', {}).get('ok', 0)}")
+          # A bank whose IR page refused us is indistinguishable, in every count
+          # above, from a bank that has not filed. Discovery is fail-safe by
+          # design and must stay that way, so the failure is raised here as a
+          # job warning instead: visible on the run, silent in Telegram (a
+          # geo-blocked host fails every single day — see DISCOVERY_FAILURES).
+          for f in result.get("discovery_failures", []):
+              print(f"::warning title=Discovery fell back to static config::"
+                    f"{f['bank']}: {f['reason']}")
           PY
 
       - name: Rebuild bank_audit_stages from credit-quality

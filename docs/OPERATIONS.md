@@ -39,7 +39,7 @@ machine involvement is required for routine refreshes.
 | Manual only | `backfill-faaliyet.yml` | Fleet backfill of the Faaliyet-raporu franchise lane (branches / personnel from annual-report PDFs) → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` |
 | Manual only | `build-products.yml` | Loads the frozen **product-shelf** benchmark (`data/product_benchmark/*.json` + `src/products/labels_en.py` + `profiles_en.json`) via `src.products.build` → `product_attributes` / `bank_products` / `bank_product_profile` → D1 (`--only-tables=product_attributes,bank_products,bank_product_profile`) + snapshot. Deterministic and idempotent (loads committed JSONs, not a scrape); re-run for the same `snapshot_date` replaces its rows. Powers `/products`. Runs the `0034` DDL against remote D1 first (`CREATE … IF NOT EXISTS`), so it is safe to dispatch independently of deploy. NOT the refresh automation (that lane is designed but not built — see [knowledge/turkish-bank-product-benchmark-2026-07-22.md](knowledge/turkish-bank-product-benchmark-2026-07-22.md) §5). Bulletin lane (`bddk-pipeline` group) |
 | Manual only | `refresh-transcripts-weekly.yml` | `update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts for the 8 listed banks that hold an English call) → optional D1 push (`--only-tables=bank_call_transcripts`) + snapshot. Bulletin lane (`bddk-pipeline` group). **Carries no `schedule:` on purpose** — the freeze is enforced by `gh workflow disable`, which is invisible in git, so a new workflow shipped with a cron would be born enabled and become the one lane writing to D1 during it. The `push` input therefore defaults to **false**: a run ingests and re-uploads the snapshot but does not touch D1 unless asked. When the freeze lifts, add `schedule: "0 7 * * 6"` (Sat 07:00 UTC, after `refresh-presentations-weekly`) and flip `push` to true. Inputs: `banks` (ALL/NONE sentinel — a blank dispatch input arrives as the default, not empty), `refresh` (refetch stored quarters; parser changes only), `push`. Source rate-limits at ~70 pages, so the fetcher backs off on 429 and paces at 3s |
-| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` + `check_amount_integrity.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted |
+| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + **filing-season gap** (`filing_gap_problem`) + `verify_chart_spec.py` + `check_amount_integrity.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted/unacquired |
 | Manual only | `test-openrouter.yml` | **Scratch probe** for the `OPEN_ROUTER_API` secret. `task=smoke` — auth + credits + DeepSeek price list + a completion through `free_llm.py`'s number validators. `task=usage` — accounting only, spends nothing. `task=regulation` — runs the **real** `summarize_regulations.py` against OpenRouter (repointing the `KIMI_API_URL`/`KIMI_MODEL`/`KIMI_API_KEY` env vars `kimi.py` already reads, so the production prompt is unchanged) with a Kimi A/B on the same section. **Read-only on production**: pulls the R2 snapshot, never uploads one, never pushes to D1. Delete it (+ `scripts/scratch_test_openrouter.py`, `scripts/scratch_dump_briefing.py`, and its `SCRATCH_WORKFLOWS` entry in `scripts/check_pipeline_graph_sync.py`) once the OpenRouter question is settled |
 | Manual only | `telegram-webhook.yml` | Register (`set`) / inspect (`info`) / verify (`check`) the Q&A bot webhook. Lives in CI because `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` aren't available locally. Run `set` after anything that moves the site origin — notably a **Worker rename**, which changes the `workers.dev` hostname and silently orphans the webhook |
 | After CI passes on `master` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
@@ -864,6 +864,21 @@ minimal-deps health-check job can import it.
    maximum of 11 (public holidays) — 8 days would have alerted ~2.5x a year for
    nothing. EVDS and TEFAS took the other route and switched to `MAX(<data
    date>)` instead. Either is fine; leaving the old threshold is not.
+
+   ⚠️ **A freshness check cannot see data you never acquired.** Every threshold
+   above asks whether data we *hold* has gone stale, and all of them stayed
+   green through 2026Q2 while thirteen banks published filings the audit lane
+   never fetched — `new=0 changed=False` is indistinguishable from a quarter in
+   which nobody filed. The check that closes this is a **comparison between two
+   lanes**, not a threshold on one: `healthcheck.filing_gap_problem` joins KAP's
+   `results_filing` in `bank_earnings` against `bank_audit_extractions` for the
+   newest period anyone has filed, and names any bank that filed ≥
+   `FILING_GAP_GRACE_DAYS` (4) ago and is still missing. The grace exists
+   because KAP genuinely precedes a bank's own IR page — TEB filed 07-23 and its
+   PDF appeared 07-26 — so a zero-grace version would fire on every bank every
+   quarter and get muted. **When you add a lane that acquires documents from
+   third parties, ask what would tell you it stopped acquiring**; the answer is
+   usually a second, independent signal of what *should* exist.
 
    ⚠️ **This class is the flat daily baseline, not the overage.** Together the
    first measured weekly + TEFAS fixes took ~1.7M/month off a ~14.6M/month quiet

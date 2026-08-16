@@ -1,6 +1,6 @@
 {
   "_doc": "Direct PDF URLs for quarterly BRSA Financial Reports per Turkish bank. Sourced from each bank's investor relations site. Filenames are heterogeneous; future quarters need re-scraping (see README).",
-  "_updated": "2026-08-13",
+  "_updated": "2026-08-16",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -199,7 +199,8 @@
           "2025Q2": "https://www.icbc.com.tr/tr/images/pdf/30.06.2025_ICBC Turkey Bank A.Ş. Konsolide FT ve Dipnotlar - Final - ICBC.pdf",
           "2025Q3": "https://www.icbc.com.tr/tr/images/button/ICBC Turkey Bank A.Ş. Konsolide FT ve Dipnotlar 30.09.2025_ICBC_FİNAL.pdf",
           "2025Q4": "https://www.icbc.com.tr/tr/images/pdf/31.12.2025_ICBC Turkey A.Ş.  Konsolide FT ve Dipnotlar 31.12.2025_Final.pdf",
-          "2026Q1": "https://www.icbc.com.tr/tr/images/button/31.03.2026 Final_ICBC Turkey Bank A.Ş. Konsolide FT ve Dipnotlar .pdf"
+          "2026Q1": "https://www.icbc.com.tr/tr/images/button/31.03.2026 Final_ICBC Turkey Bank A.Ş. Konsolide FT ve Dipnotlar .pdf",
+          "2026Q2": "https://www.icbc.com.tr/tr/images/pdf/2026_30_06_ICBC%20Turkey%20Bank%20A.%C5%9E.%20Konsolide%20FT%20ve%20Dipnotlar%20Final%201.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.icbc.com.tr/tr/images/button/31.03.2022ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları .pdf",
@@ -218,7 +219,8 @@
           "2025Q2": "https://www.icbc.com.tr/tr/images/pdf/30.06.2025_ICBC Turkey Bank A.S. Solo FT ve Dipnotlar - Final - ICBC.pdf",
           "2025Q3": "https://www.icbc.com.tr/tr/images/pdf/ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları 30.09.2025_FİNAL.pdf",
           "2025Q4": "https://www.icbc.com.tr/tr/images/pdf/31.12.2025_ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları Final.pdf",
-          "2026Q1": "https://www.icbc.com.tr/tr/images/pdf/31.03.2026 Final_ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları .pdf"
+          "2026Q1": "https://www.icbc.com.tr/tr/images/pdf/31.03.2026 Final_ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları .pdf",
+          "2026Q2": "https://www.icbc.com.tr/tr/images/pdf/2026_30_06_ICBC%20Turkey%20Bank%20A.%C5%9E.%20Solo%20FT%20ve%20Dipnotlar%C4%B1%20Final.pdf"
         }
       }
     },
@@ -244,7 +246,8 @@
           "2025Q2": "https://www.qnb.com.tr/medium/document-file-4349.vsf",
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4449.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4547.vsf",
-          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4621.vsf"
+          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4621.vsf",
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3561.vsf",
@@ -263,7 +266,8 @@
           "2025Q2": "https://www.qnb.com.tr/medium/document-file-4348.vsf",
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4422.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4546.vsf",
-          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf"
+          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf",
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf"
         }
       }
     },
@@ -858,7 +862,8 @@
           "2025Q2": "https://www.kuveytturk.com.tr/medium/denetim-raporu-30-haziran-2025-3180.pdf",
           "2025Q3": "https://www.kuveytturk.com.tr/medium/denetim-raporu-30-eylul-2025-3423.pdf",
           "2025Q4": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-aralik-2025-3740.pdf",
-          "2026Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2026-3926.pdf"
+          "2026Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2026-3926.pdf",
+          "2026Q2": "https://www.kuveytturk.com.tr/medium/denetim-raporu-30-haziran-2026-4029.pdf"
         }
       }
     },
@@ -883,7 +888,8 @@
           "2025Q2": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/171/TFKB%20-%2030.06.2025%20-%20Konsolide%20.pdf",
           "2025Q3": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/174/TFKB%20-%2030.09.2025%20-%20Konsolide%20.pdf",
           "2025Q4": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/178/bagimsiz-denetim-rapor-konsolide-4-donem-31122025.pdf",
-          "2026Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/179/TFKB 31 03 2026 konsolide_Final.pdf"
+          "2026Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/179/TFKB 31 03 2026 konsolide_Final.pdf",
+          "2026Q2": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/182/TFKB%2030%2006%202026%20konsolide.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/135/TFKB%2031%2003%202022%20solo_f.pdf",
@@ -902,7 +908,8 @@
           "2025Q2": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/172/TFKB%20-%2030.06.2025%20-%20Solo.pdf",
           "2025Q3": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/175/TFKB%20-%2030.09.2025%20-%20Solo.pdf",
           "2025Q4": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/177/bagimsiz-denetim-raporu-4-donem-31122025-.pdf",
-          "2026Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/180/TFKB 31 03 2026 solo_Final.pdf"
+          "2026Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/180/TFKB 31 03 2026 solo_Final.pdf",
+          "2026Q2": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/181/TFKB%2030%2006%202026%20solo.pdf"
         }
       }
     },
@@ -946,7 +953,8 @@
           "2025Q2": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_30_06_2025-solo.pdf",
           "2025Q3": "https://www.vakifkatilim.com.tr/documents/final-vakif-katilim-bankasi_30_09_2025_tr_solo_final.pdf",
           "2025Q4": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_12_2025_solo.pdf",
-          "2026Q1": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_03_2026_tr_solo.pdf"
+          "2026Q1": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_03_2026_tr_solo.pdf",
+          "2026Q2": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_30_06_2026.pdf"
         }
       }
     },
@@ -1107,7 +1115,8 @@
           "2025Q2": "https://www.aktifbank.com.tr/uploads/20250809191240668.pdf",
           "2025Q3": "https://www.aktifbank.com.tr/uploads/20251113093215813.pdf",
           "2025Q4": "https://www.aktifbank.com.tr/uploads/20260302092534360.pdf",
-          "2026Q1": "https://www.aktifbank.com.tr/uploads/20260513092025522.pdf"
+          "2026Q1": "https://www.aktifbank.com.tr/uploads/20260513092025522.pdf",
+          "2026Q2": "https://www.aktifbank.com.tr/uploads/20260814090747793.pdf"
         }
       }
     },
@@ -1393,14 +1402,16 @@
           "2025Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/05-dunya-katilim-bankasi-30-06-2025-tr-solo-1.pdf",
           "2025Q3": "https://dunyakatilim.com.tr/content/files/uploads/1577/03-dunya-katilim-bankasi-30-09-2025-tr-solo.pdf",
           "2025Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/01-dunya-katilim-bankasi-31-12-2025-tr-solo.pdf",
-          "2026Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/00-01-31-mart-2026-bagimsiz-denetim-raporu-konsolide-olmayan.pdf"
+          "2026Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/00-01-31-mart-2026-bagimsiz-denetim-raporu-konsolide-olmayan.pdf",
+          "2026Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/02-dunya-katilim-bankasi-solo-rapor-30-06-26.pdf"
         },
         "consolidated": {
           "2025Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/08-dunya-katilim-bankasi-31-03-2025-konsolide-1-1.pdf",
           "2025Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/06-dunya-katilim-bankasi-30-06-2025-tr-konsolide-1.pdf",
           "2025Q3": "https://dunyakatilim.com.tr/content/files/uploads/1577/04-dunya-katilim-bankasi-30-09-2025-tr-konsolide.pdf",
           "2025Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/02-dunya-katilim-bankasi-31-12-2025-tr-konsolide.pdf",
-          "2026Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/00-01dunya-katilim-bankasi-31-03-2026-tr-konsolide.pdf"
+          "2026Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/00-01dunya-katilim-bankasi-31-03-2026-tr-konsolide.pdf",
+          "2026Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/01-dunya-katilim-bankasi-06-2026-tr-konsolide.pdf"
         }
       }
     },
@@ -1422,14 +1433,16 @@
           "2025Q2": "https://hayatfinans.com.tr/getmedia/c2a6eb5f-9f84-4a3d-bae2-cd585d3fc462/hayat-finans-2025Q2-solo.pdf",
           "2025Q3": "https://hayatfinans.com.tr/getmedia/a7cc6067-539a-40fe-888f-6f085892e9f7/hayat-finans-2025Q3-solo.pdf",
           "2025Q4": "https://hayatfinans.com.tr/getmedia/315ea040-0537-427e-9612-775246da956c/hayat-finans-2025Q4-solo.pdf",
-          "2026Q1": "https://hayatfinans.com.tr/getmedia/01bb58a4-774a-484a-9b13-cce0b24f5eec/hayat-finans-2026Q1-solo.pdf"
+          "2026Q1": "https://hayatfinans.com.tr/getmedia/01bb58a4-774a-484a-9b13-cce0b24f5eec/hayat-finans-2026Q1-solo.pdf",
+          "2026Q2": "https://hayatfinans.com.tr/getmedia/e0c29019-8469-43ec-960d-428338e74f8e/HAYAT-FINANS-KATILIM-BANKASI-30-06-2026-BDDK-SOLO-TR"
         },
         "consolidated": {
           "2025Q1": "https://hayatfinans.com.tr/getmedia/57d19ded-215a-411d-b4ff-72d692c51757/hayat-finans-2025Q1-konsolide.pdf",
           "2025Q2": "https://hayatfinans.com.tr/getmedia/25039445-2a4c-439e-a1dd-1030f430badd/hayat-finans-2025Q2-konsolide.pdf",
           "2025Q3": "https://hayatfinans.com.tr/getmedia/b5035f24-038f-4b62-9ad4-09275b83197f/hayat-finans-2025Q3-konsolide.pdf",
           "2025Q4": "https://hayatfinans.com.tr/getmedia/dbf01ee7-c1d2-498a-a8b2-9602efda17d2/hayat-finans-2025Q4-konsolide.pdf",
-          "2026Q1": "https://hayatfinans.com.tr/getmedia/b33b2c6b-dd87-436d-92e8-26f0fb1beaaf/hayat-finans-2026Q1-konsolide.pdf"
+          "2026Q1": "https://hayatfinans.com.tr/getmedia/b33b2c6b-dd87-436d-92e8-26f0fb1beaaf/hayat-finans-2026Q1-konsolide.pdf",
+          "2026Q2": "https://hayatfinans.com.tr/getmedia/56e28ed4-50aa-420d-999e-cfd62a709fb3/HAYAT-FINANS-KATILIM-BANKASI-30-06-2026-BDDK-KONSOLIDE-TR"
         }
       }
     },

@@ -46,7 +46,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
-from src.audit_reports.discovery import discover_targets  # noqa: E402
+from src.audit_reports.discovery import DISCOVERY_FAILURES, discover_targets  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports.units import UnitContext  # noqa: E402
@@ -239,14 +239,21 @@ _REPORT_MARKER_RX = re.compile(_REPORT_MARKERS, re.I)
 # that fired the systemic alarm and stalled the lane for six days.
 #
 # 16 is ~1.8x the observed tail. Widening is cheap (a text extract on ten more
-# pages of a 130-page document) and bounded against false positives from both
-# sides: _KAP_COVER_RX is tested FIRST and positively identifies a notification,
-# and _MIN_REPORT_PAGES rejects anything under 40 pages — a KAP cover sheet is
-# ~14. Verified by tests/test_report_validity.py.
+# pages of a 130-page document) and bounded against false positives by the page
+# floor below — see _KAP_COVER_RX. Verified by tests/test_report_validity.py.
 _HEAD_PAGES = 16
 
 # The KAP notification's own fingerprint, so a positive identification is
 # possible rather than only an absence of evidence.
+#
+# ⚠️ Only ever consulted BELOW _MIN_REPORT_PAGES, and that ordering is the whole
+# safety of it. "Kamuyu Aydınlatma Platformu" is an ordinary Turkish sentence —
+# a bank that describes its own past disclosures prints it in the notes, and the
+# 16-page window reaches those notes. ICBCT's 2026Q2 filings say it on page 8,
+# recounting a 2015 share transfer, and both were refused as cover sheets:
+# 91 real pages of statements, `basis` read correctly, thrown away by a phrase.
+# The fingerprint tells apart two SHORT documents; it cannot tell anything about
+# a long one, where the page floor and the marker check already decide.
 _KAP_COVER_RX = re.compile(
     r"KAMUYU\s+AYDINLATMA\s+PLATFORMU|Monthly\s+Notification"
     r"|Bank\s+Financial\s+Report\b.{0,40}?Notification",
@@ -267,9 +274,12 @@ def report_validity(body: bytes) -> tuple[bool, str]:
                             for i in range(min(_HEAD_PAGES, pages)))
     except Exception as e:                                      # noqa: BLE001
         return False, f"unreadable:{type(e).__name__}"
-    if _KAP_COVER_RX.search(head):
-        return False, f"kap-cover-sheet:{pages}pp"
     if pages < _MIN_REPORT_PAGES:
+        # Short. The fingerprint's job is to say WHICH kind of short — a KAP
+        # notification rather than a truncated download — so the log names the
+        # cause. Both verdicts refuse; only the reason differs.
+        if _KAP_COVER_RX.search(head):
+            return False, f"kap-cover-sheet:{pages}pp"
         return False, f"too-short:{pages}pp"
     if not _REPORT_MARKER_RX.search(head):
         return False, f"no-report-markers:{pages}pp"
@@ -435,6 +445,13 @@ def scrape_to_r2(
             return ticker, period, kind, f"err:r2put:{e}", 0
         return ticker, period, kind, ("replaced" if replacing else "ok"), len(body)
 
+    if DISCOVERY_FAILURES:
+        # Loud in the log, and echoed to stderr so the job summary carries it.
+        # Each of these banks silently fell back to whatever static config holds
+        # — which for a new quarter is usually nothing at all.
+        names = ", ".join(t for t, _ in DISCOVERY_FAILURES)
+        print(f"[discover] {len(DISCOVERY_FAILURES)} bank(s) fell back to static "
+              f"config after a failed discovery: {names}", flush=True)
     print(f"[scrape] {len(targets)} targets · {workers} parallel · uploading to R2")
     with ThreadPoolExecutor(max_workers=workers) as ex:
         for fut in as_completed(ex.submit(_one, t) for t in targets):
@@ -727,6 +744,11 @@ def main():
                 "changed": changed,
                 "scrape": scrape_counts,
                 "extract": extract_counts,
+                # Carried out of the process so the workflow can raise a job
+                # warning: a bank whose IR page refused us looks, from every
+                # count above, exactly like a bank that has not filed.
+                "discovery_failures": [
+                    {"bank": t, "reason": r} for t, r in DISCOVERY_FAILURES],
             }, sort_keys=True),
             encoding="utf-8",
         )
