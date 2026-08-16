@@ -51,7 +51,7 @@ coverage or known issues change.
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
 | `bank_audit_document_pages/_blocks/_lines/_cells/_notes` | BRSA PDFs, **every page** | **schema + engine complete 2026-08-07; corpus backfill run locally over the 162-PDF sample, fleet run pending** | Local only, in its own `data/bank_audit_capture.db` (like `bank_audit_prose.db`) — **never D1, never the audit snapshot**. Document-scoped, not lane-scoped: every table the filing prints, including ones no parser targets. Rows→`_lines` (with `role` ∈ data/heading/footnote/paragraph/furniture and `logical_row` grouping wrapped labels), columns→`_blocks.col_x` (right-edge clusters, so headers that wrap or letter-space don't matter), cells→`_cells` (`col_index` + parsed `value`), notes→`_notes` (marker, full wrapped text, and `linked_lines_json` — the rows printing that marker). `/Rotate 90` pages go through `page.rotation_matrix`, so the landscape 17-column equity statement reads as rows. Writes no analytical row, so it is safe over the settled BS/P&L. Per-partition JSONL mirror in `data/audit_capture/` |
 | `bank_audit_document_manifest` | Derived from the capture ledger | **migration `0043`; written by `scripts/backfill_document_capture.py`** | The only part of full-document capture that reaches D1: one row per filing with page/table-page/block/line/cell/note counts plus `content_hash` (text), `shape_hash` (template with values masked) and `grid_hash` (block/column/row geometry — the signal a lane parser is about to break), plus `vector_page_count` — pages whose tables are drawn glyph outlines and so could not be read at all (`capture_status='partial'`). Unchanged rows are not restamped |
-| `bank_audit_extractions` | extraction log | one row per PDF | **1,093 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-13). 2026Q2 is the live edge at **42 partitions across 24 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
+| `bank_audit_extractions` | extraction log | one row per PDF | **1,106 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-16). 2026Q2 is the live edge at **55 partitions across 32 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
@@ -71,8 +71,8 @@ catches up. As of **2026-08-01** seven banks have released 2026Q2 reports —
 KLNMA (07-24), TEB (07-26), AKBNK (07-28), TSKB (07-29), GARAN (07-30),
 YKBNK (07-31) and ENPARA. The other 30 are still at 2026Q1.
 
-**2026Q2 stands at 42 partitions / 24 banks (2026-08-13)**, up from 23 / 13 the
-day before. Eleven banks were added in one pass — ATBANK, BURGAN, EMLAK, ODEA,
+**2026Q2 stands at 55 partitions / 32 banks (2026-08-16)** — 42 / 24 the day
+before, and 23 / 13 the day before that. Eleven banks were added in one pass — ATBANK, BURGAN, EMLAK, ODEA,
 SKBNK, TAKAS, ZIRAATD, ZIRAATK, DENIZ, ALNTF, VAKBN — and **most had been
 sitting on published filings for weeks**: DENIZ filed 07-24 and ALNTF 08-04.
 
@@ -111,7 +111,7 @@ means a successful extraction.
 | State | Banks |
 |---|---|
 | Filed and held | 24 — AKBNK, ALBRK, ALNTF, ANADOLU (unconsolidated only), ATBANK, BURGAN, DENIZ, EMLAK, ENPARA, FIBA, GARAN, HALKB, ING, KLNMA, ODEA, PASHA, SKBNK, TAKAS, TEB, VAKBN, YKBNK, ZIRAAT, ZIRAATD, ZIRAATK |
-| Filed, acquired 08-16 | 8 — AKTIF, DUNYAK, HAYATK, ICBCT, KUVEYT, QNBFB, TFKB, VAKIFK (13 partitions; consolidated halves of AKTIF/KUVEYT/VAKIFK are not published yet, deadline ~13 Sep) |
+| Filed, acquired 08-16 | 8 — AKTIF, DUNYAK, HAYATK, ICBCT, KUVEYT, QNBFB, TFKB, VAKIFK. **13 partitions, `new=12 extracted=13 failed=0`** (VAKIFK was already in R2 from the off-runner fetch, so the runner never touched its host). Consolidated halves of AKTIF/KUVEYT/VAKIFK are not published yet, deadline ~13 Sep |
 | Filed, **not on the bank's own site** | 5 — ISCTR (KAP 08-03; IR page serves the June Excel only, no PDF — verified in a browser), TSKB (KAP 07-29; IR URLs still serve the 14-page cover sheet), EXIM (08-06), TOMK (08-13), HSBC (08-13) — all three list only 2026Q1 |
 | No filing on any source | 1 — COLENDI |
 
@@ -153,6 +153,15 @@ causes, each fixed:
    Discovery failures surface as a job warning rather than a Telegram ping: a
    geo-blocked host fails every single run, and a daily alert that is always the
    same bank gets muted.
+
+Verified on the run that landed the quarter (`31931916417`, 2026-08-16):
+`[discover] 2 bank(s) fell back to static config after a failed discovery: TSKB,
+VAKIFK` — the sentence that did not exist before — then `new=12 extracted=13
+failed=0`, TSKB still `[PEND] not-a-report:kap-cover-sheet:14pp` (the fingerprint
+still identifies the real one), and 28,942 rows to D1. `filing_gap_problem`
+against live D1 now returns **TSKB (18d), ISCTR (13d), EXIM (10d)** and stays
+silent on HSBC and TOMK, which filed three days ago and are inside the grace
+window. That is the whole remaining gap, named.
 
 **The KAP lane could only see 12 of 38 banks (fixed 2026-08-16).** It matched a
 disclosure to a bank on `stockCodes`, which KAP leaves empty for a member with
