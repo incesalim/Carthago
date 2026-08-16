@@ -460,7 +460,8 @@
           "2025Q2": "https://www.tskb.com.tr/uploads/file/tskb-consolidated-report-ingilizce-30062025.pdf",
           "2025Q3": "https://www.tskb.com.tr/uploads/file/tskb-kons-ingilizce-30092025.pdf",
           "2025Q4": "https://www.tskb.com.tr/uploads/file/tskb-konsolide-ingilizce-31122025.pdf",
-          "2026Q1": "https://www.tskb.com.tr/uploads/file/tskb-consolidated-31032026.pdf"
+          "2026Q1": "https://www.tskb.com.tr/uploads/file/tskb-consolidated-31032026.pdf",
+          "2026Q2": "https://www.tskb.com.tr/uploads/file/tskb-konsolide-30062026.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.tskb.com.tr/uploads/file/5002-1-tskb-solo-en-31032022-final.pdf",
@@ -479,7 +480,8 @@
           "2025Q2": "https://www.tskb.com.tr/uploads/file/tskb-solo-report-30062025.pdf",
           "2025Q3": "https://www.tskb.com.tr/uploads/file/tskb-solo-ingilizce-30092025-1.pdf",
           "2025Q4": "https://www.tskb.com.tr/uploads/file/tskb-solo-ingilizce-31122025.pdf",
-          "2026Q1": "https://www.tskb.com.tr/uploads/file/tskb-bank-only-31032026.pdf"
+          "2026Q1": "https://www.tskb.com.tr/uploads/file/tskb-bank-only-31032026.pdf",
+          "2026Q2": "https://www.tskb.com.tr/uploads/file/tskb-solo-30062026.pdf"
         }
       }
     },
