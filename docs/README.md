@@ -18,7 +18,10 @@ Metric definitions live in [METRICS.md](METRICS.md).
 | [BANKING_METRICS.md](BANKING_METRICS.md) | The 162-metric registry: what each metric means, how it's computed, and where it surfaces. |
 | [ADMIN.md](ADMIN.md) | Setup & use of the `/admin` control center (coverage matrix, pipeline/traffic panels, auth, manual triggers). |
 | [TELEGRAM_BOT.md](TELEGRAM_BOT.md) | The public Q&A bot: the agent loop, the read-only SQL gate, the grounding guard, setup, and the `bot-ask` test harness. |
-| [ANALYST.md](ANALYST.md) | The analyst lane in plain language: detectors → assembly → story gates → LLM → guard, with diagrams, how to run it, and what waits on the freeze. |
+| [ANALYST.md](ANALYST.md) | The analyst lane in plain language: detectors → assembly → story gates → LLM → guard, with diagrams, how to run it, and what is still switched off (cron + push are decisions, not blockers). |
+| [ANALYST_V2.md](ANALYST_V2.md) | Analyst V2 (evaluation phase): agentic discovery over deterministic evidence — scout, typed read-only tools, structured claims, deterministic verifier. |
+| [API.md](API.md) | The public `/api/v1` — technical reference for the EVDS-shaped series API (catalog, endpoints, licensing). |
+| [API_MANUAL.md](API_MANUAL.md) | The public API's user manual: dataset/bank-type reference tables, worked examples, reading gotchas. |
 | [SCHEMA_CONVENTIONS.md](SCHEMA_CONVENTIONS.md) | Naming rules for new D1 migrations (≥ 0022), enforced in CI by `scripts/check_schema_naming.py`. |
 
 ## Audit lane (per-bank BRSA report extraction)
@@ -43,7 +46,7 @@ their description; commands are typed.
 
 | Item | Kind | What it covers |
 |---|---|---|
-| `AGENTS.md` (root) | instructions | Orientation, the check commands, and the rules that are expensive to break (fitz-only, no `--force` re-extraction, D1 write cost, `null` ≠ `0`, no LLM-set figures). |
+| `AGENTS.md` (root) | instructions | Orientation, the check commands, and the rules that are expensive to break (fitz-only, no `--force` re-extraction, D1 write cost, `null` ≠ `0`, and the 2026-08-03 reversal that lets a model set a figure — gates are per-lane now). |
 | `web/AGENTS.md`, `mobile/AGENTS.md` | instructions | Per-surface layout, conventions and build traps. |
 | `.claude/skills/audit-lane-fix/` | skill | Repairing a `bank_audit_*` lane: diagnosis before re-running, which workflow to dispatch, `only_failing` vs `force`, the override ordering. |
 | `.claude/skills/evds-series/` | skill | Adding/debugging an EVDS macro series: the `SERIES` list, the two failure modes that still exit 0 (dead code after a rebase, CI read-timeout), the derivations with a right answer. |

@@ -23,7 +23,7 @@ Cloudflare for storage and display.
   weekly bulletins, EVDS macro series, per-bank quarterly statements).
 - **Dashboard** — Next.js 16 + OpenNext, deployed to Cloudflare Workers.
   Live at <https://carthago.app>.
-  D1 reads are cached ~12h via a KV-backed data cache. A password-gated
+  D1 reads are cached ~1h via a KV-backed data cache. A password-gated
   `/admin` control center (data health, refresh triggers, traffic) lives at
   `/admin` — see [`docs/ADMIN.md`](docs/ADMIN.md).
 
@@ -32,8 +32,9 @@ Two data layers cohabit in D1:
 1. **Sector aggregates** — monthly + weekly bulletins from BDDK plus
    TCMB EVDS macro / rate series.
 2. **Per-bank quarterly data** — each bank's published BRSA Financial
-   Report PDF parsed into structured rows. 38 banks × up to 17 quarters
-   (2022-Q1 → 2026-Q1), 1,050 PDFs, ~98% of sector by assets. PDFs live in R2.
+   Report PDF parsed into structured rows. 38 banks × up to 18 quarters
+   (2022-Q1 → 2026-Q2, season in progress — 1,093 extractions as of
+   2026-08-13), ~98% of sector by assets. PDFs live in R2.
 
 ## Quick start
 
@@ -43,7 +44,7 @@ only needed for development or ad-hoc backfills.
 ```bash
 # Python pipeline (ingestion)
 pip install -r requirements.txt
-python scripts/refresh.py                              # monthly + weekly + EVDS (local SQLite)
+python scripts/refresh.py                              # BDDK + EVDS + TBB/TKBB/KAP/TEFAS/… (local SQLite)
 python scripts/sync_audit_reports.py --db data/bank_audit.db   # audit PDFs → R2 → extract (own DB)
 python scripts/push_to_d1.py --hours 168               # push incremental rows to D1
 
@@ -76,30 +77,29 @@ carthago/
 │   ├── OPERATIONS.md
 │   └── ADMIN.md                    ← /admin control-panel setup
 │
-├── src/                            ← Python — ingestion + extraction
-│   ├── config.py
+├── src/                            ← Python — ingestion + extraction (one package per lane)
 │   ├── scrapers/                   ← BDDK monthly/weekly + EVDS scrapers
-│   │   ├── evds_client.py          ← TCMB EVDS HTTP client
-│   │   ├── evds_scraper.py         ← scrape EVDS → SQLite
-│   │   └── ...                     ← BDDK monthly + weekly scrapers
-│   ├── tbb/                        ← TBB quarterly digital-banking .xls/.xlsx → SQLite
-│   └── audit_reports/              ← per-bank PDF extraction
-│       ├── extractor.py            ← PyMuPDF (fitz) only
-│       ├── loader.py               ← upsert into bank_audit_* tables
-│       ├── schema.py
-│       └── r2_storage.py           ← Cloudflare R2 (S3-compat) wrapper
+│   ├── audit_reports/              ← per-bank PDF extraction — PyMuPDF (fitz) only —
+│   │                                  + registry, validators, R2 (S3-compat) wrapper
+│   ├── tbb/, tkbb/                 ← quarterly digital-banking stats (+ acquisition)
+│   ├── kap/, tefas/, tuik/         ← ownership, fund market, TÜİK detail series
+│   ├── news/                       ← KAP/TCMB/BDDK/press news + free-LLM clients
+│   ├── earnings/, transcripts/     ← results calendar + decks, call transcripts
+│   ├── faaliyet/, nonbank/         ← annual-report franchise stats, non-bank lenders
+│   ├── rates/, release_calendar/   ← advertised rates, TCMB release calendar
+│   ├── products/, analyst/         ← product benchmark, analyst detectors
+│   └── d1_usage.py                 ← D1 billing-cycle usage reader
 │
 ├── scripts/                        ← Python CLI entry points
-│   ├── refresh.py                  ← monthly + weekly + EVDS + gzip (incremental)
+│   ├── refresh.py                  ← bulletin-lane orchestrator (BDDK + EVDS + all satellites)
 │   ├── sync_audit_reports.py       ← scrape bank IR → R2 → extract → SQLite
-│   ├── update_monthly.py / update_weekly.py
-│   ├── update_tbb_digital.py       ← TBB quarterly digital-banking → SQLite
 │   ├── push_to_d1.py               ← incremental D1 sync (handles every table)
-│   ├── migrate_pdfs_to_r2.py       ← one-shot uploader for existing local PDFs
-│   ├── generate_d1_migrations.py   ← export local SQLite → D1 import files
-│   ├── extract_all_audit_reports.py
-│   ├── scrape_all_banks.py
-│   └── backfills/
+│   ├── update_*.py                 ← one lane each (monthly, weekly, tbb, tefas, kap, …)
+│   ├── reextract_statement.py      ← targeted single-statement repair
+│   ├── purge_partition.py          ← remove one (bank, period, kind) everywhere
+│   ├── check_*.py                  ← the 17 standalone CI gates
+│   ├── backfill_*.py, watch_cross_period.py, scratch_*.py  ← backfills + diagnostics
+│   └── archive/                    ← retired one-shots (kept for the record)
 │
 ├── web/                            ← Next.js 16 + OpenNext (Cloudflare Workers)
 │   ├── app/                        ← routes
@@ -109,14 +109,14 @@ carthago/
 │   │   ├── rates/, liquidity/, market-risk/, cross-bank/, banks/, ownership/
 │   │   ├── earnings/, funds/, digital/, economy/, news/, regulation/
 │   │   ├── non-bank/, disclosures/, pipeline/
-│   │   ├── _valuation/, _franchise/  ← parked: the leading _ un-routes them (Next
-│   │   │                                private folders). Don't rename without reading why
+│   │   ├── _franchise/             ← parked: the leading _ un-routes it (Next
+│   │   │                              private folder). Don't rename without reading why
 │   │   ├── admin/, api/admin/      ← password-gated control center
 │   │   └── page.tsx                ← Overview
 │   ├── wrangler.jsonc, open-next.config.ts
 │   ├── package.json
 │   ├── migrations/                 ← hand-authored D1 schema migrations (source of truth)
-│   └── seeds/                      ← gitignored · bulk data-seed dumps (generate_d1_migrations.py)
+│   └── seeds/                      ← gitignored · bulk data-seed dumps (scripts/archive/generate_d1_migrations.py)
 │
 ├── data/                           ← all data (mostly gitignored)
 │   ├── banks/                      ← URL config + BDDK bank list (committed)
@@ -127,18 +127,19 @@ carthago/
 │   #   audit_reports/*.pdf         ← R2 bucket bddk-audit-reports, by ticker
 │   #   bddk_data.db / bank_audit.db ← rebuilt in each cron run from the R2 snapshot
 │
-└── .github/workflows/
+└── .github/workflows/              ← 31 workflows — every scheduled job + every manual backfill
     ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: daily-frequency EVDS → D1
+    ├── refresh-news-daily.yml      ← daily 04 UTC: KAP/TCMB/BDDK news → D1
     ├── refresh-bddk-bulletins.yml  ← month edges + Fridays: BDDK bulletins → D1
-    ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS + TBB digital → D1
-    ├── acquire-audit.yml           ← manual: download audit PDFs without extraction
+    ├── refresh-data.yml            ← Sat 03 UTC: full refresh (BDDK + EVDS + satellites) → D1
     ├── refresh-audit.yml           ← filing windows daily: acquire + extract + one D1 batch
-    ├── backfill-audit-source-capture.yml ← manual: preserve omitted audit-table source rows
-    ├── refresh-news-daily.yml      ← daily: KAP/TCMB/BDDK news → D1
-    ├── summarize-regulations.yml   ← weekly: LLM regulation briefing → D1
+    ├── refresh-advertised-rates.yml / refresh-calendar.yml / refresh-presentations-weekly.yml
+    ├── summarize-regulations.yml / generate-reads.yml  ← weekly LLM lanes → D1
     ├── healthcheck.yml             ← daily: D1 freshness → Telegram/Discord alert
-    ├── ci.yml                      ← PRs: ruff + pytest + eslint + tsc
-    └── deploy-cloudflare.yml       ← on web/ push: migrate + build + deploy
+    ├── ci.yml                      ← PRs + master: ruff + pytest + eslint + tsc + vitest
+    ├── deploy-cloudflare.yml       ← after green CI on master: migrate + build + deploy
+    └── + ~18 manual-dispatch workflows (backfills, repairs, purge, triage,
+        analyst, acquire, transcripts, telegram-webhook) — docs/OPERATIONS.md has all
 # also: pyproject.toml (ruff/pytest), tests/, .github/dependabot.yml
 ```
 
@@ -147,13 +148,19 @@ carthago/
 | | When | Workflow |
 |---|---|---|
 | **EVDS daily refresh** | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` (daily/workday series only) |
+| **News refresh** | Daily 04:00 UTC | `refresh-news-daily.yml` → `news_items` |
 | **BDDK bulletins** | First/last five days + Friday publication window | `refresh-bddk-bulletins.yml` (no EVDS/audit) |
-| **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + TBB digital + D1 push) |
+| **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (BDDK + EVDS + TBB/TKBB + KAP + TEFAS + Faaliyet + D1 push) |
 | **Audit-report arrival** | Daily in quarterly filing windows | `refresh-audit.yml` — discover → R2 → extract/validate/coverage → one D1 batch → snapshot; quiet checks write nothing |
+| **Advertised rates** | Monday 06:00 UTC | `refresh-advertised-rates.yml` → `bank_advertised_rates` |
+| **Release calendar** | 1st of month 06:00 UTC | `refresh-calendar.yml` → `release_calendar` |
+| **IR presentation decks** | Saturday 06:00 UTC | `refresh-presentations-weekly.yml` → `bank_earnings` |
+| **Regulation briefing** | Sunday 06:00 UTC | `summarize-regulations.yml` → `regulation_briefings` (LLM) |
+| **Read headlines** | Sunday 07:30 UTC | `generate-reads.yml` → `read_headlines` (LLM, number-validated) |
 | **Acquisition-only diagnostic** | Manual / admin only | `acquire-audit.yml` — download a PDF without extracting it |
 | **Health check** | Daily 06:00 UTC | `healthcheck.yml` — D1 freshness → alert if stale |
-| **CI quality gates** | Every PR | `ci.yml` — ruff + pytest + eslint + tsc |
-| **Cloudflare dashboard deploy** | Every push to `web/` | `deploy-cloudflare.yml` (migrate + build + deploy) |
+| **CI quality gates** | Every PR | `ci.yml` — ruff + pytest + eslint + tsc + vitest |
+| **Cloudflare dashboard deploy** | After green CI on `master` | `deploy-cloudflare.yml` (migrate + build + deploy) |
 
 All schedules can be triggered manually from **GitHub → Actions → Run workflow**.
 

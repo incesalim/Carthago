@@ -138,9 +138,10 @@ SYNC_TABLES = [
 _FULL_REBUILD = {
     "bank_audit_expected",
     "bank_audit_statement_types",
-    # bank_audit_coverage is STILL HERE, deliberately — see _COVERAGE_INCREMENTAL
-    # below. Everything it needs to leave is built and tested; the switch is held
-    # until migration 0040 is confirmed applied.
+    # bank_audit_coverage is listed here but discarded at import by the
+    # _COVERAGE_INCREMENTAL switch below (enabled 2026-08-06, after migration
+    # 0040 was confirmed applied). Keeping the entry means flipping the switch
+    # off restores the old full-rebuild behaviour without re-deriving this set.
     "bank_audit_coverage",
     "api_series",
     # Derived wholesale by scripts/analyst/detect.py from the audit corpus on
@@ -173,7 +174,7 @@ _FULL_REBUILD = {
 # a restated row no longer trips anything, so not generating it is the only
 # thing keeping the cost down.
 _COVERAGE_INCREMENTAL = True
-if _COVERAGE_INCREMENTAL:                      # pragma: no cover - off by default
+if _COVERAGE_INCREMENTAL:                      # the activation switch — see above
     _FULL_REBUILD.discard("bank_audit_coverage")
 
 # Named table groups for --table-set, so a caller can say "the audit lane's

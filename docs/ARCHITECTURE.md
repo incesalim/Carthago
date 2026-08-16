@@ -54,9 +54,10 @@ machine is involved in the production data flow.
 | **R2 wrapper** | `src/audit_reports/r2_storage.py` | boto3 against S3-compatible R2 |
 | **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler. Audit lanes pass `--table-set audit` — the table list is derived from `src/audit_reports/registry.py`, never hand-written (a hand-written copy is what silently kept `bank_audit_fx_position`/`_repricing` out of D1) |
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
-| **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB; **1,050 quarterly PDFs** extracted across the 38-bank universe |
+| **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB; **~1,100 quarterly PDFs** extracted across the 38-bank universe (1,093 extractions as of 2026-08-13; the 2026Q2 season is filling in) |
 | **Dashboard** | `web/` | Next.js 16 + OpenNext + Recharts (charts) + d3-force (/ownership network layout) on Cloudflare Workers |
 | **Mobile app** | `mobile/` | Expo SDK 57 + expo-router + React Native 0.86 + react-native-svg. Read-only native client over `/api/app/v1` — see § Mobile app |
+| **Q&A bot (Telegram)** | `web/app/lib/bot.ts` + `web/app/api/telegram/webhook/` | public Q&A over the same D1: agent loop behind a read-only SQL gate + grounding guard — see [TELEGRAM_BOT.md](TELEGRAM_BOT.md) |
 | **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 1h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
 | **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc + vitest on every PR |
@@ -82,15 +83,20 @@ the bulletin/EVDS workflows. Their only shared sink is D1, where they write a
 **disjoint** set of tables (`bank_audit_*` vs everything else) with idempotent
 `INSERT OR REPLACE`.
 
-**Most tables sync incrementally** (a time-windowed `INSERT OR REPLACE`), but the
-coverage-matrix **spine** — `bank_audit_coverage` / `bank_audit_expected` /
-`bank_audit_statement_types` — is **full-rebuild**: `push_to_d1.py` emits
+**Most tables sync incrementally** (a time-windowed `INSERT OR REPLACE`). Two of
+the coverage-matrix **spine** tables — `bank_audit_expected` /
+`bank_audit_statement_types` — are **full-rebuild**: `push_to_d1.py` emits
 `DELETE FROM <t>; INSERT …` from the local copy, because those rows are computed
-wholesale by `sync_audit_expected.py` (no per-row timestamp). This is the one place
-the shared-D1 design has a footgun: the spine tables are only populated in
-`bank_audit.db`; in `bddk_data.db` they're created-but-empty, so a daily news/EVDS
-push from the bulletin lane would `DELETE` the spine and insert nothing — **wiping
-the /admin coverage matrix** even though the audit lane never ran. The guard:
+wholesale by `sync_audit_expected.py` (no per-row timestamp). The third,
+`bank_audit_coverage`, left full-rebuild on **2026-08-06**
+(`_COVERAGE_INCREMENTAL` in `push_to_d1.py`): its cells are windowed on
+`derived_at` (migration 0040) and removals travel through the
+`d1_pending_deletes` outbox, so a change ships only the cells it moved instead
+of restating all ~20,000 rows. Full-rebuild is the one place the shared-D1
+design has a footgun: those tables are only populated in `bank_audit.db`; in
+`bddk_data.db` they're created-but-empty, so a daily news/EVDS push from the
+bulletin lane would `DELETE` the spine and insert nothing — **wiping the /admin
+coverage matrix** even though the audit lane never ran. The guard:
 `push_to_d1.fetch_recent` **skips a full-rebuild table whose local copy is empty**,
 so a push can never wipe a table it has no rows for. (Recovery recipe in
 [OPERATIONS.md](OPERATIONS.md) → Troubleshooting.)
@@ -148,7 +154,7 @@ knows is running:
 | `refresh-advertised-rates.yml` | Mon 06:00 UTC | `python -m src.rates.scraper` → `bank_advertised_rates` (per-bank posted loan/deposit rates; the sources only expose "today", so history accretes forward) |
 | `refresh-calendar.yml` | 1st of month 06:00 UTC | `python -m src.release_calendar.scraper` → `release_calendar` (TCMB's published calendar — MPC decisions/minutes, Inflation Report, Financial Stability Report; feeds the Ahead strips, retires the hand-typed `MPC_DATES`) |
 | `refresh-presentations-weekly.yml` | Sat 06:00 UTC | `update_presentations.py` → `bank_earnings` (IR presentation decks) |
-| `refresh-transcripts-weekly.yml` | manual (no cron yet) | `update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts, 8 listed banks). Ships without a `schedule:` and with `push` defaulting to false so it cannot become the one lane writing to D1 during the freeze |
+| `refresh-transcripts-weekly.yml` | manual (no cron yet) | `update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts, 8 listed banks). Ships without a `schedule:` and with `push` defaulting to false — a posture from the 2026-08-01 write freeze; the freeze has lifted, and turning the cron/push on is a decision not yet taken |
 | `summarize-regulations.yml` | Sun 06:00 UTC | `summarize_regulations.py` → `regulation_briefings` (weekly Kimi briefing; needs `KIMI_API_TOKEN`) |
 | `generate-reads.yml` | Sun 07:30 UTC | `generate_read_headlines.py` → `read_headlines` (free-LLM rewrite of the one-sentence lead on each T1 tab; number-validated, and shown only while its `det_hash` matches the live page) |
 
@@ -235,8 +241,9 @@ each partition with the same bank one quarter earlier, which is the only place a
 reporting-unit change can be seen — every in-filing identity is a ratio of figures
 sharing a scale, so all of them foot when the whole filing moves by 1000×.
 
-**`analyst-daily.yml`** (dispatch-only, artifacts-only under the write freeze) —
-the analyst layer on top of the same snapshot. Deterministic detectors
+**`analyst-daily.yml`** (dispatch-only — the intended daily cron is wired but
+commented out; turning it on is a decision not yet taken) — the analyst layer on
+top of the same snapshot. Deterministic detectors
 (`src/analyst/` — reporting-unit switches, cross-period restatements the
 validators deliberately skip-list, opinion-type/category changes via the
 basis-text classifier, perimeter changes, and the two
@@ -244,9 +251,13 @@ headline-conceals-composition divergences: CAR−CET1 and NPL-vs-coverage), then
 per-bank memos: `web/app/lib/analyst/` assembles an 11-section deterministic
 view (with the mix-vs-erosion coverage decomposition precomputed), a free-model
 LLM writes connective prose, and the bot's figure guard drops any paragraph
-whose numbers are not in the data it was shown. No signal or memo reaches D1
-until the 2026-08-01 freeze lifts — migration `0037_analyst_signals.sql` is
-authored, unapplied.
+whose numbers are not in the data it was shown. Migration
+`0037_analyst_signals.sql` is **applied** — `analyst_signals` (455 rows),
+`analyst_basis_metadata` (1,050) and `analyst_notes` (2) are live in D1 — and
+the workflow carries a D1 push step gated on its `push` input (off by default;
+staging in `data/analyst.db`, persisted to R2 as `state/analyst.db.gz`).
+Without `push`, signals + memos leave as run artifacts only. (The 2026-08-01
+write freeze that originally forced artifacts-only has lifted.)
 
 **`analyst-research.yml`** (dispatch-only, artifact-only, evaluation phase) —
 Analyst V2: agentic discovery over deterministic evidence. A story-agnostic
@@ -395,11 +406,19 @@ and gives us a backup of the canonical numbers). After each run the
 gzipped snapshot is uploaded to R2 so the next cron starts from the last
 known state without re-scraping from scratch.
 
-There are **two** snapshots, one per lane: the bulletin/EVDS lane persists
-`state/bddk_data.db.gz` (~55 MB) and the audit lane persists
-`state/bank_audit.db.gz` (the `bank_audit_*` tables only). The audit lane
-bootstraps its snapshot on first run by seeding from the bulletin snapshot
-(`scripts/seed_audit_db.py`) rather than re-extracting every PDF.
+The two ingestion lanes persist one snapshot each: the bulletin/EVDS lane
+`state/bddk_data.db.gz` (~55 MB) and the audit lane `state/bank_audit.db.gz`
+(the `bank_audit_*` tables only). The audit lane bootstraps its snapshot on
+first run by seeding from the bulletin snapshot (`scripts/seed_audit_db.py`)
+rather than re-extracting every PDF.
+
+Three more staging stores sit beside the two lane snapshots, each with its own
+persistence posture: `data/analyst.db` (analyst-lane state — signals + memo
+hashes — rides R2 as `state/analyst.db.gz`), `data/bank_audit_capture.db` (the
+full-document capture ledger — its own R2 object, never the audit snapshot;
+only the one-row-per-filing manifest reaches D1), and
+`data/bank_audit_prose.db` (the 369k-row historical prose backfill —
+local-only, not yet merged or pushed).
 
 Production dashboard reads go to D1, not this snapshot — the R2 copy is
 purely pipeline state.
@@ -413,11 +432,12 @@ can't destroy the only snapshot. For the serving DB, D1 **Time Travel** gives a
 
 Dashboard pages are dynamic (server-rendered per request), but the D1 queries
 behind them are cached: `web/app/lib/db.ts` `cachedAll()` wraps reads in
-`unstable_cache` (12h TTL — data changes daily at most, and a longer TTL keeps
-KV writes under the free 1,000/day cap), keyed by SQL + params and backed by the
+`unstable_cache` (1h TTL — it was 12h to stay under the free tier's 1,000 KV
+writes/day; the paid plan's 1M/month allowance removed that constraint, so the
+window was cut 12× for fresher pages), keyed by SQL + params and backed by the
 `NEXT_INC_CACHE_KV` namespace via OpenNext's incremental cache
 (`open-next.config.ts`). The hot `metrics.ts` query helpers route through it, so
-identical queries hit D1 at most once per 12h instead of on every page view —
+identical queries hit D1 at most once per hour instead of on every page view —
 cutting D1 rows-read sharply.
 
 Pages stay dynamic on purpose: page-level ISR (`export const revalidate`) would
