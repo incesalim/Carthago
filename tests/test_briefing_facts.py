@@ -135,13 +135,24 @@ def test_suspension_accepts_the_ways_it_is_actually_worded():
 
 def test_retry_addendum_names_the_rule_but_never_the_value():
     """The repair hint must not leak the answer, or the checklist stops
-    measuring extraction and starts measuring echo."""
+    measuring extraction and starts measuring echo — on either attempt."""
     for f in FACTS:
-        text = retry_addendum([f])
-        assert f["hint"] in text
-        if f["value"] is not None:
-            assert not _num_present(text, f["value"]), \
-                f"{f['id']}: hint leaks the current value {f['value']}"
+        for attempt in (1, 2):
+            text = retry_addendum([f], attempt)
+            assert f["hint"] in text
+            if f["value"] is not None:
+                assert not _num_present(text, f["value"]), \
+                    f"{f['id']}: hint leaks the current value {f['value']}"
+
+
+def test_retry_addendum_escalates_on_the_second_attempt():
+    """Deterministic calls make an identical retry a no-op; attempt 2 must
+    differ from attempt 1 or it cannot change the outcome."""
+    fact = FACTS[0]
+    first = retry_addendum([fact], 1)
+    second = retry_addendum([fact], 2)
+    assert first != second
+    assert "REQUIRED" in second and "REQUIRED" not in first
 
 
 def test_missing_section_detection_survives_the_refactor():

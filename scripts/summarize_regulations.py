@@ -638,13 +638,22 @@ def main() -> int:
                 print(f"[briefing] {name}: STRIPPED superseded bullet: "
                       f"{kept[i]['text'][:110]}", flush=True)
             kept = [b for i, b in enumerate(kept) if i not in stale_idx]
-        missing = briefing_facts.section_missing_facts(name, kept)
-        if missing:
+        # Two attempts, escalating: the calls are deterministic (temperature 0,
+        # fixed seed), so a second try only helps because retry_addendum words
+        # attempt 2 more firmly — a changed input is the only thing that can
+        # change the output. The 2026-08-16 14:07 run needed exactly this: the
+        # v25 base draft dropped the repo-suspension bullet and one polite
+        # revision did not bring it back.
+        for attempt in (1, 2):
+            missing = briefing_facts.section_missing_facts(name, kept)
+            if not missing:
+                break
             print(f"[briefing] {name}: {len(missing)} checklist fact(s) absent "
-                  f"({', '.join(f['id'] for f in missing)}) — pointed retry", flush=True)
+                  f"({', '.join(f['id'] for f in missing)}) — pointed retry "
+                  f"{attempt}/2", flush=True)
             r_bullets, r_model, r_provider = generate_category(
                 name, desc, context, args.cat_retries,
-                addendum=briefing_facts.retry_addendum(missing))
+                addendum=briefing_facts.retry_addendum(missing, attempt))
             r_kept = enforce_category(name, r_bullets)
             r_stale = set(briefing_facts.stale_bare_indexes(r_kept))
             r_kept = [b for i, b in enumerate(r_kept) if i not in r_stale]
@@ -663,13 +672,13 @@ def main() -> int:
                     models.add(r_model)
                 if r_provider:
                     providers.add(r_provider)
-                print(f"[briefing] {name}: retry repaired "
+                print(f"[briefing] {name}: retry {attempt} repaired "
                       f"{len(missing) - len(r_missing)} of {len(missing)} "
                       f"absent fact(s)", flush=True)
             else:
-                print(f"[briefing] {name}: retry not better — keeping draft; "
-                      f"the post-store check will report what is still absent",
-                      flush=True)
+                print(f"[briefing] {name}: retry {attempt} not better — keeping "
+                      f"draft; the post-store check will report what is still "
+                      f"absent", flush=True)
 
         dropped = len(bullets) - len(kept)
         print(f"[briefing] {name}: {len(kept)} bullets"

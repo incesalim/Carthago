@@ -280,10 +280,15 @@ def section_missing_facts(section_name: str, bullets: list[dict]) -> list[dict]:
     return out
 
 
-def retry_addendum(missing: list[dict]) -> str:
+def retry_addendum(missing: list[dict], attempt: int = 1) -> str:
     """The repair message for a pointed regeneration: name each omitted rule
     and the release that states it — NEVER the value. The checklist stays an
-    independent measurement only if the model still has to read the source."""
+    independent measurement only if the model still has to read the source.
+
+    `attempt` exists because the calls are deterministic (temperature 0, fixed
+    seed): a second try with the identical addendum returns the identical
+    draft, so the second attempt escalates the wording instead — a changed
+    input is the only thing that can change the output."""
     lines = [
         "REVISION — your draft of this section omitted rules that are in force.",
         "Add a bullet for each of the following, reading the CURRENT value from",
@@ -293,4 +298,13 @@ def retry_addendum(missing: list[dict]) -> str:
     ]
     for f in missing:
         lines.append(f"  - {f['hint']}")
+    if attempt > 1:
+        lines += [
+            "",
+            "THIS REVISION IS REQUIRED. Your previous revision still omitted the",
+            "item(s) above. Return the COMPLETE section again, and it MUST contain",
+            "one bullet for each listed item, cited to the named source. An item",
+            "genuinely absent from the provided sources is the only acceptable",
+            "reason to leave one out.",
+        ]
     return "\n".join(lines)
