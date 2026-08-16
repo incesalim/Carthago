@@ -111,9 +111,11 @@ means a successful extraction.
 | State | Banks |
 |---|---|
 | Filed and held | 24 — AKBNK, ALBRK, ALNTF, ANADOLU (unconsolidated only), ATBANK, BURGAN, DENIZ, EMLAK, ENPARA, FIBA, GARAN, HALKB, ING, KLNMA, ODEA, PASHA, SKBNK, TAKAS, TEB, VAKBN, YKBNK, ZIRAAT, ZIRAATD, ZIRAATK |
-| Filed, acquired 08-16 | 8 — AKTIF, DUNYAK, HAYATK, ICBCT, KUVEYT, QNBFB, TFKB, VAKIFK. **13 partitions, `new=12 extracted=13 failed=0`** (VAKIFK was already in R2 from the off-runner fetch, so the runner never touched its host). Consolidated halves of AKTIF/KUVEYT/VAKIFK are not published yet, deadline ~13 Sep |
-| Filed, **not on the bank's own site** | 5 — ISCTR (KAP 08-03; IR page serves the June Excel only, no PDF — verified in a browser), TSKB (KAP 07-29; IR URLs still serve the 14-page cover sheet), EXIM (08-06), TOMK (08-13), HSBC (08-13) — all three list only 2026Q1 |
+| Filed, acquired 08-16 | 9 — AKTIF, DUNYAK, HAYATK, ICBCT, ISCTR, KUVEYT, QNBFB, TFKB, VAKIFK. **15 partitions over two runs**: 13 first (`new=12 extracted=13 failed=0`; VAKIFK was already in R2 from the off-runner fetch, so the runner never touched its host), then ISCTR's two once the ZIPs were found. Consolidated halves of AKTIF/KUVEYT/VAKIFK are not published yet, deadline ~13 Sep |
+| Filed, **not on the bank's own site** | 4 — TSKB (KAP 07-29; IR URLs still serve the 14-page cover sheet), EXIM (08-06), TOMK (08-13), HSBC (08-13) — the last three list only 2026Q1 |
 | No filing on any source | 1 — COLENDI |
+
+**⚠️ ISCTR was in that last row for one hour, wrongly.** Its English IR page — the one the config names — offers only an Excel for 2026Q2, and reading it produced a confident "has not published". The reports were on the **Turkish** page all along, as ZIPs, under a second tab behind a search form that lists nothing until it is submitted. Acquired 2026-08-16 (127pp consolidated, 105pp unconsolidated, both bases confirmed from the documents). The lesson is in [AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md): **an English IR page can be a subset of the Turkish one**, and "not on the site" means both sites, every tab.
 
 Nothing can be acquired for the middle-lower group until the bank posts the PDF;
 the daily refresh will take them the day it appears, and `filing_gap_problem`

@@ -413,7 +413,8 @@
           "2025Q2": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk30062025cons.pdf",
           "2025Q3": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk30092025cons.pdf",
           "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31122025cons.pdf",
-          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31032026cons.pdf"
+          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31032026cons.pdf",
+          "2026Q2": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/Mali%20Tablolar%20ve%20Bağımsız%20Denetim%20Raporları/Konsolide/Isbank30062026Konsolide.zip"
         },
         "unconsolidated": {
           "2022Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancial31032022.pdf",
@@ -432,7 +433,8 @@
           "2025Q2": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials30062025.pdf",
           "2025Q3": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials30092025.pdf",
           "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials31122025.pdf",
-          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS Bank-only/pdf/IsbankUnconsolidatedFinancials31032026.pdf"
+          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS Bank-only/pdf/IsbankUnconsolidatedFinancials31032026.pdf",
+          "2026Q2": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/Mali%20Tablolar%20ve%20Bağımsız%20Denetim%20Raporları/KonsolideOlmayan/Isbank30062026Solo.zip"
         }
       }
     },
