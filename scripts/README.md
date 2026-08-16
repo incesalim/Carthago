@@ -60,7 +60,7 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | `check_body_freshness.py` | `news_items.body_text` stays fresh enough for the compiled `/regulation` figures. | `healthcheck.yml` | gate |
 | `check_bot_answers.py` | The Q&A bot still answers its pinned eval questions correctly. | `healthcheck.yml` | gate |
 | `check_bot_schema.py` | The bot's schema prompt ↔ the live D1 schema. | `healthcheck.yml` | gate |
-| `check_briefing_facts.py` | The regulation briefing's figures reconcile against compiled sources. | `summarize-regulations.yml`; `test-openrouter.yml` | gate |
+| `check_briefing_facts.py` | The briefing states the hand-verified published figures (checklist in `src/news/briefing_facts.py`, shared with the generator's own gate). **Publication gate** since 2026-08-16: `--fail-under 0.75` blocks the D1 push + snapshot, keeping last week's verified text live. | `summarize-regulations.yml`; `test-openrouter.yml` | gate |
 
 ## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, TKBB, KAP, TEFAS)
 | Script | Purpose | Run by | Class |
@@ -85,7 +85,7 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
 | `sync_news.py` | KAP + TCMB + BDDK + press feeds → `news_items`. | `refresh-news-daily.yml` | pipeline |
-| `summarize_regulations.py` | LLM (Kimi) weekly regulation briefing → `regulation_briefings`. | `summarize-regulations.yml` | pipeline |
+| `summarize_regulations.py` | LLM (Kimi) weekly regulation briefing → `regulation_briefings`. Per-category calls grounded on the annual baseline; gates each section on `find_contradictions` (transition-aware) + the fact checklist (deterministic strip of superseded-value bullets, one pointed retry naming rule + source, never the value). | `summarize-regulations.yml` | pipeline |
 | `ingest_policy_baseline.py` | Ingest TCMB annual Monetary-Policy PDF as briefing baseline. | by hand, ~annually | operational |
 | `generate_read_headlines.py` | Free-LLM rewrite of each T1 tab's one-sentence lead; number-validated, shown only while its `det_hash` matches the page → `read_headlines`. | `generate-reads.yml` | pipeline |
 

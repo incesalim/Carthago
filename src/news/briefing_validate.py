@@ -307,18 +307,49 @@ def _subject_values(text: str) -> dict[str, set[str]]:
     return found
 
 
+# Transition phrasing marks its own OLD value: in "1%, down from 2%" the 2 is
+# superseded by the bullet's own words. Until 2026-08-16 the conflict check
+# compared RAW value sets, so that bullet ({1,2}) INTERSECTED with a separate
+# bare "…limit of 2% has been introduced…" bullet ({2}) and the pair passed as
+# agreement — the live briefing printed both the May overdraft cap (1%) and
+# January's introduction at 2% side by side, and only the after-the-fact fact
+# checklist saw it. Strip each bullet's self-declared old values before
+# comparing, and that pair is the conflict it always was.
+_TRANSITION_RE = re.compile(
+    r"\b(?:down|up)\s+from\b|\b(?:reduced|raised|lowered|increased|cut|revised)\s+from\b",
+    re.I,
+)
+_TRANSITION_WINDOW = 40
+
+
+def _transition_stale_values(text: str) -> set[str]:
+    """Percentages this bullet itself marks as superseded ("down from 2%")."""
+    out: set[str] = set()
+    for m in _TRANSITION_RE.finditer(text):
+        tail = text[m.end():m.end() + _TRANSITION_WINDOW]
+        first = _PCT_RE.search(tail)
+        if first:
+            out.add(f"{float(first.group(1)):g}")
+    return out
+
+
 def find_contradictions(bullets: list[str]) -> list[dict]:
-    """Rule subjects given more than one value across a section's bullets.
+    """Rule subjects given more than one CURRENT value across a section's
+    bullets.
 
     A single bullet carrying two values for one subject is fine — that is
-    transition phrasing ("reduced from 4% to 3%") and self-documenting. The
-    defect is two SEPARATE bullets each asserting a different value.
+    transition phrasing ("reduced from 4% to 3%") and self-documenting; its
+    "from" value is treated as the bullet's own record of the OLD rule, not an
+    assertion. The defect is two SEPARATE bullets whose current values
+    disagree — including a bare bullet asserting exactly the value another
+    bullet says the rule moved away from.
     """
-    per_bullet = [(b, _subject_values(b)) for b in bullets]
+    per_bullet = [(b, _subject_values(b), _transition_stale_values(b)) for b in bullets]
     by_subject: dict[str, list[tuple[str, set[str]]]] = {}
-    for text, subjects in per_bullet:
+    for text, subjects, stale in per_bullet:
         for name, vals in subjects.items():
-            by_subject.setdefault(name, []).append((text, vals))
+            current = (vals - stale) or vals  # never let stripping empty a bullet
+            by_subject.setdefault(name, []).append((text, current))
 
     out: list[dict] = []
     for name, entries in by_subject.items():
@@ -327,7 +358,7 @@ def find_contradictions(bullets: list[str]) -> list[dict]:
         for i, (a_text, a_vals) in enumerate(entries):
             for b_text, b_vals in entries[i + 1:]:
                 if a_vals & b_vals:
-                    continue  # agree on at least one value → not a conflict
+                    continue  # agree on at least one current value → not a conflict
                 out.append({
                     "subject": name,
                     "a": a_text, "b": b_text,

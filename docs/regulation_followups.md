@@ -1,6 +1,59 @@
 # Regulation tab — scheduled follow-ups & operational notes
 
-_Last updated: 2026-07-20_
+_Last updated: 2026-08-16_
+
+## FIXED (E): the fact checklist could see a bad briefing but not stop it
+
+**Status:** fixed 2026-08-16, found because the owner said the snapshot "doesn't
+work properly" the same morning the weekly run scored **69% (9/13)** — stored,
+pushed, and live on `/regulation`, with a Telegram alert as the only trace.
+
+**What the 69% actually was.** Of the four flagged facts, two were CHECKER
+bugs and two were real briefing defects — worth separating, because fixing the
+wrong half would have "improved" the score without touching the page:
+
+- `loan_sme` MISSING — **checker bug**: the live bullet says "loans extended
+  to **SMEs** is 4.5%", and `\bSME\b` cannot match the plural. → `\bSMEs?\b`.
+- `loan_fx` CONTRADICTED — **checker bug**: the "superseded 1" it found was
+  *"up to **1** month"* inside an RR bullet that mentions "foreign currency".
+  The keyword now binds FX to *loans*, like `briefing_validate`'s subject.
+- `loan_overdraft` CONTRADICTED — **real**: January's *"limit of 2% has been
+  introduced"* printed beside May's *"1%, down from 2%"*.
+- `repo_suspended` MISSING — **real**: no bullet mentioned the one-week repo
+  auction suspension (in force since 2026-03-01 — it is why `/rates` shows
+  effective funding at 40% against a 37% policy rate), while bullet 1 called
+  the repo rate "the main policy instrument".
+
+**Why the in-run gate missed the overdraft pair:** `find_contradictions`
+compared RAW value sets, and the transition bullet ({1,2}) *intersects* the
+stale-bare bullet ({2}) — intersection read as agreement. It now strips each
+bullet's own "down from X" values first and compares CURRENT values, so that
+pair is the conflict a reader experiences.
+
+**Why the regeneration retry could never help:** the calls run at temperature
+0 with a fixed seed, so resending the identical prompt returns the identical
+draft. Every regeneration now carries an addendum naming what was wrong.
+
+**Shipped, end to end:**
+
+1. The checklist moved to `src/news/briefing_facts.py` (the CLI
+   `scripts/check_briefing_facts.py` imports it) so generator and checker
+   share one instrument.
+2. The generator gates on it per section: bullets asserting a superseded
+   value without the current one are **stripped deterministically** (the
+   checklist knows both values — no model involved), and omitted facts get
+   **one pointed retry** whose addendum names the rule and its source but
+   NEVER the value, so the checklist keeps measuring extraction, not echo.
+   The pre-store score prints in the run log.
+3. `check_briefing_facts.py --fail-under 0.75` became a **publication gate**
+   in the workflow: a briefing under 75% is not pushed to D1 and not
+   snapshotted to R2 — the page keeps last week's verified text, the run goes
+   red, the alert names the facts. Stale-and-right beats fresh-and-wrong,
+   now enforced rather than aspired to.
+
+**Regression fixtures:** the 2026-08-16 production bullets, verbatim, in
+`tests/test_briefing_facts.py` + `tests/test_briefing_validate.py` — including
+the checker's own two false verdicts, pinned so neither can return.
 
 ## FIXED (A): the weekly briefing was running with **no baseline**
 

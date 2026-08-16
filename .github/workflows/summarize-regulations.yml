@@ -130,18 +130,23 @@ jobs:
         # degraded for seven weeks unnoticed.
         run: python scripts/summarize_regulations.py --require-baseline ${{ inputs.force && '--force' || '' }}
 
-      # Belt and braces alongside the gate. The gate refuses to publish a
-      # section that contradicts itself; this scores what did publish against
-      # hand-verified published figures and alerts on anything stale, missing or
-      # misfiled — including rules the gate has no detector for. Alert-only: it
-      # never withholds a briefing.
-      - name: Score the briefing against published figures (alert only)
-        if: always()
-        continue-on-error: true
+      # The independent reading of what the generator stored — and since
+      # 2026-08-16, a PUBLICATION GATE. The generator now repairs against the
+      # same checklist (strips superseded bullets, one pointed retry per
+      # section for absent facts), so this normally confirms a clean score.
+      # When it does not, --fail-under fails THIS step, which skips the D1 push
+      # and the snapshot upload below: the rejected briefing evaporates with
+      # the runner, D1 and R2 keep last week's verified text, the run goes red
+      # and the failure alert names it. A 69% briefing once shipped with a
+      # Telegram message as the only trace; stale-and-right beats
+      # fresh-and-wrong is this lane's founding rule, now enforced end to end.
+      # (A run dispatched with baseline_url that fails here discards that
+      # baseline ingest too — re-dispatch after fixing; the pin is idempotent.)
+      - name: Score the briefing against published figures (publication gate)
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python scripts/check_briefing_facts.py --alert
+        run: python scripts/check_briefing_facts.py --alert --fail-under 0.75
 
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v7

@@ -42,6 +42,9 @@ _EXTERNAL: frozenset[str] = frozenset({
     # A/B repoints, which lives in src/news/.
     "kimi.py",
     "free_llm.py",
+    # The briefing fact checklist the check_briefing_facts row cites — shared
+    # generator/checker instrument, lives in src/news/.
+    "briefing_facts.py",
 })
 
 _PY_NAME = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*\.py)\b")

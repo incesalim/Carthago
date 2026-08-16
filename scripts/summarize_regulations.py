@@ -40,7 +40,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
-from src.news import kimi  # noqa: E402
+from src.news import briefing_facts, kimi  # noqa: E402
 from src.news._htmltext import fix_mojibake  # noqa: E402
 from src.news.briefing_validate import describe, find_contradictions  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
@@ -49,7 +49,7 @@ DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v23-no-supersession-note"
+PROMPT_VERSION = "2026-08-16.v24-fact-gate"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -321,9 +321,16 @@ def enforce_category(name: str, bullets: list[dict]) -> list[dict]:
 
 
 def generate_category(name: str, desc: str, context: str,
-                      retries: int) -> tuple[list[dict], str, str]:
+                      retries: int, addendum: str | None = None,
+                      ) -> tuple[list[dict], str, str]:
     """One focused call (with parse-retry) for a single section. Returns
     (bullets, model, provider). Keeps the most specific parse seen across attempts.
+
+    `addendum` is a revision instruction appended as its own user message. A
+    regeneration MUST carry one: the calls run at temperature 0 with a fixed
+    seed, so resending an identical prompt returns the identical draft — a
+    "retry" that changes nothing was the silent no-op behind the conflict gate
+    always falling through to last week's text.
 
     `provider` is OpenRouter's upstream for this call (empty on a direct API).
     Worth recording: the same model id behaves very differently by upstream, so
@@ -333,6 +340,8 @@ def generate_category(name: str, desc: str, context: str,
         {"role": "system", "content": sys_prompt},
         {"role": "user", "content": context},
     ]
+    if addendum:
+        messages.append({"role": "user", "content": addendum})
     best: list[dict] | None = None
     best_specific = -1
     model = ""
@@ -550,8 +559,18 @@ def main() -> int:
         if conflicts:
             print(f"[briefing] {name}: CONTRADICTION — regenerating\n"
                   + describe(conflicts, limit=2), flush=True)
+            # The regeneration must SAY what was wrong: at temperature 0 with a
+            # fixed seed, resending the identical prompt returns the identical
+            # draft, so the old blind retry could never repair anything.
+            conflict_note = (
+                "REVISION — your draft stated two values for the same rule as "
+                "if both applied:\n" + describe(conflicts, limit=4) + "\n"
+                "For each rule print ONLY the value currently in force (the "
+                "latest-dated source wins). You may phrase a change as "
+                "'reduced from X to Y', but no separate bullet may assert the "
+                "old value on its own. Keep every other rule of your draft.")
             retry_bullets, r_model, r_provider = generate_category(
-                name, desc, context, args.cat_retries)
+                name, desc, context, args.cat_retries, addendum=conflict_note)
             retry_kept = enforce_category(name, retry_bullets)
             retry_conflicts = find_contradictions([b["text"] for b in retry_kept])
             if retry_kept and not retry_conflicts:
@@ -569,6 +588,51 @@ def main() -> int:
                 print(f"[briefing] {name}: still contradicting and no previous "
                       f"version — DROPPING the section", flush=True)
 
+        # Gate 2 — the hand-verified fact checklist, the SAME instrument
+        # scripts/check_briefing_facts.py scores after the store. Until
+        # 2026-08-16 it ran only there, alert-only, so a briefing failing it
+        # shipped anyway (69% that morning: January's overdraft cap printed
+        # beside May's, the repo-auction suspension absent). Two moves, both
+        # bounded and both deterministic where they can be:
+        #   - a bullet asserting a superseded value without the current one is
+        #     STRIPPED — the checklist knows both values, no model needed;
+        #   - facts the section omits get ONE pointed regeneration naming the
+        #     rule and its source but NEVER the value, so the checklist keeps
+        #     measuring extraction rather than echo.
+        stale_idx = set(briefing_facts.stale_bare_indexes(kept))
+        if stale_idx:
+            for i in sorted(stale_idx):
+                print(f"[briefing] {name}: STRIPPED superseded bullet: "
+                      f"{kept[i]['text'][:110]}", flush=True)
+            kept = [b for i, b in enumerate(kept) if i not in stale_idx]
+        missing = briefing_facts.section_missing_facts(name, kept)
+        if missing:
+            print(f"[briefing] {name}: {len(missing)} checklist fact(s) absent "
+                  f"({', '.join(f['id'] for f in missing)}) — pointed retry", flush=True)
+            r_bullets, r_model, r_provider = generate_category(
+                name, desc, context, args.cat_retries,
+                addendum=briefing_facts.retry_addendum(missing))
+            r_kept = enforce_category(name, r_bullets)
+            r_stale = set(briefing_facts.stale_bare_indexes(r_kept))
+            r_kept = [b for i, b in enumerate(r_kept) if i not in r_stale]
+            r_missing = briefing_facts.section_missing_facts(name, r_kept)
+            # Accept only a draft that is strictly better on the checklist and
+            # clean on the contradiction gate — a repair may not trade defects.
+            if r_kept and len(r_missing) < len(missing) \
+                    and not find_contradictions([b["text"] for b in r_kept]):
+                kept = r_kept
+                if r_model:
+                    models.add(r_model)
+                if r_provider:
+                    providers.add(r_provider)
+                print(f"[briefing] {name}: retry repaired "
+                      f"{len(missing) - len(r_missing)} of {len(missing)} "
+                      f"absent fact(s)", flush=True)
+            else:
+                print(f"[briefing] {name}: retry not better — keeping draft; "
+                      f"the post-store check will report what is still absent",
+                      flush=True)
+
         dropped = len(bullets) - len(kept)
         print(f"[briefing] {name}: {len(kept)} bullets"
               + (f" via {provider}" if provider else "")
@@ -581,6 +645,18 @@ def main() -> int:
           f"in {time.time() - t0:.1f}s", flush=True)
     if not categories:
         raise SystemExit("[briefing] no sections produced any bullets — aborting (kept previous row).")
+
+    # The score this briefing will get from the post-store checker, printed
+    # BEFORE the store so the run log carries what is about to ship. The weekly
+    # workflow re-runs the same instrument afterwards with --fail-under, so a
+    # briefing the gates could not repair turns the run red instead of scoring
+    # 69% into a Telegram message nobody is required to read.
+    fact_res = briefing_facts.score({"categories": categories})
+    fc = fact_res["counts"]
+    print(f"[briefing] fact checklist pre-store: PASS {fc['PASS']}  "
+          f"MISFILED {fc['MISFILED']}  CONTRADICTED {fc['CONTRADICTED']}  "
+          f"STALE {fc['STALE']}  MISSING {fc['MISSING']}  "
+          f"->  {fact_res['score']:.0%}", flush=True)
 
     # A section that yields nothing is dropped from the payload with no error, and
     # the abort above only fires when EVERY section is empty — so a partial

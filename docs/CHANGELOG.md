@@ -5,6 +5,27 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-16.
 
+2026-08-16 — **The regulation briefing's fact checklist became a publication
+gate instead of a Telegram apology.** The morning's weekly run scored 69%
+(9/13) — stored, pushed, live — because the checklist ran only after the
+store, alert-only. Diagnosis against the live page split the four flagged
+facts evenly: two checker bugs (`\bSME\b` cannot match "SMEs"; a bare `FX`
+keyword read an RR bullet's "up to 1 month" as a superseded FX-loan cap) and
+two real defects (January's overdraft cap printed beside May's; the repo-
+auction suspension absent while a bullet called the repo rate "the main
+policy instrument"). The in-run contradiction gate had missed the overdraft
+pair because it compared raw value sets — the transition bullet {1,2}
+intersects the stale-bare bullet {2} — and its regeneration retry was
+provably a no-op at temperature 0 with a fixed seed. Now: `find_contradictions`
+compares transition-aware CURRENT values; every regeneration carries an
+addendum naming the defect; the checklist lives in `src/news/briefing_facts.py`
+and gates generation (deterministic strip of superseded-value bullets, one
+pointed retry per section naming rule + source but never the value); and the
+workflow's `check_briefing_facts.py --fail-under 0.75` blocks the D1 push and
+snapshot upload outright — a failing briefing evaporates with the runner and
+the page keeps last week's verified text. The 2026-08-16 production bullets
+are the regression fixtures. `docs/regulation_followups.md` §E.
+
 2026-08-16 — **The bank Desk stopped crowning the free-float bucket as "owner"
 and stopped telling Takasbank it never filed.** A page-by-page review of the
 live site found three untrue sentences. (1) The Desk's identity strip picked
