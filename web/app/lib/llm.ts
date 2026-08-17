@@ -2,10 +2,26 @@
  * Free OpenAI-compatible chat client for the Cloudflare Worker (Telegram bot).
  *
  * Provider chain (see PROVIDERS below):
- *   OpenRouter nvidia/nemotron-3-super-120b-a12b:free
+ *   OpenRouter deepseek/deepseek-v4-flash  (PAID, pinned to Baidu, seeded)
+ *     →  OpenRouter nvidia/nemotron-3-super-120b-a12b:free
  *     →  Groq openai/gpt-oss-120b
  *     →  Cerebras gpt-oss-120b
  *     →  Cerebras gemma-4-31b
+ *
+ * ⚠️ THE HEAD OF THIS CHAIN IS METERED (user decision, 2026-08-17: deepseek-flash
+ * primary on every lane, Baidu upstream). It was free top-to-bottom until then, so
+ * two things that used to be safe no longer are:
+ *
+ *   - COST. The bot resends a ~32KB system prompt (`bot-schema.ts`) across up to
+ *     seven calls with accumulating history — measured 70–100k input tokens PER
+ *     QUESTION (docs/knowledge/2026-08-03-llm-agent-teams-external-report.md §11).
+ *     `BOT_GLOBAL_DAILY` (default 300) is now the spend cap, not just an abuse
+ *     cap: at the ceiling that is ~25M input tokens/day. Prompt-caching that
+ *     static prefix is the obvious next lever and is NOT done here.
+ *   - LATENCY. `CALL_TIMEOUT_MS` is 12s inside a 20s `RUN_BUDGET_MS`, and the
+ *     2026-08-01 outage was a slow head-of-chain killing replies AFTER they were
+ *     generated. The deadline plumbing below now bounds that, but confirm the new
+ *     head against `npx wrangler tail` rather than assuming "flash" means fast.
  *
  * WHY THE FIRST ATTEMPT AT NEMOTRON FAILED, and what fixed it (2026-08-01/02).
  * Promoting it to first worked at the model level — the Worker logged
@@ -34,10 +50,12 @@
  * The second fix is the load-bearing one: it makes ANY slow provider safe here,
  * not just this one.
  *
- * Groq-before-Cerebras INTENTIONALLY diverges from the Python headline lane
- * (src/news/free_llm.py), which is Cerebras-first and falls back to a
- * deterministic template. That lane makes one call per run. Don't "resync" the
- * two chains.
+ * Both chains now LEAD with deepseek-flash, but they still diverge below the head
+ * and that is deliberate: this one is Groq-before-Cerebras (an agent loop makes
+ * several calls per question, and Groq's free-tier limit is far higher), while the
+ * Python headline lane (src/news/free_llm.py) is Cerebras-first, makes one call per
+ * run, and ends at a deterministic template rather than at an error. Don't
+ * "resync" the tails.
  *
  * Keys (set with `wrangler secret put` — see docs/TELEGRAM_BOT.md):
  *   OPEN_ROUTER_API (or OPENROUTER_API_KEY), GROQ_API_KEY (or GROQ_API_TOKEN),
@@ -70,10 +88,27 @@ interface Provider {
 }
 
 // Ordered fallback chain. Each is OpenAI-compatible (`/chat/completions`).
-// Groq first: much higher free-tier rate limit than Cerebras (~5 req/min), which
-// matters because the agent loop makes several calls per question. Nemotron sits
-// LAST until the loop's time budget is fixed — see the header.
+// deepseek-flash leads every lane (2026-08-17). Behind it the free chain is
+// unchanged and still load-bearing: it is what a Baidu outage or a spent budget
+// falls into, and Groq precedes Cerebras because its free-tier rate limit is far
+// higher (~5 req/min on Cerebras) and the agent loop makes several calls per
+// question.
 const PROVIDERS: Provider[] = [
+  // PRIMARY, all lanes. PAID. Upstream pinned to Baidu — unpinned, OpenRouter
+  // draws from ~8 providers whose output quality ranged 7–4,436 tokens and whose
+  // PARAMETER SUPPORT differs (one serves this model with no response_format at
+  // all). `allow_fallbacks: false` only stops OpenRouter substituting an
+  // upstream; it does NOT disable the chain below, so a Baidu outage still fails
+  // down into the free models rather than off a cliff.
+  // Seeded to pair with temperature 0 for reproducibility.
+  {
+    name: "openrouter/deepseek-v4-flash",
+    base: "https://openrouter.ai/api/v1",
+    model: "deepseek/deepseek-v4-flash",
+    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
+    params: { provider: { order: ["Baidu"], allow_fallbacks: false }, seed: 1729 },
+  },
   {
     name: "openrouter/nemotron-3-super-120b",
     base: "https://openrouter.ai/api/v1",
@@ -115,22 +150,12 @@ const PROVIDERS: Provider[] = [
     model: "gemma-4-31b",
     keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
   },
-  // OPT-IN, analyst deep-dive lane only (user-authorized PAID model,
-  // 2026-08-04 — "deepseek flash on openrouter, that's cheap"). There is NO
-  // :free variant (measured: HTTP 404). Same configuration wisdom as the
-  // briefing lane (kimi.py): upstream pinned to Baidu — unpinned, OpenRouter
-  // draws from ~8 providers whose output quality ranged 7–4,436 tokens — and
-  // no silent fallback, so an outage fails loudly into the OSS chain below.
-  {
-    name: "openrouter/deepseek-v4-flash",
-    base: "https://openrouter.ai/api/v1",
-    model: "deepseek/deepseek-v4-flash",
-    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
-    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
-    params: { provider: { order: ["Baidu"], allow_fallbacks: false }, seed: 1729 },
-    optIn: true,
-  },
-  // OPT-IN, V2 research-loop lead (user-authorized 2026-08-04). Slug VERIFIED
+  // OPT-IN. Was the V2 research-loop lead until 2026-08-17, when deepseek-flash
+  // took every lane's primary slot; it now sits SECOND in that loop's explicit
+  // providerOrder and is unreachable by default. Kept, not deleted: its 1.05M
+  // context is the only thing here that absorbs a full 150KB case file without
+  // truncation pressure, which is what the V2 acceptance run was measured on.
+  // Slug VERIFIED
   // against the OpenRouter models API before wiring — the guessed-slug 404 is
   // a once-only lesson. 1.05M context, $0.10/M in $0.60/M out; no upstream
   // pin (OpenAI models route through one provider).

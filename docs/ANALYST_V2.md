@@ -21,15 +21,16 @@ to pass and explicit human approval.
 flowchart TD
     S["R2 snapshots (audit + bulletin + analyst state)\n+ filing PDF per-page text"] --> B
     B["ANOMALY SCOUT (deterministic)\nper-row QoQ/YoY + own-history z-scores\ncontribution shares · sign flips · breakpoints\nreconciliation breaks · validation flags · V1 signals"] --> C["ranked candidates\n(leads, never conclusions)"]
-    C --> L
+    C --> P["COMMITTED PLAN\n2–5 leads, each naming where\ncounterparts would show\nclosing one requires a resolution"]
+    P --> L
     subgraph L ["RESEARCH LOOP (bounded: turns · wall-clock · result size)"]
-        M["model picks ONE action per turn\n(JSON protocol, no native function calling)"] -->|tool| T["typed read-only tools\nfull statement matrices · row history\nmovement ranking · peers · reconciliations\nfiling text/pages · signals · commentary · macro"]
+        M["model picks ONE action per turn\n(JSON protocol, no native function calling)"] -->|"tool / tools (≤4, concurrent)"| T["typed read-only tools\nfull statement matrices · row history\nmovement ranking · peers · reconciliations\nfiling text/pages · signals · commentary · macro"]
         T --> E["EvidenceRecord\nstable id · provenance · validation status\nnull ≠ zero warnings"]
         E --> M
         M -->|hypotheses| H["hypothesis ledger\nopen/supported/rejected/unresolved\n+ counterevidence ids + open questions"]
         H --> M
         M -->|finding| F["STRUCTURED finding\nclaims with subject/value/comparison/\nchange/derivation + evidence ids"]
-        M -->|"abstain / conclude"| X["stop"]
+        M -->|"abstain / conclude\n(blocked once while a lead is open)"| X["stop"]
     end
     F --> V{"DETERMINISTIC VERIFIER"}
     V -- pass/flag --> R["rendered summary\n(survivors only)"]
@@ -105,17 +106,17 @@ checks passed"** — the verifier proves structure and association, not truth.
 
 ## The loop
 
-JSON action protocol — one object per turn: `tool` / `hypotheses` /
-`finding` / `abstain` / `conclude`. Lenient balanced-brace extraction (no
+JSON action protocol — one object per turn: `plan` / `tool` / `tools` /
+`hypotheses` / `finding` / `abstain` / `conclude`. Lenient balanced-brace extraction (no
 provider function-calling assumed); a protocol violation gets one repair
 message and costs the turn; three consecutive violations abort into
 abstention. Budgets: 32 turns, 14 minutes wall-clock, 9KB per rendered
-result, ≤3 findings. **Abstention is a first-class success** — "ordinary
-quarter, here is what was checked."
+result, ≤3 findings, 4 tool calls per turn. **Abstention is a first-class
+success** — "ordinary quarter, here is what was checked."
 
-Five mechanisms exist because a five-round measured arc on the Albaraka
+Seven mechanisms exist because a five-round measured arc on the Albaraka
 acceptance case (2026-08-04) showed each one's absence failing in a specific
-way:
+way — the last two were added 2026-08-17 against the same measured record:
 
 - **The case file.** Every delivered evidence record stays visible in the
   prompt (compact rendering, oldest non-seed entries evicted to a stub;
@@ -144,14 +145,43 @@ way:
   counterpart trail is more likely an artifact than a story), and six
   consecutive probes of one area append a nudge — measured round 4 spending
   8 straight turns on a single line's filing-text trail.
+- **A committed plan, separate from the hypothesis ledger** (`plan`, ≤8 leads).
+  The first action is 2–5 leads drawn from the scout, each naming the statements
+  where its counterparts would show; the plan is rendered every turn with, per
+  open lead, which of its own named statements are still unread. Chosen up front
+  the leads compete on materiality; chosen one query at a time, whatever was just
+  read always looks like the most interesting thing. Two rules carry it: closing
+  a lead needs a resolution (one closed without it is **re-opened**, not
+  rejected — the rest of the plan is still good), and **both exits are gated
+  once** while a lead is open, `abstain` as well as `conclude`, since gating only
+  one leaves the other as the way around. A lead is work, not a claim: an open
+  lead never examined is unfinished work, which is a different record from an
+  unresolved hypothesis. The gate fires once per run by design — an agent that
+  cannot leave is worse than one that leaves early.
+- **Parallel tool calls** (`tools`, ≤4 per turn, run concurrently, all landing
+  on file together). The prompt asks for a counterpart sweep across statements,
+  but a strictly-one-call-per-turn protocol priced that sweep at four of the
+  thirty-two turns — the harness was charging for the method it taught. Per-call
+  failure is isolated and identical calls inside a batch are deduped before
+  dispatch. ⚠️ The tradeoff is real and unmeasured: turn budget × batch size is
+  the new worst case for the case file, and `DIGEST_BUDGET` was sized when that
+  product was 32, so a hard-batching run can now evict where it never did.
+  Eviction degrades gracefully but costs turns — the thing this buys. Raise the
+  cap only against an eval run.
 
 The hypothesis ledger (id, statement, status, materiality, confidence,
 supporting/counter evidence ids, open questions) is the model's to maintain
 and is persisted whole.
 
-Model chain: `gpt-5.6-luna-pro` (paid, user-authorized, 1M context) →
-`deepseek-v4-flash` (paid, pinned, seeded) → the free OSS chain; nemotron
+Model chain: `deepseek-v4-flash` (paid, pinned @Baidu, seeded) →
+`gpt-5.6-luna-pro` (paid, 1.05M context) → the free OSS chain; nemotron
 excluded (measured reasoning-leak).
+
+> ⚠️ **The acceptance result below was measured on a luna-pro lead.** The chain
+> was reordered on 2026-08-17 (deepseek-flash primary on every lane). The loop is
+> budgeted in turns, not tokens, so the lead model sets the discovery ceiling —
+> re-run `scripts/analyst/eval_research.py` over the corpus before citing the
+> seventh-round Albaraka result as current.
 
 ## Artifacts (per run of `analyst-research.yml`)
 
@@ -159,6 +189,7 @@ excluded (measured reasoning-leak).
 scout_<B>_<P>_<K>.json            ranked candidates + suppressed count
 evidence_<B>_<P>_<K>.jsonl        every evidence record, full provenance
 research_trace_<B>_<P>_<K>.jsonl  every turn: action, result id, errors
+plan_<B>_<P>_<K>.json             the committed leads, closed with reasons or left open
 hypotheses_<B>_<P>_<K>.json       the final ledger
 findings_<B>_<P>_<K>.json         structured findings as emitted
 verification_<B>_<P>_<K>.json     per-finding checks and verdicts

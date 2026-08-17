@@ -574,3 +574,209 @@ describe("research loop — repeat calls and emission-time verification", () => 
     expect(trace.some((t) => t.detail.startsWith("verifier_repair F1"))).toBe(true);
   });
 });
+
+describe("research loop — plan / execute separation", () => {
+  const scout = { candidates: [] } as unknown as ScoutResult;
+  const plan = (leads: Record<string, unknown>[]) => JSON.stringify({ action: "plan", leads });
+  const L1 = { lead_id: "L1", question: "did equity move outside profit", statements: ["equity_change"], status: "open" };
+  const L2 = { lead_id: "L2", question: "does the P&L carry the counterpart", statements: ["profit_loss"], status: "open" };
+
+  it("shows the plan every turn, naming statements a lead has not read yet", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      plan([L1, L2]),
+      JSON.stringify({ action: "tool", tool: "get_statement_rows", args: { statement: "equity_change" } }),
+      plan([{ ...L1, status: "closed", resolution: "read it — the −8 movement is there" },
+            { ...L2, status: "closed", resolution: "looked, nothing there" }]),
+      JSON.stringify({ action: "conclude", reason: "done" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).toContain("PLAN (2 open of 2");
+    expect(llmScript.calls[1].user).toContain("not yet read: equity_change");
+    // after the equity_change read, L1's named statement is satisfied, L2's is not
+    expect(llmScript.calls[2].user).toContain("every statement it named has been read");
+    expect(llmScript.calls[2].user).toContain("not yet read: profit_loss");
+    expect(res.plan.every((l) => l.status === "closed")).toBe(true);
+    expect(res.metrics.protocol_errors).toBe(0);
+  });
+
+  it("blocks conclude while a committed lead is still open — once", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      plan([L1, L2]),
+      JSON.stringify({ action: "conclude", reason: "bored" }), // blocked
+      JSON.stringify({ action: "conclude", reason: "still bored" }), // gate fires once — it may leave
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[2].user).toContain("CANNOT CONCLUDE YET — 2 lead(s)");
+    expect(llmScript.calls[2].user).toContain("L1 (did equity move outside profit)");
+    expect(res.metrics.turns).toBe(3);
+    expect(res.metrics.protocol_errors).toBe(0); // a plan bounce is not a protocol error
+  });
+
+  it("gates abstain too, so it is not the way around the conclude gate", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      plan([L1]),
+      JSON.stringify({ action: "abstain", reason: "nothing here" }), // blocked
+      JSON.stringify({ action: "abstain", reason: "nothing here" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[2].user).toContain("CANNOT ABSTAIN YET — 1 lead(s)");
+    expect(res.abstained).toBe(true);
+  });
+
+  it("re-opens a lead closed without a resolution instead of losing it", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      plan([{ ...L1, status: "closed" }, { ...L2, status: "closed", resolution: "looked, nothing there" }]),
+      JSON.stringify({ action: "conclude", reason: "done" }), // blocked: L1 came back open
+      JSON.stringify({ action: "conclude", reason: "done" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).toContain("L1 were closed with no resolution and have been RE-OPENED");
+    expect(llmScript.calls[2].user).toContain("CANNOT CONCLUDE YET — 1 lead(s)");
+    expect(res.plan.find((l) => l.lead_id === "L1")?.status).toBe("open");
+    expect(res.plan.find((l) => l.lead_id === "L2")?.status).toBe("closed");
+  });
+
+  it("a run that never plans is unchanged — no plan, no gate", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [JSON.stringify({ action: "conclude", reason: "done" })];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[0].user).toContain(`PLAN: none committed — your first action must be "plan"`);
+    expect(res.plan).toEqual([]);
+    expect(res.metrics.turns).toBe(1); // conclude went straight through
+  });
+
+  it("a malformed plan is a protocol error, not a crash", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      JSON.stringify({ action: "plan", leads: [] }),
+      JSON.stringify({ action: "conclude", reason: "done" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).toContain('PROTOCOL ERROR: "plan" needs a non-empty');
+    expect(res.metrics.protocol_errors).toBe(1);
+  });
+});
+
+describe("research loop — parallel tool calls", () => {
+  const scout = { candidates: [] } as unknown as ScoutResult;
+  const batch = (calls: { tool: string; args: Record<string, unknown> }[]) =>
+    JSON.stringify({ action: "tools", calls });
+
+  it("runs a batch of independent calls in ONE turn and files all of them", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      batch([
+        { tool: "get_statement_rows", args: { statement: "equity_change" } },
+        { tool: "get_statement_rows", args: { statement: "balance_sheet_assets" } },
+        { tool: "get_statement_rows", args: { statement: "profit_loss" } },
+        { tool: "get_statement_rows", args: { statement: "off_balance" } },
+      ]),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(res.metrics.tool_calls).toBe(6); // 2 seed + 4 batched
+    expect(res.metrics.turns).toBe(2); // …and the four cost ONE turn, not four
+    expect(res.metrics.protocol_errors).toBe(0);
+    // All four are on file for the next turn, payloads intact.
+    expect((llmScript.calls[1].user.match(/delivered — now ON FILE/g) ?? [])).toHaveLength(4);
+    expect(llmScript.calls[1].user).toContain("TABLE 4 rows");
+  });
+
+  it("an over-cap batch runs the first four and names what it dropped", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      batch(["equity_change", "balance_sheet_assets", "profit_loss", "off_balance", "cash_flow", "oci"]
+        .map((statement) => ({ tool: "get_statement_rows", args: { statement } }))),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(res.metrics.tool_calls).toBe(6); // 2 seed + the 4 that fit
+    expect(llmScript.calls[1].user).toContain("6 calls requested but 4 is the per-turn maximum");
+  });
+
+  it("one bad call in a batch does not discard the good ones", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      batch([
+        { tool: "no_such_tool", args: {} },
+        { tool: "get_statement_rows", args: { statement: "equity_change" } },
+      ]),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).toContain("TOOL ERROR (no_such_tool)");
+    expect(llmScript.calls[1].user).toContain("TABLE 4 rows"); // the sibling still landed
+    expect(res.metrics.tool_calls).toBe(3); // 2 seed + the 1 that worked
+    expect(res.metrics.protocol_errors).toBe(1);
+  });
+
+  it("identical calls inside one batch collapse to a single query", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      batch([
+        { tool: "get_statement_rows", args: { statement: "equity_change" } },
+        { tool: "get_statement_rows", args: { statement: "equity_change" } },
+      ]),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(res.metrics.tool_calls).toBe(3); // 2 seed + 1 — the twin never ran
+    expect(llmScript.calls[1].user).not.toContain("REPEAT CALL");
+  });
+
+  it("a malformed tools action is a protocol error, not a crash", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      JSON.stringify({ action: "tools", calls: [] }),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).toContain('PROTOCOL ERROR: "tools" needs a non-empty');
+    expect(res.metrics.protocol_errors).toBe(1);
+    expect(res.abstained).toBe(true);
+  });
+
+  it("a batch sweeping four different statements does not trip the tunnel nudge", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      batch([
+        { tool: "get_statement_rows", args: { statement: "equity_change" } },
+        { tool: "get_statement_rows", args: { statement: "balance_sheet_assets" } },
+        { tool: "get_statement_rows", args: { statement: "profit_loss" } },
+        { tool: "get_statement_rows", args: { statement: "off_balance" } },
+      ]),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).not.toContain("queries all probed");
+    expect(res.abstained).toBe(true);
+  });
+});

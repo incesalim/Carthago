@@ -94,6 +94,10 @@ async function main(): Promise<number> {
     const research = await runResearch(ctx, scout, process.env as Record<string, string | undefined>);
     const verification = verifyFindings(research.findings, ctx.log, { bank, period, kind });
     writeFileSync(resolve(outDir, `research_trace_${tag}.jsonl`), research.traceJsonl, "utf-8");
+    // The plan is the audit trail for what the run committed to and what it
+    // actually closed — a lead left open is unfinished work, and that has to
+    // survive the run rather than only existing in the prompt.
+    writeFileSync(resolve(outDir, `plan_${tag}.json`), JSON.stringify(research.plan, null, 2), "utf-8");
     writeFileSync(resolve(outDir, `hypotheses_${tag}.json`), JSON.stringify(research.hypotheses, null, 2), "utf-8");
     writeFileSync(resolve(outDir, `findings_${tag}.json`), JSON.stringify(research.findings, null, 2), "utf-8");
     writeFileSync(resolve(outDir, `verification_${tag}.json`), JSON.stringify(verification, null, 2), "utf-8");

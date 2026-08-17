@@ -133,7 +133,7 @@ export const AGENTS: AgentDef[] = [
     writes: "artifacts",
     workflowFile: "analyst-research.yml",
     docs: "docs/ANALYST_V2.md",
-    models: "gpt-5.6-luna-pro → deepseek-v4-flash → free OSS chain (nemotron excluded)",
+    models: "deepseek-v4-flash (pinned @Baidu, seeded) → gpt-5.6-luna-pro → free OSS chain (nemotron excluded)",
     guardrail: "Deterministic verifier, 13 checks, run again at emission — findings that fail are excluded by name",
     outputs: [
       "analyst_summary_<B>_<P>_<K>.md — survivors only",
@@ -142,7 +142,8 @@ export const AGENTS: AgentDef[] = [
     ],
     stages: [
       { id: "scout", label: "Anomaly scout", kind: "deterministic", detail: "QoQ/YoY z-scores · sign flips · reconciliation breaks" },
-      { id: "loop", label: "Research loop", kind: "model", detail: "one action per turn · 32 turns · 14 min" },
+      { id: "plan", label: "Committed plan", kind: "model", detail: "2–5 leads named up front · closing one needs a reason" },
+      { id: "loop", label: "Research loop", kind: "model", detail: "one action per turn · ≤4 concurrent tool calls · 32 turns · 14 min" },
       { id: "tools", label: "12 typed tools", kind: "deterministic", detail: "read-only · registry-allowlisted · EvidenceRecord out" },
       { id: "ledger", label: "Hypothesis ledger", kind: "model", detail: "open / supported / rejected / unresolved" },
       { id: "finding", label: "Structured finding", kind: "model", detail: "claims with subject · value · derivation · evidence ids" },
@@ -150,7 +151,9 @@ export const AGENTS: AgentDef[] = [
       { id: "summary", label: "Rendered summary", kind: "output", detail: "survivors, with failures named" },
     ],
     edges: [
-      { from: "scout", to: "loop", label: "ranked leads" },
+      { from: "scout", to: "plan", label: "ranked leads" },
+      { from: "plan", to: "loop", label: "committed" },
+      { from: "loop", to: "plan", kind: "loop", label: "re-plan / close a lead" },
       { from: "loop", to: "tools", kind: "flow" },
       { from: "tools", to: "loop", kind: "loop", label: "evidence on file" },
       { from: "loop", to: "ledger", kind: "flow" },
@@ -235,7 +238,7 @@ export const AGENTS: AgentDef[] = [
     writes: "d1",
     workflowFile: "summarize-regulations.yml",
     docs: "docs/OPERATIONS.md",
-    models: "kimi (default) or deepseek-flash, per the BRIEFING_LLM repo variable",
+    models: "deepseek-flash (default, pinned @Baidu) or kimi, per the BRIEFING_LLM repo variable",
     guardrail: "find_contradictions() over the briefing, against the annual policy baseline",
     outputs: ["Weekly briefing rows in D1 → /regulation"],
     stages: [
@@ -272,7 +275,7 @@ export const AGENTS: AgentDef[] = [
     runtime: "worker",
     writes: "none",
     docs: "docs/TELEGRAM_BOT.md",
-    models: "nemotron-3-super → Groq gpt-oss-120b → Cerebras gpt-oss-120b → gemma-4-31b",
+    models: "deepseek-v4-flash (pinned @Baidu) → nemotron-3-super → Groq gpt-oss-120b → Cerebras gpt-oss-120b → gemma-4-31b",
     guardrail: "Read-only SQL gate + gotData guard + unsupportedFigures — a figure with no row behind it is stripped",
     outputs: ["A Telegram reply", "The query trace, per step"],
     stages: [
@@ -293,6 +296,7 @@ export const AGENTS: AgentDef[] = [
     inputs: [],
     notes: [
       "Runs per message inside the Worker — there is nothing to trigger from here.",
+      "Metered since 2026-08-17: the head of its chain is paid. It writes no D1 rows, but ~70–100k input tokens per question makes BOT_GLOBAL_DAILY (default 300) a spend cap, not just an abuse cap.",
       "To exercise it manually: GET /api/admin/bot-ask?key=<BOT_TEST_KEY>&q=… returns the reply plus the full query trace.",
     ],
   },

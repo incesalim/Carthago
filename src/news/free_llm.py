@@ -1,11 +1,19 @@
-"""Free OpenAI-compatible LLM client for the "The Read" headline rewrite.
+"""OpenAI-compatible LLM client for the "The Read" headline rewrite.
 
-Fallback chain (chosen after the round-3 reliability gauntlet — see
-docs/knowledge/free-model-eval-round3.md): the SAME model on two independent
-providers, then the deterministic template as the ultimate safety net (the caller
-keeps the deterministic headline when both fail — no different-model tier, so a
-shown LLM headline always sounds the same).
-    Cerebras gpt-oss-120b  →  Groq openai/gpt-oss-120b  →  (deterministic template)
+Fallback chain, then the deterministic template as the ultimate safety net (the
+caller keeps the deterministic headline when every provider fails):
+    OpenRouter deepseek-v4-flash @Baidu  →  Cerebras gpt-oss-120b
+      →  Groq openai/gpt-oss-120b  →  (deterministic template)
+
+⚠️ THE HEAD OF THIS CHAIN IS PAID, and adding it deliberately gave up a property
+this module was built around. The round-3 reliability gauntlet
+(docs/knowledge/free-model-eval-round3.md) picked the SAME model on two
+independent providers precisely so that a shown LLM headline always sounds the
+same, whichever provider answered. With deepseek-flash in front, a headline
+written on a Baidu outage is a DIFFERENT VOICE from one written normally — an
+accepted cost of the 2026-08-17 decision to lead every lane with deepseek-flash,
+not an oversight. The number validator below is unchanged and still the thing
+that makes any of these providers safe.
 
 Every rewrite is number-validated: it may use ONLY numbers present in the
 deterministic facts. Digits bound to a label (Stage-2, CET1, 1-year) are not
@@ -13,8 +21,7 @@ claims and are ignored. A rewrite that invents a number, breaks format, or is
 empty is rejected and the next provider is tried; if all fail the caller keeps
 the deterministic headline.
 
-NOT for the regulations snapshot (that stays on paid Kimi). Env (GitHub secrets
-in CI): CEREBRAS_KEY / GROQ_API_KEY.
+Env (GitHub secrets in CI): OPEN_ROUTER_API / CEREBRAS_KEY / GROQ_API_KEY.
 """
 from __future__ import annotations
 
@@ -37,12 +44,29 @@ SYSTEM = (
     "ONLY the sentence — no preamble, no markdown, no reasoning."
 )
 
-# Ordered fallback chain — the SAME model (gpt-oss-120b) on two providers, so a
-# shown headline always sounds the same; if both fail the caller falls back to the
-# deterministic template. `family` shares a provider rate budget; `min_gap` is the
-# seconds between successive calls to that family so the PRIMARY (Cerebras, 5
-# req/min free tier) stays under its limit instead of failing over.
+# Ordered fallback chain. deepseek-flash leads; behind it the two free providers
+# serve the SAME model (gpt-oss-120b), so a fallback headline at least sounds the
+# same as another fallback headline. If all three fail the caller keeps the
+# deterministic template.
+#
+# `family` shares a provider rate budget; `min_gap` is the seconds between
+# successive calls to that family so a provider stays under its limit instead of
+# failing over (Cerebras free tier = 5 req/min → one call per ~12s, 13s margin).
+# OpenRouter is metered rather than rate-capped here, so it needs no gap.
+#
+# `headers`/`params` are merged per provider: OpenRouter wants app attribution,
+# and the upstream pin is not optional — unpinned it draws from ~8 providers whose
+# quality, price and even PARAMETER SUPPORT differ. allow_fallbacks=False stops
+# OpenRouter substituting an upstream; it does NOT disable the chain below, so a
+# Baidu outage still falls through to the free models and then to the template.
 PROVIDERS = [
+    {"name": "openrouter/deepseek-v4-flash", "family": "openrouter", "min_gap": 0.0,
+     "base": "https://openrouter.ai/api/v1",
+     "model": "deepseek/deepseek-v4-flash",
+     "keys": ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+     "headers": {"HTTP-Referer": "https://carthago.app", "X-Title": "carthago"},
+     "params": {"provider": {"order": ["Baidu"], "allow_fallbacks": False},
+                "seed": 1729}},
     {"name": "cerebras/gpt-oss-120b", "family": "cerebras", "min_gap": 13.0,
      "base": "https://api.cerebras.ai/v1",
      "model": "gpt-oss-120b", "keys": ["CEREBRAS_KEY", "CEREBRAS_API_KEY"]},
@@ -135,11 +159,13 @@ def _call(provider: dict, key: str, facts: str, headline: str, timeout: int = 60
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": user},
         ],
+        **provider.get("params", {}),
     }
     _pace(provider["family"], provider["min_gap"])
     r = requests.post(
         f"{provider['base']}/chat/completions",
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                 **provider.get("headers", {})},
         json=payload,
         timeout=timeout,
     )

@@ -1695,21 +1695,24 @@ section promoted on Profitability/Capital, level-twin and duplicate charts cut
 [knowledge/display-study.md](knowledge/display-study.md) (phases 2–5 pending:
 real-terms twins, decompositions, sized scenarios, leagues, chronology).
 
-**"The Read" headline — LLM rewrite, Option 1 (2026-07-04, all 8 tabs live):** a
-free model (Cerebras `gpt-oss-120b` → Groq `openai/gpt-oss-120b` → `gemma-4-31b`;
-chosen in [knowledge/free-model-eval-round3.md](knowledge/free-model-eval-round3.md))
+**"The Read" headline — LLM rewrite, Option 1 (2026-07-04, all 8 tabs live):**
+`deepseek/deepseek-v4-flash` @Baidu (paid, primary since 2026-08-17) ahead of the
+free chain (Cerebras `gpt-oss-120b` → Groq `openai/gpt-oss-120b`; chosen in
+[knowledge/free-model-eval-round3.md](knowledge/free-model-eval-round3.md))
 rewrites ONLY the one-sentence lead; the driver bullets stay deterministic. A
 weekly CI cron (`generate-reads.yml` → `scripts/generate_read_headlines.py`, keys
 already in GitHub secrets) reads the deterministic takeaways from `GET /api/reads`,
 number-validates each rewrite, and upserts `read_headlines` (migration 0019) via
 wrangler. `web/app/lib/read-headlines.ts` shows the rewrite ONLY while its
 `det_hash` matches the live page and it invents no number — else the deterministic
-sentence, so it can never drift or go stale. Kimi still owns the regulations
-snapshot. All 8 tabs are wired (`reads.ts` computer + `withLlmHeadline` wrap per
-page); the failover keeps the SAME model on two providers (Cerebras → Groq
-`gpt-oss-120b`) then the deterministic template, so a shown headline always sounds
-the same. Per-provider pacing + retry-on-429 keep the primary consistent under
-Cerebras's 5-req/min limit.
+sentence, so it can never drift or go stale. All 8 tabs are wired (`reads.ts`
+computer + `withLlmHeadline` wrap per page); below the paid head the failover keeps
+the SAME model on two providers (Cerebras → Groq `gpt-oss-120b`) then the
+deterministic template. ⚠️ Putting deepseek in front **deliberately gave up the
+"a shown headline always sounds the same" property** the round-3 chain was picked
+for — a headline written during a Baidu outage is a different voice. Per-provider
+pacing + retry-on-429 keep the free tier consistent under Cerebras's 5-req/min
+limit.
 
 **Presentation deck generator — PDF on demand (2026-07-05):** a board-style
 **PDF slide deck** of the sector Read — dark title slide, a **KPI vitals** slide

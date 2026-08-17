@@ -34,7 +34,7 @@ on:
         required: false
         default: false
       llm:
-        description: "Provider for THIS run. Blank = the BRIEFING_LLM repo variable, else kimi."
+        description: "Provider for THIS run. Blank = the BRIEFING_LLM repo variable, else deepseek-flash."
         type: choice
         options: ["", kimi, deepseek-flash]
         required: false
@@ -59,10 +59,14 @@ jobs:
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       PYTHONIOENCODING: utf-8
       # Which LLM runs the briefing. Precedence: this run's input → the
-      # BRIEFING_LLM repo variable → kimi. Switching the SCHEDULED lane is
-      # therefore a one-field change in Settings → Variables, no code, no deploy;
-      # a dispatch input overrides it for a single run without making it stick.
-      BRIEFING_LLM: ${{ inputs.llm != '' && inputs.llm || vars.BRIEFING_LLM || 'kimi' }}
+      # BRIEFING_LLM repo variable → deepseek-flash. Switching the SCHEDULED lane
+      # is therefore a one-field change in Settings → Variables, no code, no
+      # deploy; a dispatch input overrides it for a single run without making it
+      # stick. The literal default moved kimi → deepseek-flash on 2026-08-17
+      # (deepseek-flash primary on every lane); no repo variable was set, so this
+      # default is what the schedule actually runs. Set BRIEFING_LLM=kimi to
+      # revert without touching code.
+      BRIEFING_LLM: ${{ inputs.llm != '' && inputs.llm || vars.BRIEFING_LLM || 'deepseek-flash' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
@@ -105,7 +109,7 @@ jobs:
             --url "${{ inputs.baseline_url }}"
           python scripts/ingest_policy_baseline.py --list
 
-      - name: Generate weekly briefing via Kimi
+      - name: Generate weekly briefing (BRIEFING_LLM)
         env:
           # Repo secret is named KIMI_API_TOKEN; Python code reads KIMI_API_KEY.
           # On deepseek-flash the same three vars point at OpenRouter instead —

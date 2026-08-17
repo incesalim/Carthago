@@ -82,8 +82,18 @@ requires the answer be in **the same language as the question**.
 
 ## LLM provider chain
 
-`llm.ts` tries, in order: **OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`
+`llm.ts` tries, in order: **OpenRouter `deepseek/deepseek-v4-flash` (pinned to the
+`Baidu` upstream, seeded) → OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`
 → Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b` → Cerebras `gemma-4-31b`**.
+
+> ⚠️ **This lane is metered since 2026-08-17.** It was free top to bottom until
+> deepseek-flash was made primary on every lane. The bot resends a ~32KB system
+> prompt across up to seven calls with accumulating history — **70–100k input
+> tokens per question** — so `BOT_GLOBAL_DAILY` (default 300) is now a spend
+> ceiling as much as an abuse ceiling: ~25M input tokens/day at the cap. The
+> static prefix is an obvious prompt-caching target and is **not** cached yet.
+> The free chain below the head is unchanged and is what a Baidu outage or an
+> exhausted budget falls into.
 
 ### The waitUntil trap (2026-08-01 outage, and the two fixes)
 
@@ -293,9 +303,9 @@ banks" query returns fewer rows than there are banks, the query is wrong.
 
 ## Why rankings are rendered, not retyped
 
-The provider chain runs **three different models** (Groq `openai/gpt-oss-120b`,
-Cerebras `gpt-oss-120b`, then `gemma-4-31b`), and `chatComplete` takes whichever
-answers first. So the same question can be answered by a different model each
+The provider chain runs **several different models** (`deepseek-v4-flash`, then
+nemotron, Groq `openai/gpt-oss-120b`, Cerebras `gpt-oss-120b`, `gemma-4-31b`), and
+`chatComplete` takes whichever answers first. So the same question can be answered by a different model each
 time — which formatted identical data two different ways even at `temperature: 0`.
 
 Worse than the cosmetics: the model **retyped every figure**. A 38-bank ranking
