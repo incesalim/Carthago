@@ -51,7 +51,7 @@ coverage or known issues change.
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
 | `bank_audit_document_pages/_blocks/_lines/_cells/_notes` | BRSA PDFs, **every page** | **schema + engine complete 2026-08-07; corpus backfill run locally over the 162-PDF sample, fleet run pending** | Local only, in its own `data/bank_audit_capture.db` (like `bank_audit_prose.db`) — **never D1, never the audit snapshot**. Document-scoped, not lane-scoped: every table the filing prints, including ones no parser targets. Rows→`_lines` (with `role` ∈ data/heading/footnote/paragraph/furniture and `logical_row` grouping wrapped labels), columns→`_blocks.col_x` (right-edge clusters, so headers that wrap or letter-space don't matter), cells→`_cells` (`col_index` + parsed `value`), notes→`_notes` (marker, full wrapped text, and `linked_lines_json` — the rows printing that marker). `/Rotate 90` pages go through `page.rotation_matrix`, so the landscape 17-column equity statement reads as rows. Writes no analytical row, so it is safe over the settled BS/P&L. Per-partition JSONL mirror in `data/audit_capture/` |
 | `bank_audit_document_manifest` | Derived from the capture ledger | **migration `0043`; written by `scripts/backfill_document_capture.py`** | The only part of full-document capture that reaches D1: one row per filing with page/table-page/block/line/cell/note counts plus `content_hash` (text), `shape_hash` (template with values masked) and `grid_hash` (block/column/row geometry — the signal a lane parser is about to break), plus `vector_page_count` — pages whose tables are drawn glyph outlines and so could not be read at all (`capture_status='partial'`). Unchanged rows are not restamped |
-| `bank_audit_extractions` | extraction log | one row per PDF | **1,110 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-16). 2026Q2 is the live edge at **59 partitions across 34 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
+| `bank_audit_extractions` | extraction log | one row per PDF | **1,113 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-17). 2026Q2 is the live edge at **62 partitions across 36 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
@@ -71,8 +71,8 @@ catches up. As of **2026-08-01** seven banks have released 2026Q2 reports —
 KLNMA (07-24), TEB (07-26), AKBNK (07-28), TSKB (07-29), GARAN (07-30),
 YKBNK (07-31) and ENPARA. The other 30 are still at 2026Q1.
 
-**2026Q2 stands at 59 partitions / 34 banks (2026-08-16)** — 42 / 24 the day
-before, and 23 / 13 the day before that. Eleven banks were added in one pass — ATBANK, BURGAN, EMLAK, ODEA,
+**2026Q2 stands at 62 partitions / 36 banks (2026-08-17)** — 59 / 34 the day
+before, 42 / 24 the day before that, and 23 / 13 the day before that. Eleven banks were added in one pass — ATBANK, BURGAN, EMLAK, ODEA,
 SKBNK, TAKAS, ZIRAATD, ZIRAATK, DENIZ, ALNTF, VAKBN — and **most had been
 sitting on published filings for weeks**: DENIZ filed 07-24 and ALNTF 08-04.
 
@@ -112,15 +112,30 @@ means a successful extraction.
 |---|---|
 | Filed and held | 24 — AKBNK, ALBRK, ALNTF, ANADOLU (unconsolidated only), ATBANK, BURGAN, DENIZ, EMLAK, ENPARA, FIBA, GARAN, HALKB, ING, KLNMA, ODEA, PASHA, SKBNK, TAKAS, TEB, VAKBN, YKBNK, ZIRAAT, ZIRAATD, ZIRAATK |
 | Filed, acquired 08-16 | 10 — AKTIF, DUNYAK, HAYATK, ICBCT, ISCTR, KUVEYT, QNBFB, TFKB, TSKB, VAKIFK. **17 partitions over three runs**: 13 first (`new=12 extracted=13 failed=0`; VAKIFK was already in R2 from the off-runner fetch, so the runner never touched its host), then ISCTR's two once the ZIPs were found, then TSKB's two as `[REPL]` over the cover sheets. Consolidated halves of AKTIF/KUVEYT/VAKIFK are not published yet, deadline ~13 Sep |
-| Filed, **not on the bank's own site** | 3 — EXIM (KAP 08-06), TOMK (08-13), HSBC (08-13). All three re-checked in a browser on 2026-08-16, Turkish pages included, after the İş Bankası and TSKB corrections below: each genuinely lists 2026Q1 as its newest (`brsa-20260331`, `31032026.pdf`, `document-file-8135/8134`) |
+| Filed, acquired 08-17 **from BdrUyg** | 3 — EXIM (KAP 08-06), TOMK (08-13) and KUVEYT's consolidated half (08-13). None is on the bank's own site — EXIM's list still ends at `brsa-20260331`, TOMK's at `31032026.pdf`, Kuveyt Türk shows only its solo — and all three were in the registry: `BDREki-016-SOLO`, `-213-SOLO`, `-205-KONSOLIDE`, all `2026-06`. `new=3 extracted=3 failed=0` |
+| Filed, **nowhere to fetch** | 1 — HSBC (KAP 08-13). Absent from its IR page *and* from BdrUyg, with a working `BDREki-123-SOLO-2026-03` control proving the code and the registry's silence |
 | No filing on any source | 1 — COLENDI |
 
 **⚠️ ISCTR was in that last row for one hour, wrongly.** Its English IR page — the one the config names — offers only an Excel for 2026Q2, and reading it produced a confident "has not published". The reports were on the **Turkish** page all along, as ZIPs, under a second tab behind a search form that lists nothing until it is submitted. Acquired 2026-08-16 (127pp consolidated, 105pp unconsolidated, both bases confirmed from the documents). The lesson is in [AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md): **an English IR page can be a subset of the Turkish one**, and "not on the site" means both sites, every tab.
 
-Nothing can be acquired for those three until the bank posts the document;
-the daily refresh takes them the day it appears, and `filing_gap_problem`
-names them until it does — it currently reports **EXIM (10d)** alone, HSBC
-and TOMK being three days old and inside the grace window.
+Still outstanding: **HSBC**, and the consolidated halves of **AKTIF**, **VAKIFK** and **ANADOLU** — each absent from BdrUyg too, each with a
+working 2026-03 control, so the registry genuinely has not received them.
+**COLENDI** has filed nowhere. `filing_gap_problem` reports **HSBC (4d)**
+alone.
+
+**⚠️ Reach for BdrUyg before concluding a bank has not published.** EXIM sat
+in the registry from 08-06 and was found on 08-17, only because the gap
+alert kept naming it; watching its IR page would never have found it. The
+registry is complete, deterministic
+(`BDREki-<eftcode>-SOLO|KONSOLIDE-<YYYY>-<MM>.zip`) and reachable from the
+runner. **Probe it with a prior-quarter control**: a 404 on the target
+month against a working control means the registry lacks the period; a 404
+on both means the institution code is wrong. That distinction is not
+cosmetic — T.O.M. Katılım is `213`, and `214` answers with a
+Java-serialised error object that reads exactly like 'not filed'. Codes
+confirmed off each PDF's own cover page: 016 EXIM, 123 HSBC, 132 TAKAS,
+135 ANADOLU, 143 AKTIF, 205 KUVEYT, 206 TFKB, 210 VAKIFK, 211 EMLAK,
+212 HAYATK, 213 TOMK.
 
 **⚠️ The acquisition gap: nothing could report a filing we never fetched
 (fixed 2026-08-16).** Thirteen banks published 2026Q2 and the lane held none of
