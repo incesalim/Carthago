@@ -372,6 +372,10 @@ def scrape_to_r2(
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     targets: list[tuple[str, str, str, str]] = []  # ticker, period, kind, url
     seen: set[tuple[str, str, str]] = set()  # (ticker, period, kind) — dedup
+    # (ticker, period, url) the config already binds. A document cannot be two
+    # consolidation bases, so a discovered target proposing a URL the config has
+    # already placed under a different kind is a skeleton misread, not a find.
+    claimed: set[tuple[str, str, str]] = set()
     for ticker, b in cfg["banks"].items():
         if only and ticker.upper() not in only:
             continue
@@ -380,6 +384,7 @@ def scrape_to_r2(
             normalised = "unconsolidated" if kind == "unconsolidated_zip" else kind
             for period, url in period_map.items():
                 key = (ticker.upper(), period.upper(), normalised)
+                claimed.add((ticker.upper(), period.upper(), url))
                 if key in seen:
                     continue
                 seen.add(key)
@@ -390,6 +395,22 @@ def scrape_to_r2(
         for period, kind, url in discover_targets(ticker, b):
             key = (ticker.upper(), period.upper(), kind)
             if key in seen:
+                continue
+            # ⚠️ Discovery assigns `kind` by matching a filename skeleton, which
+            # is a guess whenever the bank drops the basis marker from the name.
+            # VAKIFK's 2026Q2 is `vakif-katilim-bankasi_30_06_2026.pdf` where Q1
+            # had `_tr_solo` / `_tr_konsolide`, so discovery offered the ONE
+            # published document as `consolidated` while the config — and the
+            # document's own front matter — say unconsolidated. The basis guard
+            # refused it correctly, but as `[FAIL]`, every run, forever: it can
+            # only clear when Vakıf Katılım publishes a consolidated report that
+            # nothing here controls. A permanent failure is not free — it sits in
+            # the systemic alarm's numerator, so three unrelated transient
+            # failures on some future day would take the ratio to 100% and turn
+            # the job red for nothing.
+            if (ticker.upper(), period.upper(), url) in claimed:
+                print(f"[discover] {ticker}: skipping {period} {kind} — the config "
+                      f"already binds this URL to a different kind", flush=True)
                 continue
             seen.add(key)
             targets.append((ticker, period, kind, url))
