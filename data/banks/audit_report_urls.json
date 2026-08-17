@@ -1,6 +1,6 @@
 {
   "_doc": "Direct PDF URLs for quarterly BRSA Financial Reports per Turkish bank. Sourced from each bank's investor relations site. Filenames are heterogeneous; future quarters need re-scraping (see README).",
-  "_updated": "2026-08-16",
+  "_updated": "2026-08-17",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -847,7 +847,8 @@
           "2025Q2": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-30-haziran-2025-3181.pdf",
           "2025Q3": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-30-eylul-2025-3424.pdf",
           "2025Q4": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-31-aralik-2025-3741.pdf",
-          "2026Q1": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-31-mart-2026-3925.pdf"
+          "2026Q1": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-31-mart-2026-3925.pdf",
+          "2026Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-205-KONSOLIDE-2026-06.zip"
         },
         "unconsolidated": {
           "2022Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2022-189.pdf",
@@ -1075,7 +1076,8 @@
           "2025Q1": "https://www.eximbank.gov.tr/content/files/040253bc-6260-4d5b-a5e4-86ebca323027/brsa-20250331",
           "2025Q2": "https://www.eximbank.gov.tr/content/files/79d82758-6d48-41ef-91be-48a81d998c36/brsa-20250630",
           "2025Q3": "https://www.eximbank.gov.tr/content/files/8063f9cb-53cb-45b1-8add-fc3771db6de9/brsa-20250930",
-          "2025Q4": "https://www.eximbank.gov.tr/content/files/bac23ced-bb92-4b83-981d-3d64b6fe7cfb/brsa-20251231"
+          "2025Q4": "https://www.eximbank.gov.tr/content/files/bac23ced-bb92-4b83-981d-3d64b6fe7cfb/brsa-20251231",
+          "2026Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-016-SOLO-2026-06.zip"
         }
       }
     },
@@ -1387,7 +1389,8 @@
           "2025Q2": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30062025.pdf",
           "2025Q3": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30092025-tr.pdf",
           "2025Q4": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31122025.pdf",
-          "2026Q1": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31032026.pdf"
+          "2026Q1": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31032026.pdf",
+          "2026Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-213-SOLO-2026-06.zip"
         }
       }
     },
