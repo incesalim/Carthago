@@ -137,6 +137,34 @@ confirmed off each PDF's own cover page: 016 EXIM, 123 HSBC, 132 TAKAS,
 135 ANADOLU, 143 AKTIF, 205 KUVEYT, 206 TFKB, 210 VAKIFK, 211 EMLAK,
 212 HAYATK, 213 TOMK.
 
+**✅ Fleet-wide display audit, 2026-08-17 — the pages agree with D1.** All 38
+bank pages fetched from production and checked against the *same* query
+`bankSummaries()` runs, so a difference would be a display fault rather than a
+difference of definition. Result: 38/38 load, 38/38 print the right "Data
+through" period, **37/38 total assets and 37/38 CAR match D1 exactly**, and the
+one bank whose CAR is NULL in D1 (HAYATK) omits the tile rather than printing
+`0` — the `null` is not `0` rule holding where it matters. A separate
+unit check found **no 1000× errors**: every bank's 2026Q2/2026Q1 total-assets
+ratio sits between 0.92 and 1.21, and every 2026Q2 figure ends in `000`, as a
+milyon→bin conversion should.
+
+Two things the audit turned up, neither a data fault:
+
+- **`/banks/TAKAS` shows none of its own figures.** D1 holds CAR 21.7% and
+  assets ₺457bn; the page prints neither, because the vitals read from the
+  heatmap map and `heatmap.ts` hands a peer-excluded ticker a throwaway row.
+  The page says so in words and points at Financials, so nothing is invented —
+  but the comment in `audit-ratios.ts` promising "its own figure stays on
+  `/banks/TAKAS`" was false and is now corrected there. Whether a peer-excluded
+  bank should see its own numbers is a **product decision**: it means admitting
+  its row to the map and excluding it at each ranking site instead of at the
+  source, which is the more fragile design.
+- **Small banks round hard.** The vitals formatter renders sub-trillion assets
+  as `toFixed(0)` billions, so COLENDI's ₺4.76bn prints as "5 ₺bn" and
+  ZIRAATD's ₺5.39bn as "5 ₺bn" — up to 5% overstated for the smallest banks,
+  exact for everyone above ₺100bn. Cosmetic, and worth a decimal place at the
+  bottom of the fleet.
+
 **⚠️ The acquisition gap: nothing could report a filing we never fetched
 (fixed 2026-08-16).** Thirteen banks published 2026Q2 and the lane held none of
 them, while every daily run reported `new=0 changed=False` and exited green —

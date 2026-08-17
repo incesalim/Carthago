@@ -127,7 +127,22 @@ export interface BankCapitalRow {
  *
  * This is a RANKING, so the peer universe applies: Takasbank's CAR is computed
  * against a clearing house's risk-weighted assets and would seat it in a league
- * of lenders. Its own figure stays on `/banks/TAKAS`.
+ * of lenders.
+ *
+ * ⚠️ This used to claim "its own figure stays on `/banks/TAKAS`". It does not,
+ * and has not since the vitals were sourced from the heatmap: `heatmap.ts`
+ * hands a peer-excluded ticker a throwaway row (so no rank, colour scale or
+ * percentile can be computed off it), the bank page reads its vitals from that
+ * row, and the whole block therefore renders empty. `/banks/TAKAS` shows no
+ * CAR, no CET1 and no total assets, though D1 holds all three — verified
+ * 2026-08-17 against every bank page (CAR 21.7%, assets ₺457bn).
+ *
+ * The page is honest about it rather than silent: it prints "deliberately
+ * excluded from the peer ratio panel — market infrastructure, not a lender"
+ * and points at Financials, where the statements are. So this is a product
+ * question, not a bug: showing a peer-excluded bank its own figures means
+ * letting its row into the heatmap map and excluding it at every ranking site
+ * instead of at the source, which is the more fragile of the two designs.
  */
 export async function perBankCapital(
   kind: string = DEFAULT_KIND,
