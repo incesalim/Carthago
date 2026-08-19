@@ -49,8 +49,8 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_source_lines` | BRSA PDFs, bounded disclosure pages for 8 completeness-targeted lanes | **schema + automatic capture complete 2026-08-07; historical population pending the manual backfill** | Local/R2 snapshot only, never D1: every PyMuPDF-reconstructed physical line + printed numeric tokens + `mapped_key`. Near-full lanes (`equity_change`, `loans_by_sector`, `npl_movement`) treat an unmapped numeric data row as validation failure; selected-summary lanes retain the deliberately omitted detail for inspection without redefining their analytical schemas. |
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
-| `bank_audit_document_pages/_blocks/_lines/_cells/_notes` | BRSA PDFs, **every page** | **schema + engine complete 2026-08-07; corpus backfill run locally over the 162-PDF sample, fleet run pending** | Local only, in its own `data/bank_audit_capture.db` (like `bank_audit_prose.db`) — **never D1, never the audit snapshot**. Document-scoped, not lane-scoped: every table the filing prints, including ones no parser targets. Rows→`_lines` (with `role` ∈ data/heading/footnote/paragraph/furniture and `logical_row` grouping wrapped labels), columns→`_blocks.col_x` (right-edge clusters, so headers that wrap or letter-space don't matter), cells→`_cells` (`col_index` + parsed `value`), notes→`_notes` (marker, full wrapped text, and `linked_lines_json` — the rows printing that marker). `/Rotate 90` pages go through `page.rotation_matrix`, so the landscape 17-column equity statement reads as rows. Writes no analytical row, so it is safe over the settled BS/P&L. Per-partition JSONL mirror in `data/audit_capture/` |
-| `bank_audit_document_manifest` | Derived from the capture ledger | **migration `0043`; written by `scripts/backfill_document_capture.py`** | The only part of full-document capture that reaches D1: one row per filing with page/table-page/block/line/cell/note counts plus `content_hash` (text), `shape_hash` (template with values masked) and `grid_hash` (block/column/row geometry — the signal a lane parser is about to break), plus `vector_page_count` — pages whose tables are drawn glyph outlines and so could not be read at all (`capture_status='partial'`). Unchanged rows are not restamped |
+| `bank_audit_document_pages/_blocks/_lines/_cells/_notes` | BRSA PDFs, **every page** | **schema + engine complete 2026-08-07; fleet captured locally 2026-08-13 (1,095/1,095 — see the capture section below)** | Local only, in its own `data/bank_audit_capture.db` (like `bank_audit_prose.db`) — **never D1, never the audit snapshot**. Document-scoped, not lane-scoped: every table the filing prints, including ones no parser targets. Rows→`_lines` (with `role` ∈ data/heading/footnote/paragraph/furniture and `logical_row` grouping wrapped labels), columns→`_blocks.col_x` (right-edge clusters, so headers that wrap or letter-space don't matter), cells→`_cells` (`col_index` + parsed `value`), notes→`_notes` (marker, full wrapped text, and `linked_lines_json` — the rows printing that marker). `/Rotate 90` pages go through `page.rotation_matrix`, so the landscape 17-column equity statement reads as rows. Writes no analytical row, so it is safe over the settled BS/P&L. Per-partition JSONL mirror in `data/audit_capture/` |
+| `bank_audit_document_manifest` | Derived from the capture ledger | **migration `0043`; written by `scripts/backfill_document_capture.py`** | The only part of full-document capture that reaches D1: one row per filing with page/table-page/block/line/cell/note counts plus `content_hash` (text), `shape_hash` (template with values masked) and `grid_hash` (block/column/row geometry — the signal a lane parser is about to break), plus `unreadable_page_count` (renamed from `vector_page_count` by migration `0044`, 2026-08-19) — pages whose content is not machine-readable text, drawn glyph outlines **and** raster-image statement bodies both (`capture_status='partial'`). Unchanged rows are not restamped |
 | `bank_audit_extractions` | extraction log | one row per PDF | **1,113 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-17). 2026Q2 is the live edge at **62 partitions across 36 banks**, and every one carries `source_unit='milyon'`. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
@@ -785,7 +785,9 @@ filenames. Both halves of this paragraph are the same mistake: a refused
 document was read as evidence about the *bank* when it is only evidence about
 the *URL*.
 
-**Full-document table capture added 2026-08-07 (fleet backfill pending).** The
+**Full-document table capture added 2026-08-07 (fleet captured locally
+2026-08-13; the R2 ledger + D1 manifest build is `backfill-document-capture.yml`,
+and since 2026-08-19 `refresh-audit.yml` captures each new filing per run).** The
 completeness contract below is lane-scoped: it can only see pages a lane locator
 finds. `src/audit_reports/document_capture.py` takes the same idea
 document-scoped — every page of every filing, every table it prints, as rows,
@@ -838,11 +840,72 @@ this backwards and would have failed every properly ingested Milyon filing;
 **Fleet result 2026-08-13: 1,050 partitions reconciled, median 97.3%** (p1 94.4%,
 11 below 95%), **zero `unit_scale` findings and zero unreadable declarations** —
 the TEB class of failure is absent fleet-wide, which nothing else in the pipeline
-could establish. Two errors, both open: FIBA 2023Q3 (19.0%, the missed vector
-filing described below) and **ISCTR 2025Q1 consolidated (61.3%, 396/646, lanes
-cash_flow 11% / oci 14% / profit_loss 40% — undiagnosed, and unlike FIBA it is
-lane-specific rather than document-wide, so it is a different cause)**.
-`MIN_RATE=0.85` sits below p1 by ~9 points, so it is not firing on normal spread.
+could establish. ~~Two errors, both open: FIBA 2023Q3 (19.0%, the missed vector
+filing described below) and ISCTR 2025Q1 consolidated (61.3% — undiagnosed, and
+unlike FIBA it is lane-specific rather than document-wide, so it is a different
+cause)~~ — **wrong on the last clause, and closed 2026-08-19: they were the SAME
+cause**, see the next block. `MIN_RATE=0.85` sat below p1 by ~9 points at this
+measurement; it is now 0.95 against the sharpened rate below.
+
+**2026-08-19 — both open errors were ONE bug, the reconcile was diluting itself,
+and both are fixed.**
+
+The diagnosis: FIBA 2023Q3's "probe miss" and ISCTR 2025Q1's "undiagnosed"
+error share a mechanism. The statement pages of both are **raster images under a
+typed banner** — İş Bankası embeds each statement as one full-page picture (~40
+typed caption words, zero path items, one image at 17–48% page coverage),
+Fibabanka as hundreds of tiles — and `_probe_text_layer` measured only vector
+ink, so both scored 0–14 against the 25.0 threshold and stamped `text`. The
+probe DID run (the pages had no blocks); it was blind, not skipped.
+`_raster_content` now reads geometry instead: a blockless page whose images
+cover ≥10% while ≤8 typed words sit inside the content band (18–86% of display
+height, rotation-normalized) is `raster`. Every threshold sits in a measured
+gap: rasterized statements carry 31–43 words, all in the margin bands; a cover
+with artwork (TSKB 2026Q2 p1) puts ~25 title words INSIDE the band; a divider's
+logo covers <5%. Sweeping the fleet for statement-caption pages with no block
+within two pages finds the known filings, two benign divider pages, and **one
+new victim — ISCTR 2025Q2 unconsolidated (92.4%, its cash-flow and OCI pages,
+visible only under the sharpened rate below)** — so the silent class is fully
+enumerated: **3 filings in 1,095**. All three are re-captured locally with the
+fix (5 + 2 + 10 pages stamped, `capture_status='partial'`); the fleet restamp
+rides the next `backfill-document-capture.yml` run.
+
+Scanned auditor letters (typed-nothing pages holding a full-page image — EXIM,
+PASHA and peers) now also stamp `raster`/`partial`: their content is equally
+unreadable, and `captured` over a page we cannot read was the same lie in
+miniature. What makes that shift safe is the paired change: **the reconcile no
+longer skips a filing wholesale for unreadable pages** — `capture_incomplete`
+is raised only when the rate is actually low — so a letter-scan filing keeps
+its anchor instead of losing it to a signature page
+(`tests/test_capture_reconcile.py` pins both directions).
+
+The dilution: per-column measurement over 144 partitions (GARAN/TSKB/AKBNK/
+ALBRK) shows every statement-lane column reconciling at 99.9–100% while three
+extractor-COMPUTED columns can never match a printed cell —
+`fx_position.net_position` 3.3% (net_on + net_off, `fx_position.py`),
+`repricing.cumulative_gap` 33.3% (running sum), `credit_quality.total_amount`
+74.5% (summed when the filing prints no total). Each is already held by its own
+lane's internal identity, so `DERIVED_COLUMNS` excludes them from the anchor.
+Fleet re-rate without them: **median 97.3% → 99.66%, p1 98.88%**, the band
+92.4–96.4% empty, and **`MIN_RATE` rose 0.85 → 0.95** — the level at which
+ISCTR 2025Q2u stopped passing as healthy.
+
+Fleet verification after all three changes: **1,050 partitions, 0 errors, 8
+`capture_incomplete` infos, every one a diagnosed hole** (six FIBA vector
+filings, the two ISCTR rasters, FIBA 2023Q3). First time the fleet is fully
+explained: every partition either reconciles ≥95% at its declared scale or is
+attributed to pages the capture itself marks unreadable. The OCR inventory —
+the one fork deliberately not taken — is 225 vector pages plus the raster pages
+above, concentrated in FIBA.
+
+**Cadence, same date:** `refresh-audit.yml` now captures each freshly extracted
+filing (`backfill_document_capture.py --recent-hours 168`, run-local ledger;
+the compact manifest rides the run's own D1 push and snapshot) and reconciles
+it alert-only (`check_capture_reconcile.py --alert`) in the same run — the
+anchor works the day a filing lands, current season included, which until now
+was never reconciled at all (the local snapshot the 08-13 fleet run compared
+against carries no 2026Q2 rows). The fleet ledger build in R2 and the D1
+manifest backfill remain `backfill-document-capture.yml`.
 
 **Where the capture now stands, and what the remaining findings are (measured
 2026-08-07).** Holdout of twelve banks never tuned against: **1,304 of 1,435
@@ -1101,10 +1164,11 @@ now measures path items per extracted word on any page that yielded no table.
 The corpus separates cleanly — drawn pages score **54–2,050**, every typed page
 (ruled statement grids included) scores **0–1** — so the threshold sits in an
 empty band two orders of magnitude wide. Affected pages are stamped
-`bank_audit_document_pages.text_layer='vector'`, counted into
-`bank_audit_document_manifest.vector_page_count`, and the filing's
-`capture_status` becomes `partial`; `lint_document_capture.py` reports each one
-as `unreadable_page`. Measured over the **full fleet (2026-08-13)**: **13 of
+`bank_audit_document_pages.text_layer='vector'` (raster-imaged pages, the
+second mechanism found 2026-08-19, stamp `'raster'`), counted into
+`bank_audit_document_manifest.unreadable_page_count` (migration `0044`), and
+the filing's `capture_status` becomes `partial`; `lint_document_capture.py`
+reports each one as `unreadable_page`. Measured over the **full fleet (2026-08-13)**: **13 of
 1,095 filings** carry a drawn page, 225 pages in all — FIBA 9 filings / 209
 pages, ATBANK 2 / 12, DUNYAK 1 / 3, TAKAS 1 / 1. (The earlier partial-corpus
 figure was "18 of 307", which overstated the rate ~4× and missed DUNYAK and
@@ -1112,17 +1176,19 @@ TAKAS entirely.) 39 of 92 pages in FIBA 2022Q1 are drawn, the balance sheet,
 P&L and cash flow among them. Recovering those rows needs OCR, which the capture
 engine deliberately does not do; what it does is refuse to report the gap as data.
 
-⚠️ **The probe misses a filing of this kind (open, found 2026-08-13).** FIBA
-2023Q3 consolidated is stamped `captured` with `vector_page_count=0`, yet yields
-**10 blocks and 2,546 cells from 93 pages** against FIBA's own average of 89
-blocks / 8,474 cells — and only `check_capture_reconcile.py` saw it (19.0% of
-stored figures absent from the capture). Its pages score below the paths-per-word
-band, plausibly because `_probe_text_layer` runs only on a page that yielded NO
-table, so a page with typed labels and drawn figures produces a small table and
-is never probed. Mechanism unconfirmed; do not "fix" the threshold before
-reproducing it.
-A page carrying typed prose above a drawn table (FIBA p.29) keeps its prose and
-is still flagged, because its tables are gone.
+~~⚠️ **The probe misses a filing of this kind (open, found 2026-08-13).** FIBA
+2023Q3 consolidated is stamped `captured` with a zero unreadable count, yet
+yields 10 blocks and 2,546 cells from 93 pages — plausibly because
+`_probe_text_layer` runs only on a page that yielded NO table, so a page with
+typed labels and drawn figures produces a small table and is never probed~~ —
+**mechanism reproduced 2026-08-19, and the hypothesis was wrong**: those pages
+had no blocks, so the probe DID run — it returned `text` because the statement
+bodies are raster image tiles (paths-per-word 14, under the 25.0 band; images
+carry no path ink at all). Fixed by `_raster_content` — the same fix that
+closed ISCTR 2025Q1/2025Q2; the full record is in the 2026-08-19 block above.
+The one true sentence survives unchanged: a page carrying typed prose above a
+drawn table (FIBA p.29) keeps its prose and is still flagged, because its
+tables are gone.
 
 **Source-table completeness contract added 2026-08-07 (historical backfill pending).**
 The stable audit tables no longer have to pretend that their schema proves the whole PDF

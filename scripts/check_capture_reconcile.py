@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -53,12 +54,31 @@ DEFAULT_AUDIT = REPO / "data" / "bank_audit.db"
 # these outright; listing them keeps the reason next to the exclusion.
 DERIVED_TABLES = {"bank_audit_stages"}
 
-# Measured over the 12-filing holdout, current engine: eleven readable filings
-# reconcile at 96.6%-98.5%, and the twelfth (FIBA, whose statement pages are
-# drawn as vector outlines) at 15.2%. 85% sits in the empty band between them
-# with ~12 points of headroom, and a partial capture is reported separately
-# rather than counted as a data defect.
-MIN_RATE = 0.85
+# Columns the EXTRACTOR computes rather than reads, inside tables that are
+# otherwise read off the page — so the figure never printed and cannot match a
+# cell. Measured 2026-08-19 over 144 partitions of GARAN/TSKB/AKBNK/ALBRK,
+# where every statement-lane column reconciles at 99.9-100%:
+#   fx_position.net_position       3.3%  — fx_position.py: net_on + net_off
+#   repricing.cumulative_gap      33.3%  — repricing.py: running sum over gap
+#   credit_quality.total_amount   74.5%  — credit_quality.py sums the stages
+#                                          when the filing prints no total
+# Each is already covered by an internal identity in its own validator, so
+# excluding it here loses nothing — while carrying it diluted the anchor:
+# fleet median 97.3% → 99.66% without them, and the gap between a real hole
+# (≤92.4%) and a healthy filing (≥96.4%) emptied out.
+DERIVED_COLUMNS: dict[str, frozenset[str]] = {
+    "bank_audit_fx_position": frozenset({"net_position"}),
+    "bank_audit_repricing": frozenset({"cumulative_gap"}),
+    "bank_audit_credit_quality": frozenset({"total_amount"}),
+}
+
+# Measured over the FULL fleet, 2026-08-19, derived columns excluded: 1,037
+# readable partitions, median 99.66%, p1 = 98.88%, and nothing readable below
+# 96.4% — while every true hole (Fibabanka's vector filings, the İş Bankası /
+# FIBA raster filings) sits at or below 92.4%. 95% stands in that empty band.
+# The prior 0.85 was set against the diluted metric and let İSCTR 2025Q2
+# unconsolidated (92.4%, two rasterized statement pages) pass as healthy.
+MIN_RATE = 0.95
 # A scale finding needs a floor and a decisive margin, so a handful of
 # coincidental round numbers cannot raise one on their own.
 SCALE_MIN_HITS = 20
@@ -90,11 +110,12 @@ def printed_values(cap: sqlite3.Connection, key: tuple) -> set[float]:
 
 
 def capture_gap(cap: sqlite3.Connection, key: tuple) -> int:
-    """Pages whose tables were drawn, not typed — none of their rows exist."""
+    """Pages whose content is not machine-readable text — drawn as vector
+    outlines or embedded as raster images — so none of their rows exist."""
     try:
         return cap.execute(
             "SELECT COUNT(*) FROM bank_audit_document_pages WHERE bank_ticker=? "
-            "AND period=? AND kind=? AND text_layer='vector'", key).fetchone()[0]
+            "AND period=? AND kind=? AND text_layer!='text'", key).fetchone()[0]
     except sqlite3.OperationalError:
         return 0                      # ledger predates the text_layer column
 
@@ -122,7 +143,7 @@ def reconcile_one(cap, aud, key: tuple, tables: list[str]) -> dict:
 
     stored: dict[str, list[float]] = {}
     for t in tables:
-        cols = sorted(U.money_columns(t))
+        cols = sorted(U.money_columns(t) - DERIVED_COLUMNS.get(t, frozenset()))
         try:
             rows = aud.execute(
                 f"SELECT {','.join(cols)} FROM {t} "  # noqa: S608 - names from a fixed registry
@@ -153,7 +174,7 @@ def reconcile_one(cap, aud, key: tuple, tables: list[str]) -> dict:
             "best_factor": best, "at_factor": at_factor,
             "stored": total, "found": found,
             "rate": (found / total) if total else None,
-            "vector_pages": capture_gap(cap, key), "lanes": lanes}
+            "unreadable_pages": capture_gap(cap, key), "lanes": lanes}
 
 
 def findings_for(r: dict) -> list[dict]:
@@ -181,25 +202,32 @@ def findings_for(r: dict) -> list[dict]:
             "detail": "no reporting unit could be read from the captured text, "
                       f"so the scale was not verified; figures were matched at "
                       f"the best-fitting ×{best}."})
-    if r["vector_pages"]:
-        # The capture is the incomplete side here, not the extraction. Saying
-        # "figures absent" would blame the extractor for a hole in the evidence.
-        out.append({
-            "code": "capture_incomplete", "severity": "info",
-            "detail": f"{r['vector_pages']} pages are drawn as vector outlines, "
-                      f"so their rows were never captured; reconciliation is "
-                      f"not meaningful for this filing "
-                      f"(rate {r['rate']:.1%}). Recovering them needs OCR."})
-        return out
     if r["rate"] is not None and r["rate"] < MIN_RATE:
-        worst = sorted(r["lanes"].items(), key=lambda kv: kv[1]["rate"])[:3]
-        lanes = ", ".join(f"{k.replace('bank_audit_', '')} {v['rate']:.0%}"
-                          for k, v in worst)
-        out.append({
-            "code": "figures_absent", "severity": "error",
-            "detail": f"only {r['rate']:.1%} of stored figures appear as cells "
-                      f"the filing printed ({r['found']:,}/{r['stored']:,}); "
-                      f"lowest lanes: {lanes}"})
+        if r["unreadable_pages"]:
+            # The capture is the incomplete side here, not the extraction.
+            # Saying "figures absent" would blame the extractor for a hole in
+            # the evidence.
+            out.append({
+                "code": "capture_incomplete", "severity": "info",
+                "detail": f"{r['unreadable_pages']} pages are drawn or imaged "
+                          f"rather than typed, so their rows were never "
+                          f"captured; reconciliation is not meaningful for this "
+                          f"filing (rate {r['rate']:.1%}). Recovering them "
+                          f"needs OCR."})
+        else:
+            worst = sorted(r["lanes"].items(), key=lambda kv: kv[1]["rate"])[:3]
+            lanes = ", ".join(f"{k.replace('bank_audit_', '')} {v['rate']:.0%}"
+                              for k, v in worst)
+            out.append({
+                "code": "figures_absent", "severity": "error",
+                "detail": f"only {r['rate']:.1%} of stored figures appear as "
+                          f"cells the filing printed "
+                          f"({r['found']:,}/{r['stored']:,}); "
+                          f"lowest lanes: {lanes}"})
+    # Unreadable pages WITHOUT a low rate raise nothing here — deliberately.
+    # A scanned auditor's letter is unreadable but holds no figure any lane
+    # stores, and the earlier wholesale skip would have disabled the anchor for
+    # the whole filing over it. The manifest still carries the page count.
     return out
 
 
@@ -215,6 +243,11 @@ def main() -> int:
     ap.add_argument("--json", action="store_true", help="machine-readable report")
     ap.add_argument("--report-only", action="store_true",
                     help="always exit 0, even with findings")
+    ap.add_argument("--alert", action="store_true",
+                    help="send a Telegram/Discord message on any ERROR finding "
+                         "and always exit 0 — alert-only, like the cross-period "
+                         "watch, so it can never take down a run whose data is "
+                         "already written")
     args = ap.parse_args()
 
     if not Path(args.capture_db).exists():
@@ -267,8 +300,24 @@ def main() -> int:
                   f"[{f['code']}] {f['detail']}")
         print(f"\n{checked} partitions reconciled against the capture, "
               f"{len(errors)} with errors.")
-    return 1 if (findings and not args.report_only
-                 and any(f["severity"] == "error" for f in findings)) else 0
+    errors = [f for f in findings if f["severity"] == "error"]
+    if args.alert:
+        if errors:
+            lines = [f"• {f['bank_ticker']} {f['period']} {f['kind'][:5]} "
+                     f"[{f['code']}]" for f in errors[:6]]
+            more = f"\n…and {len(errors) - 6} more" if len(errors) > 6 else ""
+            msg = (f"🚨 Capture reconcile: {len(errors)} partition(s) whose "
+                   f"stored figures do not match the cells the filing printed.\n"
+                   + "\n".join(lines) + more +
+                   "\nEvery in-filing identity passes when this happens — "
+                   "run check_capture_reconcile locally for the detail.")
+            try:
+                subprocess.run([sys.executable, str(REPO / "scripts" / "notify.py"),
+                                msg], check=False)
+            except Exception as e:                               # noqa: BLE001
+                print(f"[reconcile] notify failed: {e}", file=sys.stderr)
+        return 0
+    return 1 if (errors and not args.report_only) else 0
 
 
 if __name__ == "__main__":

@@ -197,6 +197,41 @@ jobs:
         # of these steps.
         run: python scripts/sync_audit_expected.py --db data/bank_audit.db
 
+      - name: Capture this run's filings + reconcile stored vs printed (alert-only)
+        if: steps.sync.outputs.changed == 'true'
+        # Full-document capture of every filing extracted in the push window:
+        # rows, columns, cells and notes into a RUN-LOCAL ledger, plus the
+        # compact bank_audit_document_manifest into the audit DB — the single
+        # D1 push below carries the manifest, and the snapshot upload carries it
+        # forward. Then the reconcile checks the freshly stored figures against
+        # the cells the filing actually printed, at the scale its own unit
+        # declaration implies. That is the external anchor working the same day
+        # a filing lands instead of at the next manual fleet backfill — the TEB
+        # 2026Q2 failure (declared Milyon, ingested ×1, every internal identity
+        # green) is visible to this and to nothing inside the filing.
+        #
+        # Non-blocking by construction: the run-local ledger is scratch (the
+        # durable fleet ledger is R2's, built by backfill-document-capture.yml),
+        # the reconcile is --alert (always exits 0), and a capture crash must
+        # not take down a run whose extraction is already written — failing on
+        # a side lane is what once discarded six days of good extraction.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          set +e
+          python scripts/backfill_document_capture.py --from-r2 --recent-hours 168 \
+            --capture-db data/capture_run.db --no-jsonl
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::warning::document capture failed (exit $rc) — extraction is unaffected; this run's manifest rows and reconcile are skipped"
+          elif [ -f data/capture_run.db ]; then
+            python scripts/check_capture_reconcile.py \
+              --capture-db data/capture_run.db --audit-db data/bank_audit.db --alert
+          fi
+
       - name: Cross-period unit watch (alert-only)
         if: steps.sync.outputs.changed == 'true'
         # The ONLY check in this pipeline that can see a reporting-unit error.

@@ -44,12 +44,15 @@ CREATE TABLE IF NOT EXISTS bank_audit_document_pages (
     cell_count  INTEGER NOT NULL DEFAULT 0,
     note_count  INTEGER NOT NULL DEFAULT 0,
     block_count INTEGER NOT NULL DEFAULT 0,
-    -- 'text' | 'vector'. 'vector' means the page yielded no table and carries
-    -- heavy path ink: its tables are drawn as glyph outlines, legible on screen
-    -- and unreadable to any extractor. Typed prose on the same page is still
-    -- captured — Fibabanka p.29 has real narrative above two drawn tables — so
-    -- this marks the page's TABLES as lost, not its every word. Recorded per
-    -- page so the gap is a stated fact, not a small row count nobody questions.
+    -- 'text' | 'vector' | 'raster'. Both non-text values mean the page yielded
+    -- no table and its content is not machine-readable text: 'vector' carries
+    -- heavy path ink (tables drawn as glyph outlines — Fibabanka), 'raster'
+    -- carries embedded images over the content zone (statement bodies filed as
+    -- pictures — İş Bankası 2025Q1/Q2, and scanned auditor letters). Typed
+    -- prose on the same page is still captured — Fibabanka p.29 has real
+    -- narrative above two drawn tables — so this marks the page's TABLES as
+    -- lost, not its every word. Recorded per page so the gap is a stated fact,
+    -- not a small row count nobody questions.
     text_layer  TEXT NOT NULL DEFAULT 'text',
     PRIMARY KEY (bank_ticker, period, kind, page)
 );
@@ -146,10 +149,12 @@ CREATE TABLE IF NOT EXISTS bank_audit_document_manifest (
     cell_count        INTEGER NOT NULL DEFAULT 0,
     note_count        INTEGER NOT NULL DEFAULT 0,
     linked_note_count INTEGER NOT NULL DEFAULT 0,
-    -- Pages whose glyphs are drawn outlines, so nothing on them could be read.
-    -- Without this a filing that lost its statements to a vector text layer is
-    -- indistinguishable from one that simply prints fewer tables.
-    vector_page_count INTEGER NOT NULL DEFAULT 0,
+    -- Pages whose content is not machine-readable text — vector glyph outlines
+    -- and rasterized content zones alike. Without this a filing that lost its
+    -- statements to either is indistinguishable from one that simply prints
+    -- fewer tables. (Named vector_page_count until migration 0044, when the
+    -- raster class was found and the name stopped being the whole truth.)
+    unreadable_page_count INTEGER NOT NULL DEFAULT 0,
     content_hash      TEXT NOT NULL,
     shape_hash        TEXT NOT NULL,
     grid_hash         TEXT NOT NULL,
@@ -170,7 +175,7 @@ _LEDGER_TABLES = (
 
 _MANIFEST_COLUMNS = (
     "page_count", "table_page_count", "block_count", "line_count",
-    "cell_count", "note_count", "linked_note_count", "vector_page_count",
+    "cell_count", "note_count", "linked_note_count", "unreadable_page_count",
     "content_hash", "shape_hash", "grid_hash", "capture_status",
 )
 
@@ -201,8 +206,17 @@ def init_ledger(conn: sqlite3.Connection) -> None:
 
 def init_manifest(conn: sqlite3.Connection) -> None:
     conn.executescript(MANIFEST_DDL)
+    # Migration 0044 renamed vector_page_count → unreadable_page_count when the
+    # raster class was found. D1 gets the numbered migration; a local snapshot
+    # written before it (the 2026-08-13 fleet run) is renamed in place here —
+    # adding the new column beside the old would fork the same fact in two.
+    have = {r[1] for r in conn.execute(
+        "PRAGMA table_info(bank_audit_document_manifest)")}
+    if "vector_page_count" in have and "unreadable_page_count" not in have:
+        conn.execute("ALTER TABLE bank_audit_document_manifest "
+                     "RENAME COLUMN vector_page_count TO unreadable_page_count")
     _add_missing_columns(conn, "bank_audit_document_manifest",
-                         {"vector_page_count": "INTEGER NOT NULL DEFAULT 0"})
+                         {"unreadable_page_count": "INTEGER NOT NULL DEFAULT 0"})
     conn.commit()
 
 
@@ -266,7 +280,7 @@ _INSERTS = {
 def manifest_values(cap: DocumentCapture) -> tuple:
     linked = sum(1 for p in cap.pages for n in p.notes if n.linked_line_orders)
     return (cap.page_count, cap.table_page_count, cap.block_count, cap.line_count,
-            cap.cell_count, cap.note_count, linked, cap.vector_page_count,
+            cap.cell_count, cap.note_count, linked, cap.unreadable_page_count,
             cap.content_hash(), cap.shape_hash(), cap.grid_hash(), cap.status)
 
 

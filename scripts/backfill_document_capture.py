@@ -111,6 +111,14 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="stop after N partitions")
     ap.add_argument("--bank", help="only this ticker")
     ap.add_argument("--period", help="only this period, e.g. 2026Q1")
+    ap.add_argument("--recent-hours", type=int, default=0,
+                    help="only partitions whose extraction row in the audit DB "
+                         "was stamped within the last N hours — the incremental "
+                         "form refresh-audit runs after each sync, so a new "
+                         "filing's capture (and its reconcile anchor) lands the "
+                         "same day it is extracted instead of waiting for the "
+                         "next fleet backfill. Matching nothing is a quiet day, "
+                         "not an error.")
     ap.add_argument("--pull-snapshot", action="store_true",
                     help="download the audit snapshot from R2 before capturing "
                          "(Actions; local runs normally already have it)")
@@ -131,11 +139,18 @@ def main() -> int:
         targets = [t for t in targets if t[0] == args.bank.upper()]
     if args.period:
         targets = [t for t in targets if t[1] == args.period.upper()]
+    if args.recent_hours:
+        with sqlite3.connect(args.audit_db) as adb:
+            recent = set(adb.execute(
+                "SELECT bank_ticker, period, kind FROM bank_audit_extractions "
+                "WHERE success=1 AND extracted_at >= datetime('now', ?)",
+                (f"-{args.recent_hours} hours",)))
+        targets = [t for t in targets if (t[0], t[1], t[2]) in recent]
     if args.limit:
         targets = targets[: args.limit]
     if not targets:
         print("no matching partitions", file=sys.stderr)
-        return 1
+        return 0 if args.recent_hours else 1
 
     if args.pull_snapshot and not args.dry_run:
         from scripts.audit_d1 import pull_snapshot

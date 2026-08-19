@@ -4,8 +4,9 @@ name: Backfill full-document capture
 # and the notes that qualify them. It writes no analytical row, so it is safe
 # over the settled balance-sheet and P&L partitions.
 #
-# The raw ledger (~5.4M lines / ~6.6M cells corpus-wide) never reaches D1: it is
-# uploaded to R2 as its own object, exactly like the prose lane's local DB. Only
+# The raw ledger (5.4M lines / 11.2M cells corpus-wide, measured on the
+# 2026-08-13 fleet run) never reaches D1: it is uploaded to R2 as its own
+# object, exactly like the prose lane's local DB. Only
 # `bank_audit_document_manifest` — one row per filing — is pushed.
 on:
   workflow_dispatch:

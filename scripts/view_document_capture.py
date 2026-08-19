@@ -334,11 +334,11 @@ def render(conn, bank: str, period: str, kind: str,
         "SELECT page,block_id,marker,text,linked_lines_json FROM bank_audit_document_notes "
         "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY page,note_order", key).fetchall()
     try:
-        vector_pages = [r[0] for r in conn.execute(
+        unreadable_pages = [r[0] for r in conn.execute(
             "SELECT page FROM bank_audit_document_pages WHERE bank_ticker=? AND "
-            "period=? AND kind=? AND text_layer='vector' ORDER BY page", key)]
+            "period=? AND kind=? AND text_layer!='text' ORDER BY page", key)]
     except sqlite3.OperationalError:
-        vector_pages = []        # ledger predates the text_layer column
+        unreadable_pages = []    # ledger predates the text_layer column
 
     cell_at: dict[tuple[int, int], list] = defaultdict(list)
     for pg, lo, ci, txt, isnum in cells:
@@ -383,13 +383,13 @@ def render(conn, bank: str, period: str, kind: str,
     # State the hole before showing what WAS captured. A viewer that lists 13
     # tables and stays quiet about 39 unreadable pages misleads exactly the way
     # the capture itself did.
-    if vector_pages:
+    if unreadable_pages:
         a("<div class='warnbox'><b>⚠ "
-          f"{len(vector_pages)} of these pages could not be read.</b> Their tables are "
-          "drawn as vector glyph outlines rather than text — legible on screen, "
-          "invisible to any extractor — so <b>no row from them appears below</b>. "
-          "Recovering them would need OCR. Pages: "
-          f"{_esc(', '.join(str(p) for p in vector_pages))}</div>")
+          f"{len(unreadable_pages)} of these pages could not be read.</b> Their content "
+          "is drawn as vector glyph outlines or embedded as a raster image rather "
+          "than typed — legible on screen, invisible to any extractor — so <b>no row "
+          "from them appears below</b>. Recovering them would need OCR. Pages: "
+          f"{_esc(', '.join(str(p) for p in unreadable_pages))}</div>")
     a("<h2>Line roles</h2><div class='stats'>")
     for r in ("data", "heading", "footnote", "paragraph", "furniture"):
         a(f"<div class='stat'><b>{roles.get(r, 0):,}</b><span>{r}</span></div>")

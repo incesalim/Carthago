@@ -257,6 +257,8 @@ class PageCapture:
     blocks: list[Block] = field(default_factory=list)
     # 'text'   — the page's content is typed and was read
     # 'vector' — its glyphs are drawn as outlines; NOTHING here is readable
+    # 'raster' — its content zone is an embedded image (İş Bankası files whole
+    #            statement pages this way); only the typed banner was read
     text_layer: str = "text"
 
 
@@ -266,7 +268,7 @@ class DocumentCapture:
     page_count: int
     pages: list[PageCapture] = field(default_factory=list)
     # 'captured'   — every page was readable
-    # 'partial'    — some pages are drawn outlines; their tables are not here
+    # 'partial'    — some pages are drawn or imaged; their tables are not here
     # 'unreadable' — no text at all
     status: str = "captured"
 
@@ -291,15 +293,17 @@ class DocumentCapture:
         return sum(1 for p in self.pages if p.blocks)
 
     @property
-    def vector_page_count(self) -> int:
-        """Pages whose content is drawn, not typed — see `_probe_text_layer`.
+    def unreadable_page_count(self) -> int:
+        """Pages whose content is drawn or imaged, not typed — vector outlines
+        (Fibabanka) and raster statement bodies (İş Bankası) alike; see
+        `_probe_text_layer`.
 
         This is the difference between "this bank files a short report" and "we
         cannot read this bank's statements", which the row counts alone cannot
         tell apart. It must reach the manifest so the gap is visible rather than
         inferred from a suspiciously small capture.
         """
-        return sum(1 for p in self.pages if p.text_layer == "vector")
+        return sum(1 for p in self.pages if p.text_layer != "text")
 
     def content_hash(self) -> str:
         return _digest(ln.line_hash for p in self.pages for ln in p.lines)
@@ -682,6 +686,13 @@ _SHORT_HEADER_TOKENS = 4
 # Vector path items per extracted word above which a page's glyphs are drawn
 # outlines rather than text. See `_probe_text_layer` for the measured margin.
 _VECTOR_INK_PER_WORD = 25.0
+# A blockless page whose content zone is covered by embedded images while its
+# typed words keep to the margin bands is a statement filed as a PICTURE. All
+# four thresholds sit in measured gaps — see `_raster_content`.
+_RASTER_MIN_COVERAGE = 0.10   # rasterized statements measure 17-48%; logos <5%
+_RASTER_BAND_TOP = 0.18       # banner + caption end by ~15% on every measured case
+_RASTER_BAND_BOTTOM = 0.86    # footer / page number sits at 93-96%
+_RASTER_MAX_ZONE_WORDS = 8    # a cover's title puts 20+ words INSIDE the zone
 # A figure that can NAME a column rather than fill one: a year or full date, or
 # a bare integer percentage ("0%", "%10", "150%"). Anything carrying a decimal
 # or a thousands group is an amount — including the Turkish ratio form
@@ -1398,33 +1409,89 @@ def _heading_for(lines, first_line: int, taken: set[int]) -> tuple[str, list[int
 
 
 def _probe_text_layer(page, word_count: int) -> str:
-    """Decide whether a page that yielded no table is drawn rather than typed.
+    """Decide how a page that yielded no table hid its content, if it did.
 
-    Fibabanka's filings print a complete, perfectly legible balance sheet whose
-    every glyph is a vector outline — 28,366 curve segments and no text. A text
-    extractor reads 35 words of header and nothing else, so the filing captures
-    as "13 tables, 71 rows" and looks exactly like a small bank's short report.
-    That silence is the failure: the rows are absent from the data with nothing
-    marking them absent.
+    Two disguises, one failure: content legible on screen that no text
+    extractor can see, captured as a suspiciously small page that nothing marks
+    as a hole.
 
-    Ink per extracted word separates the two cleanly. Measured over the corpus,
-    drawn pages score 54–2,050 and every typed page — dense statement grids with
-    ruled borders included — scores 0–1. The threshold sits in an empty band two
-    orders of magnitude wide, so it is not a tuned constant.
+    'vector' — Fibabanka prints a complete balance sheet whose every glyph is a
+    path outline: 28,366 curve segments and 35 words of header. Ink per
+    extracted word separates drawn from typed cleanly — drawn pages score
+    54–2,050, every typed page (dense ruled statement grids included) 0–1 — so
+    the threshold sits in an empty band two orders of magnitude wide.
+    `_MIN_ITEMS` keeps a near-blank divider (few words, but no ink either) out;
+    the ratio alone would be undefined there.
 
-    `_MIN_ITEMS` keeps a near-blank divider page (few words, but no ink either)
-    out; the ratio alone would be undefined there. Only called for pages that
-    produced no block, which is both the population worth explaining and the
-    reason this costs nothing on a normal filing.
+    'raster' — İş Bankası 2025Q1/Q2 and Fibabanka 2023Q3 file statement BODIES
+    as embedded images under a typed banner: ~40 words of caption, zero path
+    items, one full-page image (or hundreds of tiles) where the figures should
+    be. Ink-per-word scores 0, so the vector rule is blind to it — that is how
+    both filings sat in the ledger stamped 'text' with 3 cells per statement
+    page until `check_capture_reconcile` caught them (19% / 61%). Geometry
+    identifies it where ink cannot: see `_raster_content`.
+
+    Only called for pages that produced no block, which is both the population
+    worth explaining and the reason this costs nothing on a normal filing.
     """
     _MIN_ITEMS = 2000
     try:
         items = sum(len(d["items"]) for d in page.get_drawings())
     except Exception:
-        return "text"
-    if items < _MIN_ITEMS:
-        return "text"
-    return "vector" if items / max(word_count, 1) >= _VECTOR_INK_PER_WORD else "text"
+        items = 0
+    if items >= _MIN_ITEMS and items / max(word_count, 1) >= _VECTOR_INK_PER_WORD:
+        return "vector"
+    if _raster_content(page):
+        return "raster"
+    return "text"
+
+
+def _raster_content(page) -> bool:
+    """True when embedded images cover the page's content zone while its typed
+    words keep to the margin bands — the signature of a page filed as a picture.
+
+    The zone is the band between the running banner and the footer, in DISPLAY
+    space (the rotation matrix is applied, so GARAN-style /Rotate 90 landscape
+    pages measure the same as upright ones). Measured over the corpus
+    (2026-08-19): rasterized statement pages carry 31–43 typed words, all of
+    them banner and footer, under images covering 17–48% of the page; a cover
+    with artwork puts its title INSIDE the zone (TSKB 2026Q2 p1: ~25 words
+    there); a divider's logo covers <5%; a scanned auditor's letter is the
+    degenerate case — zero words, image over everything — and is equally
+    unreadable, so it is flagged too. Each threshold sits in the gap between
+    those populations.
+    """
+    try:
+        infos = page.get_image_info()
+    except Exception:
+        return False
+    if not infos:
+        return False
+    m = page.rotation_matrix
+    box = fitz.Rect(page.rect) * m
+    box.normalize()
+    if box.is_empty:
+        return False
+    covered = 0.0
+    for info in infos:
+        r = fitz.Rect(info["bbox"]) * m
+        r.normalize()
+        r = r & box
+        if not r.is_empty:
+            covered += r.get_area()
+    if covered / box.get_area() < _RASTER_MIN_COVERAGE:
+        return False
+    top = box.y0 + box.height * _RASTER_BAND_TOP
+    bottom = box.y0 + box.height * _RASTER_BAND_BOTTOM
+    in_zone = 0
+    for w in page.get_text("words"):
+        r = fitz.Rect(w[:4]) * m
+        r.normalize()
+        if top <= (r.y0 + r.y1) / 2 <= bottom:
+            in_zone += 1
+            if in_zone > _RASTER_MAX_ZONE_WORDS:
+                return False
+    return True
 
 
 def capture_page(page, page_number: int, furniture: frozenset[str]) -> PageCapture:
@@ -1925,9 +1992,10 @@ def capture_document(pdf_path: str | Path) -> DocumentCapture:
         doc.close()
     if cap.line_count == 0:
         cap.status = "unreadable"
-    elif cap.vector_page_count:
-        # Some of this filing was legible on paper and unreadable to us. Say so
-        # in the status rather than letting the row count imply full coverage.
+    elif cap.unreadable_page_count:
+        # Some of this filing was legible on paper and unreadable to us —
+        # vector outlines or an imaged content zone alike. Say so in the status
+        # rather than letting the row count imply full coverage.
         cap.status = "partial"
     return cap
 

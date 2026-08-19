@@ -290,6 +290,7 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
     "bank_audit_document_manifest": frozenset({
         "page_count", "table_page_count", "block_count", "line_count",
         "cell_count", "note_count", "linked_note_count",
+        "unreadable_page_count",
     }),
 }
 

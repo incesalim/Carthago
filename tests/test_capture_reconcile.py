@@ -53,7 +53,8 @@ AS_PRINTED = [(1_500_000.0 + i, 2_500_000.0 + i, 4_000_000.0 + 2 * i)
 PRINTED = [v for row in AS_PRINTED for v in row]
 
 
-def _capture(tmp: Path, declaration: str, printed=PRINTED, vector_pages=0) -> Path:
+def _capture(tmp: Path, declaration: str, printed=PRINTED, vector_pages=0,
+             raster_pages=0) -> Path:
     p = tmp / "cap.db"
     c = sqlite3.connect(p)
     c.executescript(CAPTURE_DDL)
@@ -61,6 +62,9 @@ def _capture(tmp: Path, declaration: str, printed=PRINTED, vector_pages=0) -> Pa
     for i in range(vector_pages):
         c.execute("INSERT INTO bank_audit_document_pages VALUES (?,?,?,?,'vector')",
                   (*KEY, 2 + i))
+    for i in range(raster_pages):
+        c.execute("INSERT INTO bank_audit_document_pages VALUES (?,?,?,?,'raster')",
+                  (*KEY, 100 + i))
     c.execute("INSERT INTO bank_audit_document_lines VALUES (?,?,?,1,1,?)",
               (*KEY, declaration))
     for i, v in enumerate(printed):
@@ -144,6 +148,59 @@ def test_figures_absent_from_the_filing_are_an_error(tmp_path):
     r = _run(cap, _audit(tmp_path, AS_PRINTED))
     assert [f["code"] for f in r["findings"]] == ["figures_absent"]
     assert r["findings"][0]["severity"] == "error"
+
+
+def test_an_imaged_page_is_a_capture_gap_like_a_drawn_one(tmp_path):
+    """İş Bankası 2025Q1/Q2 file statement BODIES as embedded raster images —
+    zero path ink, so the vector probe scored them 'text' and the hole was
+    silent until the reconcile caught it. Same consequence as Fibabanka's
+    outlines, different mechanism, one finding."""
+    cap = _capture(tmp_path, BIN_DECL, printed=[1_500_000.0], raster_pages=3)
+    r = _run(cap, _audit(tmp_path, AS_PRINTED))
+    assert r["unreadable_pages"] == 3
+    assert [f["code"] for f in r["findings"]] == ["capture_incomplete"]
+    assert r["findings"][0]["severity"] == "info"
+
+
+def test_unreadable_pages_alone_do_not_disable_the_anchor(tmp_path):
+    """A scanned auditor's letter is unreadable but holds no figure any lane
+    stores. The earlier wholesale skip turned the anchor OFF for the whole
+    filing over it; a healthy rate now stays silent, and a scale error on such
+    a filing would still surface because the scale check runs first."""
+    cap = _capture(tmp_path, BIN_DECL, raster_pages=2)
+    r = _run(cap, _audit(tmp_path, AS_PRINTED))
+    assert r["unreadable_pages"] == 2
+    assert r["rate"] == 1.0
+    assert r["findings"] == []
+
+
+FX_DDL = """
+CREATE TABLE bank_audit_fx_position (
+  bank_ticker TEXT, period TEXT, kind TEXT, currency TEXT, period_type TEXT,
+  on_bs_assets REAL, on_bs_liab REAL, net_on_balance REAL, net_off_balance REAL,
+  off_bs_receivable REAL, off_bs_payable REAL, net_position REAL,
+  source_page INTEGER);
+"""
+
+
+def test_a_derived_column_is_not_expected_on_the_page(tmp_path):
+    """fx net_position is COMPUTED by the extractor (net_on + net_off,
+    fx_position.py) — the filing never prints it, so counting it against the
+    anchor only diluted the rate: fleet median 97.3% → 99.66% once the three
+    derived columns were excluded, which is what let MIN_RATE rise to 0.95."""
+    printed = [100_000.0, 40_000.0, 60_000.0, 30_000.0, 20_000.0, 10_000.0]
+    cap = _capture(tmp_path, BIN_DECL, printed=printed)
+    aud = _audit(tmp_path, [])
+    c = sqlite3.connect(aud)
+    c.executescript(FX_DDL)
+    c.execute("INSERT INTO bank_audit_fx_position VALUES "
+              "(?,?,?,'TOTAL','current',100000.0,40000.0,60000.0,30000.0,"
+              "20000.0,10000.0,90000.0,5)", KEY)
+    c.commit()
+    r = _run(cap, aud)
+    assert r["stored"] == 6              # net_position (90,000) is not counted
+    assert r["rate"] == 1.0
+    assert r["findings"] == []
 
 
 def test_zero_and_null_are_not_figures_to_look_for(tmp_path):

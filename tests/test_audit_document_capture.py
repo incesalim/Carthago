@@ -520,7 +520,7 @@ def test_a_table_drawn_as_outlines_is_reported_not_silently_missed(tmp_path):
     _write_drawn_table_pdf(p, [(60, 40, "FIBABANKA A.S. VE BAGLI ORTAKLIGI")], 2400)
     cap = capture_document(p)
     assert cap.pages[0].text_layer == "vector"
-    assert cap.vector_page_count == 1
+    assert cap.unreadable_page_count == 1
     # and it must be visible at the filing level, where the manifest reads it
     assert cap.status == "partial"
 
@@ -531,7 +531,7 @@ def test_a_readable_table_is_never_called_unreadable(table_pdf):
     and the corpus separates 0-1 (typed) from 54-2,050 (drawn)."""
     cap = capture_document(table_pdf)
     assert cap.pages[0].text_layer == "text"
-    assert cap.vector_page_count == 0
+    assert cap.unreadable_page_count == 0
     assert cap.status == "captured"
 
 
@@ -543,6 +543,67 @@ def test_a_near_blank_page_is_not_called_unreadable(tmp_path):
     cap = capture_document(p)
     assert cap.pages[0].blocks == []
     assert cap.pages[0].text_layer == "text"
+
+
+def _write_imaged_page_pdf(path, word_lines, img_rect):
+    """A page carrying an embedded raster image — what İş Bankası actually
+    filed in 2025Q1/Q2: the statement BODY is a picture under a typed banner,
+    with zero path ink, so only geometry can tell it from a cover page."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for x, y, text in word_lines:
+        page.insert_text((x, y), text, fontsize=9)
+    pm = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 40, 40), False)
+    pm.clear_with(200)
+    page.insert_image(fitz.Rect(*img_rect), pixmap=pm)
+    doc.save(str(path))
+    doc.close()
+
+
+def test_a_statement_body_filed_as_an_image_is_reported(tmp_path):
+    """İş Bankası 2025Q1 consolidated prints its balance sheet as ONE embedded
+    image under a typed banner — ~40 words of caption and footer, zero path
+    items. The vector probe scores 0 ink per word, which is how the filing sat
+    in the ledger stamped 'text' with 3 cells per statement page until the
+    reconcile caught it at 61%. Words confined to the margin bands with the
+    image over the content zone is what identifies it."""
+    p = tmp_path / "ISCTR_2025Q1_consolidated.pdf"
+    _write_imaged_page_pdf(
+        p,
+        [(60, 40, "TURKIYE IS BANKASI A.S."), (60, 52, "KONSOLIDE BILANCO"),
+         (60, 64, "(Tutarlar Bin Turk Lirasi olarak ifade edilmistir.)"),
+         (290, 820, "7")],
+        (60, 160, 540, 640))            # ~44% of the page, mid-zone
+    cap = capture_document(p)
+    assert cap.pages[0].text_layer == "raster"
+    assert cap.unreadable_page_count == 1
+    assert cap.status == "partial"
+
+
+def test_a_cover_page_with_artwork_is_not_called_unreadable(tmp_path):
+    """The control that almost false-fired: TSKB 2026Q2 p1 carries full-page
+    artwork AND ~25 title words in the middle of the page. Words inside the
+    content zone are what separate a cover from a rasterized statement — a
+    cover's title IS its content, and it is typed."""
+    p = tmp_path / "TSKB_2026Q2_consolidated.pdf"
+    words = [(60, 40, "TSKB")]
+    words += [(60 + 44 * (i % 5), 300 + 24 * (i // 5), f"kapak{i}")
+              for i in range(15)]
+    _write_imaged_page_pdf(p, words, (0, 0, 595, 842))
+    cap = capture_document(p)
+    assert cap.pages[0].text_layer == "text"
+    assert cap.status == "captured"
+
+
+def test_a_divider_logo_is_not_called_unreadable(tmp_path):
+    """A small logo on an otherwise typed divider covers a few percent of the
+    page; rasterized statements measure 17-48%. The coverage floor keeps the
+    ordinary case out."""
+    p = tmp_path / "C2_2026Q1_consolidated.pdf"
+    _write_imaged_page_pdf(p, [(60, 100, "DORDUNCU BOLUM")], (500, 30, 560, 70))
+    cap = capture_document(p)
+    assert cap.pages[0].text_layer == "text"
+    assert cap.status == "captured"
 
 
 def test_wrapped_label_rows_merge_into_one_logical_row(tmp_path):

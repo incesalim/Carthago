@@ -3,7 +3,31 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-08-16.
+Last verified: 2026-08-19.
+
+2026-08-19 — **A statement page filed as a picture can no longer pass as a
+short filing, and the capture reconcile stopped diluting itself.** Both open
+reconcile errors (FIBA 2023Q3; ISCTR 2025Q1, recorded "undiagnosed, a
+different cause") were one bug: statement bodies embedded as raster images
+under a typed banner carry zero path ink, so the vector-outline probe scored
+them `text` and the capture silently kept ~3 cells per statement page.
+`_raster_content` (document_capture.py) now reads geometry — a blockless page
+with images ≥10% over the content band and ≤8 typed words inside it stamps
+`raster` — every threshold in a measured gap (a cover's title sits INSIDE the
+band, TSKB 2026Q2 p1; a divider's logo covers <5%). The silent class is fully
+enumerated at 3 filings in 1,095; the third, ISCTR 2025Q2 unconsolidated,
+surfaced only under the sharpened rate. Scanned auditor letters honestly
+become `partial` now, made safe because the reconcile no longer skips a filing
+wholesale over unreadable pages. `check_capture_reconcile.py` also stops
+counting the three extractor-computed columns no filing prints
+(`fx_position.net_position`, `repricing.cumulative_gap`,
+`credit_quality.total_amount`) — fleet median 97.3% → 99.66% — and `MIN_RATE`
+rises 0.85 → 0.95 inside the emptied band. Fleet verification: 1,050
+partitions, 0 errors, 8 attributed `capture_incomplete` infos — the first
+fully-explained fleet. `refresh-audit.yml` now captures each freshly extracted
+filing (`--recent-hours 168`) and reconciles it alert-only in the same run, so
+the external unit-scale anchor works the day a filing lands; migration `0044`
+renames the manifest column to `unreadable_page_count`.
 
 2026-08-16 — **A briefing bullet can no longer cite a release that does not
 state its figures.** The repaired 13/13 briefing attributed the policy

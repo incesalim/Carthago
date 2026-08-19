@@ -70,17 +70,18 @@ def _rows(conn, key):
         "FROM bank_audit_document_notes WHERE bank_ticker=? AND period=? AND kind=? "
         "ORDER BY page,note_order", key).fetchall()
     try:
-        vector = [r[0] for r in conn.execute(
-            "SELECT page FROM bank_audit_document_pages WHERE bank_ticker=? AND "
-            "period=? AND kind=? AND text_layer='vector' ORDER BY page", key)]
+        unreadable = conn.execute(
+            "SELECT page,text_layer FROM bank_audit_document_pages WHERE "
+            "bank_ticker=? AND period=? AND kind=? AND text_layer!='text' "
+            "ORDER BY page", key).fetchall()
     except sqlite3.OperationalError:
-        vector = []          # ledger predates the text_layer column
-    return lines, cells, blocks, notes, vector
+        unreadable = []      # ledger predates the text_layer column
+    return lines, cells, blocks, notes, unreadable
 
 
 def lint(conn, bank, period, kind) -> tuple[list[dict], dict]:
     key = (bank, period, kind)
-    lines, cells, blocks, notes, vector = _rows(conn, key)
+    lines, cells, blocks, notes, unreadable = _rows(conn, key)
     if not lines:
         sys.exit(f"no capture stored for {bank} {period} {kind}")
 
@@ -205,13 +206,15 @@ def lint(conn, bank, period, kind) -> tuple[list[dict], dict]:
     # A page we could not read at all outranks every formatting defect below:
     # those describe a table we captured imperfectly, this one is a table that
     # is not here. Reported per page so the gap can be quantified, not guessed.
-    for pg in vector:
+    for pg, layer in unreadable:
         add(pg, None, "unreadable_page",
-            "glyphs are drawn outlines, not text — no table on this page was captured")
+            "glyphs are drawn outlines, not text — no table on this page was captured"
+            if layer == "vector" else
+            "content is an embedded image, not text — no table on this page was captured")
 
     stats = {
         "tables": len(blocks),
-        "vector_pages": len(vector),
+        "unreadable_pages": len(unreadable),
         "rows": sum(b[4] for b in blocks),
         "notes": len(notes),
         "findings": len(findings),
@@ -254,8 +257,8 @@ def main() -> int:
                 f"{stats['rows']} rows, {stats['notes']} notes — "
                 f"{stats['clean_tables']}/{stats['tables']} clean, "
                 f"{stats['findings']} findings")
-        if stats["vector_pages"]:
-            head += f"  ⚠ {stats['vector_pages']} UNREADABLE pages"
+        if stats["unreadable_pages"]:
+            head += f"  ⚠ {stats['unreadable_pages']} UNREADABLE pages"
         print(head)
         if not args.summary:
             shown = [f for f in findings if not args.code or f["code"] == args.code]
