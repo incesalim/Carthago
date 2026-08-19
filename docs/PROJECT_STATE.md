@@ -868,7 +868,7 @@ new victim — ISCTR 2025Q2 unconsolidated (92.4%, its cash-flow and OCI pages,
 visible only under the sharpened rate below)** — so the silent class is fully
 enumerated: **3 filings in 1,095**. All three are re-captured locally with the
 fix (5 + 2 + 10 pages stamped, `capture_status='partial'`); the fleet restamp
-rides the next `backfill-document-capture.yml` run.
+shipped the same day — see the run record below.
 
 Scanned auditor letters (typed-nothing pages holding a full-page image — EXIM,
 PASHA and peers) now also stamp `raster`/`partial`: their content is equally
@@ -906,6 +906,20 @@ anchor works the day a filing lands, current season included, which until now
 was never reconciled at all (the local snapshot the 08-13 fleet run compared
 against carries no 2026Q2 rows). The fleet ledger build in R2 and the D1
 manifest backfill remain `backfill-document-capture.yml`.
+
+**The fleet build ran the same day — `backfill-document-capture.yml`'s first
+dispatch ever (2026-08-19, run 32233386008): 1,113/1,113 filings in 3,032s,
+zero failures**, with the fixed engine and the 18 partitions acquired since
+08-13 included. Corpus on Actions: 124,434 blocks / 5.51M lines / **11.37M
+cells** / 65,575 notes (61,024 linked). What changed hands: the raw ledger now
+lives in R2 (`state/bank_audit_capture.db.gz`, 750.1 MB — the corpus is no
+longer single-machine), and **`bank_audit_document_manifest` in live D1 went
+0 → 1,113 rows / 38 banks / 2022Q1→2026Q2** (verified post-run): 962
+`captured`, **151 `partial`** (the scanned-letter honesty shift landing
+fleet-wide), 518 unreadable pages in total, with the three raster filings
+carrying exactly their measured counts (ISCTR 2025Q1c 5, ISCTR 2025Q2u 2,
+FIBA 2023Q3c 10). The local 2.9 GB ledger of 08-13 is now the stale copy —
+pull the R2 object rather than re-trusting it for per-page `text_layer` state.
 
 **Where the capture now stands, and what the remaining findings are (measured
 2026-08-07).** Holdout of twelve banks never tuned against: **1,304 of 1,435
