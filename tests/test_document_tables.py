@@ -188,6 +188,29 @@ def test_banner_fallback_when_contents_does_not_validate(tmp_path):
     assert t == (2, None)                         # section yes, item unknown
 
 
+def test_banner_with_inline_title_uses_it_not_the_next_line(tmp_path):
+    """ISCTR's form: "SECTION ONE: GENERAL INFORMATION…" — title on the banner
+    line itself. The next line is the first ITEM, and reading it as the title
+    relabelled §1 as notes ("Explanations on…") in the fleet cross-check."""
+    f = Filing()
+    f.line(1, BIN_DECL)
+    f.line(4, "SECTION ONE: GENERAL INFORMATION ABOUT THE PARENT BANK")
+    f.line(4, "I. Explanations on the establishment date of the Bank")
+    f.line(9, "SECTION TWO: CONSOLIDATED FINANCIAL STATEMENTS")
+    f.line(9, "I. Explanations on the balance sheet")
+    f.line(14, "SECTION THREE: EXPLANATION ON ACCOUNTING POLICIES")
+    lo = f.line(10, "Aktifler 1.000", label="Aktifler", role="data",
+                block_id=1, logical_row=0)
+    f.cell(10, lo, 0, 0, "1.000", 1, 1000.0)
+    f.block(10, 1, 1, row_count=1, cell_count=1)
+    out = _build(tmp_path, f)
+    roles = dict(out.execute(
+        "SELECT section_no, role FROM bank_audit_document_sections"))
+    assert roles[1] == "general_info"      # NOT notes from the item line
+    assert roles[2] == "financial_statements"
+    assert roles[3] == "accounting_policies"
+
+
 def test_no_sectioning_keeps_tables_with_honest_nulls(tmp_path):
     f = Filing()
     f.line(1, "just a page with a table, no structure at all")
@@ -241,3 +264,50 @@ def test_grid_is_lossless_and_keeps_the_ledger_semantics(tmp_path):
         "SELECT notes_json FROM bank_audit_document_tables").fetchone()[0])
     assert notes == [{"marker": "*", "text": "(*) qualifies the wrapped row",
                       "rows": [0]}]                # linked line -> grid row 0
+
+
+def test_a_link_into_another_block_never_maps_to_this_grid(tmp_path):
+    """logical_row restarts per block, so row 0 of block 2 collides with row 0
+    of block 1 on the same page. HALKB links its "(1)" marker across blocks;
+    the collision mapped those lines into the WRONG table's rows (and then
+    dedup'd, which is how the fleet count exposed it)."""
+    f = Filing()
+    f.line(1, BIN_DECL)
+    lo1 = f.line(2, "Krediler 1.000", label="Krediler", role="data",
+                 block_id=1, logical_row=0)
+    f.cell(2, lo1, 0, 0, "1.000", 1, 1000.0)
+    f.block(2, 1, 1, row_count=1, cell_count=1)
+    lo2 = f.line(2, "Mevduat 2.000", label="Mevduat", role="data",
+                 block_id=2, logical_row=0)   # same row KEY, different block
+    f.cell(2, lo2, 0, 0, "2.000", 1, 2000.0)
+    f.block(2, 2, 1, row_count=1, cell_count=1)
+    f.note(2, 0, "1", "(1) qualifies block 1's row and cites block 2's", 1,
+           [lo1, lo2])
+    out = _build(tmp_path, f)
+    notes = json.loads(out.execute(
+        "SELECT notes_json FROM bank_audit_document_tables WHERE block_id=1"
+        ).fetchone()[0])
+    assert notes[0]["rows"] == [0]                 # block 1's own row only
+    assert notes[0]["outside_lines"] == [lo2]      # block 2's line kept, not
+    assert json.loads(out.execute(                 # mapped into block 1's grid
+        "SELECT notes_json FROM bank_audit_document_tables WHERE block_id=2"
+        ).fetchone()[0]) == []
+
+
+def test_a_note_linked_outside_the_grid_keeps_that_link(tmp_path):
+    """The ledger links a note to every line printing its marker — including a
+    heading ABOVE the table ("Risk Grubu (*)"). That line is no grid row, but
+    the link must survive as a ledger line reference, not vanish."""
+    f = Filing()
+    f.line(1, BIN_DECL)
+    head_lo = f.line(2, "Risk Grubu (*)", role="heading")   # outside the block
+    lo = f.line(2, "Krediler 1.000", label="Krediler", role="data",
+                block_id=1, logical_row=0)
+    f.cell(2, lo, 0, 0, "1.000", 1, 1000.0)
+    f.block(2, 1, 1, row_count=1, cell_count=1)
+    f.note(2, 0, "*", "(*) tanım", 1, [head_lo, lo])
+    out = _build(tmp_path, f)
+    notes = json.loads(out.execute(
+        "SELECT notes_json FROM bank_audit_document_tables").fetchone()[0])
+    assert notes == [{"marker": "*", "text": "(*) tanım", "rows": [0],
+                      "outside_lines": [head_lo]}]

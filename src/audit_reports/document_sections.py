@@ -221,7 +221,18 @@ def body_section_starts(lines) -> dict[int, tuple[int, str]] | None:
             n = sec_no(m.group(1))
             if n is not None:
                 hits.append((pg, lo, n, t))
-                prev = (pg, lo, n)
+                # ISCTR prints the title ON the banner line — "SECTION ONE:
+                # GENERAL INFORMATION ABOUT THE PARENT BANK". Reading the NEXT
+                # line as the title there hands `role_from_title` the first
+                # ITEM instead ("I. Explanations on …"), whose "explanation"
+                # keyword relabels §1 as notes — the one mine-wrong case in
+                # the prose cross-check tail. `fold` is length-preserving over
+                # this corpus, so the match end indexes the original text.
+                inline = t[m.end():].strip(" \t:.·—–-").strip()
+                if inline:
+                    texts_after[(pg, lo)] = inline[:80]
+                else:
+                    prev = (pg, lo, n)
     per_page: dict[int, set[int]] = defaultdict(set)
     for pg, _lo, n, _t in hits:
         per_page[pg].add(n)

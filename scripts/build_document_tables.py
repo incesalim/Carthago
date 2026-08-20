@@ -217,11 +217,15 @@ def build_partition(cap: sqlite3.Connection, out: sqlite3.Connection,
     for pg, lo, ci, col, txt, isn, val in cells:
         cells_at[(pg, lo)].append((ci, col, txt, isn, val))
     block_lines: dict[tuple[int, int], list] = defaultdict(list)
-    lr_of: dict[tuple[int, int], object] = {}
+    # (page, line_order) -> (block_id, row-group key). The block_id HAS to ride
+    # along: logical_row restarts per block, so a bare row key collides across
+    # blocks on the same page — HALKB links its "(1)" marker across blocks, and
+    # without the block check those lines mapped into the WRONG table's rows.
+    lr_of: dict[tuple[int, int], tuple[int, object]] = {}
     for pg, lo, txt, lab, role, bid, lr, mk in lines:
         if bid is not None:
             block_lines[(pg, bid)].append((lo, lab or "", lr, mk))
-            lr_of[(pg, lo)] = lr if lr is not None else -lo
+            lr_of[(pg, lo)] = (bid, lr if lr is not None else -lo)
 
     unit = _declared_unit(cap, key)
     table_rows: list[tuple] = []
@@ -250,7 +254,12 @@ def build_partition(cap: sqlite3.Connection, out: sqlite3.Connection,
                     # ledger it summarises.
                     if col is None or not 0 <= col < n_cols \
                             or aligned[col] is not None:
-                        extra.append({"v": v} if isn else {"t": v})
+                        # Keyed by what the cell HOLDS, not by the ledger's
+                        # numeric flag: a flagged-numeric cell whose value did
+                        # not parse carries text, and a consumer reading "v"
+                        # must be able to do arithmetic on it.
+                        extra.append({"v": v} if isinstance(v, (int, float))
+                                     else {"t": v})
                     else:
                         aligned[col] = v
             if not label and all(c is None for c in aligned) and not extra:
@@ -268,10 +277,25 @@ def build_partition(cap: sqlite3.Connection, out: sqlite3.Connection,
             if (npg, nbid) != (pg, bid):
                 continue
             linked = json.loads(linked_json or "[]")
-            rows = sorted({row_index_of[lr_of[(pg, lo)]]
-                           for lo in linked
-                           if (pg, lo) in lr_of and lr_of[(pg, lo)] in row_index_of})
-            tnotes.append({"marker": marker, "text": text, "rows": rows})
+            rows, outside = set(), []
+            for lo in linked:
+                got = lr_of.get((pg, lo))
+                if got is not None and got[0] == bid \
+                        and got[1] in row_index_of:
+                    rows.add(row_index_of[got[1]])
+                else:
+                    # The ledger links a note to EVERY line printing its
+                    # marker — a heading above the table ("Risk Grubu (*)"),
+                    # a period caption, another footnote citing it. Those are
+                    # not grid rows, but dropping them made the derived lane
+                    # lossy (13,461 notes read as link-less in the first
+                    # cross-check). Kept as ledger line_orders, which is the
+                    # lane's stated join key back to the evidence.
+                    outside.append(lo)
+            note: dict = {"marker": marker, "text": text, "rows": sorted(rows)}
+            if outside:
+                note["outside_lines"] = outside
+            tnotes.append(note)
 
         s = _section_of(pg)
         item_no, item_title = _item_of(pg) if contents else (None, None)

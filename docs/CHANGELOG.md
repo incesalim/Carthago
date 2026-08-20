@@ -5,6 +5,28 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The derived table lane survived four independent attacks, and
+two of them drew blood first.** Before anything durable is saved from
+`bank_audit_tables.db`, it was verified against evidence that never saw its
+builder: (A) section starts vs the prose lane's independent engine — 97.7% of
+6,993 role-starts within ±1 page over 1,040 filings, the tail adjudicated
+against the filings themselves (GARAN prints "7 Interim Activity Report" on
+p136, where this lane places it; prose's min-page takes a p6 stray on its
+documented weak filer); (B) the validated balance-sheet + P&L figures found
+inside the grids this lane calls `financial_statements` — median 100%,
+p1 98.8% over 1,015 partitions, both sub-90% cases explained (a vector page;
+ATBANK 2022Q2's placement tail); (C) notes 60,464/60,464 and links 70,497 of
+70,515, the 18 being two marker lines of one wrapped row collapsing into its
+single row; (D) the 2,906 role-less tables are the 24 honestly unsectioned
+filings, TSKB's 14-page statements-only 2026Q2 among them. The blood: ISCTR's
+inline-title banners ("SECTION ONE: GENERAL INFORMATION…") had the NEXT line —
+the first item, "I. Explanations on…" — read as the title, relabelling §1 as
+notes; and a note linked across blocks mapped into the wrong table's rows
+because `logical_row` restarts per block (HALKB's "(1)" citations). Both fixed
+with pinning tests; marker lines outside a grid now persist as `outside_lines`
+instead of silently vanishing (13,461 notes had read as link-less). Still
+local-only by explicit decision; D1/R2 remains open.
+
 2026-08-20 — **The full-document capture became queryable table by table,
 section by section.** The ledger proves what every filing printed but answers
 no query without re-assembling grids by hand; `scripts/build_document_tables.py`
