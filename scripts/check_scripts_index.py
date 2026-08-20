@@ -46,6 +46,9 @@ _EXTERNAL: frozenset[str] = frozenset({
     # cites — shared generator/checker instruments, live in src/news/.
     "briefing_facts.py",
     "briefing_citations.py",
+    # The shared sectioning module the build_document_tables and viewer rows
+    # cite — lives in src/audit_reports/.
+    "document_sections.py",
 })
 
 _PY_NAME = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*\.py)\b")

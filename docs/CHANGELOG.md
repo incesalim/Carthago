@@ -3,7 +3,25 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-08-19.
+Last verified: 2026-08-20.
+
+2026-08-20 — **The full-document capture became queryable table by table,
+section by section.** The ledger proves what every filing printed but answers
+no query without re-assembling grids by hand; `scripts/build_document_tables.py`
+now derives `data/bank_audit_tables.db` (local, never the audit snapshot):
+`bank_audit_document_sections` (the filing's own declared title + role + page
+span, sourced from its folio-validated contents, its body banners, or honestly
+NULL — 1,011 / 60 / 24 filings respectively), `bank_audit_document_items`
+(57,131 contents entries), and `bank_audit_document_tables` (122,583 rows —
+section context, declared unit, and the grid as JSON with labels, aligned
+signed cells, "-" kept as text, the table's footnotes bound to their grid
+rows, and every column-less cell preserved in `unplaced_json`).
+Cell-conservation is exact fleet-wide: 8,392,845 derived cells equal the
+ledger's in-block cells to the last one, and 97.6% of tables carry a section
+role. The sectioning moved to `src/audit_reports/document_sections.py`, shared
+with the HTML viewer (whose output is byte-identical after the refactor).
+Nothing reaches D1 — that push is a named open decision, like the prose
+corpus.
 
 2026-08-19 — **A statement page filed as a picture can no longer pass as a
 short filing, and the capture reconcile stopped diluting itself.** Both open

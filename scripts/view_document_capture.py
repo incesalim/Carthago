@@ -22,7 +22,7 @@ import json
 import re
 import sqlite3
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -30,6 +30,13 @@ sys.path.insert(0, str(REPO))
 
 DEFAULT_DB = REPO / "data" / "bank_audit_capture.db"
 DEFAULT_OUT = REPO / "data" / "audit_capture"
+
+# Section structure (the contents model, folio placement, banners) is shared
+# with scripts/build_document_tables.py via src/audit_reports/document_sections
+# — one implementation, so the viewer's banners and the queryable lane's
+# section columns cannot drift apart.
+from src.audit_reports.document_sections import (  # noqa: E402
+    RALT as _RALT, ROMAN as _ROMAN, document_contents as _document_sections)
 
 _CSS = """
 :root{--bg:#fbfaf8;--fg:#1c1a17;--muted:#6b645c;--line:#e2ddd6;--card:#fff;
@@ -125,12 +132,6 @@ def _esc(x) -> str:
     return html.escape(str(x if x is not None else ""))
 
 
-_ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI",
-          "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
-          "XXI", "XXII", "XXIII", "XXIV", "XXV", "XXVI", "XXVII", "XXVIII",
-          "XXIX", "XXX"]
-_RALT = "|".join(sorted(_ROMAN, key=len, reverse=True))
-
 # A BRSA item head is numbered, in one of two conventions the filers split
 # between: "3.3 Information on consolidated subsidiaries" (section-qualified,
 # GARAN/KUVEYT/QNBFB) or "III. Explanations on basis of presentation"
@@ -146,164 +147,6 @@ _SECTION_HEAD = re.compile(
 
 def _is_section_head(txt: str) -> bool:
     return len(txt) <= 130 and bool(_SECTION_HEAD.match(txt))
-
-
-# The filing prints its own folio as the last line of each page — "11" for
-# GARAN, "(13)" for EMLAK — and its contents page prints the folio each item
-# starts on. Joining those two places every item on a real PDF page with no
-# heuristic. Body heads were measured as the alternative and are far weaker:
-# attribution ran 12%-100% of TOC items depending on the filer's convention.
-_FOLIO = re.compile(r"^[(\[-]?\s*(\d{1,4})\s*[)\]-]?$")
-_EN_ORD = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT",
-           "NINE", "TEN"]
-_TR_ORD = ["BIRINCI", "IKINCI", "UCUNCU", "DORDUNCU", "BESINCI", "ALTINCI",
-           "YEDINCI"]
-# Filers split on how they number sections: GARAN "SECTION ONE", ISCTR
-# "SECTION I", Turkish originals "BİRİNCİ BÖLÜM". Anchoring on ^SECTION is also
-# what keeps a prose cross-reference out ("As explained in Section Five Part
-# II.h.4.5., …" does not start with it).
-_SEC_EN = re.compile(r"^SECTION\s+(" + "|".join(_EN_ORD) + "|" + _RALT + r")\b")
-_SEC_TR = re.compile(r"^(" + "|".join(_TR_ORD) + r")\s+BOLUM\b")
-# The period after the item roman is optional — ISCTR prints "III Statement of
-# Off-Balance Sheet Items 5" without one.
-_TOC_ITEM = re.compile(r"^(" + _RALT + r")\.?\s+(\S.*)$")
-# The trailing page, taking the START of a range: QNBFB indexes an item that
-# spans pages as "Basis of presentation 11-13", and 11 is where it begins.
-_TRAIL_PAGE = re.compile(r"^(.*?)\s+(\d{1,3})(?:\s*[-–—]\s*\d{1,3})?$")
-
-
-def _sec_no(token: str) -> int | None:
-    if token in _EN_ORD:
-        return _EN_ORD.index(token) + 1
-    if token in _TR_ORD:
-        return _TR_ORD.index(token) + 1
-    if token in _ROMAN:
-        return _ROMAN.index(token) + 1
-    return None
-_TR_FOLD = str.maketrans("İıŞşĞğÜüÖöÇç", "IiSsGgUuOoCc")
-
-
-def _fold(s: str) -> str:
-    """Uppercase that survives the Turkish dotted/dotless i."""
-    return s.translate(_TR_FOLD).upper()
-
-
-def _document_sections(lines) -> list[tuple] | None:
-    """[(pdf_page, section_no, section_name, item_no, item_title)], or None.
-
-    Returns None rather than a guess when the filing's own numbers do not
-    corroborate each other — the contents must place its items on folios that
-    exist and run forward. Measured over the 12-filing holdout, 9 filings
-    validate; EMLAK, ISCTR and SKBNK do not and fall back to page order.
-    """
-    by_page: dict[int, list[str]] = defaultdict(list)
-    for pg, _lo, txt, *_rest in lines:
-        by_page[pg].append(txt or "")
-
-    # A page's own folio reading is the raw signal, but any single page can lie:
-    # EMLAK reads printed 2 on pdf 3 where the run says +5, SKBNK reads 13 on
-    # pdf 12 where the run says +8. So a reading is kept only when it agrees
-    # with the offset its NEIGHBOURS are using.
-    #
-    # The offset is deliberately local rather than one global constant. ISCTR
-    # prints folio 9 on two consecutive pages, so its body genuinely runs at +6
-    # before that point and +7 after; a single frame puts every early item one
-    # page off, which is exactly the silent, plausible-looking error this whole
-    # viewer exists to expose.
-    pairs: list[tuple[int, int]] = []
-    for pg in sorted(by_page):
-        for t in reversed(by_page[pg][-4:]):
-            t = t.strip()
-            if not t:
-                continue
-            m = _FOLIO.match(t)
-            if m:
-                pairs.append((pg, int(m.group(1))))
-            break
-    if len(pairs) < 20:
-        return None
-    offs = [pg - pr for pg, pr in pairs]
-    win = 7
-    trusted: dict[int, int] = {}
-    for idx, (pg, pr) in enumerate(pairs):
-        near = offs[max(0, idx - win):idx + win + 1]
-        if offs[idx] == Counter(near).most_common(1)[0][0]:
-            trusted[pr] = pg
-    if len(trusted) < 20:
-        return None
-    lo, hi = min(by_page), max(by_page)
-    known = sorted(trusted)
-
-    def _pdf_page(printed: int) -> int | None:
-        """Nearest trusted anchor, walked out by the difference in folios."""
-        if printed in trusted:
-            return trusted[printed]
-        near = min(known, key=lambda p: abs(p - printed))
-        pg = trusted[near] + (printed - near)
-        return pg if lo <= pg <= hi else None
-
-    folio = {pr: pg for pr in range(1, max(known) + 1)
-             if (pg := _pdf_page(pr)) is not None}
-
-    items: list[tuple] = []
-    names: dict[int, str] = {}
-    cur, last_pg, want_name = None, None, False
-    pending: tuple | None = None          # item whose page number wrapped
-
-    def _take(printed: int) -> None:
-        if pending and printed in folio:
-            items.append((folio[printed], pending[0], pending[1], pending[2]))
-
-    for pg, _lo, txt, *_rest in lines:
-        t = (txt or "").strip()
-        m = _SEC_EN.match(_fold(t)) or _SEC_TR.match(_fold(t))
-        if m:
-            n = _sec_no(m.group(1))
-            # A section banner reprinted in the body is not a second contents.
-            cur = None if (n is None or n in names) else n
-            if cur is not None:
-                names[n] = ""
-                want_name = True
-            pending, last_pg = None, pg
-            continue
-        if cur is None or (last_pg is not None and pg > last_pg + 2):
-            cur, pending = None, None
-            continue
-        mi = _TOC_ITEM.match(t)
-        if want_name and t and not mi:
-            names[cur] = t[:80]
-            want_name = False
-            continue
-        if mi:
-            title, printed = mi.group(2), None
-            mt = _TRAIL_PAGE.match(title)
-            if mt:
-                title, printed = mt.group(1), int(mt.group(2))
-            pending = (cur, _ROMAN.index(mi.group(1)) + 1, title[:90])
-            if printed is not None:
-                _take(printed)
-                pending = None
-            last_pg = pg
-            continue
-        # A wrapped entry carries its page on the continuation: ISCTR puts the
-        # number alone on the next line, QNBFB ends the run-on text with it.
-        if pending:
-            mf = _FOLIO.match(t)
-            if mf:
-                _take(int(mf.group(1)))
-                pending = None
-                continue
-            mc = _TRAIL_PAGE.match(t)
-            if mc:
-                _take(int(mc.group(2)))
-                pending = None
-
-    if len(items) < 20:
-        return None
-    pages = [i[0] for i in items]
-    if any(a > b for a, b in zip(pages, pages[1:])):
-        return None                      # contents disagrees with the folios
-    return [(pg, s, names.get(s, ""), i, title) for pg, s, i, title in items]
 
 
 def _partitions(conn) -> list[tuple]:
