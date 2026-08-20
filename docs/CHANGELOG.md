@@ -5,6 +5,24 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The first lane graduated from the document layer: the full
+own-funds table.** The capital pilot proves the agreed architecture — new
+analytical coverage minted from captured grids, never from a PDF.
+`scripts/build_capital_full.py` assembles the Basel III own-funds template
+(median 93 rows per filing vs the 9 fields `bank_audit_capital` serves) from
+`bank_audit_tables.db`: seeded by the template's own opening row in either
+dialect (the tasfiyesi opener, or YKBNK/ALBRK's bare header with a min-rows
+guard), chained across contiguous pages, truncated at a second full-template
+printing, money scaled declared_unit→bin at mint, ratios never scaled, "-"
+kept NULL. Fleet: 873 partitions / 75,111 rows, local only. The narrow lane
+is the external validator, and it agrees: cet1 99.5%, tier1 99.6%, tier2
+99.5%, rwa 99.0%, ratios 98.6–99.2%, total 97.8% (that total row is one the
+narrow lane itself stored inconsistently — sum for AKBNK, post-deduction
+final for ANADOLU — so the wide lane keeps BOTH as separate roles);
+tier1=cet1+at1 at 98.0%. The ~200 undetected-but-narrow-covered partitions
+print only the ~10-row summary table — the older interim-disclosure regime —
+so there is no full template there to graduate. Six pinning tests.
+
 2026-08-20 — **The derived table lane survived four independent attacks, and
 two of them drew blood first.** Before anything durable is saved from
 `bank_audit_tables.db`, it was verified against evidence that never saw its
