@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The third graduation: the full NSFR template — and the wide
+lane started auditing the narrow one.** `scripts/build_nsfr_full.py` mints
+`bank_audit_nsfr_full` from the document layer (rows 1–34, four maturity
+buckets + weighted total, current + prior-year-end instances): 435
+partitions, local only. The per-block column model — rowno column by
+majority, phantom all-None columns dropped, total ALWAYS rightmost — is
+what fixed AKBNK's ratio landing in a bucket slot. Anchors: 96.8% current /
+91.9% prior-year-end vs narrow `nsfr`; the asf/rsf identity holds at 99.1%
+within 0.5 over 761 instances (a point calculation, so the tight band
+applies, unlike the weekly-averaged LCR). The mismatches now indict the
+NARROW lane: HALKB 2024Q3's wide 143.54 reproduces exactly from its own
+ASF/RSF cells against narrow's 133.51, and HSBC 2024Q1 likewise — three
+independent captured cells vs one. Four pinning tests.
+
 2026-08-20 — **The second graduation: the full LCR template, and the
 regulator did half the work.** BRSA numbers the LCR rows 1–23 and the
 capture kept the numbers as cells, so `bank_audit_lcr_full` joins on
