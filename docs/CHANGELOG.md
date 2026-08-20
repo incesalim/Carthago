@@ -5,6 +5,24 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The second graduation: the full LCR template, and the
+regulator did half the work.** BRSA numbers the LCR rows 1–23 and the
+capture kept the numbers as cells, so `bank_audit_lcr_full` joins on
+`template_row` across banks and languages — no label regex carries identity.
+`scripts/build_lcr_full.py` assembles BOTH printed tables per filing (current
+quarter and prior YEAR-END — the same BRSA prior-column convention the fx
+lane documented; AKBNK's Q2–Q4 2022 filings all printing 203.49 is what
+exposed it), splits instances on a number restart, scales money at mint,
+never scales the percent row, and repairs ALBRK's three-decimal integer
+misparse while leaving ENPARA's genuine 34,221.52% untouched (the decimals
+are the discriminator). Fleet: 656 partitions / 28,915 rows, local only.
+Anchors: current LCR 94.3%/94.8% vs the narrow pair, prior instance 93.3% vs
+December's narrow row — with part of the residue indicting the NARROW lane
+(ATBANK's stale-copy fingerprint). The 23≈21/22 identity reads 82.0% within
+0.5 and 94.2% within 10, the wide band being the honest one: row 23 is the
+average of weekly ratios, not the ratio of the averaged rows. Five pinning
+tests; NSFR (rows 1–34) is the named next graduation.
+
 2026-08-20 — **The first lane graduated from the document layer: the full
 own-funds table.** The capital pilot proves the agreed architecture — new
 analytical coverage minted from captured grids, never from a PDF.
