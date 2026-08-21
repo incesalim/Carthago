@@ -592,3 +592,60 @@ def test_section4_matrices_family_by_vocabulary_tails_and_identity(tmp_path):
     groles = {x["role"]: dict(x["cells"]) for x in g["rows"]}
     assert groles["total_liabilities"]["demand"] == 31.0         # from the continuation block
     assert groles["gap"]["unallocated"] == 1.0 and groles["loans"]["y5_plus"] == 5.0
+
+
+def test_sector_families_hierarchy_gate_and_group_repairs(tmp_path):
+    SE = _load("build_sector_full")
+    # loans by currency, English, the industry group printed "Manufacturing"
+    albrk = [
+        ("Agricultural", [400.0, 2.0, 60.0, 0.4]),
+        ("Farming and stockbreeding", [300.0, 1.5, 10.0, 0.1]),
+        ("Forestry", [95.0, 0.4, 50.0, 0.3]),
+        ("Fishery", [5.0, 0.1, "-", "-"]),
+        ("Manufacturing", [5000.0, 22.0, 6000.0, 35.0]),
+        ("Mining", [100.0, 0.4, 50.0, 0.3]),
+        ("Production", [4500.0, 20.0, 5400.0, 31.0]),
+        ("Electricity, gas and water", [400.0, 1.6, 550.0, 3.7]),
+        ("Construction", [1000.0, 4.0, 2000.0, 12.0]),
+        ("Services", [3000.0, 13.0, 4000.0, 23.0]),
+        ("Wholesale and retail trade", [3000.0, 13.0, 4000.0, 23.0]),
+        ("Other", [600.0, 3.0, 940.0, 5.0]),
+        ("Total", [10000.0, 44.0, 13000.0, 75.4]),
+    ]
+    # stage 2 / 3 / ECL, the agriculture group row wearing a header fragment
+    deniz = [
+        ("Değer Kaybına Uğramış (TFRS Tam)", [50.0, 20.0, 10.0]),
+        ("Çiftçilik ve Hayvancılık", [40.0, 15.0, 8.0]),
+        ("Ormancılık", [10.0, 5.0, 2.0]),
+        ("Sanayi", [100.0, 40.0, 30.0]),
+        ("Madencilik ve Taşocakçılığı", [100.0, 40.0, 30.0]),
+        ("İnşaat", [20.0, 10.0, 5.0]),
+        ("Hizmetler", [30.0, 10.0, 5.0]),
+        ("Ulaşım ve Haberleşme", [30.0, 10.0, 5.0]),
+        ("Diğer", [5.0, 5.0, 5.0]),
+        ("Toplam", [205.0, 85.0, 55.0]),
+    ]
+    broken = [(lab, [v * 2 if i == 9 else v for v in cells]) for i, (lab, cells) in enumerate(deniz)]
+    db = _db(tmp_path, [(70, 1, "bin", albrk), (80, 1, "bin", deniz), (81, 1, "bin", broken)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=? WHERE page=70",
+               (json.dumps(["TRL", "Current (%)", "Period FC", ""]),))
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=? WHERE page>=80",
+               (json.dumps(["Stage 2", "Stage 3", "Provisions"]),))
+    db.commit()
+    got = SE.assemble(db, KEY)
+    fams = [(i["family"], SE._hierarchy_holds(i["rows"], "tl" if i["family"] == "loans_currency" else "stage2", 1.0))
+            for i in got["instances"]]
+    assert fams == [("loans_currency", True), ("stage_ecl", True), ("stage_ecl", False)]
+    a = {x["sector"]: dict(x["cells"]) for x in got["instances"][0]["rows"]}
+    assert a["mfg_total"]["tl"] == 5000.0 and a["mfg_production"]["tl"] == 4500.0
+    assert a["agri_fishery"]["fc"] is None and a["total"]["fc_pct"] == 75.4
+    d = {x["sector"]: dict(x["cells"]) for x in got["instances"][1]["rows"]}
+    assert d["agri_total"]["stage2"] == 50.0 and d["svc_transport"]["ecl"] == 5.0
+    # the risk profile's numeric header row and its class-name fallback
+    assert SE._class_header([{"label": "h", "cells": [float(i) for i in range(1, 18)] + ["TP", "YP", "Toplam"]}]) \
+        == {**{i: f"class_{i + 1}" for i in range(17)}, 17: "tl", 18: "fc", 19: "total"}
+    names = ["Merkezi Yönetimlerden", "Bölgesel", "İdari Birimler", "Çok Taraflı", "Uluslararası Teşkilatlar",
+             "Bankalar ve Aracı", "Kurumsal", "Perakende", "İkamet", "Ticari Amaçlı", "Tahsili Gecikmiş",
+             "Riski Yüksek", "Teminatlı Menkul", "Menkul Kıymetleştirme", "Kolektif", "Hisse Senedi", "Diğer Alacaklar",
+             "TP", "YP", "Toplam"]
+    assert SE._classes_from_labels(names, 20)[16] == "class_17"

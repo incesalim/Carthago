@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The seventeenth graduation: the sector template, five
+families.** `scripts/build_sector_full.py` mints every notes table printed
+on BRSA's sector rows — the Pillar 3 risk profile by sector (17 exposure
+classes), cash loans by currency, stage 2/3 and ECL, NPL and provisions,
+a current/prior pair — under one hierarchy gate (groups = Σ items, total =
+Σ groups). The gated stage/ECL cells agree with the narrow loans_by_sector
+lane on 80.6%; the rest is that lane's repair list. 348 filings / 103,351
+rows. Seventeen lanes graduated.
+
 2026-08-21 — **The sixteenth graduation: the three Section-4 matrices,
 529,101 rows, and the band-matrix module.** The column model built for
 deposits by maturity moved to `src/audit_reports/band_matrix.py` with a
