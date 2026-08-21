@@ -1,0 +1,330 @@
+#!/usr/bin/env python
+"""The TL/FC notes graduation: the small NOTES-section tables printed as
+items × (TL, FC) × (current, prior), each a breakdown of one statement
+line — minted from the document layer under a family registry:
+
+  interest_on_loans        short-term, medium/long-term, NPL interest, fund
+                           premiums        → P&L interest on loans
+  interest_from_banks      CBRT, domestic banks, foreign banks, branches
+                           abroad          → P&L interest from banks
+  interest_on_securities   FVTPL, FVOCI, amortised cost
+                                           → P&L interest on securities
+  interest_on_borrowings   banks (CBRT, domestic, foreign, branches abroad),
+                           other institutions
+                                           → P&L interest on funds borrowed
+  funds_borrowed           CBRT loans, domestic banks and institutions,
+                           foreign banks, funds
+                                           → BS funds borrowed
+
+The balance-sheet "banks" note prints the interest-from-banks rows under
+the assets section; it anchors to nothing the narrow lanes hold and is
+left unminted (the contents item the block sits under tells them apart).
+
+Rows carry a registry role (with a parent where the note nests: the
+borrowings note's "to banks" heads four sub-rows); the label is kept.
+MINT GATE: total = Σ top-level rows and head = Σ its children, on the
+current TL and FC columns. Anchor, dry-run (default): current TL + FC of
+the total vs the family's narrow statement line (bank_audit_profit_loss /
+bank_audit_balance_sheet, same filing).
+
+`--write` stores into bank_audit_tl_fc_note_full in
+data/bank_audit_tables.db (local only; never the audit snapshot, not D1).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sqlite3
+import sys
+from collections import Counter
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
+
+from src.audit_reports import units as U  # noqa: E402
+from src.audit_reports.numbered_template import fold, num  # noqa: E402
+
+TABLES_DB = REPO / "data" / "bank_audit_tables.db"
+AUDIT_DB = REPO / "data" / "bank_audit.db"
+
+R = re.compile
+# family -> (statement, narrow item regex, [(role, parent, label regex)])
+FAMILIES: dict[str, tuple[str, re.Pattern, list[tuple[str, str | None, re.Pattern]]]] = {
+    "interest_on_loans": ("pl", R(r"^KREDILERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) LOANS"), [
+        ("short_term", None, R(r"^KISA VADELI|^SHORT.?TERM")),
+        ("medium_long_term", None, R(r"^ORTA VE UZUN|^MEDIUM|^LONG.?TERM")),
+        ("npl_interest", None, R(r"^TAKIPTEKI|^INTEREST ON (NON.?PERFORMING|NPL|LOANS UNDER FOLLOW)")),
+        ("fund_premiums", None, R(r"^KAYNAK KUL|^PREMIUMS? (RECEIVED )?FROM|^RESOURCE UTILI")),
+    ]),
+    "interest_from_banks": ("pl", R(r"^BANKALARDAN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) BANKS|^INTEREST RECEIVED FROM BANKS"), [
+        ("cbrt", None, R(r"^T\.?C\.? ?MERKEZ BANKASINDAN|^TCMB|^CBRT|^(FROM )?(THE )?CENTRAL BANK")),
+        ("domestic_banks", None, R(r"^YURT ?ICI BANKALAR|^DOMESTIC BANK")),
+        ("foreign_banks", None, R(r"^YURT ?DISI BANKALAR|^FOREIGN BANK")),
+        ("branches_abroad", None, R(r"^YURT ?DISI MERKEZ|^(FOREIGN |ABROAD )?(HEAD.?OFFICE|BRANCHES)")),
+    ]),
+    "interest_on_securities": ("pl", R(r"^MENKUL DEGERLERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) (MARKETABLE )?SECURITIES"), [
+        ("fvtpl", None, R(r"^GERCEGE UYGUN DEGER FARKI KAR|^FINANCIAL ASSETS AT FAIR VALUE THROUGH PROFIT|^ALIM SATIM|^TRADING|^FVTPL")),
+        ("fvoci", None, R(r"^GERCEGE UYGUN DEGER FARKI DIGER|^FINANCIAL ASSETS AT FAIR VALUE THROUGH OTHER|^SATILMAYA HAZIR|^AVAILABLE|^FVOCI")),
+        ("amortised_cost", None, R(r"^ITFA EDILMIS|^AMORTI[SZ]ED|^FINANCIAL ASSETS (MEASURED )?AT AMORTI|^VADEYE KADAR|^HELD.?TO")),
+    ]),
+    "interest_on_borrowings": ("pl", R(r"^KULLANILAN KREDILERE VERILEN FAIZ|^INTEREST (EXPENSE )?ON (FUNDS )?BORROW|^INTEREST (PAID )?ON LOANS"), [
+        ("banks", None, R(r"^BANKALARA$|^BANKS$|^TO BANKS|^BANKALARA\b")),
+        ("cbrt", "banks", R(r"^T\.?C\.? ?MERKEZ BANKASINA|^TCMB|^CBRT|^(TO )?(THE )?CENTRAL BANK")),
+        ("domestic_banks", "banks", R(r"^YURT ?ICI BANKALARA|^DOMESTIC BANK")),
+        ("foreign_banks", "banks", R(r"^YURT ?DISI BANKALARA|^FOREIGN BANK")),
+        ("branches_abroad", "banks", R(r"^YURT ?DISI MERKEZ|^(FOREIGN |ABROAD )?(HEAD.?OFFICE|BRANCHES)")),
+        ("other_institutions", None, R(r"^DIGER KURULUS|^OTHER (FINANCIAL )?INSTITUTION|^OTHER$")),
+    ]),
+    "funds_borrowed": ("bs", R(r"^ALINAN KREDILER|^FUNDS BORROWED|^BORROWINGS"), [
+        ("cbrt_loans", None, R(r"^T\.?C\.? ?MERKEZ BANKASI KREDI|^(FROM )?(THE )?CENTRAL BANK|^CBRT|^TCMB")),
+        ("domestic", None, R(r"^YURT ?ICI BANKA|^(FROM )?DOMESTIC (BANKS|INSTITUTIONS)")),
+        ("foreign", None, R(r"^YURT ?DISI BANKA|^(FROM )?FOREIGN (BANKS|INSTITUTIONS)")),
+        ("funds", None, R(r"^FONLAR|^FUNDS$|^FROM FUNDS")),
+    ]),
+}
+_TOTAL = R(r"^TOPLAM|^TOTAL")
+VALUES = ("tl_current", "fc_current", "tl_prior", "fc_prior")
+_FIRST_ROLE = {"interest_on_loans": "short_term", "interest_from_banks": "cbrt",
+               "interest_on_securities": "fvtpl", "interest_on_borrowings": "banks",
+               "funds_borrowed": "cbrt_loans"}
+_CTX = {  # words in the block heading / labels that confirm a family when first rows tie
+    "interest_on_loans": R(r"FAIZ|INTEREST"), "interest_from_banks": R(r"FAIZ|INTEREST"),
+    "interest_on_securities": R(r"FAIZ|INTEREST"), "interest_on_borrowings": R(r"FAIZ|INTEREST"),
+    "funds_borrowed": R(r"KREDI|BORROW|FUND"),
+}
+
+DDL = """
+CREATE TABLE IF NOT EXISTS bank_audit_tl_fc_note_full (
+    bank_ticker  TEXT NOT NULL,
+    period       TEXT NOT NULL,
+    kind         TEXT NOT NULL,
+    family       TEXT NOT NULL,
+    instance_no  INTEGER NOT NULL,
+    row_order    INTEGER NOT NULL,
+    label        TEXT NOT NULL,
+    row_role     TEXT,
+    parent_role  TEXT,
+    -- canonical thousand TL (scaled at mint). NULL = the filing printed "-".
+    tl_current   REAL,
+    fc_current   REAL,
+    tl_prior     REAL,
+    fc_prior     REAL,
+    page         INTEGER NOT NULL,
+    block_id     INTEGER NOT NULL,
+    source_unit  TEXT,
+    PRIMARY KEY (bank_ticker, period, kind, family, instance_no, row_order)
+);
+CREATE INDEX IF NOT EXISTS idx_tl_fc_note_full_role
+  ON bank_audit_tl_fc_note_full(family, row_role);
+"""
+
+
+def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]:
+    out = []
+    for lab in labels:
+        f = fold(lab).strip()
+        hit = (None, None)
+        if _TOTAL.search(f):
+            hit = ("total", None)
+        else:
+            for role, parent, rx in FAMILIES[fam][2]:
+                if rx.search(f):
+                    hit = (role, parent)
+                    break
+        out.append(hit)
+    return out
+
+
+def family_of(grid: list[dict], heading: str | None) -> str | None:
+    if not 3 <= len(grid) <= 10 or len(grid[0]["cells"]) != 4:
+        return None
+    labels = [(r["label"] or "").strip() for r in grid]
+    if not any(_TOTAL.search(fold(lab)) for lab in labels):
+        return None
+    best, best_n = None, 0
+    for fam in FAMILIES:
+        rs = roles_of(fam, labels)
+        if rs[0][0] != _FIRST_ROLE[fam]:
+            continue
+        n = sum(1 for role, _p in rs if role and role != "total")
+        if n >= 2 and n > best_n and _CTX[fam].search(fold(heading or "") + " " + fold(" ".join(labels))):
+            best, best_n = fam, n
+    return best
+
+
+def _identity_holds(rows: list[dict], step: float) -> bool:
+    def close(a, b):
+        return abs(a - b) <= max(2.0 * step, 1e-5 * abs(b))
+    tot = next((x for x in rows if x["role"] == "total"), None)
+    if tot is None:
+        return False
+    ok = 0
+    for col in ("tl_current", "fc_current"):
+        t = tot[col]
+        top = [x[col] for x in rows if x["role"] not in ("total", None) and x["parent"] is None]
+        if t is None:
+            continue
+        if not close(sum(v for v in top if v is not None), t):
+            return False
+        for head in rows:
+            if head["role"] and head["parent"] is None and head[col] is not None:
+                kids = [x[col] for x in rows if x["parent"] == head["role"] and x[col] is not None]
+                if len(kids) >= 2 and not close(sum(kids), head[col]):
+                    return False
+        ok += 1
+    return ok >= 1
+
+
+def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
+    blocks = tab.execute(
+        "SELECT page, block_id, heading, item_title, grid_json, declared_unit "
+        "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
+        "AND kind=? ORDER BY page, block_id", key).fetchall()
+    found = []
+    for pg, bid, heading, item_title, g, unit in blocks:
+        grid = json.loads(g)
+        fam = family_of(grid, heading)
+        if fam == "interest_from_banks":
+            # the balance-sheet "banks" note prints the same rows under the
+            # assets section and anchors to nothing the narrow lanes hold;
+            # the contents item the block sits under tells them apart
+            ctx = fold(item_title or "")
+            if re.search(r"BILANCO|BALANCE SHEET|AKTIF|ASSETS|VARLIK", ctx) and not re.search(
+                    r"GELIR TABLOSU|PROFIT OR LOSS|INCOME STATEMENT|KAR VEYA ZARAR", ctx):
+                fam = None
+        if fam:
+            found.append((fam, pg, bid, heading, grid, unit))
+    if not found:
+        return None
+    unit = found[0][5]
+    factor = U.UNIT_SCALE.get(unit)
+    instances = []
+    for fam, pg, bid, heading, grid, _u in found:
+        labels = [(r["label"] or "").strip() for r in grid]
+        rs = roles_of(fam, labels)
+        rows = []
+        for r, lab, (role, parent) in zip(grid, labels, rs):
+            if not lab:
+                continue
+            vals = [num(c) for c in r["cells"][-4:]]
+            vals = [None] * (4 - len(vals)) + vals
+            if factor is not None:
+                vals = [U.scale_amount(v, factor) for v in vals]
+            row = {"label": lab, "role": role, "parent": parent, "page": pg, "block_id": bid}
+            row.update(zip(VALUES, vals))
+            rows.append(row)
+        instances.append({"family": fam, "rows": rows, "heading": heading})
+    return {"unit": unit, "step": float(factor or 1.0), "instances": instances}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--tables-db", default=str(TABLES_DB))
+    ap.add_argument("--audit-db", default=str(AUDIT_DB))
+    ap.add_argument("--bank")
+    ap.add_argument("--period")
+    ap.add_argument("--kind")
+    ap.add_argument("--write", action="store_true")
+    args = ap.parse_args()
+
+    tab = sqlite3.connect(f"file:{args.tables_db}?mode=ro", uri=True)
+    aud = sqlite3.connect(f"file:{args.audit_db}?mode=ro", uri=True)
+    out = None
+    if args.write:
+        out = sqlite3.connect(args.tables_db)
+        out.executescript(DDL)
+
+    where, params = [], []
+    for col, val in (("bank_ticker", args.bank), ("period", args.period),
+                     ("kind", args.kind)):
+        if val:
+            where.append(f"{col}=?")
+            params.append(val.upper() if col != "kind" else val)
+    keys = [tuple(r) for r in tab.execute(
+        "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_document_tables"
+        + (" WHERE " + " AND ".join(where) if where else "") + " ORDER BY 1,2,3",
+        params)]
+
+    def narrow(key, fam) -> list[float]:
+        statement, rx, _roles = FAMILIES[fam]
+        try:
+            if statement == "pl":
+                rows = aud.execute("SELECT item_name, amount FROM bank_audit_profit_loss WHERE "
+                                   "bank_ticker=? AND period=? AND kind=?", key)
+            else:
+                rows = aud.execute("SELECT item_name, amount_total FROM bank_audit_balance_sheet WHERE "
+                                   "bank_ticker=? AND period=? AND kind=?", key)
+            return [v for name, v in rows if v is not None and rx.search(fold(name or "").strip())]
+        except sqlite3.OperationalError:
+            return []
+
+    detected = written = gated = 0
+    fams: Counter = Counter()
+    anchors: dict[str, list[int]] = {f: [0, 0] for f in FAMILIES}
+    role_cov = [0, 0]
+    unrole: Counter = Counter()
+    for key in keys:
+        got = assemble(tab, key)
+        if got is None:
+            continue
+        detected += 1
+        kept = []
+        for inst in got["instances"]:
+            if not _identity_holds(inst["rows"], got["step"]):
+                gated += 1
+                continue
+            fam = inst["family"]
+            tot = next(x for x in inst["rows"] if x["role"] == "total")
+            grand = None
+            if tot["tl_current"] is not None or tot["fc_current"] is not None:
+                grand = (tot["tl_current"] or 0.0) + (tot["fc_current"] or 0.0)
+            fams[fam] += 1
+            kept.append(inst)
+            if grand is not None:
+                ref = narrow(key, fam)
+                if ref:
+                    anchors[fam][1] += 1
+                    anchors[fam][0] += int(any(abs(grand - v) <= max(2.0, 1e-3 * abs(v)) for v in ref))
+            for x in inst["rows"]:
+                if any(x[v] is not None for v in VALUES):
+                    role_cov[1] += 1
+                    role_cov[0] += int(x["role"] is not None)
+                    if x["role"] is None:
+                        unrole[(fam, fold(x["label"])[:40])] += 1
+        if not kept:
+            continue
+        if out is not None:
+            out.execute("DELETE FROM bank_audit_tl_fc_note_full WHERE bank_ticker=? AND period=? AND kind=?", key)
+            n_by: Counter = Counter()
+            for inst in kept:
+                n = n_by[inst["family"]]
+                n_by[inst["family"]] += 1
+                out.executemany(
+                    "INSERT INTO bank_audit_tl_fc_note_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [(*key, inst["family"], n, i, x["label"], x["role"], x["parent"],
+                      *(x[v] for v in VALUES), x["page"], x["block_id"], got["unit"])
+                     for i, x in enumerate(inst["rows"])])
+                written += len(inst["rows"])
+            out.commit()
+
+    print(f"\npartitions: {len(keys)} scanned | detected {detected} | instances refused by the identities: {gated}")
+    if fams:
+        print(f"instances kept by family: {dict(fams.most_common())}")
+    for fam, b in anchors.items():
+        if b[1]:
+            print(f"  {fam:26} total TL+FC vs narrow statement line  {b[0]:5}/{b[1]:5}  {b[0] / b[1]:6.1%}")
+    if role_cov[1]:
+        print(f"  value-bearing rows with a role: {role_cov[0]}/{role_cov[1]} ({role_cov[0] / role_cov[1]:.1%})")
+    for (fam, lab), c in unrole.most_common(10):
+        print(f"    unrecognised x{c} [{fam}]: {lab}")
+    if out is not None:
+        print(f"\nwrote {written:,} rows to bank_audit_tl_fc_note_full")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    raise SystemExit(main())

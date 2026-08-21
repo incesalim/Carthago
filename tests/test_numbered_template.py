@@ -649,3 +649,43 @@ def test_sector_families_hierarchy_gate_and_group_repairs(tmp_path):
              "Riski Yüksek", "Teminatlı Menkul", "Menkul Kıymetleştirme", "Kolektif", "Hisse Senedi", "Diğer Alacaklar",
              "TP", "YP", "Toplam"]
     assert SE._classes_from_labels(names, 20)[16] == "class_17"
+
+
+def test_tl_fc_notes_families_nesting_and_gate(tmp_path):
+    TF = _load("build_tl_fc_note_full")
+    loans = [
+        ("Kısa Vadeli Kredilerden", [100.0, 10.0, 50.0, 6.0]),
+        ("Orta ve Uzun Vadeli Kredilerden", [200.0, 20.0, 60.0, 14.0]),
+        ("Takipteki Alacaklardan Alınan Faizler", [5.0, "-", 1.0, "-"]),
+        ("Kaynak Kul. Destekleme Fonundan Alınan Primler", ["-", "-", "-", "-"]),
+        ("Toplam", [305.0, 30.0, 111.0, 20.0]),
+    ]
+    borrowings = [   # nested: "Bankalara" heads four sub-rows
+        ("Bankalara", [24.0, 74.0, 10.0, 57.0]),
+        ("T.C. Merkez Bankasına", ["-", "-", "-", "-"]),
+        ("Yurtiçi Bankalara", [24.0, 2.0, 10.0, 1.0]),
+        ("Yurtdışı Bankalara", ["-", 72.0, "-", 56.0]),
+        ("Yurtdışı Merkez ve Şubelere", ["-", "-", "-", "-"]),
+        ("Diğer Kuruluşlara", ["-", 10.0, "-", 8.0]),
+        ("Toplam", [24.0, 84.0, 10.0, 65.0]),
+    ]
+    broken = [(lab, cells) for lab, cells in loans[:-1]] + [("Toplam", [999.0, 30.0, 111.0, 20.0])]
+    banks_bs = [   # the balance-sheet banks note, same rows as interest-from-banks: not minted
+        ("T.C. Merkez Bankası", [1.0, 2.0, 1.0, 2.0]),
+        ("Yurtiçi Bankalar", [3.0, 4.0, 3.0, 4.0]),
+        ("Yurtdışı Bankalar", ["-", 5.0, "-", 5.0]),
+        ("Toplam", [4.0, 11.0, 4.0, 11.0]),
+    ]
+    db = _db(tmp_path, [(120, 1, "bin", loans), (121, 1, "bin", borrowings), (122, 1, "bin", broken),
+                        (60, 1, "bin", banks_bs)])
+    db.execute("UPDATE bank_audit_document_tables SET heading='Kredilerden alınan faiz gelirleri TP YP TP YP', "
+               "item_title='Gelir tablosuna ilişkin açıklama ve dipnotlar' WHERE page>=120")
+    db.execute("UPDATE bank_audit_document_tables SET heading='Bankalara ilişkin bilgiler', "
+               "item_title='Bilançonun aktif hesaplarına ilişkin açıklama ve dipnotlar' WHERE page=60")
+    db.commit()
+    got = TF.assemble(db, KEY)
+    fams = [(i["family"], TF._identity_holds(i["rows"], got["step"])) for i in got["instances"]]
+    assert fams == [("interest_on_loans", True), ("interest_on_borrowings", True), ("interest_on_loans", False)]
+    b = {x["role"]: x for x in got["instances"][1]["rows"]}
+    assert b["foreign_banks"]["parent"] == "banks" and b["foreign_banks"]["fc_current"] == 72.0
+    assert b["other_institutions"]["parent"] is None and b["total"]["fc_prior"] == 65.0

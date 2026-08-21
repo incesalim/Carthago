@@ -5,6 +5,16 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The eighteenth graduation: the TL/FC breakdown notes.**
+`scripts/build_tl_fc_note_full.py` mints five small notes (interest on
+loans / from banks / on securities / on funds borrowed, and funds borrowed)
+as items × (TL, FC) × (current, prior) under one registry, gated by their
+totals and nesting; their totals tie to the narrow P&L / BS lines on 100%
+(loans, funds borrowed) to 84% (from banks, where the narrow P&L sometimes
+lacks the line). The balance-sheet banks note wears the same rows and is
+left out by its contents item. 627 filings / 5,452 rows. Eighteen lanes
+graduated.
+
 2026-08-21 — **The narrow lanes audited by the wide ones.**
 `scripts/audit_narrow_vs_wide.py` names every narrow row a gated wide lane
 contradicts: 1,199 — 1,121 of them stage/ECL cells in loans_by_sector at
