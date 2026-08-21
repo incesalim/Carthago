@@ -253,7 +253,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
                     continue
                 cells = r["cells"]
                 if all(c is None or num(c) in (1.0, 2.0, 3.0) for c in cells) and any(c is not None for c in cells) \
-                        and re.match(r"(STAGE ?\d?|\d\.? ?ASAMA|CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD)",
+                        and re.match(r"(STAGE ?\d?|\d\.? ?ASAMA|CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD)\b",
                                      fold(label).strip()):
                     continue                      # "Stage 1 2 3": the header's digits in a row of their own
                 vals = []
