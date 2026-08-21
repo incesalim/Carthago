@@ -393,3 +393,63 @@ def test_cr2_conventions_one_column_shift_and_mint_gate(tmp_path):
     assert pri[1]["convention"] == "signed"
     assert pri[4]["amount"] == -39867.0 and pri[4]["amount_prior"] is None   # one column, shifted left
     assert pri[3]["amount"] is None
+
+
+def test_cr5_column_model_reads_split_headers_and_label_roles(tmp_path):
+    RW = _load("build_risk_weight_full")
+    # ALBRK 2022Q2: the secured column's weight is on a header line above
+    # ("35% secured by" / "mortgage"), the 250% column is printed "25" over
+    # "0", the others column is labelled "%150 %250 Diğerleri".
+    header_rows = [
+        ("Current Period", [None, None, None, None, "35% secured by", None, None, None, None, 25.0, None, "Total risk amount"]),
+        ("Property", [None, None, None, None, None, None, None, None, None, 0.0, None, "(post-CCF and"]),
+        ("Risk Classes/Risk Weighted", [None, 0.0, 10.0, 20.0, "mortgage", 50.0, 75.0, 100.0, 150.0, "150% %", "Others", "CRM)"]),
+    ]
+    body = [
+        ("1 Central governments or central banks", [1.0, 100.0, "-", "-", "-", "-", "-", "-", "-", "-", "-", 100.0]),
+        ("6 Banks and intermediary institutions", [6.0, "-", "-", 40.0, "-", 60.0, "-", "-", "-", "-", "-", 100.0]),
+        ("7 Corporates", [7.0, "-", "-", "-", "-", "-", "-", 500.0, "-", 10.0, 5.0, 515.0]),
+        ("9 Secured by residential property", [9.0, "-", "-", "-", 30.0, "-", "-", "-", "-", "-", "-", 30.0]),
+        ("17 Other receivables", [17.0, 7.0, "-", "-", "-", "-", "-", 3.0, "-", "-", "-", 10.0]),
+        ("18 Total", [18.0, 107.0, "-", 40.0, 30.0, 60.0, "-", 503.0, "-", 10.0, 5.0, 755.0]),
+    ]
+    labels = ["", "0%", "10%", "20%", "secured by Property mortgage", "50%", "75%", "100%", "150%", "", "Others", "risk amount (post-CCF and CRM)"]
+    db = _db(tmp_path, [(56, 1, "bin", header_rows + body)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?", (json.dumps(labels),))
+    db.commit()
+    got = RW.assemble(db, KEY)
+    inst = got["instances"]["current"]
+    assert RW._identity_holds(inst, got["step"])
+    tot = {x["col_order"]: x for x in inst if x["role"] == "total"}
+    model = [(x["col_role"], x["risk_weight"], x["secured_re"]) for x in tot.values()]
+    assert model == [("weight", 0.0, 0), ("weight", 10.0, 0), ("weight", 20.0, 0),
+                     ("weight", 35.0, 1), ("weight", 50.0, 0), ("weight", 75.0, 0),
+                     ("weight", 100.0, 0), ("weight", 150.0, 0), ("weight", 250.0, 0),
+                     ("other", None, 0), ("total", None, 0)]
+    assert {x["role"] for x in inst if x["template_row"] == 9} == {"residential_mortgage"}
+    assert {x["role"] for x in inst if x["template_row"] == 6} == {"banks_and_brokers"}
+    # a 2016-vintage matrix totals on row 17 — the total is found by label
+    old = [("1 Merkezi yönetimlerden alacaklar", [1.0, 5.0, "-", "-", "-", "-", "-", "-", "-", 5.0]),
+           ("7 Kurumsal alacaklar", [7.0, "-", "-", 1.0, "-", 2.0, "-", 3.0, "-", 6.0]),
+           ("8 Perakende alacaklar", [8.0, "-", "-", "-", "-", "-", 4.0, "-", "-", 4.0]),
+           ("16 Diğer alacaklar", [16.0, 1.0, "-", "-", "-", "-", "-", 1.0, "-", 2.0]),
+           ("17 Toplam", [17.0, 6.0, "-", 1.0, "-", 2.0, 4.0, 4.0, "-", 17.0])]
+    labels2 = ["", "%0", "%10", "%20", "%35", "%50", "%75", "%100", "Diğerleri", "Toplam"]
+    db2 = _db(tmp_path / "b", [(10, 1, "bin", old)]) if (tmp_path / "b").mkdir() is None else None
+    db2.execute("UPDATE bank_audit_document_tables SET col_labels_json=?", (json.dumps(labels2),))
+    db2.commit()
+    got2 = RW.assemble(db2, KEY)
+    assert RW._identity_holds(got2["instances"]["current"], got2["step"])
+    # a filing in millions tolerates its own rounding once scaled
+    assert RW._identity_holds([
+        {"template_row": 1, "role": "x", "col_role": "weight", "col_order": 0, "amount": 1000.0},
+        {"template_row": 1, "role": "x", "col_role": "total", "col_order": 1, "amount": 2000.0},
+        {"template_row": 2, "role": "x", "col_role": "weight", "col_order": 0, "amount": 1000.0},
+        {"template_row": 2, "role": "x", "col_role": "total", "col_order": 1, "amount": 1000.0},
+        {"template_row": 3, "role": "x", "col_role": "weight", "col_order": 0, "amount": 1000.0},
+        {"template_row": 3, "role": "x", "col_role": "total", "col_order": 1, "amount": 1000.0},
+        {"template_row": 4, "role": "x", "col_role": "weight", "col_order": 0, "amount": 1000.0},
+        {"template_row": 4, "role": "x", "col_role": "total", "col_order": 1, "amount": 1000.0},
+        {"template_row": 18, "role": "total", "col_role": "weight", "col_order": 0, "amount": 4000.0},
+        {"template_row": 18, "role": "total", "col_role": "total", "col_order": 1, "amount": 5000.0},
+    ], step=1000.0)

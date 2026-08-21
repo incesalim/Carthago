@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The thirteenth graduation: the CR5 risk-weight matrix, 89,160
+rows.** `scripts/build_risk_weight_full.py` stores asset class × risk weight
+LONG. The matrix's header was the whole problem: weights vary by bank, a
+"250%" prints as "25" over "0", the mortgage-secured columns wrap their
+weight onto the line above and repeat a plain weight, the "others" column
+mentions "%150 %250" in its label, and the 2016 template totals on row 17.
+Every column live in a numbered row is a value column, the total is the
+rightmost column live in the total row, weights are read from all header
+fragments under a non-decreasing rule with secured/plain twins, roles are
+label-based. Refusals 397 → 75; grand total ties to CR4's post-CRM exposure
+on 94%. 248 filings. Thirteen lanes graduated.
+
 2026-08-21 — **The twelfth graduation: CR2 defaulted-exposure movement.**
 `scripts/build_defaulted_movement_full.py` mints the numbered 1–6 form.
 Banks disagree on signs — AKBNK prints every line positive and subtracts
