@@ -36,28 +36,41 @@ from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 
-_FIRST = re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(TP|TL)")
-_TOTAL = re.compile(r"^TOPLAM$|^TOTAL$")
+_FIRST = re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(TP|TL|TRY|TRL)")
+# DENIZ / ING / AKTIF: the note title carries the consumer-TL figures, the
+# row's own label lost to the capture
+_TITLE = re.compile(r"^(\d+(\.\d+)*\.?\s*)?(TUKETICI KREDILERI, BIREYSEL|CONSUMER LOANS, (INDIVIDUAL|RETAIL))")
+_TOTAL = re.compile(r"^TOPLAM ?(\(\*+\))?$|^TOTAL ?(\(\*+\))?$|^TOPLAM TUKETICI KREDI|^TOTAL CONSUMER LOANS?$")
+_HEADER_ROW = re.compile(r"^(CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD|\d{1,2}[ .]|KISA VADELI|SHORT.?TERM|BILGILER$)")
 GROUPS: list[tuple[str, re.Pattern]] = [
-    ("consumer_fc_indexed", re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(DOVIZE ENDEKSLI|FC.?INDEXED|FX.?INDEXED)")),
+    ("consumer_fc_indexed", re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(DOVIZE ENDEKSLI|FC.?INDEXED|FX.?INDEXED|INDEXED TO)")),
     ("consumer_fc", re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(YP|FC|FX)\b")),
-    ("consumer_tl", re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(TP|TL)\b")),
-    ("retail_cards_fc", re.compile(r"^(BIREYSEL KREDI KARTLARI|RETAIL CREDIT CARDS|INDIVIDUAL CREDIT CARDS)\s*[-–]?\s*(YP|FC|FX)")),
-    ("retail_cards_tl", re.compile(r"^(BIREYSEL KREDI KARTLARI|RETAIL CREDIT CARDS|INDIVIDUAL CREDIT CARDS)\s*[-–]?\s*(TP|TL)")),
+    ("consumer_tl", re.compile(r"^(TUKETICI KREDILERI|CONSUMER LOANS)\s*[-–]?\s*(TP|TL|TRY|TRL)\b")),
+    ("retail_cards_fc", re.compile(r"^(BIREYSEL KREDI KARTLARI|RETAIL CREDIT CARDS|INDIVIDUAL CREDIT CARDS|CONSUMER CREDIT CARDS)\s*[-–]?\s*(YP|FC|FX)")),
+    ("retail_cards_tl", re.compile(r"^(BIREYSEL KREDI KARTLARI|RETAIL CREDIT CARDS|INDIVIDUAL CREDIT CARDS|CONSUMER CREDIT CARDS)\s*[-–]?\s*(TP|TL|TRY|TRL)")),
     ("personnel_cards_fc", re.compile(r"^(PERSONEL KREDI KARTLARI|PERSONNEL CREDIT CARDS)\s*[-–]?\s*(YP|FC|FX)")),
-    ("personnel_cards_tl", re.compile(r"^(PERSONEL KREDI KARTLARI|PERSONNEL CREDIT CARDS)\s*[-–]?\s*(TP|TL)")),
-    ("personnel_loans_fc_indexed", re.compile(r"^(PERSONEL KREDILERI|PERSONNEL LOANS)\s*[-–]?\s*(DOVIZE ENDEKSLI|FC.?INDEXED|FX.?INDEXED)")),
+    ("personnel_cards_tl", re.compile(r"^(PERSONEL KREDI KARTLARI|PERSONNEL CREDIT CARDS)\s*[-–]?\s*(TP|TL|TRY|TRL)")),
+    ("personnel_loans_fc_indexed", re.compile(r"^(PERSONEL KREDILERI|PERSONNEL LOANS)\s*[-–]?\s*(DOVIZE ENDEKSLI|FC.?INDEXED|FX.?INDEXED|INDEXED TO)")),
     ("personnel_loans_fc", re.compile(r"^(PERSONEL KREDILERI|PERSONNEL LOANS)\s*[-–]?\s*(YP|FC|FX)\b")),
-    ("personnel_loans_tl", re.compile(r"^(PERSONEL KREDILERI|PERSONNEL LOANS)\s*[-–]?\s*(TP|TL)\b")),
-    ("overdraft_fc", re.compile(r"^(KREDILI MEVDUAT HESABI|OVERDRAFT ACCOUNT)\s*[-–]?\s*(YP|FC|FX)")),
-    ("overdraft_tl", re.compile(r"^(KREDILI MEVDUAT HESABI|OVERDRAFT ACCOUNT)\s*[-–]?\s*(TP|TL)")),
+    ("personnel_loans_tl", re.compile(r"^(PERSONEL KREDILERI|PERSONNEL LOANS)\s*[-–]?\s*(TP|TL|TRY|TRL)\b")),
+    # overdrafts: "Kredili Mevduat Hesabı", the participation banks' "Kredili
+    # Müstakriz Hesabı", "Credit Deposit Account", and a bare "Deposit
+    # Accounts – TL (Real Persons)"; the personnel ones are their own group
+    ("overdraft_personnel_fc", re.compile(r"^(KREDILI (MEVDUAT|MUSTAKRIZ) HESA|OVERDRAFT ACCOUNTS?|CREDIT DEPOSIT ACCOUNTS?|DEPOSIT ACCOUNTS?)"
+                                          r"[^()]*[-–]\s*(YP|FC|FX)[^()]*\((PERSONEL|PERSONNEL)")),
+    ("overdraft_personnel_tl", re.compile(r"^(KREDILI (MEVDUAT|MUSTAKRIZ) HESA|OVERDRAFT ACCOUNTS?|CREDIT DEPOSIT ACCOUNTS?|DEPOSIT ACCOUNTS?)"
+                                          r"[^()]*[-–]\s*(TP|TL|TRY|TRL)[^()]*\((PERSONEL|PERSONNEL)")),
+    ("overdraft_fc", re.compile(r"^(KREDILI (MEVDUAT|MUSTAKRIZ) HESA|OVERDRAFT ACCOUNTS?|CREDIT DEPOSIT ACCOUNTS?|DEPOSIT ACCOUNTS?)"
+                                r"[^()]*[-–]\s*(YP|FC|FX)")),
+    ("overdraft_tl", re.compile(r"^(KREDILI (MEVDUAT|MUSTAKRIZ) HESA|OVERDRAFT ACCOUNTS?|CREDIT DEPOSIT ACCOUNTS?|DEPOSIT ACCOUNTS?)"
+                                r"[^()]*[-–]\s*(TP|TL|TRY|TRL)")),
 ]
 ITEMS: list[tuple[str, re.Pattern]] = [
-    ("housing", re.compile(r"^KONUT|^HOUSING|^MORTGAGE")),
-    ("vehicle", re.compile(r"^TASIT|^VEHICLE|^AUTO")),
+    ("housing", re.compile(r"^KONUT|^HOUSING|^MORTGAGE|^REAL ESTATE")),
+    ("vehicle", re.compile(r"^TASIT|^VEHICLE|^AUTO|^OTOMOBIL|^CAR LOAN")),
     ("general_purpose", re.compile(r"^IHTIYAC|^GENERAL PURPOSE|^CONSUMER LOANS$|^PERSONAL")),
-    ("instalment", re.compile(r"^TAKSITLI|^WITH.?INSTAL")),
-    ("non_instalment", re.compile(r"^TAKSITSIZ|^WITHOUT.?INSTAL|^NON.?INSTAL")),
+    ("non_instalment", re.compile(r"^TAKSITSIZ|^WITHOUT.?INSTAL|^NON.?.?INSTAL")),
+    ("instalment", re.compile(r"^TAKSITLI|^WITH.?INSTAL|^INSTAL")),
     ("other", re.compile(r"^DIGER|^OTHER")),
 ]
 VALUES = ("short_term", "long_term", "total")
@@ -103,6 +116,30 @@ CREATE INDEX IF NOT EXISTS idx_consumer_loan_full_group
 """
 
 
+def _normalise(grid: list[dict]) -> list[dict]:
+    """The grid from its consumer-TL row on: header rows above it dropped
+    (AKBNK: "Cari Dönem – 31.12.2025"), the note title relabelled as that
+    row where it carries the figures (DENIZ / ING / AKTIF), the header
+    rows between it and the first item dropped."""
+    out = []
+    started = False
+    for r in grid:
+        lab = fold(r["label"] or "").strip()
+        live = any(c is not None and not (isinstance(c, str) and not num(c)) for c in r["cells"])
+        if not started:
+            if _FIRST.search(lab):
+                started = True
+            elif _TITLE.search(lab) and live:
+                started = True
+                r = {**r, "label": "Tüketici Kredileri-TP"}
+            else:
+                continue
+        elif not live and _HEADER_ROW.search(lab):
+            continue
+        out.append(r)
+    return out
+
+
 def _is_family(grid: list[dict]) -> bool:
     if not grid or len(grid) < 8:
         return False
@@ -135,8 +172,9 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = [(pg, bid, grid, unit) for pg, bid, g, unit in blocks
-             if _is_family(grid := absorb_inline(json.loads(g), lambda lab: _group_of(lab) or _item_of(lab)
-                                               or ("total" if _TOTAL.search(fold(lab).strip()) else None)))]
+             if _is_family(grid := _normalise(absorb_inline(
+                 json.loads(g), lambda lab: _group_of(lab) or _item_of(lab)
+                 or ("total" if _TOTAL.search(fold(lab).strip()) else None))))]
     if not found:
         return None
     unit = found[0][3]

@@ -251,6 +251,50 @@ def test_consumer_loans_groups_items_and_row_identity_gate(tmp_path):
     assert by[(None, None)]["label"] == "Toplam"
 
 
+def test_consumer_loans_header_row_title_row_and_label_variants(tmp_path):
+    # AKBNK: a period header row above the first row; HALKB's "-TRY" suffix,
+    # "Real Estate Loans", a bare "Installment", "Toplam Tüketici Kredileri"
+    akbnk = [
+        ("Cari Dönem – 31.12.2025", ["Kısa Vadeli", "Uzun Vadeli", "Toplam"]),
+        ("Consumer Loans-TRY", [802.0, 15721.0, 16523.0]),
+        ("Real Estate Loans", [16.0, 14267.0, 14283.0]),
+        ("Vehicle Loans", [150.0, 529.0, 679.0]),
+        ("Consumer Loans", [635.0, 924.0, 1559.0]),
+        ("Other", ["-", "-", "-"]),
+        ("Individual Credit Cards-TRY", [100.0, "-", 100.0]),
+        ("Installment", [40.0, "-", 40.0]),
+        ("Non- Installment", [60.0, "-", 60.0]),
+        ("Overdraft Accounts-TRY (Retail Customers)(**)", [50.0, "-", 50.0]),
+        ("Toplam Tüketici Kredileri", [952.0, 15721.0, 16673.0]),
+    ]
+    # DENIZ: the note title carries the consumer-TL figures, then a header
+    # row, then the items
+    deniz = [
+        ("4. Tüketici Kredileri, Bireysel Kredi Kartları ve Personel Kredilerine İlişkin Bilgiler", [802.0, 15721.0, 16523.0]),
+        ("Kısa Vadeli Orta ve Uzun Vadeli Toplam", [None, None, None]),
+        ("Konut Kredisi", [16.0, 14267.0, 14283.0]),
+        ("Taşıt Kredisi", [150.0, 529.0, 679.0]),
+        ("İhtiyaç Kredisi", [635.0, 924.0, 1559.0]),
+        ("Diğer", ["-", "-", "-"]),
+        ("Kredili Müstakriz Hesabı-TP (Gerçek Kişi)", [50.0, "-", 50.0]),
+        ("Kredili Mevduat Hesabı-TP (Personel)", [5.0, "-", 5.0]),
+        ("Toplam(*)", [857.0, 15721.0, 16578.0]),
+    ]
+    db = _db(tmp_path, [(91, 1, "bin", akbnk), (97, 1, "bin", deniz)])
+    got = CL.assemble(db, KEY)
+    cur, pri = got["instances"]["current"], got["instances"]["prior"]
+    assert CL._identity_holds(cur) and CL._identity_holds(pri)
+    by = {(r["group_role"], r["item_role"]): r for r in cur}
+    assert cur[0]["label"] == "Consumer Loans-TRY" and by[("consumer_tl", "housing")]["long_term"] == 14267.0
+    assert by[("retail_cards_tl", "instalment")]["short_term"] == 40.0
+    assert by[("retail_cards_tl", "non_instalment")]["short_term"] == 60.0
+    assert by[("overdraft_tl", None)]["total"] == 50.0 and by[(None, None)]["label"] == "Toplam Tüketici Kredileri"
+    d = {(r["group_role"], r["item_role"]): r for r in pri}
+    assert pri[0]["label"] == "Tüketici Kredileri-TP" and pri[0]["total"] == 16523.0
+    assert d[("consumer_tl", "vehicle")]["short_term"] == 150.0 and len(pri) == 8
+    assert d[("overdraft_personnel_tl", None)]["short_term"] == 5.0
+
+
 # --- the derivatives notes family: context + Σ-instruments gate -------------
 
 _spec_dv = importlib.util.spec_from_file_location(

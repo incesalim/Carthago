@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Consumer loans: 449 → 865 filings, 19 → 32 banks.** The
+grid is normalised before detection: a period header row above the first
+row (AKBNK, ZIRAATK) is dropped, the note title that carries the consumer-TL
+figures with the row's own label lost (DENIZ, ING, AKTIF) becomes that row,
+"-TRY" / "-TRL" suffixes (HALKB, SKBNK) and "Toplam Tüketici Kredileri" /
+"Toplam(*)" totals are recognised, and the overdraft vocabulary widens
+("Kredili Müstakriz Hesabı", "Credit Deposit Account", "Deposit Accounts –
+TL (Real Persons)", personnel overdrafts as their own group); "Real Estate
+Loans", a bare "Installment" and "Otomobil" join the items. Group roles on
+94.8% of value-bearing rows. ISCTR's four-column (accruals) split-block
+layout is the remaining reader gap; ATBANK / TSKB print all dashes.
+
 2026-08-21 — **Stage movement: 128 → 157 filings, 243 → 487 instances.**
 The TFRS 9 roll-forward now reads VAKBN's three stages with no total column
 and ISCTR's current and prior side by side (six stage columns, the stage
