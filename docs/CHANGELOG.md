@@ -5,6 +5,19 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **NPL movement: 588 → 949 filings, 21 → 33 banks.** The lane
+now reads ISCTR's 51-row layout (every movement split by loan type, the
+closing in the block after; the sub-rows take the movement above them as
+`additions_corporate` etc.), GARAN's "Balances at End of Prior Period" /
+"Debt Sale" wording and the "Other (****)" under its sale row that is a
+movement of its own, HALKB's prior period stacked under the current one,
+TFKB's deductions printed negative (a second sign convention in the gate),
+ALBRK's "Closing balance of prior period" and "Transfers to standard loans
+and write off (-)" (`to_performing`), and ALNTF / ODEA's date-labelled
+opening and closing rows whose digits spill into two lead columns. The
+period hint no longer reads the opening row's own label ("Prior Period" is
+how YKBNK labels it). 12,885 of 12,888 cells equal the narrow lane (100.0%).
+
 2026-08-21 — **Deposit insurance: 486 → 577 filings.** AKBNK's block opens on
 a year row the first-row check now skips; the participation banks' "Turkish
 Lira accounts / Foreign currency accounts" rows join the registry. 21

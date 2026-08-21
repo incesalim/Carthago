@@ -966,3 +966,82 @@ def test_deposit_maturity_participation_template(tmp_path):
     roles = {x["role"] for x in inst["rows"]}
     assert {"current_real_tl", "participation_real_tl", "current_other_tl", "participation_other_tl",
             "public_institutions", "commercial_institutions", "total"} <= roles
+
+
+def test_npl_movement_split_blocks_sub_rows_signed_and_date_labelled_variants(tmp_path):
+    NM = _load("build_npl_movement_full")
+    # ISCTR: every movement split by loan type, the closing in the next block
+    isctr_head = [
+        ("Prior Period Ending Balance", [100.0, 50.0, 200.0]),
+        ("Corporate and Commercial Loans", [60.0, 30.0, 150.0]),
+        ("Retail Loans", [40.0, 20.0, 50.0]),
+        ("Additions (+)", [30.0, 10.0, 5.0]),
+        ("Corporate and Commercial Loans", [20.0, 5.0, 5.0]),
+        ("Retail Loans", [10.0, 5.0, None]),
+        ("Collections (-)", [10.0, 5.0, 20.0]),
+        ("Corporate and Commercial Loans", [10.0, 5.0, 20.0]),
+    ]
+    isctr_tail = [
+        ("Current Period Ending Balance", [120.0, 55.0, 185.0]),
+        ("Specific Provisions (-)", [70.0, 40.0, 170.0]),
+        ("Net Balance on Balance Sheet", [50.0, 15.0, 15.0]),
+    ]
+    # TFKB: deductions printed negative, an unregistered accruals row
+    tfkb = [
+        ("Önceki Dönem Sonu Bakiyesi", [100.0, 50.0, 200.0]),
+        ("Dönem İçinde İntikal (+) (*)", [30.0, 10.0, 5.0]),
+        ("Dönem İçinde Tahsilat (-)", [-10.0, -5.0, -20.0]),
+        ("Aktiften Silinen (-) (**)", [-2.0, "-", -3.0]),
+        ("Bireysel Krediler", [-2.0, "-", -3.0]),
+        ("Donuk Alacak Reeskontları", [1.0, 2.0, 3.0]),
+        ("Dönem Sonu Bakiyesi", [119.0, 57.0, 185.0]),
+        ("Özel Karşılık (-)", [-70.0, -40.0, -170.0]),
+        ("Bilançodaki Net Bakiyesi", [49.0, 17.0, 15.0]),
+    ]
+    # ALNTF: date-labelled opening and closing, the digits in two lead columns
+    alntf = [
+        ("31 Aralık 2023", [31.0, 2023.0, 100.0, 50.0, 200.0]),
+        ("Dönem İçinde İntikal (+)", [None, None, 30.0, 10.0, 5.0]),
+        ("Dönem İçinde Tahsilat (-)", [None, None, 10.0, 5.0, 20.0]),
+        ("Kayıttan Düşülen (-)", [None, None, "-", "-", "-"]),
+        ("Satılan (-)", [None, None, "-", "-", "-"]),
+        ("31 Aralık 2024 Bakiyesi", [31.0, 2024.0, 120.0, 55.0, 185.0]),
+        ("Karşılık (-)", [None, None, 70.0, 40.0, 170.0]),
+        ("Bilançodaki Net Bakiyesi", [None, None, 50.0, 15.0, 15.0]),
+    ]
+    # GARAN: "Other (****)" under the sale row is a movement of its own;
+    # HALKB-style stacking under a valueless "Prior Period" header row
+    garan = [
+        ("Balances at End of Prior Period", [100.0, None, None]),
+        ("Additions during the Period (+)", [30.0, None, None]),
+        ("Collections during the Period (-)", [5.0, None, None]),
+        ("Debt Sale (-) (***)", [10.0, None, None]),
+        ("Corporate and Commercial Loans", [6.0, None, None]),
+        ("Retail Loans", [4.0, None, None]),
+        ("Other (****)", [-3.0, None, None]),
+        ("Balances at End of Period", [112.0, None, None]),
+        ("Provisions (-)", [50.0, None, None]),
+        ("Net Balance on Balance Sheet", [62.0, None, None]),
+        ("Prior Period", [None, None, None]),
+        ("Balances at End of Prior Period", [80.0, None, None]),
+        ("Additions during the Period (+)", [25.0, None, None]),
+        ("Collections during the Period (-)", [5.0, None, None]),
+        ("Balances at End of Period", [100.0, None, None]),
+        ("Provisions (-)", [40.0, None, None]),
+        ("Net Balance on Balance Sheet", [60.0, None, None]),
+    ]
+    db = _db(tmp_path, [(61, 1, "bin", isctr_head), (61, 2, "bin", isctr_tail), (70, 1, "bin", tfkb),
+                        (80, 1, "bin", alntf), (90, 1, "bin", garan)])
+    got = NM.assemble(db, KEY)
+    inst = got["instances"]
+    assert [(i["hint"], NM._identity_holds(i["rows"], got["step"])) for i in inst] == [
+        (None, True), (None, True), (None, True), (None, True), ("prior", True)]
+    roles = [x["role"] for x in inst[0]["rows"]]
+    assert roles[:6] == ["opening", "opening_corporate", "opening_retail", "additions", "additions_corporate",
+                         "additions_retail"]
+    assert roles[-3:] == ["closing", "provision", "net"] and inst[0]["rows"][-1]["block_id"] == 2
+    tf = {x["role"]: x["cells"] for x in inst[1]["rows"] if x["role"]}
+    assert tf["write_offs_retail"]["group_v"] == -3.0 and tf["collections"]["group_iii"] == -10.0
+    al = {x["role"]: x["cells"] for x in inst[2]["rows"] if x["role"]}
+    assert al["opening"]["group_iii"] == 100.0 and al["closing"]["group_v"] == 185.0
+    assert len(inst[3]["rows"]) == 10 and len(inst[4]["rows"]) == 7
