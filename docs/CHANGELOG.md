@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The fifteenth graduation: deposits by maturity, 275,639
+rows.** `scripts/build_deposit_maturity_full.py` mints the deposit type ×
+maturity-band matrix and its twin, interest paid on deposits by maturity,
+LONG. The first filter swallowed the Section-4 maturity-gap table (same
+columns, excluded by vocabulary). Bands come from header fragments parked
+in dead columns, one cell naming two bands, a "1.0" meaning one month; a
+page-broken matrix is re-joined by streaming a filing's blocks; an
+unlabelled prior-period total column is found by which layout adds up.
+`measure` and `period_label` are decided together by the grand total
+against the narrow BS / P&L — 1,673 of 2,106 instances anchored that way,
+many to the unit. Refusals 2,674 → 157. Fifteen lanes graduated.
+
 2026-08-21 — **The fourteenth graduation: deposits under and over the
 insurance limit.** `scripts/build_deposit_insurance_full.py` mints the
 five-row saving-deposit insurance note × (covered, exceeding) × (current,

@@ -492,3 +492,52 @@ def test_deposit_insurance_layouts_wraps_and_total_gate(tmp_path):
     assert rb["saving_fc"]["label"] == "DTH" and rb["saving_other"]["label"] == "Diğ.H."
     assert DI.columns_swapped(["Exceeding the insurance limit", "", "Under the guarantee of insurance", ""], None)
     assert not DI.columns_swapped(["Covered by Deposit Insurance", "", "Over Deposit Insurance Limit", ""], None)
+
+
+def test_deposit_maturity_header_fragments_page_break_and_prior_total_column(tmp_path):
+    DM = _load("build_deposit_maturity_full")
+    # ZIRAAT-style: header fragments misaligned by one and two bands in one
+    # cell ("Vadesiz İhbarlı", "3-6 Ay 6 Ay-1 Yıl"); matrix broken across
+    # two blocks (the total row in the second, which has no header at all)
+    block1 = [
+        ("7 Gün", [None, None, "1 Aya", None, None, None, "1 Yıl ve", "Birikimli", None]),
+        ("Cari Dönem", [None, "Vadesiz İhbarlı", "Kadar", "1-3 Ay", None, "3-6 Ay 6 Ay-1 Yıl", "Üstü", "Mevduat", "Toplam"]),
+        ("Tasarruf Mevduatı", [100.0, "-", 10.0, 20.0, 30.0, 40.0, 50.0, 1.0, 251.0]),
+        ("Döviz Tevdiat Hesabı", [200.0, "-", 10.0, 10.0, 10.0, 10.0, 10.0, "-", 250.0]),
+        ("Yurtiçinde Yer. K.", [150.0, "-", 5.0, 5.0, 5.0, 5.0, 5.0, "-", 175.0]),
+        ("Yurtdışında Yer. K.", [50.0, "-", 5.0, 5.0, 5.0, 5.0, 5.0, "-", 75.0]),
+        ("Resmî Kur. Mevduatı", [1.0, "-", 1.0, 1.0, 1.0, 1.0, 1.0, "-", 6.0]),
+        ("Tic. Kur. Mevduatı", [2.0, "-", 2.0, 2.0, 2.0, 2.0, 2.0, "-", 12.0]),
+    ]
+    block2 = [
+        ("Bankalar Mevduatı", [3.0, "-", 3.0, 3.0, 3.0, 3.0, 3.0, "-", 18.0]),
+        ("TC Merkez B.", [3.0, "-", "-", "-", "-", "-", "-", "-", 3.0]),
+        ("Yurtiçi Bankalar", ["-", "-", 3.0, 3.0, 3.0, 3.0, 3.0, "-", 15.0]),
+        ("Toplam", [306.0, "-", 26.0, 36.0, 46.0, 56.0, 66.0, 1.0, 537.0]),
+    ]
+    # BURGAN-style: an unlabelled prior-period total column on the right
+    burgan = [
+        ("Savings Deposits", [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 1.0, 211.0, 180.0]),
+        ("Public Deposits", [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, "-", 6.0, 5.0]),
+        ("Commercial Deposits", [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, "-", 12.0, 9.0]),
+        ("Other Deposits", [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, "-", 18.0, 20.0]),
+        ("Bank Deposits", [4.0, "-", "-", "-", "-", "-", "-", 4.0, 4.0]),
+        ("Total", [20.0, 26.0, 36.0, 46.0, 56.0, 66.0, 1.0, 251.0, 218.0]),
+    ]
+    db = _db(tmp_path, [(139, 1, "bin", block1), (139, 2, "bin", block2), (150, 1, "bin", burgan)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=? WHERE page=150",
+               (json.dumps(["Demand", "month", "months", "months", "6-12 Months", "year", "Accumulating", "Total", ""]),))
+    db.commit()
+    got = DM.assemble(db, KEY)
+    insts = [i for i in got["instances"] if DM._identity_holds(i["rows"], got["step"])]
+    assert len(insts) == 2
+    z, b = insts
+    first = {x["role"]: dict(x["cells"]) for x in z["rows"]}
+    assert first["saving"]["demand"] == 100.0 and first["saving"]["notice_7d"] is None
+    assert first["saving"]["m3_6"] == 30.0 and first["saving"]["m6_12"] == 40.0
+    assert first["saving"]["y1_plus"] == 50.0 and first["saving"]["accumulating"] == 1.0
+    assert first["public"]["total"] == 6.0 and first["cbrt"]["demand"] == 3.0
+    assert first["total"]["total"] == 537.0                 # the row from the second block
+    cols = [b_ for b_, _v in b["rows"][0]["cells"]]
+    assert cols == ["demand", "m1", "m1_3", "m3_6", "m6_12", "y1_plus", "accumulating", "total", "total_prior"]
+    assert dict(b["rows"][0]["cells"])["total_prior"] == 180.0
