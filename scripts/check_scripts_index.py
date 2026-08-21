@@ -49,6 +49,9 @@ _EXTERNAL: frozenset[str] = frozenset({
     # The shared sectioning module the build_document_tables and viewer rows
     # cite — lives in src/audit_reports/.
     "document_sections.py",
+    # The shared numbered-template machinery the LCR/NSFR/leverage rows cite —
+    # lives in src/audit_reports/.
+    "numbered_template.py",
 })
 
 _PY_NAME = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*\.py)\b")

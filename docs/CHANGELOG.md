@@ -5,6 +5,21 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The fourth graduation (leverage), and the machinery became a
+module.** Three numbered-template builders shared everything but the
+template's facts, so `src/audit_reports/numbered_template.py` now holds the
+shared mechanics — signature detection by printed row number, the per-block
+column model, wrap adoption (a numbered row with no values takes the
+unnumbered line above it, GARAN's leverage row 1), the instance split, and
+a per-template percent-repair floor — and the LCR and NSFR builders run on it
+with fleet output identical to the digit. `bank_audit_leverage_full` (rows
+1–15, current + prior-year-end columns) followed as ~80 lines: 621
+partitions / 8,177 rows, current anchor 99.8% vs narrow `leverage_ratio`,
+prior 98.5%, identity 13/14 at 99.8%. The leverage floor is 1,000 — "9,127"
+read as an integer is 9.127%, which the LCR's 10,000 floor would have missed.
+Four lanes graduated so far (capital 75,111 rows · LCR 28,915 · NSFR 26,910 ·
+leverage 8,177), all local, all anchored.
+
 2026-08-20 — **The third graduation: the full NSFR template — and the wide
 lane started auditing the narrow one.** `scripts/build_nsfr_full.py` mints
 `bank_audit_nsfr_full` from the document layer (rows 1–34, four maturity

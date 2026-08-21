@@ -47,7 +47,6 @@ Validators, dry-run (default):
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import sqlite3
 import sys
@@ -57,17 +56,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from src.audit_reports import units as U  # noqa: E402
+from src.audit_reports import numbered_template as NT  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
-
-_TR_FOLD = str.maketrans("İıŞşĞğÜüÖöÇç", "IiSsGgUuOoCc")
-
-
-def fold(s: str | None) -> str:
-    return (s or "").translate(_TR_FOLD).upper()
-
 
 # Signature rows that make a numbered block THE LCR template. Checked against
 # the row's own printed number, so an NSFR row 23 (which exists) cannot match.
@@ -86,97 +78,12 @@ ROLE_BY_ROW = {
     20: "total_cash_inflows", 21: "total_hqla",
     22: "total_net_cash_outflows", 23: "lcr",
 }
-_ROW_IN_LABEL = re.compile(r"^(\d{1,2})\s+\S")
-
-
-def _rowno(r: dict) -> int | None:
-    """The template row number: the row's first cell, or the label's prefix."""
-    cells = r["cells"]
-    if cells and isinstance(cells[0], (int, float)) and 1 <= cells[0] <= 23 \
-            and float(cells[0]).is_integer():
-        return int(cells[0])
-    m = _ROW_IN_LABEL.match(r["label"] or "")
-    if m and 1 <= int(m.group(1)) <= 23:
-        return int(m.group(1))
-    return None
-
-
-def _num(cell) -> float | None:
-    return float(cell) if isinstance(cell, (int, float)) else None
-
-
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     """Both LCR instances (current, prior) of one partition, or None."""
-    blocks = tab.execute(
-        "SELECT page, block_id, grid_json, declared_unit "
-        "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
-        "AND kind=? ORDER BY page, block_id", key).fetchall()
-    lcrish: list[tuple] = []
-    for pg, bid, g, unit in blocks:
-        grid = json.loads(g)
-        sig = 0
-        for r in grid:
-            n = _rowno(r)
-            if n in _SIG and _SIG[n].search(fold(r["label"])):
-                sig += 1
-        if sig:
-            lcrish.append((pg, bid, grid, unit, sig))
-    if not lcrish:
-        return None
-    # The template proper needs the bottom signature rows somewhere; a stray
-    # cross-reference block with one look-alike row is not a table.
-    if sum(s for *_x, s in lcrish) < 2:
-        return None
-
-    unit = lcrish[0][3]
-    factor = U.UNIT_SCALE.get(unit)
-    instances: list[list[dict]] = [[]]
-    last_no = 0
-    for pg, bid, grid, _u, _s in lcrish:
-        for r in grid:
-            n = _rowno(r)
-            if n is None:
-                continue
-            label = re.sub(r"^\d{1,2}\s+", "", (r["label"] or "").strip())
-            if not label:
-                continue
-            if n <= last_no and instances[-1]:
-                instances.append([])
-            last_no = n
-            # Drop the row-number cell before taking the value columns, or a
-            # narrow block hands the number itself to a value slot.
-            body = r["cells"]
-            if body and isinstance(body[0], (int, float)) and body[0] == n:
-                body = body[1:]
-            vals = [_num(c) for c in body[-4:]]
-            while len(vals) < 4:
-                vals.insert(0, None)
-            if n != 23:
-                if factor is not None:
-                    vals = [U.scale_amount(v, factor) for v in vals]
-            else:
-                # ALBRK prints its LCR with three decimals ("186,610" meaning
-                # 186.610%), which the capture's tokenizer read as a grouped
-                # INTEGER. The repair keys on that: a misparse is a bare
-                # integer >= 10000, while a genuinely enormous LCR — ENPARA's
-                # 34,221.52%, a digital bank parked in HQLA — carries its
-                # decimals and is left exactly as printed.
-                vals = [v / 1000 if v is not None and v >= 10000
-                        and float(v).is_integer() else v
-                        for v in vals]
-            instances[-1].append(
-                {"template_row": n, "label": label, "role": ROLE_BY_ROW.get(n),
-                 "page": pg, "block_id": bid,
-                 "uw_total": vals[0], "uw_fc": vals[1],
-                 "w_total": vals[2], "w_fc": vals[3]})
-    # An instance must reach the template's bottom to count as a table.
-    instances = [i for i in instances if any(x["template_row"] >= 21 for x in i)]
-    if not instances:
-        return None
-    labels = ("current", "prior", "extra2", "extra3")
-    return {"unit": unit,
-            "instances": {labels[i]: inst
-                          for i, inst in enumerate(instances[:4])}}
+    return NT.assemble(
+        tab, key, sig=_SIG, max_row=23, bottom_row=21, n_values=4,
+        percent_rows={23}, role_of=lambda n, _label: ROLE_BY_ROW.get(n),
+        value_names=("uw_total", "uw_fc", "w_total", "w_fc"))
 
 
 DDL = """
@@ -207,12 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_lcr_full_row
 """
 
 
-def _prior_year_end(period: str) -> str:
-    """The template's "Onceki Donem" is the prior YEAR-END, not the prior
-    quarter — AKBNK's 2022Q2/Q3/Q4 filings all print 203.49, which is 2021Q4.
-    The fx_position lane documented the same BRSA convention for its prior
-    column, and it is what makes the cross-anchor meaningful for Q2-Q4."""
-    return f"{int(period[:4]) - 1}Q4"
+_prior_year_end = NT.prior_year_end
 
 
 def main() -> int:

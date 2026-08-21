@@ -41,7 +41,6 @@ required(33), reported in two bands like the LCR's identity.
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import sqlite3
 import sys
@@ -51,17 +50,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from src.audit_reports import units as U  # noqa: E402
+from src.audit_reports import numbered_template as NT  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
-
-_TR_FOLD = str.maketrans("İıŞşĞğÜüÖöÇç", "IiSsGgUuOoCc")
-
-
-def fold(s: str | None) -> str:
-    return (s or "").translate(_TR_FOLD).upper()
-
 
 # Signature rows that make a numbered block THE NSFR template; the LCR's own
 # rows 21-23 can never satisfy these, nor can the LCR builder's satisfy this.
@@ -82,113 +74,23 @@ ROLE_BY_ROW = {
 _ASF = re.compile(r"(TOPLAM MEVCUT ISTIKRARLI FON|MEVCUT ISTIKRARLI FONLAMA TOPLAMI|"
                   r"TOTAL AVAILABLE STABLE FUNDING)")
 _ASF14 = re.compile(r"AVAILABLE STABLE FUNDING|MEVCUT ISTIKRARLI FON")
-_ROW_IN_LABEL = re.compile(r"^(\d{1,2})\s+\S")
 _MAX_ROW = 34
 
 
-def _rowno(r: dict) -> int | None:
-    cells = r["cells"]
-    if cells and isinstance(cells[0], (int, float)) and 1 <= cells[0] <= _MAX_ROW \
-            and float(cells[0]).is_integer():
-        return int(cells[0])
-    m = _ROW_IN_LABEL.match(r["label"] or "")
-    if m and 1 <= int(m.group(1)) <= _MAX_ROW:
-        return int(m.group(1))
-    return None
-
-
-def _num(cell) -> float | None:
-    return float(cell) if isinstance(cell, (int, float)) else None
-
-
-def _block_columns(grid: list[dict]) -> tuple[bool, list[int], int]:
-    """(has_rowno_col, bucket_col_indices, total_col_index) for one block.
-
-    The grid's cells are already column-aligned by the document layer; what
-    varies per filer is a leading row-number column and phantom all-None
-    columns in the middle (GARAN a 7th, ALBRK up to 8). The WEIGHTED TOTAL is
-    always the last column; the buckets are the last four LIVE columns before
-    it. Deciding per block — not per row — is what keeps a row with a missing
-    number cell from shifting its values into the wrong slots."""
-    ncols = max((len(r["cells"]) for r in grid), default=0)
-    if not ncols:
-        return False, [], -1
-    with_rowno = sum(1 for r in grid if r["cells"]
-                     and isinstance(r["cells"][0], (int, float))
-                     and _rowno(r) == r["cells"][0])
-    has_rowno = with_rowno * 2 >= sum(1 for r in grid if _rowno(r) is not None)
-    start = 1 if has_rowno else 0
-    total_col = ncols - 1
-    live = [c for c in range(start, total_col)
-            if any(len(r["cells"]) > c and r["cells"][c] is not None
-                   for r in grid)]
-    return has_rowno, live[-4:], total_col
+def _role_of(n: int, label: str) -> str | None:
+    role = ROLE_BY_ROW.get(n)
+    if role is None and (_ASF.search(NT.fold(label)) or
+                         (n == 14 and _ASF14.search(NT.fold(label)))):
+        role = "asf_total"
+    return role
 
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
-    blocks = tab.execute(
-        "SELECT page, block_id, grid_json, declared_unit "
-        "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
-        "AND kind=? ORDER BY page, block_id", key).fetchall()
-    nsfrish: list[tuple] = []
-    for pg, bid, g, unit in blocks:
-        grid = json.loads(g)
-        sig = 0
-        for r in grid:
-            n = _rowno(r)
-            if n in _SIG and _SIG[n].search(fold(r["label"])):
-                sig += 1
-        if sig:
-            nsfrish.append((pg, bid, grid, unit, sig))
-    if not nsfrish or sum(s for *_x, s in nsfrish) < 2:
-        return None
-
-    unit = nsfrish[0][3]
-    factor = U.UNIT_SCALE.get(unit)
-    instances: list[list[dict]] = [[]]
-    last_no = 0
-    for pg, bid, grid, _u, _s in nsfrish:
-        _has_rowno, bucket_cols, total_col = _block_columns(grid)
-        for r in grid:
-            n = _rowno(r)
-            if n is None:
-                continue
-            label = re.sub(r"^\d{1,2}\s+", "", (r["label"] or "").strip())
-            if not label:
-                continue
-            if n <= last_no and instances[-1]:
-                instances.append([])
-            last_no = n
-            cells = r["cells"]
-
-            def _at(c):
-                return _num(cells[c]) if 0 <= c < len(cells) else None
-
-            picked = [None] * (4 - len(bucket_cols))                 + [_at(c) for c in bucket_cols] + [_at(total_col)]
-            if n == 34:
-                # the percent row: never scaled; ALBRK-style three-decimal
-                # integer misparse repaired, genuine huge ratios untouched.
-                picked = [v / 1000 if v is not None and v >= 10000
-                          and float(v).is_integer() else v for v in picked]
-            elif factor is not None:
-                picked = [U.scale_amount(v, factor) for v in picked]
-            role = ROLE_BY_ROW.get(n)
-            if role is None and (_ASF.search(fold(label)) or
-                                 (n == 14 and _ASF14.search(fold(label)))):
-                role = "asf_total"
-            instances[-1].append(
-                {"template_row": n, "label": label, "role": role,
-                 "page": pg, "block_id": bid,
-                 "no_maturity": picked[0], "maturity_lt_6m": picked[1],
-                 "maturity_6m_1y": picked[2], "maturity_gte_1y": picked[3],
-                 "weighted_total": picked[4]})
-    instances = [i for i in instances if any(x["template_row"] >= 33 for x in i)]
-    if not instances:
-        return None
-    labels = ("current", "prior", "extra2", "extra3")
-    return {"unit": unit,
-            "instances": {labels[i]: inst
-                          for i, inst in enumerate(instances[:4])}}
+    return NT.assemble(
+        tab, key, sig=_SIG, max_row=_MAX_ROW, bottom_row=33, n_values=5,
+        percent_rows={34}, role_of=_role_of,
+        value_names=("no_maturity", "maturity_lt_6m", "maturity_6m_1y",
+                     "maturity_gte_1y", "weighted_total"))
 
 
 DDL = """
@@ -221,8 +123,7 @@ CREATE INDEX IF NOT EXISTS idx_nsfr_full_row
 """
 
 
-def _prior_year_end(period: str) -> str:
-    return f"{int(period[:4]) - 1}Q4"
+_prior_year_end = NT.prior_year_end
 
 
 def main() -> int:
