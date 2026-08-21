@@ -135,6 +135,73 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
         w = wide_fx.get((b, p, k, band)) if band else None
         if w is not None and not close(ta, w):
             out["bank_audit_fx_position.on_bs_assets"].append((b, p, k, cur, ta, w))
+
+    # --- npl_movement, every cell: the wide movement table per group
+    gmap = {"III": "group_iii", "IV": "group_iv", "V": "group_v"}
+    wide_npl = {}
+    for b, p, k, role, g, v in tab.execute(
+            "SELECT bank_ticker, period, kind, row_role, npl_group, amount FROM bank_audit_npl_movement_full "
+            "WHERE period_label='current' AND instance_no=0 AND amount IS NOT NULL "
+            "AND row_role IN ('opening','additions','transfers_in','transfers_out','collections',"
+            "'write_offs','sold','closing','provision','net')"):
+        wide_npl.setdefault((b, p, k, role, g), v)
+    cols = {"opening": "opening_balance", "additions": "additions", "transfers_in": "transfers_in",
+            "transfers_out": "transfers_out", "collections": "collections", "write_offs": "write_offs",
+            "sold": "sold", "closing": "closing_balance", "provision": "provision", "net": "net_balance"}
+    sel = ", ".join(cols.values())
+    for row in aud.execute(
+            f"SELECT bank_ticker, period, kind, group_code, {sel} FROM bank_audit_npl_movement "
+            "WHERE period_type='current'"):
+        b, p, k, gc, *vals = row
+        g = gmap.get((gc or "").strip().upper())
+        if not g:
+            continue
+        for role, narrow in zip(cols, vals):
+            w = wide_npl.get((b, p, k, role, g))
+            if narrow is not None and w is not None and not close(narrow, w):
+                out["bank_audit_npl_movement"].append((b, p, k, f"{g}.{role}", narrow, w))
+
+    # --- the statement lines behind the breakdown notes: a gated note total
+    #     that meets no narrow line is a narrow line wrong or missing
+    statements = {
+        ("bank_audit_tl_fc_note_full", "interest_on_loans"): ("pl", r"^KREDILERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) LOANS"),
+        ("bank_audit_tl_fc_note_full", "interest_from_banks"): ("pl", r"^BANKALARDAN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) BANKS|^INTEREST RECEIVED FROM BANKS"),
+        ("bank_audit_tl_fc_note_full", "interest_on_securities"): ("pl", r"^MENKUL DEGERLERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) (MARKETABLE )?SECURITIES"),
+        ("bank_audit_tl_fc_note_full", "interest_on_borrowings"): ("pl", r"^KULLANILAN KREDILERE VERILEN FAIZ|^INTEREST (EXPENSE )?ON (FUNDS )?BORROW|^INTEREST (PAID )?ON LOANS"),
+        ("bank_audit_tl_fc_note_full", "funds_borrowed"): ("bs", r"^ALINAN KREDILER|^FUNDS BORROWED|^BORROWINGS"),
+        ("bank_audit_tl_fc_note_full", "cash_and_cbrt"): ("bs", r"^NAKIT DEGERLER VE MERKEZ|^CASH AND (BALANCES WITH|CASH EQUIVALENTS AND)? ?(THE )?CENTRAL|^CASH AND BALANCES"),
+        ("bank_audit_tl_fc_note_full", "securities_issued"): ("bs", r"^IHRAC EDILEN MENKUL|^(MARKETABLE |DEBT )?SECURITIES ISSUED|^ISSUED (MARKETABLE |DEBT )?SECURITIES|^BONDS ISSUED"),
+        ("bank_audit_two_period_note_full", "letters_of_guarantee"): ("off_balance", r"^TEMINAT MEKTUPLARI$|^LETTERS? OF GUARANTEES?$"),
+        ("bank_audit_two_period_note_full", "trading_income"): ("pl", r"^TICARI KAR|^TRADING (INCOME|PROFIT|GAIN)|^NET TRADING"),
+    }
+    pl_rows: dict[tuple, list] = defaultdict(list)
+    for b, p, k, name, v in aud.execute("SELECT bank_ticker, period, kind, item_name, amount FROM bank_audit_profit_loss"):
+        if v is not None:
+            pl_rows[(b, p, k)].append((fold(name or "").strip(), v))
+    bs_rows: dict[tuple, list] = defaultdict(list)
+    for b, p, k, st, name, v in aud.execute(
+            "SELECT bank_ticker, period, kind, statement, item_name, amount_total FROM bank_audit_balance_sheet"):
+        if v is not None:
+            bs_rows[(b, p, k, st)].append((fold(name or "").strip(), v))
+    import re as _re
+    foot = _re.compile(r"(\s+[-–]?\s*[IVXA-Z0-9.(),]{1,8})+$")
+    for (table, fam), (st, rx) in statements.items():
+        rx_c = _re.compile(rx)
+        if table == "bank_audit_tl_fc_note_full":
+            q = ("SELECT bank_ticker, period, kind, COALESCE(tl_current,0)+COALESCE(fc_current,0) FROM "
+                 f"{table} WHERE family=? AND row_role='total' AND instance_no=0 "
+                 "AND (tl_current IS NOT NULL OR fc_current IS NOT NULL)")
+        else:
+            q = (f"SELECT bank_ticker, period, kind, current FROM {table} WHERE family=? AND row_role='total' "
+                 "AND instance_no=0 AND current IS NOT NULL")
+        for b, p, k, wv in tab.execute(q, (fam,)):
+            rows = pl_rows.get((b, p, k), []) if st == "pl" else bs_rows.get((b, p, k, st if st != "bs" else "liabilities"), []) + \
+                (bs_rows.get((b, p, k, "assets"), []) if st == "bs" else [])
+            cands = [v for name, v in rows if rx_c.search(name) or rx_c.search(foot.sub("", name))]
+            if not cands:
+                continue                           # no narrow line at all: a gap, not a contradiction
+            if not any(close(wv, v) for v in cands):
+                out[f"{fam} (narrow statement line)"].append((b, p, k, f"{fam}.total", cands[0], wv))
     return out
 
 

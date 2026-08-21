@@ -5,6 +5,12 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The repair list, second pass: 1,764 rows.** The audit now
+compares NPL movement cell by cell (6 indicted across ten columns) and the
+statement lines behind the breakdown notes (interest on securities 53,
+interest from banks 36, securities issued 14, borrowings 11, loans 2, cash &
+CBRT 1). loans_by_sector grows to 1,563 with the wider sector lane.
+
 2026-08-21 — **Fleet re-mint on the inline-aware document layer.** The
 document tables rebuilt (122,583 tables, cell conservation still exact at
 8,392,845, 169,465 inline rows in 55,621 tables) and ten lanes re-minted:
