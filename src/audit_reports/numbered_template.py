@@ -205,3 +205,27 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
     labels = ("current", "prior", "extra2", "extra3")
     return {"unit": unit,
             "instances": {labels[i]: inst for i, inst in enumerate(instances[:4])}}
+
+
+def absorb_inline(grid: list[dict], role_of) -> list[dict]:
+    """Fold the document layer's `inline` rows (label-only lines printed
+    inside a block: a wrapped row head, or a sub-header) into a grid a
+    registry lane can read. A head is prepended to the row below when the
+    row's bare label has no role (or a placeholder one, "_...") and the
+    joined label has one; anything else is dropped. Rows without the flag
+    pass through untouched."""
+    out: list[dict] = []
+    pending = ""
+    for r in grid:
+        if r.get("inline"):
+            pending = (pending + " " + (r["label"] or "").strip()).strip()
+            continue
+        if pending:
+            label = (r["label"] or "").strip()
+            bare = role_of(label) if label else None
+            joined = role_of(pending + " " + label) if label else None
+            if (bare is None or str(bare).startswith("_")) and joined is not None:
+                r = {**r, "label": pending + " " + label}
+            pending = ""
+        out.append(r)
+    return out

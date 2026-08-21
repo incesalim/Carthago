@@ -5,6 +5,16 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The document layer keeps the wrapped row heads.** A label-only
+line printed inside a block's span — the head of a wrapped row label, or a
+sub-header — was filed by the ledger as a paragraph with no block and never
+reached the grid; six lanes saw tails alone ("Finansal Varlıklar",
+"Varlıklar", "Pozisyon"). `build_document_tables.py` now enters such lines
+as rows flagged `inline` with empty cells, and `numbered_template.absorb_inline`
+lets a registry lane merge a head into the row below only when the joined
+label earns a role, dropping sub-headers. Ten lanes adopt it; the fleet
+re-mint follows.
+
 2026-08-21 — **Trading income joins the two-period lane.** Gains and losses
 heads over capital-market / derivative / FX children, net = gains − losses;
 children are matched before heads ("Losses on Capital Market Transactions"

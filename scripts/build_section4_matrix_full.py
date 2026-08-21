@@ -43,7 +43,7 @@ sys.path.insert(0, str(REPO))
 
 from src.audit_reports import band_matrix as BM  # noqa: E402
 from src.audit_reports import units as U  # noqa: E402
-from src.audit_reports.numbered_template import fold, num, prior_year_end  # noqa: E402
+from src.audit_reports.numbered_template import absorb_inline, fold, num, prior_year_end  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
@@ -218,7 +218,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, cl, g, unit in blocks:
-        grid, col_labels = json.loads(g), json.loads(cl or "[]")
+        grid, col_labels = absorb_inline(json.loads(g), role_of), json.loads(cl or "[]")
         if len(grid) < 5:
             continue
         fam = family_of(grid, col_labels, heading)
@@ -237,7 +237,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         prev = [k for k in keyed if k < (pg, bid) and pg - k[0] <= 1]
         if not prev:
             continue
-        grid, col_labels = json.loads(g), json.loads(cl or "[]")
+        grid, col_labels = absorb_inline(json.loads(g), role_of), json.loads(cl or "[]")
         roles = [role_of(r["label"] or "") for r in grid]
         if "total_assets" in roles or not any(
                 x in roles for x in ("total_liabilities", "gap", "other_deposits", "bank_deposits",

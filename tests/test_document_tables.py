@@ -311,3 +311,27 @@ def test_a_note_linked_outside_the_grid_keeps_that_link(tmp_path):
         "SELECT notes_json FROM bank_audit_document_tables").fetchone()[0])
     assert notes == [{"marker": "*", "text": "(*) tanım", "rows": [0],
                       "outside_lines": [head_lo]}]
+
+
+def test_a_label_only_line_inside_a_block_enters_the_grid_as_inline(tmp_path):
+    """The head of a wrapped row label (and a sub-header) is filed by the
+    ledger as a paragraph with no block; it sits inside the block's span and
+    belongs to the table. It enters the grid flagged inline, cells empty."""
+    f = Filing()
+    f.line(1, BIN_DECL)
+    lo1 = f.line(7, "Bankalar 10 20", label="Bankalar", role="data", block_id=1, logical_row=1)
+    f.cell(7, lo1, 0, 0, "10", 1, 10.0)
+    f.cell(7, lo1, 1, 1, "20", 1, 20.0)
+    f.line(7, "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan", role="paragraph")
+    lo3 = f.line(7, "Finansal Varlıklar 3 4", label="Finansal Varlıklar", role="data", block_id=1, logical_row=2)
+    f.cell(7, lo3, 0, 0, "3", 1, 3.0)
+    f.cell(7, lo3, 1, 1, "4", 1, 4.0)
+    f.line(7, "a paragraph below the table, outside its span", role="paragraph")
+    f.block(7, 1, 2, row_count=2, cell_count=4)
+    out = _build(tmp_path, f)
+    grid = json.loads(out.execute("SELECT grid_json FROM bank_audit_document_tables").fetchone()[0])
+    assert [r["label"] for r in grid] == ["Bankalar", "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan",
+                                          "Finansal Varlıklar"]
+    assert grid[1] == {"label": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan",
+                       "cells": [None, None], "inline": True}
+    assert "inline" not in grid[0] and grid[2]["cells"] == [3.0, 4.0]

@@ -226,6 +226,25 @@ def build_partition(cap: sqlite3.Connection, out: sqlite3.Connection,
         if bid is not None:
             block_lines[(pg, bid)].append((lo, lab or "", lr, mk))
             lr_of[(pg, lo)] = (bid, lr if lr is not None else -lo)
+    # A label-only line printed INSIDE a block's span — the ledger files it
+    # as a paragraph with no block — is part of the table: the head of a
+    # wrapped row label ("Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire
+    # Yansıtılan" above "Finansal Varlıklar 21.273.273 ..."), or a sub-header
+    # ("Varlıklar"). Left out, six lanes saw the tail alone. They enter the
+    # grid as rows with no cells, flagged "inline", so a consumer can merge
+    # a head into the row below when that reads better and skip a sub-header.
+    span: dict[tuple[int, int], tuple[int, int]] = {}
+    for (pg, bid), bl in block_lines.items():
+        los = [x[0] for x in bl]
+        span[(pg, bid)] = (min(los), max(los))
+    inline_at: dict[tuple[int, int], list[tuple[int, str]]] = defaultdict(list)
+    for pg, lo, txt, lab, role, bid, lr, mk in lines:
+        if bid is not None or role != "paragraph" or not (txt or "").strip():
+            continue
+        for (bpg, bbid), (lo0, lo1) in span.items():
+            if bpg == pg and lo0 < lo < lo1:
+                inline_at[(pg, bbid)].append((lo, txt.strip()))
+                break
 
     unit = _declared_unit(cap, key)
     table_rows: list[tuple] = []
@@ -236,8 +255,13 @@ def build_partition(cap: sqlite3.Connection, out: sqlite3.Connection,
             groups[lr if lr is not None else -lo].append((lo, lab, mk))
         grid, unplaced = [], []
         row_index_of: dict[object, int] = {}
+        pending_inline = sorted(inline_at.get((pg, bid), []))
         for gkey in sorted(groups, key=lambda g: min(x[0] for x in groups[g])):
             parts = groups[gkey]
+            first_lo = min(x[0] for x in parts)
+            while pending_inline and pending_inline[0][0] < first_lo:
+                _ilo, itxt = pending_inline.pop(0)
+                grid.append({"label": itxt, "cells": [None] * n_cols, "inline": True})
             label = " ".join(p[1] for p in parts if p[1]).strip()
             markers = sorted({m for _lo, _lab, mk in parts
                               for m in json.loads(mk or "[]")})

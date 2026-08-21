@@ -31,7 +31,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from src.audit_reports import units as U  # noqa: E402
-from src.audit_reports.numbered_template import fold, num  # noqa: E402
+from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 
@@ -95,6 +95,18 @@ CREATE TABLE IF NOT EXISTS bank_audit_securities_full (
 CREATE INDEX IF NOT EXISTS idx_securities_full_ctx
   ON bank_audit_securities_full(portfolio, group_role, item_role);
 """
+
+
+def _sec_role(label: str) -> str | None:
+    f = fold(label).strip()
+    for name, rx in GROUPS + ITEMS:
+        if rx.search(f):
+            return name
+    if _IMPAIR.search(f):
+        return "impairment"
+    if _TOTAL.search(f):
+        return "total"
+    return None
 
 
 def _is_family(grid: list[dict]) -> bool:
@@ -177,8 +189,9 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "SELECT page, block_id, heading, item_title, grid_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
-    found = [(pg, bid, h, it, json.loads(g), unit)
-             for pg, bid, h, it, g, unit in blocks if _is_family(json.loads(g))]
+    found = [(pg, bid, h, it, grid, unit)
+             for pg, bid, h, it, g, unit in blocks
+             if _is_family(grid := absorb_inline(json.loads(g), _sec_role))]
     if not found:
         return None
     unit = found[0][5]

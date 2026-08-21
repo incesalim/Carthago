@@ -41,7 +41,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from src.audit_reports import units as U  # noqa: E402
-from src.audit_reports.numbered_template import fold, num  # noqa: E402
+from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
@@ -110,6 +110,17 @@ _FIRST = {"letters_of_guarantee": ("definite", "temporary"),
           "other_operating_expenses": ("personnel", "termination_reserve", None),
           "trading_income": ("gain",)}
 _CTX = R(r"CARI|ONCEKI|CURRENT|PRIOR|PREVIOUS")
+
+
+def _any_role(label: str) -> str | None:
+    f = fold(label).strip()
+    if _TOTAL.search(f):
+        return "total"
+    for fam in FAMILIES:
+        for role, _parent, rx in FAMILIES[fam][2]:
+            if rx.search(f):
+                return role
+    return None
 
 
 def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]:
@@ -220,7 +231,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, cl, g, unit in blocks:
-        grid = json.loads(g)
+        grid = absorb_inline(json.loads(g), _any_role)
         fam = family_of(grid, json.loads(cl or "[]"), heading)
         if fam:
             found.append((fam, pg, bid, heading, grid, unit))

@@ -57,7 +57,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from src.audit_reports import units as U  # noqa: E402
-from src.audit_reports.numbered_template import fold, num  # noqa: E402
+from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
@@ -163,6 +163,17 @@ CREATE INDEX IF NOT EXISTS idx_tl_fc_note_full_role
 """
 
 
+def _any_role(label: str) -> str | None:
+    f = fold(label).strip()
+    if _TOTAL.search(f):
+        return "total"
+    for fam in FAMILIES:
+        for role, _parent, rx in FAMILIES[fam][2]:
+            if rx.search(f):
+                return role
+    return None
+
+
 def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]:
     """(role, parent) per row. A child registered with parent "*" belongs to
     the latest head above it — the subordinated note repeats "loans" and
@@ -235,7 +246,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, item_title, g, unit in blocks:
-        grid = json.loads(g)
+        grid = absorb_inline(json.loads(g), _any_role)
         fam = family_of(grid, heading)
         if fam == "interest_from_banks":
             # the balance-sheet "banks" note prints the same rows under the

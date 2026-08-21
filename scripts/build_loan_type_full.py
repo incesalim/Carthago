@@ -34,7 +34,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from src.audit_reports import units as U  # noqa: E402
-from src.audit_reports.numbered_template import fold, num  # noqa: E402
+from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
@@ -124,7 +124,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, nc, g, unit in blocks:
-        grid = json.loads(g)
+        grid = absorb_inline(json.loads(g), role_of)
         if _is_family(grid):
             found.append((pg, bid, grid, unit))
     if not found:

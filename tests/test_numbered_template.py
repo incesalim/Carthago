@@ -775,3 +775,29 @@ def test_two_period_notes_families_and_total_gate(tmp_path):
         ("letters_of_guarantee", True), ("non_cash_loans", True), ("non_cash_loans", False)]
     a = {x["role"]: x for x in got["instances"][0]["rows"]}
     assert a["customs"]["current"] == 5.0 and a["total"]["prior"] == 130.0
+
+
+def test_absorb_inline_merges_a_head_only_when_it_earns_a_role():
+    grid = [
+        {"label": "Varlıklar", "cells": [None, None], "inline": True},        # a sub-header: dropped
+        {"label": "Nakit Değerler", "cells": [1.0, 2.0]},
+        {"label": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı", "cells": [None, None], "inline": True},
+        {"label": "Finansal Varlıklar", "cells": [3.0, 4.0]},                 # the tail: takes its head
+        {"label": "Orphan head", "cells": [None, None], "inline": True},
+        {"label": "Krediler", "cells": [5.0, 6.0]},                           # already has a role: head dropped
+    ]
+
+    def role(lab):
+        if lab.startswith("Nakit"):
+            return "cash"
+        if lab.startswith("Krediler"):
+            return "loans"
+        if "Diğer Kapsamlı" in lab:
+            return "fvoci"
+        return None
+
+    out = NT.absorb_inline(grid, role)
+    assert [r["label"] for r in out] == ["Nakit Değerler",
+                                         "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Finansal Varlıklar",
+                                         "Krediler"]
+    assert out[1]["cells"] == [3.0, 4.0]
