@@ -97,8 +97,9 @@ CREATE INDEX IF NOT EXISTS idx_loan_type_full_role
 
 def _is_family(grid: list[dict]) -> bool:
     roles = [role_of(r["label"] or "") for r in grid]
-    return roles and roles[0] == "non_specialised" and "total" in roles \
-        and 9 <= len(grid) <= 13
+    # AKBNK prints the sub-types without the "Ihtisas Disi Krediler" head
+    return roles and roles[0] in ("non_specialised", "working_capital") and "total" in roles \
+        and sum(1 for r in roles if r in SUBTYPES) >= 4 and 7 <= len(grid) <= 13
 
 
 def _identities_hold(inst: list[dict]) -> bool:
@@ -106,13 +107,18 @@ def _identities_hold(inst: list[dict]) -> bool:
     for x in inst:
         by.setdefault(x["role"], x)
     ns, tot = by.get("non_specialised"), by.get("total")
-    if not ns or not tot or ns["standard"] is None or tot["standard"] is None:
+    if not tot or tot["standard"] is None:
         return False
     subs = sum(by[s]["standard"] or 0.0 for s in SUBTYPES if s in by)
-    ok1 = abs(subs - ns["standard"]) <= max(2.0, 1e-5 * abs(ns["standard"]))
+    if ns and ns["standard"] is not None:
+        ok1 = abs(subs - ns["standard"]) <= max(2.0, 1e-5 * abs(ns["standard"]))
+        ns_value = ns["standard"]
+    else:
+        ok1 = sum(1 for s in SUBTYPES if s in by) >= 4     # no head printed: the sub-types are it
+        ns_value = subs
     spec = (by.get("specialised") or {}).get("standard") or 0.0
     oth = (by.get("other_receivables") or {}).get("standard") or 0.0
-    ok2 = abs(ns["standard"] + spec + oth - tot["standard"]) \
+    ok2 = abs(ns_value + spec + oth - tot["standard"]) \
         <= max(2.0, 1e-5 * abs(tot["standard"]))
     return ok1 and ok2
 
