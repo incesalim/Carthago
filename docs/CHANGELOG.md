@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The narrow lanes audited by the wide ones.**
+`scripts/audit_narrow_vs_wide.py` names every narrow row a gated wide lane
+contradicts: 1,199 — 1,121 of them stage/ECL cells in loans_by_sector at
+four banks, 31 LCR ratios, 15 capital figures, 18 repricing buckets, 6
+NSFR ratios, 8 NPL closing sums (EMLAK's perimeter), 0 FX positions. The
+wide figure has the template's identity behind it; the list is the narrow
+lane's repair list, kept in docs/knowledge (internal).
+
 2026-08-21 — **The seventeenth graduation: the sector template, five
 families.** `scripts/build_sector_full.py` mints every notes table printed
 on BRSA's sector rows — the Pillar 3 risk profile by sector (17 exposure
