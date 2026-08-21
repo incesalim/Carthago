@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Fleet re-mint on the inline-aware document layer.** The
+document tables rebuilt (122,583 tables, cell conservation still exact at
+8,392,845, 169,465 inline rows in 55,621 tables) and ten lanes re-minted:
+Section-4 roles 87.7 → 92.7%, deposits-by-maturity roles 90.0 → 92.4% and
+bands 99.1%, loan-type refusals 136 → 79, deposit-insurance refusals 10 → 0,
+securities' unknown portfolios 525 → 492, the expenses note 540 instances.
+Anchors unchanged throughout. Interest on securities found 94 more notes
+whose narrow P&L row is wrong or missing — the repair list grows.
+
 2026-08-21 — **The document layer keeps the wrapped row heads.** A label-only
 line printed inside a block's span — the head of a wrapped row label, or a
 sub-header — was filed by the ledger as a paragraph with no block and never

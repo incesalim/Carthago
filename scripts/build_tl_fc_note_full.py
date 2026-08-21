@@ -248,10 +248,11 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     for pg, bid, heading, item_title, g, unit in blocks:
         grid = absorb_inline(json.loads(g), _any_role)
         fam = family_of(grid, heading)
-        if fam == "interest_from_banks":
-            # the balance-sheet "banks" note prints the same rows under the
-            # assets section and anchors to nothing the narrow lanes hold;
-            # the contents item the block sits under tells them apart
+        if fam in ("interest_from_banks", "interest_on_securities"):
+            # the balance-sheet "banks" and "securities by measurement" notes
+            # print the same rows under the assets section and anchor to
+            # nothing the narrow lanes hold; the contents item the block sits
+            # under tells them apart
             ctx = fold(item_title or "")
             if re.search(r"BILANCO|BALANCE SHEET|AKTIF|ASSETS|VARLIK", ctx) and not re.search(
                     r"GELIR TABLOSU|PROFIT OR LOSS|INCOME STATEMENT|KAR VEYA ZARAR", ctx):
