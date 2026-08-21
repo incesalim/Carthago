@@ -114,8 +114,11 @@ def detect(blocks: list[tuple], sig: dict[int, re.Pattern], max_row: int,
            min_sig: int = 2) -> list[tuple]:
     hits = []
     for pg, bid, grid, unit in blocks:
+        # signatures see the label WITHOUT its number prefix ("1 KREDI RISKI"
+        # -> "KREDI RISKI"), so a template may anchor its patterns at ^.
         s = sum(1 for r in grid
-                if (n := rowno(r, max_row)) in sig and sig[n].search(fold(r["label"])))
+                if (n := rowno(r, max_row)) in sig
+                and sig[n].search(fold(_LABEL_PREFIX.sub("", (r["label"] or "").strip()))))
         if s:
             hits.append((pg, bid, grid, unit, s))
     return hits if sum(h[4] for h in hits) >= min_sig else []

@@ -104,3 +104,40 @@ def test_leverage_scales_money_not_the_ratio_and_repairs_its_floor(tmp_path):
 def test_one_signature_row_is_not_a_table(tmp_path):
     db = _db(tmp_path, [(60, 1, "bin", [("15 Kaldıraç oranı", [15.0, 5.5, 5.4])])])
     assert LV.assemble(db, KEY) is None
+
+
+# --- the RWA overview (OV1) lane, same module -------------------------------
+
+_spec_rwa = importlib.util.spec_from_file_location(
+    "build_rwa_full", REPO / "scripts" / "build_rwa_full.py")
+RW = importlib.util.module_from_spec(_spec_rwa)
+_spec_rwa.loader.exec_module(RW)
+
+
+def test_rwa_overview_anchored_signatures_and_three_columns(tmp_path):
+    """Signatures are matched on the label WITHOUT its number prefix, so the
+    template may anchor at ^ ("1 KREDI RISKI" -> "KREDI RISKI"); the three
+    printed columns land as rwa / rwa_prior / min_capital with GARAN's phantom
+    column dropped; and minimum capital is 8% of RWA."""
+    db = _db(tmp_path, [
+        (82, 1, "bin", [
+            ("1 Credit risk (excluding counterparty credit risk) (CCR)",
+             [1.0, None, 3086068416.0, 2558296083.0, 246885473.0]),
+            ("2 Of which standardised approach (SA)",
+             [2.0, None, 3086068416.0, 2558296083.0, 246885473.0]),
+            ("16 Market risk", [16.0, None, 82033338.0, 87751576.0, 6562667.0]),
+            ("19 Operational risk",
+             [19.0, None, 494412896.0, 337670689.0, 39553032.0]),
+            ("25 Total (1+4+7+8+9+10+11+12+16+19+23+24)",
+             [25.0, None, 3693979683.0, 3009107943.0, 295518374.0]),
+        ]),
+    ])
+    got = RW.assemble(db, KEY)
+    cur = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert cur[1]["role"] == "credit_risk" and cur[25]["role"] == "total_rwa"
+    assert cur[25]["rwa"] == 3693979683.0
+    assert cur[25]["rwa_prior"] == 3009107943.0
+    assert cur[25]["min_capital"] == 295518374.0
+    assert abs(cur[25]["min_capital"] / cur[25]["rwa"] - 0.08) < 0.0015
+    assert RW._close(423588045.0, 423588063.0)      # cross-table rounding
+    assert not RW._close(10499959.0, 10498199.0)    # a real disagreement

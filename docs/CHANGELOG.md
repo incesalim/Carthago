@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The fifth graduation: the RWA overview (OV1) — the broadest
+yet.** `scripts/build_rwa_full.py` over the shared module: rows 1–25 × three
+printed columns (RWA current, RWA prior year-end, minimum capital = 8%).
+911 partitions / 22,714 rows — 83% of the fleet prints the template.
+Anchors: row 25 vs narrow `total_rwa` 99.1%, vs the graduated capital
+table's RWA 90.1% (the first wide-vs-wide check), the 8% identity at 98.9%
+over 3,568 rows. Two module lessons: signature patterns now match the label
+WITHOUT its number prefix so templates can anchor at ^ (detection was 0
+until then), and cross-TABLE anchors need a relative band — two separately
+printed tables round their components independently (DENIZ: 423,588,045 vs
+423,588,063), which a 1.5-unit tolerance read as 43 false mismatches. Five
+lanes graduated: capital 75,111 · LCR 28,915 · NSFR 26,910 · leverage 8,177
+· RWA 22,714 rows, all local, all anchored.
+
 2026-08-20 — **The fourth graduation (leverage), and the machinery became a
 module.** Three numbered-template builders shared everything but the
 template's facts, so `src/audit_reports/numbered_template.py` now holds the
