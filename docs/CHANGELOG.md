@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twenty-second graduation: the movement notes.**
+`scripts/build_movement_note_full.py` mints the securities and investment
+roll-forwards (opening → movements → closing, current and prior) under the
+closing identity with the printed sign convention recorded. "Movements
+during the period" is a subtotal head, not a movement — reading it as one
+had refused 634 instances; 79 remain. 687 filings / 11,056 rows. Twenty-two
+lanes graduated.
+
 2026-08-21 — **CBRT accounts and taxes payable.** The CBRT accounts note
 joins the TL/FC lane anchored to the cash note's own CBRT row — 323 of 323
 equal, the first wide-vs-wide anchor inside one lane; taxes payable joins

@@ -801,3 +801,44 @@ def test_absorb_inline_merges_a_head_only_when_it_earns_a_role():
                                          "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Finansal Varlıklar",
                                          "Krediler"]
     assert out[1]["cells"] == [3.0, 4.0]
+
+
+def test_movement_notes_subtotal_head_memo_rows_and_conventions(tmp_path):
+    MV = _load("build_movement_note_full")
+    halkb = [   # "Movements during the period" is a subtotal, not a movement
+        ("Balance at the beginning of the period", [2833279.0, 1586859.0]),
+        ("Movements during the period", [571920.0, 1246420.0]),
+        ("Purchases", [None, 126285.0]),
+        ("Bonus shares obtained profit from current year", [1428.0, 9697.0]),
+        ("Dividends from current year income", [None, None]),
+        ("Sales", [None, None]),
+        ("Transfers", [None, 21242.0]),
+        ("Revaluation decrease (-) / increase", [570492.0, 1089196.0]),
+        ("Impairment provisions (-)/ reversals", [None, None]),
+        ("Balance at the end of the period", [3405199.0, 2833279.0]),
+        ("Capital commitments", [None, None]),
+        ("Share percentage at the end of the period (%)", [None, None]),
+    ]
+    akbnk = [   # securities: deductions printed negative (signed)
+        ("Dönem Başındaki Değer", [164926760.0, 98154676.0]),
+        ("Parasal Varlıklarda Meydana Gelen Kur Farkları", [1473127.0, 6299057.0]),
+        ("Yıl İçindeki Alımlar", [2999.0, 29740102.0]),
+        ("Satış ve İtfa Yolu ile Elden Çıkarılanlar", [-12525826.0, -5337086.0]),
+        ("Değer Azalışı Karşılığı", [-30493.0, -14977.0]),
+        ("Değerleme Etkisi", [47692522.0, 36084988.0]),
+        ("Dönem Sonu Toplamı", [201539089.0, 164926760.0]),
+    ]
+    labelled = [   # deductions printed positive under "(-)" labels
+        ("Dönem Başı Değeri", [100.0, 80.0]),
+        ("Alışlar", [30.0, 25.0]),
+        ("Satışlar (-)", [10.0, 5.0]),
+        ("Değer Azalma Karşılıkları (-)", [5.0, None]),
+        ("Dönem Sonu Değeri", [115.0, 100.0]),
+    ]
+    db = _db(tmp_path, [(104, 1, "bin", halkb), (103, 1, "bin", akbnk), (105, 1, "bin", labelled)])
+    got = MV.assemble(db, KEY)
+    fams = [(i["family"], MV._convention(i["rows"], got["step"])) for i in got["instances"]]
+    assert fams == [("securities_movement", "signed"), ("investment_movement", "signed"),
+                    ("securities_movement", "deductions_labelled")]
+    h = {x["role"]: x for x in got["instances"][1]["rows"]}
+    assert h["movements_subtotal"]["current"] == 571920.0 and h["share_pct"]["after_closing"]
