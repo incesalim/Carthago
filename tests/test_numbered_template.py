@@ -724,3 +724,36 @@ def test_npl_movement_identities_signed_tails_and_single_group(tmp_path):
     a = {x["role"]: x["cells"] for x in got["instances"][0]["rows"] if x["role"]}
     assert a["transfers_out"]["group_iii"] == 1771442.0 and a["net"]["group_v"] == 5560059.0
     assert a["sold_corporate"]["group_iii"] is None
+
+
+def test_stage_movement_phantom_digit_column_undigited_labels_and_stacked_instances(tmp_path):
+    SM = _load("build_stage_movement_full")
+    # AKBNK-style: the "1." of "1. Aşamaya Transfer" split into a leading
+    # column; labels "Aşama Aşama Aşama Toplam"; current and prior stacked
+    grid = [
+        ("Dönem Başı (31 Aralık 2023)", [None, 1000.0, 200.0, 100.0, 1300.0]),
+        ("Dönem İçi İlave", [None, 500.0, 50.0, 20.0, 570.0]),
+        ("Dönem İçi Kapanan", [None, -300.0, -30.0, -10.0, -340.0]),
+        ("Aktiften Silinen", [None, None, None, -5.0, -5.0]),
+        ("1. Aşamaya Transfer", [1.0, 10.0, -10.0, None, None]),
+        ("2. Aşamaya Transfer", [2.0, -20.0, 25.0, -5.0, None]),
+        ("3. Aşamaya Transfer", [3.0, -5.0, -15.0, 20.0, None]),
+        ("Kur Farkı", [None, 15.0, 5.0, None, 20.0]),
+        ("Dönem Sonu (31 Aralık 2024)", [None, 1200.0, 225.0, 120.0, 1545.0]),
+        ("Dönem Başı (31 Aralık 2022)", [None, 900.0, 150.0, 80.0, 1130.0]),
+        ("Dönem İçi İlave", [None, 100.0, 50.0, 20.0, 170.0]),
+        ("Dönem Sonu (31 Aralık 2023)", [None, 1000.0, 200.0, 100.0, 1300.0]),
+    ]
+    db = _db(tmp_path, [(45, 1, "bin", grid)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, heading=?",
+               (json.dumps(["", "Aşama", "Aşama", "Aşama", "Toplam"]), "Beklenen zarar karşılıkları hareket tablosu"))
+    db.commit()
+    got = SM.assemble(db, KEY)
+    assert len(got["instances"]) == 2
+    cur, pri = got["instances"]
+    assert cur["measure"] == "ecl"
+    assert [b for b, _v in cur["rows"][0]["cells"]] == ["stage1", "stage2", "stage3", "total"]
+    assert SM._convention(cur["rows"], got["step"]) == "signed" and SM._row_sums_hold(cur["rows"], got["step"])
+    assert SM._convention(pri["rows"], got["step"]) == "signed"
+    t1 = next(x for x in cur["rows"] if x["role"] == "transfer_to_stage1")
+    assert dict(t1["cells"])["stage1"] == 10.0 and dict(t1["cells"])["stage2"] == -10.0

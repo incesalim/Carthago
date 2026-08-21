@@ -106,6 +106,16 @@ def column_model(grid: list[dict], col_labels: list, bs: BandSet,
     live_counts = [sum(1 for r in data if i < len(r["cells"]) and r["cells"][i] is not None)
                    for i in range(ncol)]
     live = [i for i in range(ncol) if live_counts[i] >= max(2, len(data) / 4)]
+
+    def _row_number_fragment(i: int) -> bool:
+        # a sparse column holding only tiny integers is the "1." / "2." of a
+        # numbered label ("1. Aşamaya Transfer") the capture split off
+        vals = [num(r["cells"][i]) for r in data if i < len(r["cells"]) and r["cells"][i] is not None]
+        vals = [v for v in vals if v is not None]
+        return bool(vals) and live_counts[i] < len(data) / 2 \
+            and all(float(v).is_integer() and 0 <= v <= 12 for v in vals)
+
+    live = [i for i in live if not _row_number_fragment(i)]
     if len(live) < 4:
         return None
     frags: dict[int, list[str]] = {}

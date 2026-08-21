@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twentieth graduation: TFRS 9 stage movements.**
+`scripts/build_stage_movement_full.py` mints the gross-loan and ECL
+movement tables by stage under two identities; the printed sign convention
+is recorded, not normalised. Refusals 110 → 21 once the phantom "1." column
+and the undigited "Aşama" labels were read; what remains refused includes
+filings whose own arithmetic fails. 128 filings / 8,344 rows. Twenty lanes
+graduated.
+
 2026-08-21 — **The nineteenth graduation: NPL movement by group — and the
 narrow lane vindicated.** `scripts/build_npl_movement_full.py` mints the
 III / IV / V movement table under two identities (net = closing −
