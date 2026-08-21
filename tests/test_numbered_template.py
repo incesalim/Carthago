@@ -216,3 +216,36 @@ def test_loan_type_registry_wrap_merge_and_identity_gate(tmp_path):
     assert by["working_capital"]["standard"] == 10_000.0      # EN variant
     assert by["other"]["standard"] == 20_000.0                # "Diğer (*)"
     assert by["non_specialised"]["watch_modified"] == 2_000.0
+
+
+# --- the consumer-loans notes family: group/item roles + per-row identity ---
+
+_spec_cl = importlib.util.spec_from_file_location(
+    "build_consumer_loan_full", REPO / "scripts" / "build_consumer_loan_full.py")
+CL = importlib.util.module_from_spec(_spec_cl)
+_spec_cl.loader.exec_module(CL)
+
+
+def test_consumer_loans_groups_items_and_row_identity_gate(tmp_path):
+    good = [
+        ("Tüketici Kredileri-TP", [802.0, 15721.0, 16523.0]),
+        ("Konut Kredisi", [16.0, 14267.0, 14283.0]),
+        ("Taşıt Kredisi", [150.0, 529.0, 679.0]),
+        ("İhtiyaç Kredisi", [635.0, 924.0, 1559.0]),
+        ("Diğer", ["-", "-", "-"]),
+        ("Bireysel Kredi Kartları-TP", [100.0, "-", 100.0]),
+        ("Taksitli", [40.0, "-", 40.0]),
+        ("Taksitsiz", [60.0, "-", 60.0]),
+        ("Toplam", [902.0, 15721.0, 16623.0]),
+    ]
+    bad = [(lab, cells[:2] + [999.0]) if lab != "Toplam" else (lab, cells)
+           for lab, cells in good]
+    db = _db(tmp_path, [(60, 1, "milyon", good), (61, 1, "milyon", bad)])
+    got = CL.assemble(db, KEY)
+    cur, pri = got["instances"]["current"], got["instances"]["prior"]
+    assert CL._identity_holds(cur) and not CL._identity_holds(pri)
+    by = {(r["group_role"], r["item_role"]): r for r in cur}
+    assert by[("consumer_tl", "housing")]["long_term"] == 14_267_000.0
+    assert by[("retail_cards_tl", "instalment")]["short_term"] == 40_000.0
+    assert by[("consumer_tl", None)]["total"] == 16_523_000.0       # the group row
+    assert by[(None, None)]["label"] == "Toplam"

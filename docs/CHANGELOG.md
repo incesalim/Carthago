@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The eighth graduation: consumer loans by maturity — 30,656
+rows, the largest notes lane yet.** `scripts/build_consumer_loan_full.py`
+mints BRSA's consumer / retail-card / personnel / overdraft note (~45 rows ×
+short, long, total; current + prior). Item labels repeat under each currency
+group, so rows carry (group_role, item_role). The mint gate is the note's own
+per-row identity — total = short + long on ≥90% of rows and the grand total —
+so the figures are trusted without any registry: 449 filings kept, 90
+instances refused. Eight lanes graduated.
+
 2026-08-20 — **The seventh graduation — the first notes-section family.**
 `scripts/build_loan_type_full.py` mints BRSA's cash-loans-by-type × credit-
 quality note (§5): eleven fixed rows × four quality columns, current + prior,
