@@ -842,3 +842,21 @@ def test_movement_notes_subtotal_head_memo_rows_and_conventions(tmp_path):
                     ("securities_movement", "deductions_labelled")]
     h = {x["role"]: x for x in got["instances"][1]["rows"]}
     assert h["movements_subtotal"]["current"] == 571920.0 and h["share_pct"]["after_closing"]
+
+
+def test_eps_division_gate_share_factor_and_single_column(tmp_path):
+    EP = _load("build_eps_full")
+    akbnk = [("31 Mart 2026", [2026.0, 2025.0]),
+             ("Grubun Net Dönem Kârı", [19151711.0, 13734126.0]),
+             ("Çıkarılmış Adi Hisselerin Ağırlıklı Ortalama Adedi (Bin)", [520000000.0, 520000000.0]),
+             ("Hisse Başına Kâr (Tam TL tutarı ile gösterilmiştir)", [0.03683, 0.02641])]
+    units = [("Net Income/(Loss) to be appropriated to ordinary shareholders", [1000.0]),
+             ("Average number of issued common shares", [2000000.0]),       # shares in units
+             ("Earnings per share (full TL)", [0.5])]
+    broken = [("Dönem Net Karı", [100.0, 90.0]), ("Hisse Adedi (Bin)", [1000.0, 1000.0]),
+              ("Hisse Başına Kâr", [0.9, 0.09])]
+    db = _db(tmp_path, [(29, 1, "bin", akbnk), (30, 1, "bin", units), (31, 1, "bin", broken)])
+    got = EP.assemble(db, KEY)
+    fs = [EP._division_factor(i["profit"][0], i["shares"][0], i["eps"][0]) for i in got["instances"]]
+    assert fs == [1.0, 1000.0, None]
+    assert got["instances"][1]["profit"] == (1000.0, None)

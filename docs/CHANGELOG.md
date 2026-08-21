@@ -5,6 +5,11 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twenty-third graduation: earnings per share.** The
+three-row note under its own division (eps = profit / shares, the share
+count in thousands or units), net profit tying to the narrow P&L on 92.6%.
+358 filings / 351 rows. Twenty-three lanes graduated.
+
 2026-08-21 — **The twenty-second graduation: the movement notes.**
 `scripts/build_movement_note_full.py` mints the securities and investment
 roll-forwards (opening → movements → closing, current and prior) under the
