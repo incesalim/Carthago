@@ -249,3 +249,27 @@ def test_consumer_loans_groups_items_and_row_identity_gate(tmp_path):
     assert by[("retail_cards_tl", "instalment")]["short_term"] == 40_000.0
     assert by[("consumer_tl", None)]["total"] == 16_523_000.0       # the group row
     assert by[(None, None)]["label"] == "Toplam"
+
+
+# --- the derivatives notes family: context + Σ-instruments gate -------------
+
+_spec_dv = importlib.util.spec_from_file_location(
+    "build_derivative_full", REPO / "scripts" / "build_derivative_full.py")
+DV = importlib.util.module_from_spec(_spec_dv)
+_spec_dv.loader.exec_module(DV)
+
+
+def test_derivatives_context_and_sum_gate():
+    assert DV.context_of("a. Table of positive differences related to derivative "
+                         "financial assets", "x") == "assets"
+    assert DV.context_of("Current Period Prior Period TL FC",
+                         "Konsolide pasif kalemlere ilişkin açıklamalar") == "liabilities"
+    assert DV.context_of("Riskten korunma amaçlı türev finansal varlıklar",
+                         None) == "hedging_assets"
+    good = [{"role": r, "current_tl": v, "current_fc": None, "prior_tl": None,
+             "prior_fc": None} for r, v in (("forward", 410.0), ("swap", 263.0),
+                                            ("futures", None), ("options", 98.0),
+                                            ("other", None), ("total", 771.0))]
+    assert DV._identity_holds(good)
+    good[-1]["current_tl"] = 999.0
+    assert not DV._identity_holds(good)

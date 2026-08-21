@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The ninth graduation: derivatives by instrument.** A six-row
+template that prints several times per filing (trading assets, trading
+liabilities, hedging), so `scripts/build_derivative_full.py` stores each
+instance with a `context` read off its block heading and contents item —
+the Turkish section titles say aktif/pasif, which took unknowns from 40% to
+15%. Mint gate: total = Σ instruments on every printed column; 560 filings /
+1,035 instances / 6,165 rows kept, 56 refused. Nine lanes graduated.
+
 2026-08-20 — **The eighth graduation: consumer loans by maturity — 30,656
 rows, the largest notes lane yet.** `scripts/build_consumer_loan_full.py`
 mints BRSA's consumer / retail-card / personnel / overdraft note (~45 rows ×
