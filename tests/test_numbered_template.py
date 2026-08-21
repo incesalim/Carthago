@@ -940,3 +940,29 @@ def test_risk_group_pairing_by_opening_closing_handoff(tmp_path):
     db2.commit()
     got2 = RG.assemble(db2, KEY)
     assert RG._pair(got2["instances"], got2["step"])[1] == 2
+
+
+def test_deposit_maturity_participation_template(tmp_path):
+    DM = _load("build_deposit_maturity_full")
+    grid = [
+        ("Up to 1", [None, 1.0, 3.0, 6.0, 9.0, 1.0, None, "on", None]),
+        ("I. Özel cari hesabı gerçek kişi ticari olmayan-TP", [100.0, "-", "-", "-", "-", "-", "-", "-", 100.0]),
+        ("II. Katılma hesapları gerçek kişi ticari olmayan-TP", ["-", 10.0, 20.0, 5.0, "-", 15.0, 6.0, 1.0, 57.0]),
+        ("III. Özel cari hesap diğer-TP", [40.0, "-", "-", "-", "-", "-", "-", "-", 40.0]),
+        ("Resmi kuruluşlar", [2.0, "-", "-", "-", "-", "-", "-", "-", 2.0]),
+        ("Ticari kuruluşlar", [38.0, "-", "-", "-", "-", "-", "-", "-", 38.0]),
+        ("IV. Katılma hesapları-TP", ["-", 18.0, 15.0, 1.0, "-", 11.0, 1.0, "-", 46.0]),
+        ("Toplam(**)", [140.0, 28.0, 35.0, 6.0, "-", 26.0, 7.0, 1.0, 243.0]),
+    ]
+    db = _db(tmp_path, [(106, 1, "bin", grid)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+               (json.dumps(["Vadesiz", "aya kadar", "aya kadar", "aya kadar", "aya kadar", "yıla kadar", "yıl ve üstü", "katılma", "Toplam(*)"]),))
+    db.commit()
+    got = DM.assemble(db, KEY)
+    inst = got["instances"][0]
+    assert DM._identity_holds(inst["rows"], got["step"])
+    bands = [b for b, _v in inst["rows"][0]["cells"]]
+    assert bands == ["demand", "m1", "m3", "m6", "m9", "y1", "y1_plus", "accumulating", "total"]
+    roles = {x["role"] for x in inst["rows"]}
+    assert {"current_real_tl", "participation_real_tl", "current_other_tl", "participation_other_tl",
+            "public_institutions", "commercial_institutions", "total"} <= roles

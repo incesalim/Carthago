@@ -59,7 +59,41 @@ BANDSET = BM.BandSet(
     header_label=re.compile(r"CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD|PREVIOUS PERIOD|^VADESIZ|^DEMAND"),
 )
 
+# the participation banks' regulated template: current accounts and
+# participation accounts, real persons (non-trade) and other, TL and FC,
+# with the same bank / institution sub-rows; bands demand, up to 1 / 3 / 6
+# / 9 months, up to 1 year, over 1 year, accumulating. The capture loses
+# the digits of "up to N months" into a phantom row, so the order is read
+# from the regulation, not the header.
+PART_BANDSET = BM.BandSet(
+    bands=[
+        ("demand", re.compile(r"VADESIZ|DEMAND")),
+        ("m1", re.compile(r"1 AYA KADAR|UP TO 1 MONTH|1 MONTH")),
+        ("m3", re.compile(r"3 AYA KADAR|UP TO 3 MONTHS|3 MONTHS")),
+        ("m6", re.compile(r"6 AYA KADAR|UP TO 6 MONTHS|6 MONTHS")),
+        ("m9", re.compile(r"9 AYA KADAR|UP TO 9 MONTHS|9 MONTHS")),
+        ("y1", re.compile(r"1 YILA KADAR|UP TO 1 YEAR")),
+        ("y1_plus", re.compile(r"1 YIL VE UST|OVER 1 YEAR|1 YEAR AND OVER")),
+        ("accumulating", re.compile(r"BIRIKIMLI|ACCUMULAT")),
+    ],
+    header_label=re.compile(r"CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD|PREVIOUS PERIOD|^UP TO 1$"),
+)
+_PARTICIPATION = re.compile(r"OZEL CARI|KATILMA HESA|PARTICIPATION ACCOUNT|CURRENT ACCOUNTS? (NON|OTHER|REAL)|REAL PERSONS? (CURRENT|PARTICIPATION)")
+
 ROLES: list[tuple[str, re.Pattern]] = [
+    ("current_real_fc", re.compile(r"^([IVX]+\.? ?)?OZEL CARI HESA.*(GERCEK|TICARI OLMAYAN).*(YP|FC|FX)|^([IVX]+\.? ?)?REAL PERSONS? CURRENT ACCOUNTS?.*(FC|FX)")),
+    ("current_real_tl", re.compile(r"^([IVX]+\.? ?)?OZEL CARI HESA.*(GERCEK|TICARI OLMAYAN)|^([IVX]+\.? ?)?REAL PERSONS? CURRENT ACCOUNTS?")),
+    ("participation_real_fc", re.compile(r"^([IVX]+\.? ?)?KATILMA HESA.*(GERCEK|TICARI OLMAYAN).*(YP|FC|FX)|^([IVX]+\.? ?)?REAL PERSONS? PARTICIPATION ACCOUNTS?.*(FC|FX)")),
+    ("participation_real_tl", re.compile(r"^([IVX]+\.? ?)?KATILMA HESA.*(GERCEK|TICARI OLMAYAN)|^([IVX]+\.? ?)?REAL PERSONS? PARTICIPATION ACCOUNTS?")),
+    ("current_other_fc", re.compile(r"^([IVX]+\.? ?)?OZEL CARI HESA.*DIGER.*(YP|FC|FX)|^([IVX]+\.? ?)?CURRENT ACCOUNTS? OTHER.*(FC|FX)")),
+    ("current_other_tl", re.compile(r"^([IVX]+\.? ?)?OZEL CARI HESA.*DIGER|^([IVX]+\.? ?)?CURRENT ACCOUNTS? OTHER")),
+    ("participation_other_fc", re.compile(r"^([IVX]+\.? ?)?KATILMA HESAPLARI ?[-–] ?(YP|FC|FX)|^([IVX]+\.? ?)?PARTICIPATION ACCOUNTS? ?[-–] ?(FC|FX)")),
+    ("participation_other_tl", re.compile(r"^([IVX]+\.? ?)?KATILMA HESAPLARI ?[-–] ?(TP|TL)|^([IVX]+\.? ?)?PARTICIPATION ACCOUNTS? ?[-–] ?(TL|TP)")),
+    ("commercial_and_other", re.compile(r"^TICARI VE DIGER|^COMMERCIAL AND OTHER")),
+    ("other_institutions", re.compile(r"^DIGER KURULUS|^OTHER INSTITUTION")),
+    ("commercial_institutions", re.compile(r"^TICARI KURULUS|^COMMERCIAL INSTITUTION")),
+    ("public_institutions", re.compile(r"^RESMI KURULUS|^PUBLIC (SECTOR|INSTITUTION)")),
+    ("banks_and_participation", re.compile(r"^BANKALAR VE KATILIM|^BANKS AND PARTICIPATION")),
     ("grand_total", re.compile(r"^GENEL TOPLAM|^GRAND TOTAL|^TOTAL DEPOSITS|^TOPLAM MEVDUAT")),
     ("total", re.compile(r"^TOPLAM|^TOTAL")),
     ("notice_7d", re.compile(r"^7 ?GUN|^7.?DAY")),
@@ -86,7 +120,7 @@ _PRIOR = re.compile(r"ONCEKI|PRIOR|PREVIOUS")
 # the balance-sheet line, allowing the footnote markers the narrow lane keeps
 # in the name ("MEVDUAT II-a", "DEPOSITS -a", "DEPOSITS (1)")
 _BS_DEPOSITS = re.compile(r"^(MEVDUAT|DEPOSITS?|TOPLANAN FONLAR|FUNDS COLLECTED)"
-                          r"(\s+[-–]?\s*[IVXA-Z0-9.()\-]{1,5})*$")
+                          r"(\s+[-–]?\s*[IVXA-Z0-9.()\-]{1,10})*$")
 _PL_INTEREST = re.compile(r"MEVDUATA VERILEN FAIZ|INTEREST (EXPENSE )?ON DEPOSIT|INTEREST PAID (ON|TO) DEPOSIT|"
                           r"KATILMA HESAPLARINA VERILEN|PROFIT SHARE (EXPENSE )?ON PARTICIPATION|"
                           r"EXPENSE ON PARTICIPATION ACCOUNT")
@@ -119,7 +153,8 @@ CREATE TABLE IF NOT EXISTS bank_audit_deposit_maturity_full (
     band_order   INTEGER NOT NULL,
     -- demand / notice_7d / m1 / m1_3 / m3_6 / m6_12 / y1_plus / accumulating
     -- / total / total_prior (a trailing prior-period total column, where a
-    -- bank prints one); NULL where the header could not be read.
+    -- bank prints one); the participation banks' template adds m3 / m6 / m9
+    -- / y1 ("up to N"); NULL where the header could not be read.
     band         TEXT,
     -- canonical thousand TL (scaled at mint). NULL = the filing printed "-".
     amount       REAL,
@@ -144,6 +179,8 @@ def _is_family(grid: list[dict], col_labels: list, heading: str | None) -> bool:
     if _NOT_FAMILY.search(labels):          # the Section-4 maturity-gap table
         return False
     roles = [role_of(r["label"] or "", False) for r in grid]
+    if sum(1 for r in roles if r and (r.startswith("current_") or r.startswith("participation_"))) >= 2:
+        return True                         # a participation bank's funds collected
     # no total required here: a matrix broken across a page keeps its total
     # in the next block, which joins as a continuation
     return "saving" in roles and any(x in roles for x in ("public", "commercial", "fx_deposit"))
@@ -204,7 +241,9 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     no_header = 0
     prev_cols = None
     for pg, bid, heading, grid, col_labels, _u in found:
-        cols = BM.column_model(grid, col_labels, BANDSET)
+        part = bool(_PARTICIPATION.search(" ".join(fold(r["label"] or "") for r in grid)))
+        cols = (BM.column_model(grid, col_labels, PART_BANDSET, min_named=1) if part
+                else BM.column_model(grid, col_labels, BANDSET))
         if cols is None and prev_cols is not None:
             data = [r for r in grid if not BM.is_header_row(r, BANDSET.header_label)]
             ncol = max((len(r["cells"]) for r in data), default=0)
@@ -245,7 +284,7 @@ def _instances_of_stream(stream, factor):
         if not label:
             continue
         role = role_of(label, in_bank_group)
-        if role == "saving" and role in seen and cur:
+        if role in ("saving", "current_real_tl") and role in seen and cur:
             out.append({"rows": cur, "hint": label_hint, "heading": heading})
             cur, seen, in_bank_group, label_hint = [], set(), False, None
         if not cur:
@@ -254,7 +293,8 @@ def _instances_of_stream(stream, factor):
             seen.add(role)
         if role == "bank_deposits":
             in_bank_group = True
-        elif role in ("total", "grand_total", "saving", "fx_deposit", "public", "commercial"):
+        elif role in ("total", "grand_total", "saving", "fx_deposit", "public", "commercial") \
+                or (role and (role.startswith("current_") or role.startswith("participation_"))):
             in_bank_group = False
         cells = r["cells"]
         vals = []

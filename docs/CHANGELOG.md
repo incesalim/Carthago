@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Deposits by maturity reaches the participation banks.** Their
+regulated "funds collected" template — current and participation accounts
+× real persons / other × TL / FC, bands up to 1 / 3 / 6 / 9 months, 1 year,
+over — joins the lane; the capture loses the bands' digits into a phantom
+row, so the order comes from the regulation. 938 filings (from 689), 32 of
+38 banks (the six left take no deposits), 467,594 rows; the KUVEYT total
+meets the BS funds-collected line to the unit once the "(5.2.1.)" footnote
+marker was allowed.
+
 2026-08-21 — **The readiness report.** `scripts/report_graduated_lanes.py`
 puts the 26 wide lanes in one table — 1,420,775 rows; coverage from 97.7%
 (Section-4 matrices) down to 9.4% (stage movements, a rare shape) — with a
