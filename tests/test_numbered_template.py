@@ -880,3 +880,35 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert [SL._identities_hold(i, got["step"]) for i in got["instances"]] == [True, False]
     r = {x["role"]: x for x in got["instances"][0]}
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
+
+
+def test_npl_by_borrower_periods_classes_and_net_identity(tmp_path):
+    NB = _load("build_npl_by_borrower_full")
+    grid = [
+        ("Cari Dönem (Net): 31 Aralık", [None, None, None]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Brüt)", [6145603.0, 16557226.0, 15150492.0]),
+        ("Karşılık Tutarı (-)", [3296993.0, 9305929.0, 9555483.0]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Net)", [2848610.0, 7251297.0, 5595009.0]),
+        ("Bankalar (Brüt)", ["-", "-", "-"]),
+        ("Karşılık Tutarı (-)", ["-", "-", "-"]),
+        ("Bankalar (Net)", ["-", "-", "-"]),
+        ("Önceki Dönem (Net): 31 Aralık", [None, None, None]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Brüt)", [100.0, 200.0, 300.0]),
+        ("Karşılık Tutarı (-)", [10.0, 20.0, 30.0]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Net)", [90.0, 180.0, 999.0]),
+    ]
+    movement = [  # the NPL movement table must not be taken for this note
+        ("Önceki Dönem Sonu Bakiyesi", [1.0, 2.0, 3.0]), ("Dönem İçinde İntikal (+)", [1.0, 1.0, 1.0]),
+        ("Diğer Donuk Alacak Hesaplarından Giriş (+)", [None, 1.0, 1.0]), ("Dönem İçinde Tahsilat (-)", [1.0, 1.0, 1.0]),
+        ("Dönem Sonu Bakiyesi", [1.0, 3.0, 4.0]), ("Karşılık (-)", [1.0, 1.0, 1.0]), ("Bilançodaki Net Bakiyesi", [0.0, 2.0, 3.0]),
+    ]
+    db = _db(tmp_path, [(102, 1, "bin", grid), (61, 1, "bin", movement)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?", (json.dumps(["III. Grup Krediler", "IV. Grup Krediler", "V. Grup Krediler"]),))
+    db.commit()
+    got = NB.assemble(db, KEY)
+    assert len(got["instances"]) == 1
+    cur, pri = got["instances"][0]
+    assert cur["label"] == "current" and pri["label"] == "prior"
+    assert NB._identity_holds(cur["rows"], got["step"]) and not NB._identity_holds(pri["rows"], got["step"])
+    prov = [x for x in cur["rows"] if x["measure"] == "provision"]
+    assert prov[0]["class"] == "individuals_corporates" and prov[1]["class"] == "banks"

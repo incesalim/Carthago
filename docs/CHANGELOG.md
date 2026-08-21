@@ -5,6 +5,11 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twenty-fifth graduation: NPL by borrower class.** Gross /
+provision / net × Groups III–V, current and prior, gated by net = gross −
+provision per cell; Σ gross per group equals the NPL movement's closing on
+92.6%. 559 filings / 32,001 rows. Twenty-five lanes graduated.
+
 2026-08-21 — **The twenty-fourth graduation: loans to shareholders and
 employees.** Cash / non-cash × current / prior under the template's two
 identities; 651 filings across 36 banks / 3,989 rows, 40 refused.
