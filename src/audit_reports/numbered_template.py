@@ -110,10 +110,20 @@ def partition_blocks(tab: sqlite3.Connection, key: tuple) -> list[tuple]:
         "AND kind=? ORDER BY page, block_id", key)]
 
 
+def live_value_columns(grid: list[dict], max_row: int) -> int:
+    """How many live value columns a block has after its row-number column —
+    the shape that tells CR4 (six) from CR5 (ten-plus) when both number the
+    same asset-class rows 1-18."""
+    return len(block_columns(grid, max_row, 99))
+
+
 def detect(blocks: list[tuple], sig: dict[int, re.Pattern], max_row: int,
-           min_sig: int = 2) -> list[tuple]:
+           min_sig: int = 2,
+           block_filter: Callable[[list[dict]], bool] | None = None) -> list[tuple]:
     hits = []
     for pg, bid, grid, unit in blocks:
+        if block_filter is not None and not block_filter(grid):
+            continue
         # signatures see the label WITHOUT its number prefix ("1 KREDI RISKI"
         # -> "KREDI RISKI"), so a template may anchor its patterns at ^.
         s = sum(1 for r in grid
@@ -128,14 +138,16 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
              max_row: int, bottom_row: int, n_values: int, percent_rows: set[int],
              role_of: Callable[[int, str], str | None],
              value_names: tuple[str, ...],
-             percent_repair_floor: float = 10000) -> dict | None:
+             percent_repair_floor: float = 10000,
+             percent_cols: frozenset[int] = frozenset(),
+             block_filter: Callable[[list[dict]], bool] | None = None) -> dict | None:
     """All instances of one numbered template in one partition, or None.
 
     Returns {"unit", "instances": {"current": [...], "prior": [...], ...}},
     each row a dict with template_row / label / role / page / block_id and
     one key per `value_names`, money already scaled to canonical bin.
     """
-    hits = detect(partition_blocks(tab, key), sig, max_row)
+    hits = detect(partition_blocks(tab, key), sig, max_row, block_filter=block_filter)
     if not hits:
         return None
     unit = hits[0][3]
@@ -165,7 +177,9 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
             if n in percent_rows:
                 vals = repair_percent(vals, percent_repair_floor)
             elif factor is not None:
-                vals = [U.scale_amount(v, factor) for v in vals]
+                # percent COLUMNS (CR4's RWA density) stay unscaled on money rows
+                vals = [v if i in percent_cols else U.scale_amount(v, factor)
+                        for i, v in enumerate(vals)]
             row = {"template_row": n, "label": label, "role": role_of(n, label),
                    "page": pg, "block_id": bid}
             row.update(zip(value_names, vals))

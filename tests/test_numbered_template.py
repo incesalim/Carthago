@@ -141,3 +141,37 @@ def test_rwa_overview_anchored_signatures_and_three_columns(tmp_path):
     assert abs(cur[25]["min_capital"] / cur[25]["rwa"] - 0.08) < 0.0015
     assert RW._close(423588045.0, 423588063.0)      # cross-table rounding
     assert not RW._close(10499959.0, 10498199.0)    # a real disagreement
+
+
+# --- the CR4 exposure-class lane: percent COLUMN, shape filter, mint gate ----
+
+_spec_cr4 = importlib.util.spec_from_file_location(
+    "build_exposure_class_full", REPO / "scripts" / "build_exposure_class_full.py")
+CR = importlib.util.module_from_spec(_spec_cr4)
+_spec_cr4.loader.exec_module(CR)
+
+
+def test_cr4_percent_column_shape_filter_and_mint_gate(tmp_path):
+    """A Milyon CR4 block: five money columns scale, the density COLUMN does
+    not; a 12-column CR5 block numbering the same rows is filtered by shape;
+    and an instance whose total row fails the density identity is gated out
+    at mint rather than stored."""
+    cr4 = [
+        ("1 Merkezi yönetimlerden alacaklar",
+         [1.0, 1073.0, 152.0, 1075.0, 151.0, 1512.0, 0.14]),
+        ("7 Kurumsal alacaklar", [7.0, 793.0, 540.0, 778.0, 238.0, 821.0, 80.7]),
+        ("8 Perakende alacaklar", [8.0, 787.0, 1594.0, 783.0, 38.0, 616.0, 75.0]),
+        ("18 TOPLAM", [18.0, 3132.0, 2274.0, 3116.0, 310.0, 1775.0, 51.81]),
+    ]
+    cr5 = [(lab, [cells[0]] + [1.0] * 12) for lab, cells in cr4]
+    bad = [(lab, cells[:-1] + [999.0]) for lab, cells in cr4]   # density wrong
+    db = _db(tmp_path, [(82, 1, "milyon", cr4), (83, 1, "milyon", cr5),
+                        (84, 1, "milyon", bad)])
+    got = CR.assemble(db, KEY)
+    assert set(got["instances"]) == {"current", "prior"}   # cr5 filtered out
+    cur = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert cur[18]["rwa"] == 1_775_000.0                    # scaled
+    assert cur[18]["rwa_density"] == 51.81                  # percent column: not
+    assert cur[7]["role"] == "corporates"
+    assert CR._identity_holds(got["instances"]["current"])
+    assert not CR._identity_holds(got["instances"]["prior"])   # the 'bad' copy

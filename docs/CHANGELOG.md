@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The sixth graduation (CR4 exposure by asset class) — the first
+lane with a mint gate.** Three BRSA forms number the same asset-class rows
+1–18, and a first pass stored all of them as "instances" (4 per filing,
+identity 51%). `scripts/build_exposure_class_full.py` now admits a block by
+shape (six live columns — CR5 spreads the rows over ten-plus risk-weight
+buckets) and STORES an instance only if its total row satisfies density =
+RWA / post-CRM exposure, the one equation that proves the six columns
+landed: 231 filings / 6,577 proven rows kept, 373 look-alike instances
+counted and refused. The shared module gained `percent_cols` (a percent
+COLUMN on money rows, never scaled) and `block_filter`. No narrow lane holds
+any of this data. Six lanes graduated.
+
 2026-08-20 — **The fifth graduation: the RWA overview (OV1) — the broadest
 yet.** `scripts/build_rwa_full.py` over the shared module: rows 1–25 × three
 printed columns (RWA current, RWA prior year-end, minimum capital = 8%).
