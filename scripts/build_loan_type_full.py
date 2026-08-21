@@ -99,7 +99,7 @@ def _is_family(grid: list[dict]) -> bool:
     roles = [role_of(r["label"] or "") for r in grid]
     # AKBNK prints the sub-types without the "Ihtisas Disi Krediler" head
     return roles and roles[0] in ("non_specialised", "working_capital") and "total" in roles \
-        and sum(1 for r in roles if r in SUBTYPES) >= 4 and 7 <= len(grid) <= 13
+        and sum(1 for r in roles if r in SUBTYPES) >= 4 and 7 <= len(grid) <= 16
 
 
 def _identities_hold(inst: list[dict]) -> bool:
@@ -141,6 +141,12 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     for pg, bid, grid, _u in found:
         rows = []
         pending = ""          # a wrapped label's head, printed on its own line
+        # the value columns are the last four LIVE columns: YKBNK's capture
+        # carries an all-None phantom column in the middle of the grid
+        reg = [r for r in grid if role_of(r["label"] or "")]          # registry rows only:
+        ncol = max((len(r["cells"]) for r in reg), default=0)         # a merged table below
+        live = [c for c in range(ncol) if any(len(r["cells"]) > c and r["cells"][c] is not None for r in reg)]
+        take = live[-4:]
         for r in grid:
             label = (r["label"] or "").strip()
             if not label:
@@ -156,7 +162,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
             if pending:
                 label = pending + " " + label
             pending = ""
-            vals = [num(c) for c in cells[-4:]]
+            vals = [num(cells[c]) if c < len(cells) else None for c in take]
             vals = [None] * (4 - len(vals)) + vals
             if factor is not None:
                 vals = [U.scale_amount(v, factor) for v in vals]
