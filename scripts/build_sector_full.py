@@ -78,8 +78,11 @@ TOP = ("agri_total", "mfg_total", "construction", "svc_total", "other")
 _FIRST = re.compile(r"^TARIM|^AGRICULT")
 
 
+_NUM_PREFIX = re.compile(r"^\d+(\.\d+)*\.?\s+")
+
+
 def sector_of(label: str) -> tuple[str | None, str | None]:
-    f = fold(label).strip()
+    f = _NUM_PREFIX.sub("", fold(label).strip())    # "1.1 Çiftçilik" numbers its rows
     for role, group, rx in SECTORS:
         if rx.search(f):
             return role, group
@@ -202,6 +205,11 @@ def column_model(grid: list[dict], col_labels: list, heading: str | None):
     classes = _class_header(grid) if len(live) >= 12 else None
     if classes is None and len(live) >= 12:
         classes = _classes_from_labels(col_labels, ncol)
+    if classes is None and len(live) == 20:
+        # the regulator's full template: 17 exposure classes then TL, FC,
+        # total — read by position when the labels are all "Alacaklar"
+        classes = {i: f"class_{k + 1}" for k, i in enumerate(live[:17])}
+        classes.update({live[17]: "tl", live[18]: "fc", live[19]: "total"})
     if classes:
         cols = [(i, classes.get(i), str(col_labels[i]) if i < len(col_labels) and col_labels[i] else None)
                 for i in live]

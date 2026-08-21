@@ -5,6 +5,12 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The sector lane reads numbered rows and the full 20-column
+risk profile.** "1.1 Çiftçilik" prefixes stripped; a risk profile whose
+labels are all "Alacaklar" read by the regulator's column order. Risk
+profile 143 → 205 instances, 133,884 rows in the lane; its ~350-filing
+coverage is the document's (Pillar 3 semi-annual), not the builder's.
+
 2026-08-21 — **Deposits by maturity reaches the participation banks.** Their
 regulated "funds collected" template — current and participation accounts
 × real persons / other × TL / FC, bands up to 1 / 3 / 6 / 9 months, 1 year,
