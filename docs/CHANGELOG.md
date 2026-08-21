@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The tenth graduation: securities by instrument and listing.**
+`scripts/build_securities_full.py`: debt / funds / shares × quoted / unquoted,
+impairment-or-valuation, total × (current, prior), one instance per portfolio.
+The sign of the adjustment line is the lesson: AKBNK prints "Değer Azalma
+Karşılığı (-)" as a positive figure to subtract, HAYATK prints its impairment
+already negative, GARAN prints "Value Increase/Impairment Loss" that ADDS —
+read off label and figure together, refusals fell from 333 to 124. 638
+filings / 1,217 instances / 8,424 rows kept. Ten lanes graduated.
+
 2026-08-20 — **The ninth graduation: derivatives by instrument.** A six-row
 template that prints several times per filing (trading assets, trading
 liabilities, hedging), so `scripts/build_derivative_full.py` stores each

@@ -273,3 +273,42 @@ def test_derivatives_context_and_sum_gate():
     assert DV._identity_holds(good)
     good[-1]["current_tl"] = 999.0
     assert not DV._identity_holds(good)
+
+
+# --- the securities notes family: signed adjustments + head-or-children -----
+
+_spec_sc = importlib.util.spec_from_file_location(
+    "build_securities_full", REPO / "scripts" / "build_securities_full.py")
+SC = importlib.util.module_from_spec(_spec_sc)
+_spec_sc.loader.exec_module(SC)
+
+
+def test_securities_identity_handles_both_sign_conventions(tmp_path):
+    akbnk = [   # "(-)" label, positive figure: subtract
+        ("Borçlanma Senetleri", [519.0, 526.0]),
+        ("Borsada İşlem Gören (*)", [480.0, 496.0]),
+        ("Borsada İşlem Görmeyen", [39.0, 30.0]),
+        ("Hisse Senetleri", [1.0, 1.0]),
+        ("Borsada İşlem Gören", [None, "-"]),
+        ("Borsada İşlem Görmeyen", [1.0, 1.0]),
+        ("Değer Azalma Karşılığı (-)", [20.0, 10.0]),
+        ("Toplam", [500.0, 517.0]),
+    ]
+    garan = [   # a signed valuation that ADDS, and an unlisted group label
+        ("Debt Securities", [334.0, 300.0]),
+        ("Quoted at Stock Exchange", [334.0, 300.0]),
+        ("Common Shares/Investment Fund", [38.0, 30.0]),
+        ("Quoted at Stock Exchange", [4.0, 3.0]),
+        ("Unquoted at Stock Exchange", [34.0, 27.0]),
+        ("Value Increase/Impairment Loss", [30.0, 20.0]),
+        ("Total", [402.0, 350.0]),
+    ]
+    db = _db(tmp_path, [(60, 3, "milyon", akbnk), (61, 2, "milyon", garan)])
+    got = SC.assemble(db, KEY)
+    a, g = got["instances"]
+    assert SC._identity_holds(a["rows"]) and SC._identity_holds(g["rows"])
+    rows = {(r["group_role"], r["item_role"]): r for r in g["rows"]}
+    assert rows[("share_certificates", "group")]["current"] == 38_000.0
+    assert rows[(None, "valuation")]["current"] == 30_000.0
+    assert SC.portfolio_of("B. Detailed table of financial assets measured at fair "
+                           "value through other comprehensive income", None) == "fvoci"
