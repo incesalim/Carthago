@@ -5,6 +5,13 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Other operating expenses join the two-period lane.** The cost
+structure note — 524 instances across 38 banks — with a head/children gate
+(the other-operating head = lease + maintenance + advertising + other). Its
+total meets the P&L line, or the line plus personnel where a note still
+carries personnel, on half the filings; the rest differ by small
+reclassifications. 13,918 rows in the lane.
+
 2026-08-21 — **The twenty-first graduation: the two-period notes.**
 `scripts/build_two_period_note_full.py` mints letters of guarantee by type
 and non-cash loans by type as items × (current, prior). The letters total

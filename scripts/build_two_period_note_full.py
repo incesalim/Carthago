@@ -8,7 +8,13 @@ the narrow off-balance-sheet statement:
                          letters of guarantee     → off-BS letters of guarantee
   non_cash_loans         letters of guarantee, letters of credit, bank
                          acceptances / avals, other guarantees and
-                         sureties                 → off-BS non-cash loans
+                         sureties                 → off-BS guarantees head
+  other_operating_expenses  personnel, termination reserve, social aid
+                         fund, impairments and depreciation by asset class,
+                         the "other operating expenses" head with its
+                         lease / maintenance / advertising / other children,
+                         loss on sale of assets, other
+                                                  → P&L other operating expenses
 
 Rows carry a registry role, the label kept. MINT GATE: total = Σ rows on
 the current column (and on the prior where printed). Anchor, dry-run
@@ -38,35 +44,73 @@ TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
 
 R = re.compile
-FAMILIES: dict[str, tuple[re.Pattern, list[tuple[str, re.Pattern]]]] = {
-    "letters_of_guarantee": (R(r"^TEMINAT MEKTUPLARI|^LETTERS? OF GUARANTEE"), [
-        ("definite", R(r"^KESIN|^DEFINITE|^LETTERS? OF CERTAIN|^CERTAIN|^FINAL")),
-        ("temporary", R(r"^GECICI|^TEMPORARY|^LETTERS? OF TENTATIVE|^TENTATIVE|^BID|^PROVISIONAL")),
-        ("advance", R(r"^AVANS|^ADVANCE|^LETTERS? OF ADVANCE")),
-        ("customs", R(r"^GUMRUK|^CUSTOMS|^LETTERS? OF GUARANTEE GIVEN TO CUSTOMS|^GIVEN TO CUSTOMS")),
-        ("other", R(r"^DIGER|^OTHER|^SURETY")),
+# family -> (statement, narrow line regex, [(role, parent, label regex)])
+FAMILIES: dict[str, tuple[str, re.Pattern, list[tuple[str, str | None, re.Pattern]]]] = {
+    "letters_of_guarantee": ("off_balance", R(r"^TEMINAT MEKTUPLARI$|^LETTERS? OF GUARANTEES?$"), [
+        ("definite", None, R(r"^KESIN|^DEFINITE|^LETTERS? OF CERTAIN|^CERTAIN|^FINAL")),
+        ("temporary", None, R(r"^GECICI|^TEMPORARY|^LETTERS? OF TENTATIVE|^TENTATIVE|^BID|^PROVISIONAL")),
+        ("advance", None, R(r"^AVANS|^ADVANCE|^LETTERS? OF ADVANCE")),
+        ("customs", None, R(r"^GUMRUK|^CUSTOMS|^LETTERS? OF GUARANTEE GIVEN TO CUSTOMS|^GIVEN TO CUSTOMS")),
+        ("other", None, R(r"^DIGER|^OTHER|^SURETY")),
     ]),
-    "non_cash_loans": (R(r"^GAYRINAKDI KREDI|^NON.?CASH LOAN"), [
-        ("letters_of_guarantee", R(r"^TEMINAT MEKTUP|^LETTERS? OF GUARANTEE|^GUARANTEES?$|^GARANTI")),
-        ("letters_of_credit", R(r"^AKREDITIF|^LETTERS? OF CREDIT")),
-        ("bank_acceptances", R(r"^BANKA KREDI|^BANKA AVAL|^BANKA KABUL|^BANK LOAN|^BANK ACCEPTANCE|^BILLS? OF EXCHANGE|^ACCEPTANCE")),
-        ("endorsements", R(r"^CIRO|^ENDORSEMENT")),
-        ("other", R(r"^DIGER|^OTHER")),
+    # the narrow off-balance lane keeps the guarantees section head,
+    # "Garanti ve Kefaletler" — the non-cash loans total
+    "non_cash_loans": ("off_balance", R(r"^GAYRINAKDI KREDILER$|^NON.?CASH LOANS?$|^GARANTI VE KEFALETLER$|"
+                                        r"^GUARANTEES AND (WARRANTIES|SURETIES|SURETYSHIPS)$|^GUARANTEES$"), [
+        ("letters_of_guarantee", None, R(r"^TEMINAT MEKTUP|^LETTERS? OF GUARANTEE|^GUARANTEES?$|^GARANTI")),
+        ("letters_of_credit", None, R(r"^AKREDITIF|^LETTERS? OF CREDIT")),
+        ("bank_acceptances", None, R(r"^BANKA KREDI|^BANKA AVAL|^BANKA KABUL|^BANK LOAN|^BANK ACCEPTANCE|^BILLS? OF EXCHANGE|^ACCEPTANCE")),
+        ("endorsements", None, R(r"^CIRO|^ENDORSEMENT")),
+        ("other", None, R(r"^DIGER|^OTHER")),
+    ]),
+    "other_operating_expenses": ("pl", R(r"^DIGER FAALIYET GIDERLERI|^OTHER OPERATING EXPENSES?"), [
+        ("personnel", None, R(r"^PERSONEL GIDER|^PERSONNEL (EXPENSE|COST)|^STAFF (EXPENSE|COST)")),
+        ("termination_reserve", None, R(r"^KIDEM|^RESERVE FOR EMPLOYEE TERMINATION|^PROVISION FOR (RETIREMENT|EMPLOYEE TERMINATION|SEVERANCE)|"
+                                        r"^EMPLOYEE TERMINATION|^SEVERANCE|^RETIREMENT PAY")),
+        ("social_aid_fund", None, R(r"^BANKA SOSYAL YARDIM|^BANK SOCIAL AID|^(PROVISION FOR )?PENSION FUND|^SOCIAL AID")),
+        ("tangible_impairment", None, R(r"^MADDI DURAN VARLIK DEGER DUSUS|^IMPAIRMENT (LOSSES? |EXPENSES? )?(ON|OF) (TANGIBLE|PROPERTY|FIXED)|^TANGIBLE ASSETS? IMPAIRMENT")),
+        ("tangible_depreciation", None, R(r"^MADDI DURAN VARLIK AMORTISMAN|^DEPRECIATION (EXPENSES? |CHARGES? )?(ON|OF) (TANGIBLE|PROPERTY|FIXED)|^TANGIBLE ASSETS? DEPRECIATION")),
+        ("intangible_impairment", None, R(r"^MADDI OLMAYAN DURAN VARLIK DEGER DUSUS|^IMPAIRMENT (LOSSES? |EXPENSES? )?(ON|OF) INTANGIBLE|^INTANGIBLE ASSETS? IMPAIRMENT")),
+        ("goodwill_impairment", None, R(r"^SEREFIYE|^GOODWILL")),
+        ("intangible_amortisation", None, R(r"^MADDI OLMAYAN DURAN VARLIK AMORTISMAN|^AMORTI[SZ]ATION (EXPENSES? |CHARGES? )?(ON|OF) INTANGIBLE|"
+                                            r"^DEPRECIATION (EXPENSES? )?(ON|OF) INTANGIBLE|^INTANGIBLE ASSETS? (AMORTI[SZ]ATION|DEPRECIATION)")),
+        ("equity_method_impairment", None, R(r"^OZKAYNAK YONTEMI|^OZKAYNAK YONETIMI|^EQUITY METHOD|^IMPAIRMENT .*EQUITY|^INVESTMENTS ACCOUNTED")),
+        ("held_for_sale_impairment", None, R(r"^ELDEN CIKARILACAK (MENKUL )?KIYMETLER DEGER DUSUS|^SATIS AMACLI .*DEGER DUSUS|^IMPAIRMENT .*(HELD FOR SALE|DISPOSAL)|"
+                                             r"^ASSETS HELD FOR (SALE|RESALE) .*IMPAIR|^(IMPAIRMENT|VALUE DECREASE).*ASSETS TO BE DISPOSED")),
+        ("held_for_sale_depreciation", None, R(r"^ELDEN CIKARILACAK (MENKUL )?KIYMETLER AMORTISMAN|^ELDEN CIKARILACAK AMORTISMAN|^SATIS AMACLI .*AMORTISMAN|"
+                                               r"^DEPRECIATION .*(HELD FOR SALE|DISPOSAL|DISPOSED)|^ASSETS HELD FOR (SALE|RESALE) .*DEPRECIATION")),
+        ("other_operating", None, R(r"^DIGER ISLETME GIDERLERI|^OTHER OPERATING EXPENSES?$|^OTHER OPERATIONAL EXPENSES?$")),
+        ("lease", "other_operating", R(r"^FAALIYET KIRALAMA|^KIRALAMA|^TFRS 16|^OPERATIONAL LEASE|^OPERATING LEASE|^RENT|^LEASE")),
+        ("maintenance", "other_operating", R(r"^BAKIM VE ONARIM|^MAINTENANCE|^REPAIR")),
+        ("advertising", "other_operating", R(r"^REKLAM|^ADVERTIS")),
+        ("other_operating_other", "other_operating", R(r"^DIGER GIDERLER|^OTHER EXPENSES")),
+        ("loss_on_sale_of_assets", None, R(r"^AKTIFLERIN SATISINDAN|^LOSS(ES)? (ON|FROM) (THE )?SALES? OF ASSETS")),
+        ("other", None, R(r"^DIGER|^OTHER")),
     ]),
 }
 _TOTAL = R(r"^TOPLAM|^TOTAL")
-_FIRST = {"letters_of_guarantee": ("definite", "temporary"), "non_cash_loans": ("letters_of_guarantee", "letters_of_credit", "bank_acceptances")}
+_FIRST = {"letters_of_guarantee": ("definite", "temporary"),
+          "non_cash_loans": ("letters_of_guarantee", "letters_of_credit", "bank_acceptances"),
+          "other_operating_expenses": ("personnel", "termination_reserve", None)}
 _CTX = R(r"CARI|ONCEKI|CURRENT|PRIOR|PREVIOUS")
 
 
-def roles_of(fam: str, labels: list[str]) -> list[str | None]:
-    out = []
+def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]:
+    """(role, parent) per row; a child role counts only under its head."""
+    out: list[tuple[str | None, str | None]] = []
+    head = None
     for lab in labels:
         f = fold(lab).strip()
         if _TOTAL.search(f):
-            out.append("total")
+            out.append(("total", None))
             continue
-        out.append(next((role for role, rx in FAMILIES[fam][1] if rx.search(f)), None))
+        hit = next(((role, parent) for role, parent, rx in FAMILIES[fam][2] if rx.search(f)), (None, None))
+        role, parent = hit
+        if parent is not None and head != parent:
+            role, parent = None, None             # a child label outside its head
+        elif role is not None and parent is None:
+            head = role
+        out.append((role, parent))
     return out
 
 
@@ -80,6 +124,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_two_period_note_full (
     row_order    INTEGER NOT NULL,
     label        TEXT NOT NULL,
     row_role     TEXT,
+    parent_role  TEXT,
     -- canonical thousand TL (scaled at mint). NULL = the filing printed "-".
     current      REAL,
     prior        REAL,
@@ -94,7 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_two_period_note_full_role
 
 
 def family_of(grid: list[dict], col_labels: list, heading: str | None) -> str | None:
-    if not 3 <= len(grid) <= 10 or len(grid[0]["cells"]) != 2:
+    if not 3 <= len(grid) <= 26 or len(grid[0]["cells"]) != 2:
         return None
     ctx = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or ""))
     if not _CTX.search(ctx):
@@ -105,10 +150,11 @@ def family_of(grid: list[dict], col_labels: list, heading: str | None) -> str | 
     best, best_n = None, 0
     for fam in FAMILIES:
         rs = roles_of(fam, labels)
-        if rs[0] not in _FIRST[fam]:
+        if rs[0][0] not in _FIRST[fam]:
             continue
-        n = sum(1 for r in rs if r and r != "total")
-        if n >= 2 and n > best_n:
+        n = sum(1 for r, _p in rs if r and r != "total")
+        need = 4 if fam == "other_operating_expenses" else 2
+        if n >= need and n > best_n:
             best, best_n = fam, n
     return best
 
@@ -122,9 +168,14 @@ def _identity_holds(rows: list[dict], step: float) -> bool:
         t = tot[col]
         if t is None:
             continue
-        s = sum(x[col] or 0.0 for x in rows if x["role"] != "total")
+        s = sum(x[col] or 0.0 for x in rows if x["role"] != "total" and x["parent"] is None)
         if abs(s - t) > max(2.0 * step, 1e-5 * abs(t)):
             return False
+        for head in rows:
+            if head["role"] and head["parent"] is None and head[col] is not None:
+                kids = [x[col] for x in rows if x["parent"] == head["role"] and x[col] is not None]
+                if len(kids) >= 2 and abs(sum(kids) - head[col]) > max(2.0 * step, 1e-5 * abs(head[col])):
+                    return False
         ok += 1
     return ok >= 1
 
@@ -148,24 +199,18 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     for fam, pg, bid, heading, grid, _u in found:
         labels = [(r["label"] or "").strip() for r in grid]
         rows = []
-        for r, lab, role in zip(grid, labels, roles_of(fam, labels)):
+        for r, lab, (role, parent) in zip(grid, labels, roles_of(fam, labels)):
             if not lab:
                 continue
             vals = [num(c) for c in r["cells"][-2:]]
             vals = [None] * (2 - len(vals)) + vals
             if factor is not None:
                 vals = [U.scale_amount(v, factor) for v in vals]
-            rows.append({"label": lab, "role": role, "current": vals[0], "prior": vals[1],
+            rows.append({"label": lab, "role": role, "parent": parent, "current": vals[0], "prior": vals[1],
                          "page": pg, "block_id": bid})
         instances.append({"family": fam, "rows": rows, "heading": heading})
     return {"unit": unit, "step": float(factor or 1.0), "instances": instances}
 
-
-_OFF_BS = {"letters_of_guarantee": R(r"^TEMINAT MEKTUPLARI$|^LETTERS? OF GUARANTEES?$"),
-           # the narrow off-balance lane keeps the guarantees section head,
-           # "Garanti ve Kefaletler" — the non-cash loans total
-           "non_cash_loans": R(r"^GAYRINAKDI KREDILER$|^NON.?CASH LOANS?$|^GARANTI VE KEFALETLER$|"
-                               r"^GUARANTEES AND (WARRANTIES|SURETIES|SURETYSHIPS)$|^GUARANTEES$")}
 
 
 def main() -> int:
@@ -197,13 +242,28 @@ def main() -> int:
         + (" WHERE " + " AND ".join(where) if where else "") + " ORDER BY 1,2,3",
         params)]
 
+    _FOOTNOTE = re.compile(r"(\s+[-–]?\s*[IVXA-Z0-9.(),]{1,8})+$")
+
     def narrow(key, fam) -> list[float]:
-        rx = _OFF_BS[fam]
+        statement, rx, _roles = FAMILIES[fam]
+        try:
+            if statement == "pl":
+                rows = aud.execute("SELECT item_name, amount FROM bank_audit_profit_loss WHERE "
+                                   "bank_ticker=? AND period=? AND kind=?", key)
+            else:
+                rows = aud.execute("SELECT item_name, amount_total FROM bank_audit_balance_sheet WHERE "
+                                   "bank_ticker=? AND period=? AND kind=? AND statement=?", (*key, statement))
+            return [v for name, v in rows
+                    if v is not None and (rx.search(fold(name or "").strip())
+                                          or rx.search(_FOOTNOTE.sub("", fold(name or "").strip())))]
+        except sqlite3.OperationalError:
+            return []
+
+    def personnel_line(key) -> list[float]:
         try:
             return [v for name, v in aud.execute(
-                "SELECT item_name, amount_total FROM bank_audit_balance_sheet WHERE "
-                "bank_ticker=? AND period=? AND kind=? AND statement='off_balance'", key)
-                if v is not None and rx.search(re.sub(r"\s+[-–]?\s*[IVXA-Z0-9.()]{1,5}$", "", fold(name or "").strip()))]
+                "SELECT item_name, amount FROM bank_audit_profit_loss WHERE bank_ticker=? AND period=? AND kind=?", key)
+                if v is not None and re.search(r"^PERSONEL GIDER|^PERSONNEL EXPENSE", fold(name or "").strip())]
         except sqlite3.OperationalError:
             return []
 
@@ -228,6 +288,11 @@ def main() -> int:
             tot = next(x for x in inst["rows"] if x["role"] == "total")
             if tot["current"] is not None:
                 ref = narrow(key, fam)
+                if fam == "other_operating_expenses":
+                    # since 2021 the P&L shows personnel expenses on their own
+                    # line; a note that still carries the personnel row equals
+                    # the two lines together
+                    ref = ref + [v + pv for v in ref for pv in personnel_line(key)]
                 if ref:
                     anchors[fam][1] += 1
                     anchors[fam][0] += int(any(abs(tot["current"] - v) <= max(2.0, 1e-3 * abs(v)) for v in ref))
@@ -246,8 +311,8 @@ def main() -> int:
                 n = n_by[inst["family"]]
                 n_by[inst["family"]] += 1
                 out.executemany(
-                    "INSERT INTO bank_audit_two_period_note_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    [(*key, inst["family"], n, i, x["label"], x["role"], x["current"], x["prior"],
+                    "INSERT INTO bank_audit_two_period_note_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [(*key, inst["family"], n, i, x["label"], x["role"], x["parent"], x["current"], x["prior"],
                       x["page"], x["block_id"], got["unit"]) for i, x in enumerate(inst["rows"])])
                 written += len(inst["rows"])
             out.commit()
@@ -257,7 +322,7 @@ def main() -> int:
         print(f"instances kept by family: {dict(fams.most_common())}")
     for fam, b in anchors.items():
         if b[1]:
-            print(f"  {fam:24} current total vs narrow off-balance line  {b[0]:5}/{b[1]:5}  {b[0] / b[1]:6.1%}")
+            print(f"  {fam:26} current total vs narrow statement line  {b[0]:5}/{b[1]:5}  {b[0] / b[1]:6.1%}")
     if role_cov[1]:
         print(f"  value-bearing rows with a role: {role_cov[0]}/{role_cov[1]} ({role_cov[0] / role_cov[1]:.1%})")
     for (fam, lab), c in unrole.most_common(8):
