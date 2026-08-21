@@ -5,6 +5,12 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The readiness report.** `scripts/report_graduated_lanes.py`
+puts the 26 wide lanes in one table — 1,420,775 rows; coverage from 97.7%
+(Section-4 matrices) down to 9.4% (stage movements, a rare shape) — with a
+per-bank matrix in docs/knowledge. Country exposures were probed and
+skipped (180 heterogeneous blocks).
+
 2026-08-21 — **The twenty-sixth graduation: the risk-group disclosures.**
 Related-party loans, deposits and derivatives by party class, opening /
 closing / income, under the one identity the table offers — the prior
