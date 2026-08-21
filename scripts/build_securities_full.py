@@ -30,29 +30,35 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+from src.audit_reports import band_matrix as BM  # noqa: E402
 from src.audit_reports import units as U  # noqa: E402
 from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 
 GROUPS: list[tuple[str, re.Pattern]] = [
-    ("debt_securities", re.compile(r"^BORCLANMA SENETLERI|^DEBT (SECURITIES|INSTRUMENTS)")),
+    # not the capital note's "Debt instruments subject to / to be included in..."
+    ("debt_securities", re.compile(r"^BORCLANMA SENETLERI|^DEBT SECURITIES|^DEBT INSTRUMENTS?( \(|$)")),
     ("investment_funds", re.compile(r"^YATIRIM FON|^INVESTMENT FUND|^MUTUAL FUND")),
     ("share_certificates", re.compile(r"^HISSE SENETLERI|^SHARE CERTIFICATES|^COMMON SHARES|"
                                       r"^EQUITY (SECURITIES|SHARES|INSTRUMENTS)|^SHARES$")),
+    ("other", re.compile(r"^DIGER( \(|$)|^OTHER( \(|$)")),        # ISCTR / TSKB: an "Other" that enters the total
 ]
 ITEMS: list[tuple[str, re.Pattern]] = [
     ("quoted", re.compile(r"^BORSADA ISLEM GOREN|^QUOTED|^LISTED")),
-    ("unquoted", re.compile(r"^BORSADA ISLEM GORMEYEN|^UNQUOTED|^UNLISTED|^NOT (QUOTED|LISTED)")),
+    ("unquoted", re.compile(r"^BORSADA ISLEM GORMEYEN|^UNQUOTED|^UNLISTED|^NOT.?(QUOTED|LISTED)")),
 ]
-_IMPAIR = re.compile(r"^DEGER AZALMA|^DEGER DUSUS|^IMPAIRMENT|^PROVISION FOR IMPAIRMENT|"
-                     r"^EXPECTED (CREDIT )?LOSS|^DEGER ARTIS|^VALUE INCREASE")
+_IMPAIR = re.compile(r"^DEGER AZALMA|^DEGER AZALIS|^DEGER DUSUS|^IMPAIRMENT|^PROVISION FOR IMPAIRMENT|"
+                     r"^EXPECTED (CREDIT )?LOSS|^BEKLENEN (KREDI )?ZARAR|^DEGER ARTIS|^VALUE INCREASE|"
+                     r"^VALUATION (INCREASE|DIFFERENCE)|^DEGERLEME (ARTIS|FARK)|"
+                     r"^ACCRUAL|^REESKONT|^TAHAKKUK|^FAIZ (VE GELIR )?REESKONT")      # SKBNK's accruals, as printed
 # GARAN prints a signed "Value Increase/Impairment Loss" that ADDS; HAYATK
 # prints its impairment already negative. The sign convention is read off the
 # label and the value: a "(-)" deduction label with a positive figure is
 # subtracted, anything else is applied as printed.
 _DEDUCTION_LABEL = re.compile(r"\(-\)|AZALMA|DUSUS|IMPAIRMENT|PROVISION")
-_VALUATION_LABEL = re.compile(r"DEGER ARTIS|VALUE INCREASE")
+_VALUATION_LABEL = re.compile(r"DEGER ARTIS|VALUE INCREASE|VALUATION (INCREASE|DIFFERENCE)|DEGERLEME (ARTIS|FARK)|"
+                              r"ACCRUAL|REESKONT|TAHAKKUK")
 _TOTAL = re.compile(r"^TOPLAM|^TOTAL")
 VALUES = ("current", "prior")
 _PORTFOLIO = [
@@ -67,6 +73,35 @@ def portfolio_of(heading: str | None, item_title: str | None) -> str:
     for name, rx in _PORTFOLIO:
         if rx.search(h):
             return name
+    return "unknown"
+
+
+_TITLE_LINE = re.compile(r"ILISKIN BILGI|INFORMATION ON|FINANSAL VARLIK|FINANCIAL ASSETS|MENKUL|SECURITIES")
+
+
+def portfolio_from_ledger(cap: sqlite3.Connection | None, key: tuple, page: int, block_id: int) -> str:
+    """The portfolio from the nearest title paragraph above the block in the
+    capture ledger — "b) Gerçeğe uygun değer farkı diğer kapsamlı gelire
+    yansıtılan finansal varlıklara ilişkin bilgiler" sits between tables,
+    where the tables layer keeps no text. Looks back up to 40 lines over
+    the page and the one before; 'unknown' where nothing names one."""
+    if cap is None:
+        return "unknown"
+    row = cap.execute("SELECT first_line FROM bank_audit_document_blocks WHERE bank_ticker=? AND period=? "
+                      "AND kind=? AND page=? AND block_id=?", (*key, page, block_id)).fetchone()
+    if row is None:
+        return "unknown"
+    lines = cap.execute(
+        "SELECT page, line_order, text, role FROM bank_audit_document_lines WHERE bank_ticker=? AND period=? "
+        "AND kind=? AND ((page=? AND line_order<?) OR page=?) ORDER BY page DESC, line_order DESC LIMIT 40",
+        (*key, page, row[0], page - 1)).fetchall()
+    for _pg, _lo, text, role in lines:
+        f = fold(text)
+        # the ledger files these title lines as paragraph, heading or footnote
+        if role != "data" and _TITLE_LINE.search(f):
+            for name, rx in _PORTFOLIO:
+                if rx.search(f):
+                    return name
     return "unknown"
 
 
@@ -109,6 +144,31 @@ def _sec_role(label: str) -> str | None:
     return None
 
 
+def _normalise(grid: list[dict]) -> list[dict]:
+    """The grid from its first debt-securities row to its first total: the
+    date row the capture puts above it ("30 Haziran 2026 | 2026 | 2025" —
+    BURGAN, AKBNK, ICBCT, HSBC...) and a note title are dropped, and so is
+    the movement table the capture glues on below (AKTIF, ALNTF, VAKBN)."""
+    first = next((i for i, r in enumerate(grid) if _sec_role(r["label"] or "") == "debt_securities"), None)
+    if first is None:
+        return grid
+    grid = grid[first:]
+    total = next((i for i, r in enumerate(grid) if _sec_role(r["label"] or "") == "total"), None)
+    return grid if total is None else grid[:total + 1]
+
+
+def _value_columns(grid: list[dict]) -> list[int]:
+    """(current, prior) cell indexes: the first two live columns — VAKBN
+    parks the figures in columns 4 and 8 of a nine-cell row."""
+    live = BM.live_value_columns(grid)
+    if len(live) >= 2:
+        return live[:2]
+    if len(live) == 1:
+        return [live[0], -1]
+    n = max((len(r["cells"]) for r in grid), default=0)
+    return [n - 2, n - 1]
+
+
 def _is_family(grid: list[dict]) -> bool:
     if not 4 <= len(grid) <= 14:
         return False
@@ -119,6 +179,7 @@ def _is_family(grid: list[dict]) -> bool:
 
 def _rows_of(grid: list[dict], pg: int, bid: int, factor) -> list[dict]:
     rows, group = [], None
+    cur_i, pri_i = _value_columns(grid)
     for r in grid:
         label = (r["label"] or "").strip()
         if not label:
@@ -137,8 +198,8 @@ def _rows_of(grid: list[dict], pg: int, bid: int, factor) -> list[dict]:
         else:
             item = next((name for name, rx in ITEMS if rx.search(f)), None)
             item_role = item
-        vals = [num(c) for c in r["cells"][-2:]]
-        vals = [None] * (2 - len(vals)) + vals
+        cells = r["cells"]
+        vals = [num(cells[i]) if 0 <= i < len(cells) else None for i in (cur_i, pri_i)]
         if factor is not None:
             vals = [U.scale_amount(v, factor) for v in vals]
         row = {"label": label, "group_role": group if item_role in ("group", "quoted", "unquoted") else None,
@@ -184,28 +245,33 @@ def _identity_holds(inst: list[dict]) -> bool:
     return abs(expect - total) <= max(2.0, 1e-5 * abs(total))
 
 
-def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
+def assemble(tab: sqlite3.Connection, key: tuple, cap: sqlite3.Connection | None = None) -> dict | None:
     blocks = tab.execute(
         "SELECT page, block_id, heading, item_title, grid_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = [(pg, bid, h, it, grid, unit)
              for pg, bid, h, it, g, unit in blocks
-             if _is_family(grid := absorb_inline(json.loads(g), _sec_role))]
+             if _is_family(grid := _normalise(absorb_inline(json.loads(g), _sec_role)))]
     if not found:
         return None
     unit = found[0][5]
     factor = U.UNIT_SCALE.get(unit)
-    return {"unit": unit, "instances": [
-        {"portfolio": portfolio_of(h, it), "heading": h,
-         "rows": _rows_of(grid, pg, bid, factor)}
-        for pg, bid, h, it, grid, _u in found]}
+    instances = []
+    for pg, bid, h, it, grid, _u in found:
+        portfolio = portfolio_of(h, it)
+        if portfolio == "unknown":
+            portfolio = portfolio_from_ledger(cap, key, pg, bid)
+        instances.append({"portfolio": portfolio, "heading": h, "rows": _rows_of(grid, pg, bid, factor)})
+    return {"unit": unit, "instances": instances}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--tables-db", default=str(TABLES_DB))
+    ap.add_argument("--capture-db", default=str(REPO / "data" / "bank_audit_capture.db"),
+                    help="the capture ledger, for the portfolio title paragraphs between tables")
     ap.add_argument("--bank")
     ap.add_argument("--period")
     ap.add_argument("--kind")
@@ -214,6 +280,8 @@ def main() -> int:
     args = ap.parse_args()
 
     tab = sqlite3.connect(f"file:{args.tables_db}?mode=ro", uri=True)
+    cap = (sqlite3.connect(f"file:{args.capture_db}?mode=ro", uri=True)
+           if Path(args.capture_db).exists() else None)
     out = None
     if args.write:
         out = sqlite3.connect(args.tables_db)
@@ -234,7 +302,7 @@ def main() -> int:
     per_filing: Counter = Counter()
     portfolios: Counter = Counter()
     for key in keys:
-        got = assemble(tab, key)
+        got = assemble(tab, key, cap)
         if got is None:
             continue
         detected += 1

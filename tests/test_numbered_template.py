@@ -396,6 +396,51 @@ def test_securities_identity_handles_both_sign_conventions(tmp_path):
                            "value through other comprehensive income", None) == "fvoci"
 
 
+def test_securities_date_row_phantom_columns_glued_movement_other_and_accruals(tmp_path):
+    # VAKBN: a date row above, the figures parked in columns 4 and 8 of a
+    # nine-cell row, the amortised-cost movement table glued on below
+    vakbn = [
+        ("Cari Dönem - 31 Mart 2022 Önceki Dönem -", [None, "-", None, None, 2022.0, None, "-", 31.0, 2021.0]),
+        ("Borçlanma Senetleri", [None, None, None, None, 500.0, None, None, None, 400.0]),
+        ("Borsada İşlem Gören", [None, None, None, None, 480.0, None, None, None, 390.0]),
+        ("Borsada İşlem Görmeyen", [None, None, None, None, 20.0, None, None, None, 10.0]),
+        ("Değer Azalma Karşılığı (-)", [None, None, None, None, 5.0, None, None, None, 4.0]),
+        ("Toplam", [None, None, None, None, 495.0, None, None, None, 396.0]),
+        ("Dönem Başındaki Değer", [None, None, None, None, None, None, None, None, 300.0]),
+        ("Dönem İçindeki Alımlar", [None, None, None, None, None, None, None, None, 100.0]),
+        ("Dönem Sonu Toplamı", [None, None, None, None, None, None, None, None, 400.0]),
+    ]
+    # ISCTR: "Not-Quoted (1)", an "Other" that enters the total; TSKB-style
+    # negative impairment; SKBNK's accruals, as printed
+    isctr = [
+        ("Debt Securities", [1000.0, 900.0]),
+        ("Quoted on a Stock Exchange", [600.0, 500.0]),
+        ("Not-Quoted (1)", [400.0, 400.0]),
+        ("Share Certificates", [50.0, 40.0]),
+        ("Quoted on a Stock Exchange", [10.0, 8.0]),
+        ("Not-Quoted", [40.0, 32.0]),
+        ("Impairment provision(-)", [-30.0, -20.0]),
+        ("Accruals", [-6.0, -5.0]),
+        ("Other", [12.0, 10.0]),
+        ("Total", [1026.0, 925.0]),
+    ]
+    tier2 = [   # the capital note, not this family
+        ("Debt instruments to be included in contributed capital", [None, 100.0]),
+        ("Subordinated loans", [None, 100.0]),
+        ("Subordinated debt instruments", [None, None]),
+        ("Total", [None, 100.0]),
+    ]
+    db = _db(tmp_path, [(63, 1, "bin", vakbn), (70, 1, "bin", isctr), (80, 1, "bin", tier2)])
+    got = SC.assemble(db, KEY)
+    assert [(len(i["rows"]), SC._identity_holds(i["rows"])) for i in got["instances"]] == [(5, True), (10, True)]
+    v = {(r["group_role"], r["item_role"]): r for r in got["instances"][0]["rows"]}
+    assert v[("debt_securities", "group")]["current"] == 500.0 and v[("debt_securities", "group")]["prior"] == 400.0
+    assert v[(None, "total")]["current"] == 495.0
+    i = {(r["group_role"], r["item_role"]): r for r in got["instances"][1]["rows"]}
+    assert i[("debt_securities", "unquoted")]["current"] == 400.0
+    assert i[("other", "group")]["current"] == 12.0 and i[(None, "valuation")]["current"] == -6.0
+
+
 def _load(name: str):
     spec = importlib.util.spec_from_file_location(name, REPO / "scripts" / f"{name}.py")
     mod = importlib.util.module_from_spec(spec)

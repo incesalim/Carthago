@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Securities: 638 → 990 filings, 26 → 36 banks; refusals 124 →
+34.** The grid is cut from the first debt-securities row to the first total
+— a date row rides above it in most captures ("30 Haziran 2026 | 2026 |
+2025"), and the amortised-cost movement table is glued on below in others —
+and the value columns are the first two live ones rather than the last two
+cells (VAKBN parks the figures in columns 4 and 8 of a nine-cell row). The
+capital note's "Debt instruments subject to / to be included in…" tables no
+longer pass as securities. The registry learns "Not-Quoted", "Beklenen zarar
+karşılığı", "Değer azalışı karşılığı", "Valuation increase / (decrease)", an
+"Other" group that enters the total (ISCTR, TSKB) and SKBNK's accruals,
+applied as printed. The portfolio, where the heading names none, comes from
+the nearest title paragraph above the block in the capture ledger (the
+tables layer keeps no prose): unknown 492 → 129 instances.
+
 2026-08-21 — **Consumer loans: 449 → 910 filings, 19 → 33 banks.** The
 grid is normalised before detection: a period header row above the first
 row (AKBNK, ZIRAATK) is dropped, the note title that carries the consumer-TL
