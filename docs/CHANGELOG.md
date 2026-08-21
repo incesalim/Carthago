@@ -5,6 +5,13 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Trading income joins the two-period lane.** Gains and losses
+heads over capital-market / derivative / FX children, net = gains − losses;
+children are matched before heads ("Losses on Capital Market Transactions"
+is a child), a blank head stands for its children, memo rows after the
+total are ignored. The net equals the P&L line on 152 of 152 filings. 175
+instances; the lane holds 15,493 rows.
+
 2026-08-21 — **Other operating expenses join the two-period lane.** The cost
 structure note — 524 instances across 38 banks — with a head/children gate
 (the other-operating head = lease + maintenance + advertising + other). Its

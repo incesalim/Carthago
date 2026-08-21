@@ -15,6 +15,9 @@ the narrow off-balance-sheet statement:
                          lease / maintenance / advertising / other children,
                          loss on sale of assets, other
                                                   → P&L other operating expenses
+  trading_income         gains and losses heads, each over capital-market,
+                         derivative and FX children; net total
+                                                  → P&L trading income (net)
 
 Rows carry a registry role, the label kept. MINT GATE: total = Σ rows on
 the current column (and on the prior where printed). Anchor, dry-run
@@ -87,11 +90,25 @@ FAMILIES: dict[str, tuple[str, re.Pattern, list[tuple[str, str | None, re.Patter
         ("loss_on_sale_of_assets", None, R(r"^AKTIFLERIN SATISINDAN|^LOSS(ES)? (ON|FROM) (THE )?SALES? OF ASSETS")),
         ("other", None, R(r"^DIGER|^OTHER")),
     ]),
+    # gains and losses print as two heads with the same three children;
+    # the net total is gains minus losses (losses printed positive)
+    "trading_income": ("pl", R(r"^TICARI KAR|^TRADING (INCOME|PROFIT|GAIN)|^NET TRADING"), [
+        # children first: "Losses on Capital Market Transactions" is a child,
+        # not the loss head
+        ("capital_market", "*", R(r"^SERMAYE PIYASASI|^CAPITAL MARKET|^(GAINS?|LOSS(ES)?|PROFIT|INCOME) (ON|FROM) CAPITAL MARKET|"
+                                  r"^SECURITIES TRADING|^TRADING ACCOUNT|^(GAINS?|LOSS(ES)?) ON SECURITIES")),
+        ("derivative", "*", R(r"^TUREV|^DERIVATIVE|^(GAINS?|LOSS(ES)?|PROFIT|INCOME) (ON|FROM) DERIVATIVE|^FROM DERIVATIVE")),
+        ("fx", "*", R(r"^KAMBIYO|^FOREIGN EXCHANGE|^FX|^(GAINS?|LOSS(ES)?|PROFIT|INCOME) (ON|FROM) FOREIGN EXCHANGE")),
+        ("gain", None, R(r"^KAR$|^KAR \(|^PROFIT$|^TRADING (INCOME|GAINS?|PROFIT)$|^GAINS?$|^INCOME$|^GAINS? \(")),
+        ("loss", None, R(r"^ZARAR|^LOSS(ES)?$|^LOSS(ES)? \(|^TRADING LOSS")),
+    ]),
 }
-_TOTAL = R(r"^TOPLAM|^TOTAL")
+_DEDUCT = {"trading_income": ("loss",)}
+_TOTAL = R(r"^TOPLAM|^TOTAL|^NET TICARI|^NET TRADING")
 _FIRST = {"letters_of_guarantee": ("definite", "temporary"),
           "non_cash_loans": ("letters_of_guarantee", "letters_of_credit", "bank_acceptances"),
-          "other_operating_expenses": ("personnel", "termination_reserve", None)}
+          "other_operating_expenses": ("personnel", "termination_reserve", None),
+          "trading_income": ("gain",)}
 _CTX = R(r"CARI|ONCEKI|CURRENT|PRIOR|PREVIOUS")
 
 
@@ -99,14 +116,21 @@ def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]
     """(role, parent) per row; a child role counts only under its head."""
     out: list[tuple[str | None, str | None]] = []
     head = None
+    seen_total = False
     for lab in labels:
         f = fold(lab).strip()
+        if seen_total:                            # memo rows after the total
+            out.append((None, None))
+            continue
         if _TOTAL.search(f):
             out.append(("total", None))
+            seen_total = True
             continue
         hit = next(((role, parent) for role, parent, rx in FAMILIES[fam][2] if rx.search(f)), (None, None))
         role, parent = hit
-        if parent is not None and head != parent:
+        if parent == "*":                         # a child of whichever head is open
+            role, parent = (f"{head}.{role}", head) if head else (None, None)
+        elif parent is not None and head != parent:
             role, parent = None, None             # a child label outside its head
         elif role is not None and parent is None:
             head = role
@@ -159,16 +183,25 @@ def family_of(grid: list[dict], col_labels: list, heading: str | None) -> str | 
     return best
 
 
-def _identity_holds(rows: list[dict], step: float) -> bool:
+def _identity_holds(rows: list[dict], step: float, fam: str = "") -> bool:
     tot = next((x for x in rows if x["role"] == "total"), None)
     if tot is None:
         return False
+    deduct = _DEDUCT.get(fam, ())
     ok = 0
     for col in ("current", "prior"):
         t = tot[col]
         if t is None:
             continue
-        s = sum(x[col] or 0.0 for x in rows if x["role"] != "total" and x["parent"] is None)
+        def head_value(x):
+            # a head printed without a figure stands for the sum of its children
+            if x[col] is None and x["role"]:
+                kids = [y[col] for y in rows if y["parent"] == x["role"] and y[col] is not None]
+                return sum(kids) if kids else 0.0
+            return x[col] or 0.0
+
+        s = sum((-head_value(x) if x["role"] in deduct and head_value(x) > 0 else head_value(x))
+                for x in rows if x["role"] != "total" and x["parent"] is None)
         if abs(s - t) > max(2.0 * step, 1e-5 * abs(t)):
             return False
         for head in rows:
@@ -279,7 +312,7 @@ def main() -> int:
         detected += 1
         kept = []
         for inst in got["instances"]:
-            if not _identity_holds(inst["rows"], got["step"]):
+            if not _identity_holds(inst["rows"], got["step"], inst["family"]):
                 gated += 1
                 continue
             fam = inst["family"]
