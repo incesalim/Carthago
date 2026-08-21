@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **NPL by borrower: 559 → 765 filings, 22 → 27 banks.** TEB's
+"Önceki Dönem (Net)" head is an inline line the document layer flags and
+`absorb_inline` used to drop — it now takes a `keep` predicate and the head
+stays as a valueless row; AKTIF heads its periods with dates ("31 Mart 2026
+(Net)") whose digits land in a lead column, the second date being the
+prior; YKBNK's empty lead column and "Loans granted to real persons and
+corporate entities" are read. Σ gross per group equals the narrow NPL
+closing on 94.4% of filings.
+
 2026-08-21 — **Securities: 638 → 990 filings, 26 → 36 banks; refusals 124 →
 34.** The grid is cut from the first debt-securities row to the first total
 — a date row rides above it in most captures ("30 Haziran 2026 | 2026 |

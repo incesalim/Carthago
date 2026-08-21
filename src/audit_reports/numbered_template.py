@@ -207,18 +207,25 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
             "instances": {labels[i]: inst for i, inst in enumerate(instances[:4])}}
 
 
-def absorb_inline(grid: list[dict], role_of) -> list[dict]:
+def absorb_inline(grid: list[dict], role_of, keep=None) -> list[dict]:
     """Fold the document layer's `inline` rows (label-only lines printed
     inside a block: a wrapped row head, or a sub-header) into a grid a
     registry lane can read. A head is prepended to the row below when the
     row's bare label has no role (or a placeholder one, "_...") and the
-    joined label has one; anything else is dropped. Rows without the flag
-    pass through untouched."""
+    joined label has one; anything else is dropped — except an inline row
+    `keep(label)` claims (a period head such as "Önceki Dönem (Net)"),
+    which stays as a valueless row of its own. Rows without the flag pass
+    through untouched."""
     out: list[dict] = []
     pending = ""
     for r in grid:
         if r.get("inline"):
-            pending = (pending + " " + (r["label"] or "").strip()).strip()
+            label = (r["label"] or "").strip()
+            if keep is not None and label and keep(label):
+                pending = ""
+                out.append({k: v for k, v in r.items() if k != "inline"})
+                continue
+            pending = (pending + " " + label).strip()
             continue
         if pending:
             label = (r["label"] or "").strip()

@@ -1041,6 +1041,66 @@ def test_npl_by_borrower_periods_classes_and_net_identity(tmp_path):
     assert prov[0]["class"] == "individuals_corporates" and prov[1]["class"] == "banks"
 
 
+def test_npl_by_borrower_inline_period_head_date_heads_and_lead_columns(tmp_path):
+    NB = _load("build_npl_by_borrower_full")
+    # TEB: no current head, the prior head an inline (valueless) row;
+    # AKTIF: date heads with their digits in a lead column; YKBNK: an empty
+    # lead column, "Loans granted to real persons and corporate entities"
+    teb = [
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Brüt)", [3346.0, 5549.0, 6165.0]),
+        ("Karşılık Tutarı (-)", [2520.0, 4160.0, 3928.0]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Net)", [826.0, 1389.0, 2237.0]),
+        ("Bankalar (Brüt)", ["-", "-", "-"]),
+        ("Karşılık Tutarı (-)", ["-", "-", "-"]),
+        ("Bankalar (Net)", ["-", "-", "-"]),
+        ("Önceki Dönem (Net)", [None, None, None]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Brüt)", [2441.0, 4910.0, 3549.0]),
+        ("Karşılık Tutarı (-)", [2139.0, 3240.0, 2096.0]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Net)", [302.0, 1670.0, 1453.0]),
+    ]
+    aktif = [
+        ("31 Mart 2026 (Net)", [31.0, None, None, None]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Brüt)", [None, 399155.0, 601073.0, 724960.0]),
+        ("Karşılık Tutarı (-)", [None, 120358.0, 250187.0, 496790.0]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Net)", [None, 278797.0, 350886.0, 228170.0]),
+        ("Bankalar (Brüt)", [None, "-", "-", "-"]),
+        ("Karşılık Tutarı (-)", [None, "-", "-", "-"]),
+        ("Bankalar (Net)", [None, "-", "-", "-"]),
+        ("31 Aralık 2025 (Net)", [31.0, None, None, None]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Brüt)", [None, 372899.0, 585288.0, 464804.0]),
+        ("Karşılık Tutarı (-)", [None, 100000.0, 200000.0, 400000.0]),
+        ("Gerçek ve Tüzel Kişilere Kullandırılan Krediler (Net)", [None, 272899.0, 385288.0, 64804.0]),
+    ]
+    ykbnk = [
+        ("Current Period (Net)", [None, 7441.0, 11798.0, 14752.0]),
+        ("Loans Granted to Real Persons and Corporate Entities (Gross)", [None, 16534.0, 31241.0, 40261.0]),
+        ("Provision Amount (-)", [None, 9093.0, 19443.0, 25509.0]),
+        ("Loans Granted to Real Persons and Corporate Entities (Net)", [None, 7441.0, 11798.0, 14752.0]),
+        ("Banks (Gross)", [None, 11.0, "-", 1.0]),
+        ("Provision Amount (-)", [None, 11.0, "-", 1.0]),
+        ("Banks (Net)", [None, "-", "-", "-"]),
+        ("", [66.0, None, None, None]),
+        ("Prior Period (Net)", [None, 6362.0, 9482.0, 11187.0]),
+        ("Loans Granted to Real Persons and Corporate Entities (Gross)", [None, 15261.0, 20773.0, 31911.0]),
+        ("Provision Amount (-)", [None, 8899.0, 11291.0, 20724.0]),
+        ("Loans Granted to Real Persons and Corporate Entities (Net)", [None, 6362.0, 9482.0, 11187.0]),
+    ]
+    db = _db(tmp_path, [(73, 1, "bin", teb), (60, 1, "bin", aktif), (71, 3, "bin", ykbnk)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, grid_json=replace(grid_json, ?, ?)",
+               (json.dumps(["III. Grup Krediler", "IV. Grup Krediler", "V. Grup Krediler"]),
+                '"label": "Önceki Dönem (Net)", "cells": [null, null, null]}',
+                '"label": "Önceki Dönem (Net)", "cells": [null, null, null], "inline": true}'))
+    db.commit()
+    got = NB.assemble(db, KEY)
+    assert [[(p["label"], NB._identity_holds(p["rows"], got["step"])) for p in inst] for inst in got["instances"]] == [
+        [("current", True), ("prior", True)], [("current", True), ("prior", True)], [("current", True), ("prior", True)]]
+    firsts = {next(x for x in inst[0]["rows"] if x["class"])["cells"]["group_iii"]: inst for inst in got["instances"]}
+    aktif_cur = [x for x in firsts[399155.0][0]["rows"] if x["class"]]
+    assert aktif_cur[0]["class"] == "individuals_corporates" and aktif_cur[0]["cells"]["group_v"] == 724960.0
+    yk_prior = [x for x in firsts[16534.0][1]["rows"] if x["class"]]
+    assert yk_prior[0]["cells"]["group_iv"] == 20773.0 and yk_prior[1]["measure"] == "provision"
+
+
 def test_risk_group_pairing_by_opening_closing_handoff(tmp_path):
     RG = _load("build_risk_group_full")
     cur = [("Dönem Başı Bakiyesi", ["-", "-", 18578260.0, 7976674.0, 101792.0, 4532.0]),

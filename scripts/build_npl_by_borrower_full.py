@@ -35,8 +35,8 @@ AUDIT_DB = REPO / "data" / "bank_audit.db"
 
 R = re.compile
 CLASSES: list[tuple[str, re.Pattern]] = [
-    ("individuals_corporates", R(r"GERCEK VE TUZEL|INDIVIDUALS? AND CORPORATE|REAL PERSONS? AND LEGAL|CORPORATES? AND INDIVIDUAL|"
-                                 r"INDIVIDUALS AND (LEGAL|COMPANIES)|LOANS TO (CUSTOMERS|REAL)")),
+    ("individuals_corporates", R(r"GERCEK VE TUZEL|INDIVIDUALS? AND CORPORATE|REAL PERSONS? AND (LEGAL|CORPORATE)|"
+                                 r"CORPORATES? AND INDIVIDUAL|INDIVIDUALS AND (LEGAL|COMPANIES)|LOANS (GRANTED )?TO (CUSTOMERS|REAL|INDIVIDUALS)")),
     ("banks", R(r"^BANKALAR|^BANKS|^LOANS TO BANKS|^DUE FROM BANKS")),
     ("other", R(r"^DIGER|^OTHER")),
 ]
@@ -45,8 +45,11 @@ _MEASURE = [("gross", R(r"\(BRUT\)|\(GROSS\)|BRUT|GROSS")),
             ("net", R(r"\(NET\)|NET"))]
 # a period head ("Cari Dönem (Net)", "Prior Period (Net)"), never the NPL
 # movement's "Önceki Dönem Sonu Bakiyesi"
+_MONTHS = (r"OCAK|SUBAT|MART|NISAN|MAYIS|HAZIRAN|TEMMUZ|AGUSTOS|EYLUL|EKIM|KASIM|ARALIK|"
+           r"JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER")
 _PERIOD_HEAD = R(r"^(CARI|ONCEKI) DONEM(?! SONU| BASI)|^(CURRENT|PRIOR|PREVIOUS) PERIOD(?! END| BALANCE)|"
-                 r"^\d{1,2} (MARCH|JUNE|SEPTEMBER|DECEMBER) (CURRENT|PRIOR) PERIOD")
+                 r"^\d{1,2} (MARCH|JUNE|SEPTEMBER|DECEMBER) (CURRENT|PRIOR) PERIOD|"
+                 r"^\d{1,2}[ ./]*(" + _MONTHS + r")[ ./]*\d{4}")        # AKTIF: "31 Mart 2026 (Net)"
 _PRIOR = R(r"ONCEKI|PRIOR|PREVIOUS")
 _GROUP_HDR = R(r"III|IV|V\b|GRUP|GROUP|SINIRLI|SUPHELI|ZARAR|SUBSTANDARD|DOUBTFUL|UNCOLLECT|LOSS")
 GROUPS = ("group_iii", "group_iv", "group_v")
@@ -92,8 +95,25 @@ CREATE INDEX IF NOT EXISTS idx_npl_by_borrower_full_cell
 """
 
 
+def _width_ok(grid: list[dict]) -> bool:
+    """Three group columns; a fourth and fifth are tolerated only when they
+    hold nothing but the digits of a date head (AKTIF) or nothing at all
+    (YKBNK's empty lead column)."""
+    n = len(grid[0]["cells"])
+    if n == 3:
+        return True
+    if n not in (4, 5):
+        return False
+    for r in grid:
+        if not (r["label"] or "").strip():
+            continue                            # a stray page number on a label-less line
+        if any(c is not None for c in r["cells"][:-3]) and not _PERIOD_HEAD.search(fold(r["label"] or "").strip()):
+            return False
+    return True
+
+
 def _is_family(grid: list[dict], col_labels: list, heading: str | None) -> bool:
-    if not 6 <= len(grid) <= 24 or len(grid[0]["cells"]) != 3:
+    if not 6 <= len(grid) <= 24 or not _width_ok(grid):
         return False
     labels = [fold(r["label"] or "") for r in grid]
     if not any(_PERIOD_HEAD.search(lab) for lab in labels):
@@ -116,7 +136,8 @@ def _periods_of(grid, pg, bid, factor) -> list[dict]:
             if cur:
                 out.append({"label": cur_label or ("current" if not out else "prior"), "rows": cur})
             cur = []
-            cur_label = "prior" if _PRIOR.search(f) else "current"
+            # AKTIF heads its periods with dates: the second date is the prior
+            cur_label = "prior" if _PRIOR.search(f) or (out and not re.search(r"CARI|CURRENT", f)) else "current"
             last_class = None
         cls, measure = classify(label, last_class)
         if cls and measure == "gross":
@@ -161,7 +182,8 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, cl, g, unit in blocks:
-        grid = absorb_inline(json.loads(g), lambda lab: classify(lab, None)[0])
+        grid = absorb_inline(json.loads(g), lambda lab: classify(lab, None)[0],
+                             keep=lambda lab: bool(_PERIOD_HEAD.search(fold(lab).strip())))
         if _is_family(grid, json.loads(cl or "[]"), heading):
             found.append((pg, bid, grid, unit))
     if not found:
