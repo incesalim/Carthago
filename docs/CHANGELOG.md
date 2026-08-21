@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The sixteenth graduation: the three Section-4 matrices,
+529,101 rows, and the band-matrix module.** The column model built for
+deposits by maturity moved to `src/audit_reports/band_matrix.py` with a
+`BandSet` per family; `scripts/build_section4_matrix_full.py` mints the
+liquidity gap, the repricing table and the FX position — one row template,
+three column sets, family read off the column vocabulary. Total assets tie
+to the narrow repricing lane per bucket on 96.4%, to the narrow FX lane
+per currency on 99.8%, to the balance sheet on 92.9%. The FVOCI row's head
+is lost by the capture and its tail resolved by template order. `fold()`
+now folds Â/Î/Û. Sixteen lanes graduated.
+
 2026-08-21 — **The fifteenth graduation: deposits by maturity, 275,639
 rows.** `scripts/build_deposit_maturity_full.py` mints the deposit type ×
 maturity-band matrix and its twin, interest paid on deposits by maturity,

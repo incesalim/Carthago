@@ -541,3 +541,54 @@ def test_deposit_maturity_header_fragments_page_break_and_prior_total_column(tmp
     cols = [b_ for b_, _v in b["rows"][0]["cells"]]
     assert cols == ["demand", "m1", "m1_3", "m3_6", "m6_12", "y1_plus", "accumulating", "total", "total_prior"]
     assert dict(b["rows"][0]["cells"])["total_prior"] == 180.0
+
+
+def test_section4_matrices_family_by_vocabulary_tails_and_identity(tmp_path):
+    S4 = _load("build_section4_matrix_full")
+    fx = [   # AKBNK-style FX position: the FVOCI head lost, its tail keeps the values
+        ("Cari Dönem – 31 Aralık 2024", ["EURO", "USD", "Diğer YP", "Toplam"]),
+        ("Nakit Değerler ve Merkez Bankası (*)", [10.0, 20.0, 5.0, 35.0]),
+        ("Bankalar (*******)", [1.0, 2.0, 1.0, 4.0]),
+        ("Gerçeğe Uygun Değer Farkı Kâr / Zarara Yansıtılan", [1.0, 1.0, "-", 2.0]),
+        ("Para Piyasalarından Alacaklar", ["-", "-", "-", "-"]),
+        ("Finansal Varlıklar", [3.0, 3.0, 1.0, 7.0]),
+        ("Krediler (**)", [50.0, 60.0, 1.0, 111.0]),
+        ("Diğer Varlıklar (***)", [1.0, 1.0, "-", 2.0]),
+        ("Toplam Varlıklar", [66.0, 87.0, 8.0, 161.0]),
+        ("Bankalar Mevduatı", [1.0, 1.0, "-", 2.0]),
+        ("Döviz Tevdiat Hesabı", [40.0, 50.0, 5.0, 95.0]),
+        ("Para Piyasalarına Borçlar", [2.0, 2.0, "-", 4.0]),
+        ("Toplam Yükümlülükler", [43.0, 53.0, 5.0, 101.0]),
+        ("Net Bilanço Pozisyonu", [23.0, 34.0, 3.0, 60.0]),
+        ("Net Nazım Hesap Pozisyonu", [-20.0, -30.0, "-", -50.0]),
+    ]
+    gap = [   # liquidity gap with a page-break continuation block below
+        ("Cari Dönem", ["Vadesiz", "1 Aya Kadar", "1-3 Ay", "3-12 Ay", "1-5 Yıl", "5 Yıl ve Üzeri", "Dağıtılamayan", "Toplam"]),
+        ("Nakit Değerler ve Merkez Bankası", [10.0, 5.0, "-", "-", "-", "-", "-", 15.0]),
+        ("Bankalar", [1.0, 1.0, 1.0, "-", "-", "-", "-", 3.0]),
+        ("Para Piyasalarından Alacaklar", ["-", 2.0, "-", "-", "-", "-", "-", 2.0]),
+        ("Verilen Krediler", ["-", 10.0, 20.0, 30.0, 40.0, 5.0, "-", 105.0]),
+        ("Diğer Varlıklar", ["-", "-", "-", "-", "-", "-", 4.0, 4.0]),
+        ("Toplam Varlıklar", [11.0, 18.0, 21.0, 30.0, 40.0, 5.0, 4.0, 129.0]),
+    ]
+    gap2 = [
+        ("Bankalar Mevduatı", [1.0, 1.0, "-", "-", "-", "-", "-", 2.0]),
+        ("Diğer Mevduat", [30.0, 40.0, 10.0, 5.0, "-", "-", "-", 85.0]),
+        ("Muhtelif Borçlar", ["-", "-", "-", "-", "-", "-", 3.0, 3.0]),
+        ("Toplam Yükümlülükler", [31.0, 41.0, 10.0, 5.0, "-", "-", 3.0, 90.0]),
+        ("Likidite (Açığı)/Fazlası", [-20.0, -23.0, 11.0, 25.0, 40.0, 5.0, 1.0, 39.0]),
+    ]
+    db = _db(tmp_path, [(55, 1, "bin", fx), (60, 1, "bin", gap), (60, 2, "bin", gap2)])
+    got = S4.assemble(db, KEY)
+    kept = [i for i in got["instances"] if S4._identity_holds(i["rows"], got["step"])]
+    fams = {i["family"] for i in kept}
+    assert fams == {"fx_position", "liquidity_gap"}
+    fxi = next(i for i in kept if i["family"] == "fx_position")
+    roles = {x["role"]: dict(x["cells"]) for x in fxi["rows"]}
+    assert roles["fvoci"]["usd"] == 3.0 and roles["fvtpl"]["eur"] == 1.0
+    assert roles["gap"]["total"] == 60.0 and roles["net_off_balance"]["total"] == -50.0
+    assert [b for b, _v in fxi["rows"][0]["cells"]] == ["eur", "usd", "other_fc", "total"]
+    g = next(i for i in kept if i["family"] == "liquidity_gap")
+    groles = {x["role"]: dict(x["cells"]) for x in g["rows"]}
+    assert groles["total_liabilities"]["demand"] == 31.0         # from the continuation block
+    assert groles["gap"]["unallocated"] == 1.0 and groles["loans"]["y5_plus"] == 5.0

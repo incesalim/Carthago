@@ -44,7 +44,9 @@ from typing import Callable
 
 from . import units as U
 
-_TR_FOLD = str.maketrans("İıŞşĞğÜüÖöÇç", "IiSsGgUuOoCc")
+# the Turkish letters, plus the circumflexed vowels older filings still
+# print ("Kâr", "Resmî", "Mahkûm") — one registry pattern must match both
+_TR_FOLD = str.maketrans("İıŞşĞğÜüÖöÇçÂâÎîÛû", "IiSsGgUuOoCcAaIiUu")
 _ROW_IN_LABEL = re.compile(r"^(\d{1,2})\s+\S")
 _LABEL_PREFIX = re.compile(r"^\d{1,2}\s+")
 

@@ -52,6 +52,9 @@ _EXTERNAL: frozenset[str] = frozenset({
     # The shared numbered-template machinery the LCR/NSFR/leverage rows cite —
     # lives in src/audit_reports/.
     "numbered_template.py",
+    # The shared band-matrix column model the deposit-maturity and Section-4
+    # rows cite — lives in src/audit_reports/.
+    "band_matrix.py",
 })
 
 _PY_NAME = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*\.py)\b")

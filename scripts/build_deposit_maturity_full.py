@@ -37,25 +37,27 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+from src.audit_reports import band_matrix as BM  # noqa: E402
 from src.audit_reports import units as U  # noqa: E402
 from src.audit_reports.numbered_template import fold, num, prior_year_end  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
 AUDIT_DB = REPO / "data" / "bank_audit.db"
 
-BANDS: list[tuple[str, re.Pattern]] = [
-    ("demand", re.compile(r"VADESIZ|DEMAND|CURRENT ACC|OZEL CARI")),
-    ("notice_7d", re.compile(r"7 ?GUN|7.?DAY|IHBARLI|NOTICE")),
-    ("m1", re.compile(r"1 AYA KADAR|UP TO 1 MONTH|UPTO 1 MONTH|UP TO ONE MONTH|1 MONTH(?! ?[-–])|\b1 AY\b(?! ?[-–])")),
-    ("m1_3", re.compile(r"1 ?[-–] ?3 ?(AY|MONTH)|1 TO 3|1-3")),
-    ("m3_6", re.compile(r"3 ?[-–] ?6 ?(AY|MONTH)|3 TO 6|3-6")),
-    ("m6_12", re.compile(r"6 ?(AY|MONTH)S? ?[-–] ?(1 )?(YIL|YEAR)|6 ?[-–] ?12|6 MONTHS? TO 1|6 AY.?1 YIL|1 YILA KADAR|UP TO 1 YEAR")),
-    ("y1_plus", re.compile(r"1 YIL VE UST|1 YILDAN UZUN|OVER 1 YEAR|1 YEAR AND OVER|1 YEAR AND ABOVE|MORE THAN 1 YEAR|ABOVE 1 YEAR|1 YEAR OR MORE|LONGER THAN 1")),
-    ("accumulating", re.compile(r"BIRIKIMLI|ACCUMULAT|CUMULATIVE|KATILMA HES")),
-    ("total", re.compile(r"TOPLAM|TOTAL")),
-]
-BAND_ORDER = [b for b, _rx in BANDS]
-_ALL_ORDER = ["demand", "notice_7d", "m1", "m1_3", "m3_6", "m6_12", "y1_plus", "accumulating"]
+BANDSET = BM.BandSet(
+    bands=[
+        ("demand", re.compile(r"VADESIZ|DEMAND|CURRENT ACC|OZEL CARI")),
+        ("notice_7d", re.compile(r"7 ?GUN|7.?DAY|IHBARLI|NOTICE")),
+        ("m1", re.compile(r"1 AYA KADAR|UP TO 1 MONTH|UPTO 1 MONTH|UP TO ONE MONTH|1 MONTH(?! ?[-–])|\b1 AY\b(?! ?[-–])")),
+        ("m1_3", re.compile(r"1 ?[-–] ?3 ?(AY|MONTH)|1 TO 3|1-3")),
+        ("m3_6", re.compile(r"3 ?[-–] ?6 ?(AY|MONTH)|3 TO 6|3-6")),
+        ("m6_12", re.compile(r"6 ?(AY|MONTH)S? ?[-–] ?(1 )?(YIL|YEAR)|6 ?[-–] ?12|6 MONTHS? TO 1|6 AY.?1 YIL|1 YILA KADAR|UP TO 1 YEAR")),
+        ("y1_plus", re.compile(r"1 YIL VE UST|1 YILDAN UZUN|OVER 1 YEAR|1 YEAR AND OVER|1 YEAR AND ABOVE|MORE THAN 1 YEAR|ABOVE 1 YEAR|1 YEAR OR MORE|LONGER THAN 1")),
+        ("accumulating", re.compile(r"BIRIKIMLI|ACCUMULAT|CUMULATIVE|KATILMA HES")),
+    ],
+    optional=("notice_7d",),
+    header_label=re.compile(r"CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD|PREVIOUS PERIOD|^VADESIZ|^DEMAND"),
+)
 
 ROLES: list[tuple[str, re.Pattern]] = [
     ("grand_total", re.compile(r"^GENEL TOPLAM|^GRAND TOTAL|^TOTAL DEPOSITS|^TOPLAM MEVDUAT")),
@@ -80,7 +82,6 @@ _BANK_GROUP = {"cbrt", "domestic_banks", "foreign_banks", "participation_banks"}
 _NOT_FAMILY = re.compile(r"PARA PIYASA|MONEY MARKET|MUHTELIF BORC|MISCELLANEOUS PAYABLE|GAYRINAKDI|"
                          r"NON.?CASH LOAN|\bKREDILER\b|\bLOANS\b|POZISYON|POSITION|MENKUL DEGER|"
                          r"SECURITIES|NAKIT DEGERLER|CASH AND|ALINAN KREDI|FUNDS BORROWED|BORROWINGS")
-_HEADER_LABEL = re.compile(r"CARI DONEM|ONCEKI DONEM|CURRENT PERIOD|PRIOR PERIOD|PREVIOUS PERIOD|^VADESIZ|^DEMAND")
 _PRIOR = re.compile(r"ONCEKI|PRIOR|PREVIOUS")
 # the balance-sheet line, allowing the footnote markers the narrow lane keeps
 # in the name ("MEVDUAT II-a", "DEPOSITS -a", "DEPOSITS (1)")
@@ -130,153 +131,6 @@ CREATE TABLE IF NOT EXISTS bank_audit_deposit_maturity_full (
 CREATE INDEX IF NOT EXISTS idx_deposit_maturity_full_cell
   ON bank_audit_deposit_maturity_full(measure, row_role, band);
 """
-
-
-def _is_header_row(r: dict) -> bool:
-    cells = [c for c in r["cells"] if c is not None]
-    if not cells:
-        return bool(_HEADER_LABEL.search(fold(r["label"] or "")))
-    return all(isinstance(c, str) and c.strip() != "-" for c in cells)
-
-
-def _bands_in(text: str) -> list[str]:
-    """Every band a header fragment names, in order of appearance."""
-    f = fold(text)
-    hits = []
-    for band, rx in BANDS:
-        m = rx.search(f)
-        if m:
-            hits.append((m.start(), band))
-    return [b for _pos, b in sorted(hits)]
-
-
-def _fmt(cell) -> str | None:
-    if cell is None:
-        return None
-    if isinstance(cell, float) and cell.is_integer():
-        return str(int(cell))
-    return str(cell).strip() or None
-
-
-_PRIOR_COL = re.compile(r"ONCEKI|PRIOR|PREVIOUS")
-
-
-def column_model(grid: list[dict], col_labels: list) -> list[tuple[int, str | None]] | None:
-    """[(cell index, band)] for the matrix's value columns, the total last
-    (a trailing prior-period total column, where a bank prints one, as
-    'total_prior'), or None.
-
-    A value column is one live in at least a quarter of the data rows (a
-    "7" split off a "7 Days Notice" label lives in one). Its header text is
-    every fragment at its index AND at the dead columns just before it —
-    the capture often parks a wrapped header in a column of its own. One
-    fragment may name two bands ("3-6 Ay 6 Ay-1 Yıl", "Vadesiz İhbarlı"):
-    the earlier ones go backwards to the unnamed columns before. Readings
-    must follow the canonical order; the gaps are completed from it.
-    """
-    data = [r for r in grid if not _is_header_row(r)]
-    headers = [r for r in grid if _is_header_row(r)]
-    if not data:
-        return None
-    ncol = max(len(r["cells"]) for r in data)
-    live_counts = [sum(1 for r in data if i < len(r["cells"]) and r["cells"][i] is not None)
-                   for i in range(ncol)]
-    live = [i for i in range(ncol) if live_counts[i] >= max(2, len(data) / 4)]
-    if len(live) < 4:
-        return None
-    frags: dict[int, list[str]] = {}
-    prev = -1
-    for i in live:
-        toks = []
-        for j in range(prev + 1, i + 1):
-            toks += [t for r in headers if j < len(r["cells"]) and (t := _fmt(r["cells"][j]))]
-            if j < len(col_labels) and col_labels[j]:
-                toks.append(str(col_labels[j]))
-        frags[i] = toks
-        prev = i
-    text = {i: " ".join(frags[i]) for i in live}
-    # a trailing prior-period total column
-    total_prior_idx = None
-    if len(live) >= 6 and _PRIOR_COL.search(fold(text[live[-1]])) \
-            and not [b for b in _bands_in(text[live[-1]]) if b != "total"]:
-        total_prior_idx = live[-1]
-        live = live[:-1]
-    total_idx = live[-1]
-    if [b for b in _bands_in(text[total_idx]) if b != "total"]:
-        return None
-    value_idx = live[:-1]
-    bands: list[str | None] = [None] * len(value_idx)
-    for k, i in enumerate(value_idx):
-        found = [b for b in _bands_in(text[i]) if b != "total"]
-        if not found:
-            continue
-        bands[k] = found[-1]
-        # earlier bands named in the same fragment go to the unnamed columns before
-        back = k - 1
-        for b in reversed(found[:-1]):
-            if back >= 0 and bands[back] is None:
-                bands[back] = b
-                back -= 1
-    # canonical order: a reading out of order is a misread, dropped
-    last = -1
-    for k, b in enumerate(bands):
-        if b is None:
-            continue
-        pos = _ALL_ORDER.index(b)
-        if pos <= last:
-            bands[k] = None
-        else:
-            last = pos
-    # complete the gaps from the canonical order between named neighbours
-    k = 0
-    while k < len(bands):
-        if bands[k] is not None:
-            k += 1
-            continue
-        j = k
-        while j < len(bands) and bands[j] is None:
-            j += 1
-        lo = _ALL_ORDER.index(bands[k - 1]) + 1 if k > 0 else 0
-        hi = _ALL_ORDER.index(bands[j]) if j < len(bands) else len(_ALL_ORDER)
-        gap, avail = j - k, _ALL_ORDER[lo:hi]
-        if len(avail) == gap:
-            bands[k:j] = avail
-        elif len(avail) == gap + 1 and "notice_7d" in avail:
-            bands[k:j] = [b for b in avail if b != "notice_7d"]      # the common omission
-        elif len(avail) == gap + 1 and j == len(bands) and avail[-1] == "accumulating":
-            bands[k:j] = avail[:-1]
-        k = j
-    if sum(1 for b in bands if b is not None) < 4:
-        return None
-    cols = [(i, b) for i, b in zip(value_idx, bands)] + [(total_idx, "total")]
-    if total_prior_idx is not None:
-        cols.append((total_prior_idx, "total_prior"))
-    # the data has the last word on which column is the total: a bank that
-    # prints an unlabelled prior-period total column to the right adds up
-    # one column earlier
-    if total_prior_idx is None and len(value_idx) >= 5:
-        base = _adds_up(data, cols)
-        if base < 0.9:
-            alt = [(i, b) for i, b in zip(value_idx[:-1], bands[1:] if bands[0] is None else bands[:-1])]
-            alt = alt + [(value_idx[-1], "total"), (total_idx, "total_prior")]
-            if _adds_up(data, alt) >= 0.9 and _adds_up(data, alt) > base:
-                return alt
-    return cols
-
-
-def _adds_up(data: list[dict], cols) -> float:
-    """Share of value-bearing rows on which total = Σ bands under `cols`."""
-    checked = ok = 0
-    for r in data:
-        cells = r["cells"]
-        vals = {b: num(cells[i]) if i < len(cells) else None for i, b in cols if b}
-        tot = vals.get("total")
-        parts = [v for b, v in vals.items() if b not in ("total", "total_prior") and v is not None]
-        if tot is None or not parts:
-            continue
-        checked += 1
-        ok += int(abs(sum(parts) - tot) <= max(2.0, 1e-5 * abs(tot)))
-    return ok / checked if checked else 0.0
 
 
 def _is_family(grid: list[dict], col_labels: list, heading: str | None) -> bool:
@@ -350,9 +204,9 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     no_header = 0
     prev_cols = None
     for pg, bid, heading, grid, col_labels, _u in found:
-        cols = column_model(grid, col_labels)
+        cols = BM.column_model(grid, col_labels, BANDSET)
         if cols is None and prev_cols is not None:
-            data = [r for r in grid if not _is_header_row(r)]
+            data = [r for r in grid if not BM.is_header_row(r, BANDSET.header_label)]
             ncol = max((len(r["cells"]) for r in data), default=0)
             if ncol and all(i < ncol for i, _b in prev_cols):
                 cols = prev_cols
@@ -378,7 +232,7 @@ def _instances_of_stream(stream, factor):
     in_bank_group = False
     for r, cols, pg, bid, head in stream:
         label = (r["label"] or "").strip()
-        if _is_header_row(r):
+        if BM.is_header_row(r, BANDSET.header_label):
             text = fold(label + " " + " ".join(str(c) for c in r["cells"] if isinstance(c, str)))
             if cur and any(x["role"] in ("total", "grand_total") for x in cur):
                 out.append({"rows": cur, "hint": label_hint, "heading": heading})
