@@ -5,6 +5,11 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Deposit insurance: 486 → 577 filings.** AKBNK's block opens on
+a year row the first-row check now skips; the participation banks' "Turkish
+Lira accounts / Foreign currency accounts" rows join the registry. 21
+banks, 3,339 rows, none refused.
+
 2026-08-21 — **Loan type: 464 → 813 filings, 33 banks.** Rows printed without figures
 now arrive as inline rows (ISCTR), and AKBNK prints the sub-types without
 the "İhtisas Dışı Krediler" head — the head is their sum; YKBNK's phantom

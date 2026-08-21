@@ -48,16 +48,18 @@ ROLES: list[tuple[str, re.Pattern]] = [
     ("commercial_other", re.compile(r"^TICARI MEVDUAT NITELIGINI HAIZ DIG|^OTHER .*COMMERCIAL")),
     ("commercial_tl", re.compile(r"^TICARI MEVDUAT|^COMMERCIAL DEPOSIT")),
     ("saving_fc", re.compile(r"^TASARRUF MEVDUATI NITELIGINI HAIZ DTH|^FOREIGN CURRENCY SAVING|^DTH\b|"
+                             r"^FOREIGN CURRENCY ACCOUNT|^DOVIZ HESAP|^YABANCI PARA HESAP|"
                              r"^SAVING(S)? DEPOSITS? \(?(FC|FX|FOREIGN)|^FX SAVING|^FC SAVING|"
                              r"^KATILIM FONU NITELIGINI HAIZ DTH|^FOREIGN CURRENCY PARTICIPATION")),
     ("saving_other", re.compile(r"^TASARRUF MEVDUATI NITELIGINI HAIZ DIG|^OTHER (SAVING|DEPOSITS IN THE FORM)|^DIG\.? ?H|"
                                 r"^OTHER ACCOUNTS? (IN THE FORM|WITH|HAVING|CONSIDERED)|"
                                 r"^KATILIM FONU NITELIGINI HAIZ DIG|^OTHER .*PARTICIPATION")),
     ("saving_tl", re.compile(r"^TASARRUF MEVDUAT|^SAVING(S)? DEPOSIT|^KATILIM FON|^PARTICIPATION FUND|"
-                             r"^REAL PERSONS")),
+                             r"^REAL PERSONS|^TURKISH LIRA ACCOUNT|^TURK LIRASI HESAP|^TL HESAP")),
 ]
 VALUES = ("covered_current", "covered_prior", "exceeding_current", "exceeding_prior")
-_FIRST = re.compile(r"^TASARRUF MEVDUAT|^SAVING(S)? DEPOSIT|^KATILIM FON|^PARTICIPATION FUND|^REAL PERSONS")
+_FIRST = re.compile(r"^TASARRUF MEVDUAT|^SAVING(S)? DEPOSIT|^KATILIM FON|^PARTICIPATION FUND|^REAL PERSONS|"
+                    r"^TURKISH LIRA ACCOUNT|^TURK LIRASI HESAP|^TL HESAP")
 _CTX = re.compile(r"SIGORTA|INSURANCE|GUARANTEE|COVERED")
 _COVERED = re.compile(r"KAPSAM|COVERED|UNDER|GUARANTEE|WITHIN")
 _EXCEED = re.compile(r"ASAN|EXCEED|OVER|ABOVE")
@@ -144,7 +146,8 @@ def _is_family(grid: list[dict], col_labels: list, heading: str | None) -> bool:
         return False
     if len(grid[0]["cells"]) != 4:
         return False
-    if not _FIRST.search(fold(grid[0]["label"] or "").strip()):
+    body = [r for r in grid if not _is_year_row(r["cells"])]     # AKBNK opens on a year row
+    if not body or not _FIRST.search(fold(body[0]["label"] or "").strip()):
         return False
     ctx = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or ""))
     return bool(_CTX.search(ctx))
