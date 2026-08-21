@@ -18,6 +18,9 @@ the narrow off-balance-sheet statement:
   trading_income         gains and losses heads, each over capital-market,
                          derivative and FX children; net total
                                                   → P&L trading income (net)
+  taxes_payable          corporate tax, securities / property income tax,
+                         BSMV, FX transaction tax, VAT, other
+                                                  → no statement line (identity only)
 
 Rows carry a registry role, the label kept. MINT GATE: total = Σ rows on
 the current column (and on the prior where printed). Anchor, dry-run
@@ -90,6 +93,15 @@ FAMILIES: dict[str, tuple[str, re.Pattern, list[tuple[str, str | None, re.Patter
         ("loss_on_sale_of_assets", None, R(r"^AKTIFLERIN SATISINDAN|^LOSS(ES)? (ON|FROM) (THE )?SALES? OF ASSETS")),
         ("other", None, R(r"^DIGER|^OTHER")),
     ]),
+    "taxes_payable": ("none", R(r"$^"), [
+        ("corporate_tax", None, R(r"^ODENECEK KURUMLAR|^CORPORATE TAX|^CORPORATION TAX")),
+        ("securities_income_tax", None, R(r"^MENKUL SERMAYE|^TAXATION ON SECURITIES|^SECURITIES INCOME|^WITHHOLDING TAX ON SECURITIES|^INCOME TAX ON SECURITIES")),
+        ("property_income_tax", None, R(r"^GAYRIMENKUL SERMAYE|^PROPERTY INCOME|^REAL ESTATE (CAPITAL )?INCOME|^TAXATION ON (REAL ESTATE|PROPERTY)")),
+        ("bsmv", None, R(r"^BSMV|^BANKING (AND )?INSURANCE TRANSACTION|^BITT")),
+        ("fx_transaction_tax", None, R(r"^KAMBIYO MUAMELE|^FOREIGN EXCHANGE TRANSACTION|^FX TRANSACTION")),
+        ("vat", None, R(r"^ODENECEK KATMA|^KATMA DEGER|^VALUE ADDED TAX|^VAT")),
+        ("other", None, R(r"^DIGER|^OTHER")),
+    ]),
     # gains and losses print as two heads with the same three children;
     # the net total is gains minus losses (losses printed positive)
     "trading_income": ("pl", R(r"^TICARI KAR|^TRADING (INCOME|PROFIT|GAIN)|^NET TRADING"), [
@@ -108,7 +120,7 @@ _TOTAL = R(r"^TOPLAM|^TOTAL|^NET TICARI|^NET TRADING")
 _FIRST = {"letters_of_guarantee": ("definite", "temporary"),
           "non_cash_loans": ("letters_of_guarantee", "letters_of_credit", "bank_acceptances"),
           "other_operating_expenses": ("personnel", "termination_reserve", None),
-          "trading_income": ("gain",)}
+          "trading_income": ("gain",), "taxes_payable": ("corporate_tax",)}
 _CTX = R(r"CARI|ONCEKI|CURRENT|PRIOR|PREVIOUS")
 
 
@@ -290,6 +302,8 @@ def main() -> int:
 
     def narrow(key, fam) -> list[float]:
         statement, rx, _roles = FAMILIES[fam]
+        if statement == "none":
+            return []
         try:
             if statement == "pl":
                 rows = aud.execute("SELECT item_name, amount FROM bank_audit_profit_loss WHERE "

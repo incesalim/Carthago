@@ -5,6 +5,12 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **CBRT accounts and taxes payable.** The CBRT accounts note
+joins the TL/FC lane anchored to the cash note's own CBRT row — 323 of 323
+equal, the first wide-vs-wide anchor inside one lane; taxes payable joins
+the two-period lane under its own total (579 instances). Loans by
+collateral was probed and skipped: 67 blocks at three banks, no template.
+
 2026-08-21 — **The repair list, second pass: 1,764 rows.** The audit now
 compares NPL movement cell by cell (6 indicted across ten columns) and the
 statement lines behind the breakdown notes (interest on securities 53,

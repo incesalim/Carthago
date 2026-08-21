@@ -19,6 +19,9 @@ line — minted from the document layer under a family registry:
                                            → BS funds borrowed
   cash_and_cbrt            cash, CBRT, other
                                            → BS cash and balances with CBRT
+  cbrt_accounts            unrestricted demand / time, restricted time,
+                           reserve requirement
+                                           → the cash note's CBRT row (wide vs wide)
   securities_issued        bills, asset-backed securities, bonds
                                            → BS securities issued
   subordinated_debt        AT1-eligible (loans, instruments), Tier 2-eligible
@@ -105,6 +108,13 @@ FAMILIES: dict[str, tuple[str, re.Pattern, list[tuple[str, str | None, re.Patter
         ("cbrt", None, R(r"^T\.?C\.? ?MERKEZ|^TCMB|^CBRT|^CENTRAL BANK|^BALANCES WITH")),
         ("other", None, R(r"^DIGER|^OTHER")),
     ]),
+    # anchored wide-vs-wide: the cash note's CBRT row, same filing
+    "cbrt_accounts": ("wide:cash_and_cbrt.cbrt", R(r"."), [
+        ("unrestricted_demand", None, R(r"^VADESIZ SERBEST|^UNRESTRICTED DEMAND|^DEMAND (UNRESTRICTED|FREE)|^FREE DEMAND|^DEMAND DEPOSIT")),
+        ("unrestricted_time", None, R(r"^VADELI SERBEST HESAP|^UNRESTRICTED TIME|^TIME (UNRESTRICTED|FREE)|^FREE TIME|^TIME DEPOSIT")),
+        ("restricted_time", None, R(r"^VADELI SERBEST OLMAYAN|^RESTRICTED TIME|^TIME RESTRICTED|^BLOCKED|^RESTRICTED")),
+        ("reserve_requirement", None, R(r"^ZORUNLU KARSILIK|^RESERVE REQUIREMENT|^REQUIRED RESERVE|^COMPULSORY RESERVE|^RESERVE DEPOSIT")),
+    ]),
     "securities_issued": ("bs", R(r"^IHRAC EDILEN MENKUL|^(MARKETABLE |DEBT )?SECURITIES ISSUED|^ISSUED (MARKETABLE |DEBT )?SECURITIES|^BONDS ISSUED"), [
         ("bills", None, R(r"^BONOLAR|^BILLS|^BONO")),
         ("asset_backed", None, R(r"^VARLIGA DAYALI|^ASSET.?BACKED")),
@@ -125,7 +135,7 @@ _FIRST_ROLE: dict[str, tuple] = {
     "interest_on_loans": ("short_term",), "interest_from_banks": ("cbrt",),
     "interest_on_securities": ("fvtpl",), "interest_on_borrowings": ("banks",),
     "funds_borrowed": ("cbrt_loans",), "funds_borrowed_maturity": ("short_term",),
-    "cash_and_cbrt": ("cash", None),
+    "cash_and_cbrt": ("cash", None), "cbrt_accounts": ("unrestricted_demand", "unrestricted_time"),
     "securities_issued": ("bills", "bonds"), "subordinated_debt": ("at1_included", "tier2_included"),
 }
 _ANY = R(r".")
@@ -133,7 +143,7 @@ _CTX = {  # words in the block heading / labels that confirm a family when first
     "interest_on_loans": R(r"FAIZ|INTEREST"), "interest_from_banks": R(r"FAIZ|INTEREST"),
     "interest_on_securities": R(r"FAIZ|INTEREST"), "interest_on_borrowings": R(r"FAIZ|INTEREST"),
     "funds_borrowed": R(r"KREDI|BORROW|FUND"), "funds_borrowed_maturity": R(r"KREDI|BORROW|FUND"),
-    "cash_and_cbrt": _ANY, "securities_issued": R(r"IHRAC|ISSUED|MENKUL|SECURIT"),
+    "cash_and_cbrt": _ANY, "cbrt_accounts": _ANY, "securities_issued": R(r"IHRAC|ISSUED|MENKUL|SECURIT"),
     "subordinated_debt": R(r"SERMAYE BENZERI|SUBORDINATED"),
 }
 
@@ -313,6 +323,13 @@ def main() -> int:
 
     def narrow(key, fam) -> list[float]:
         statement, rx, _roles = FAMILIES[fam]
+        if statement.startswith("wide:"):
+            # another family's row in this very lane (wide-vs-wide)
+            ofam, orole = statement[5:].split(".")
+            return [(tl or 0.0) + (fc or 0.0) for tl, fc in tab.execute(
+                "SELECT tl_current, fc_current FROM bank_audit_tl_fc_note_full WHERE bank_ticker=? "
+                "AND period=? AND kind=? AND family=? AND row_role=? AND (tl_current IS NOT NULL OR fc_current IS NOT NULL)",
+                (*key, ofam, orole))]
         try:
             if statement == "pl":
                 rows = aud.execute("SELECT item_name, amount FROM bank_audit_profit_loss WHERE "
