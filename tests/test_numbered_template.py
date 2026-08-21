@@ -1045,3 +1045,72 @@ def test_npl_movement_split_blocks_sub_rows_signed_and_date_labelled_variants(tm
     al = {x["role"]: x["cells"] for x in inst[2]["rows"] if x["role"]}
     assert al["opening"]["group_iii"] == 100.0 and al["closing"]["group_v"] == 185.0
     assert len(inst[3]["rows"]) == 10 and len(inst[4]["rows"]) == 7
+
+
+def test_stage_movement_no_total_side_by_side_subtotal_head_and_year_column(tmp_path):
+    SM = _load("build_stage_movement_full")
+    # VAKBN: three stages, no total, the stage header in the grid, the
+    # prior period stacked below; deductions labelled "(-)", the stage-3
+    # "çıkanlar" printed negative (a reversal, subtracted as printed)
+    vakbn = [
+        ("Cari Dönem 31 Aralık 2024", [None, 1.0, "1. Aşama", 2.0, "2. Aşama", 3.0, "3. Aşama"]),
+        ("Dönem Başı Karşılık Bakiyesi", [None, None, 1000.0, None, 500.0, None, 300.0]),
+        ("Dönem içi ilave karşılıklar", [None, None, 200.0, None, 100.0, None, 50.0]),
+        ("Dönem içi çıkanlar (-)", [None, None, 100.0, None, 50.0, None, -10.0]),
+        ("1. Aşamaya transfer", [1.0, None, 20.0, None, -20.0, None, None]),
+        ("Dönem Sonu Karşılık Bakiyesi", [None, None, 1120.0, None, 530.0, None, 360.0]),
+        ("Önceki Dönem 31 Aralık 2023", [None, 1.0, "1. Aşama", 2.0, "2. Aşama", 3.0, "3. Aşama"]),
+        ("Dönem Başı Karşılık Bakiyesi", [None, None, 800.0, None, 400.0, None, 200.0]),
+        ("Dönem içi ilave karşılıklar", [None, None, 300.0, None, 150.0, None, 100.0]),
+        ("Dönem içi çıkanlar (-)", [None, None, 100.0, None, 50.0, None, None]),
+        ("Dönem Sonu Karşılık Bakiyesi", [None, None, 1000.0, None, 500.0, None, 300.0]),
+    ]
+    # ISCTR: current and prior side by side, no totals, the stage digits of
+    # "Transfer to Stage N" in the first cell, the header digits in a row
+    isctr = [
+        ("Stage 1", [None, 1.0, 2.0, 3.0, None, None, None]),
+        ("Provisions beginning of the period", [None, 100.0, 50.0, 30.0, 80.0, 40.0, 20.0]),
+        ("Additional provisions within the period", [None, 40.0, 20.0, 10.0, 30.0, 15.0, 12.0]),
+        ("Transfers within the period", [None, -10.0, -5.0, -2.0, -8.0, -4.0, -1.0]),
+        ("Transfer to Stage", [1.0, 5.0, -5.0, None, 4.0, -4.0, None]),
+        ("Transfer to Stage", [2.0, -3.0, 3.0, None, -2.0, 2.0, None]),
+        ("Transfer to Stage Currency Exchange Difference", [3.0, 8.0, 5.0, 6.0, 4.0, 7.0, 9.0]),
+        ("Provisions at the end of the period", [None, 140.0, 68.0, 44.0, 108.0, 56.0, 40.0]),
+    ]
+    # DENIZ: under a balance table in the same block, a year column, the
+    # "Transferler" head over its three sub-rows, prose below the closing
+    deniz = [
+        ("Krediler", [None, None, 5000.0, None, 100.0, None, 4000.0, 90.0]),
+        ("1. Aşama", [1.0, None, 4000.0, None, 40.0, None, 3000.0, 30.0]),
+        ("j. Kredi hareketlerine ilişkin bilgiler", [None, None, None, None, None, None, None, None]),
+        ("1. Aşama", [None, None, 1.0, None, 2.0, "2. Aşama", "3.Aşama", "Toplam"]),
+        ("Dönem Başı (1 Ocak 2024)", [None, None, None, 3000.0, None, 700.0, 300.0, 4000.0]),
+        ("Transferler", [None, None, None, -100.0, None, 60.0, 40.0, "--"]),
+        ("1. Aşamaya", [None, 1.0, None, 50.0, None, -50.0, "--", "--"]),
+        ("2. Aşamaya", [None, 2.0, None, -120.0, None, 130.0, -10.0, "--"]),
+        ("3. Aşamaya", [None, 3.0, None, -30.0, None, -20.0, 50.0, "--"]),
+        ("Dönem içinde eklenen krediler", [None, None, None, 1500.0, None, 200.0, 100.0, 1800.0]),
+        ("Dönem içinde kapanan krediler", [None, None, None, -500.0, None, -100.0, -50.0, -650.0]),
+        ("Kur farkı", [None, None, None, 100.0, None, 40.0, 10.0, 150.0]),
+        ("Dönem Sonu (31 Aralık 2024)", [None, None, None, 4000.0, None, 900.0, 400.0, 5300.0]),
+        ("Beşinci grup krediler kayıtlardan düşülmüştür", [None, None, None, None, None, None, 31.0, 2024.0]),
+    ]
+    db = _db(tmp_path, [(56, 1, "bin", vakbn), (113, 1, "bin", isctr), (47, 1, "bin", deniz)])
+    db.execute("UPDATE bank_audit_document_tables SET heading=? WHERE page=56",
+               ("Kredilere ilişkin beklenen zarar karşılıkları",))
+    db.commit()
+    got = SM.assemble(db, KEY)
+    inst = got["instances"]
+    assert [(i["measure"], len(i["rows"]), SM._convention(i["rows"], got["step"]), SM._row_sums_hold(i["rows"], got["step"]))
+            for i in inst] == [
+        ("gross_loans", 9, "signed", True),
+        ("ecl", 5, "deductions_labelled", True), ("ecl", 4, "deductions_labelled", True),
+        ("ecl", 7, "signed", True), ("ecl", 7, "signed", True)]
+    d = {x["role"]: dict(x["cells"]) for x in inst[0]["rows"] if x["role"]}
+    assert d["opening"] == {"stage1": 3000.0, "stage2": 700.0, "stage3": 300.0, "total": 4000.0}
+    assert d["transfers_subtotal"]["stage1"] == -100.0 and d["transfer_to_stage2"]["stage3"] == -10.0
+    v = {x["role"]: dict(x["cells"]) for x in inst[1]["rows"] if x["role"]}
+    assert set(v["opening"]) == {"stage1", "stage2", "stage3"} and v["derecognised"]["stage3"] == -10.0
+    i = {x["role"]: dict(x["cells"]) for x in inst[3]["rows"] if x["role"]}
+    assert i["transfer_to_stage1"]["stage2"] == -5.0 and i["fx_difference"]["stage3"] == 6.0
+    assert dict(inst[4]["rows"][0]["cells"])["stage1"] == 80.0

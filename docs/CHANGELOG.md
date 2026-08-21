@@ -5,6 +5,22 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Stage movement: 128 → 157 filings, 243 → 487 instances.**
+The TFRS 9 roll-forward now reads VAKBN's three stages with no total column
+and ISCTR's current and prior side by side (six stage columns, the stage
+digit of "Transfer to Stage N" in the first cell) — `column_model` needs a
+total, so these are modelled without one; DENIZ's movement printed under a
+balance table in the same block, with a "Transferler" head that is its three
+sub-rows' subtotal; the stacked 20-row ZIRAAT / VAKBN blocks; YKBNK's
+"Begining of the period" / "NPL sales" / "Exchange differences". `measure`
+comes from the header row above the opening, else from the figures (a
+gross-loan table carries most of its closing in stage 1). Deductions under
+the "(-)" convention subtract as printed (VAKBN's negative "çıkanlar" is a
+reversal); prose captured above the opening or below the closing is cut.
+`band_matrix` treats a sparse year-only column (the date of "Dönem Başı (31
+Aralık 2023)") as a label fragment, like the tiny-integer ones. The table is
+annual: of 251 Q4 filings most banks print no stage roll-forward at all.
+
 2026-08-21 — **NPL movement: 588 → 949 filings, 21 → 33 banks.** The lane
 now reads ISCTR's 51-row layout (every movement split by loan type, the
 closing in the block after; the sub-rows take the movement above them as

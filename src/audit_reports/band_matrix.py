@@ -83,6 +83,27 @@ def adds_up(data: list[dict], cols, step: float = 1.0) -> float:
     return ok / checked if checked else 0.0
 
 
+def live_value_columns(data: list[dict]) -> list[int]:
+    """The value columns of a matrix's data rows: live in at least a quarter
+    of them, the sparse columns holding only tiny integers (the "1." / "2."
+    of a numbered label the capture split off) or only years (the date of
+    "Dönem Başı (31 Aralık 2023)") left out as label fragments."""
+    if not data:
+        return []
+    ncol = max(len(r["cells"]) for r in data)
+    live_counts = [sum(1 for r in data if i < len(r["cells"]) and r["cells"][i] is not None)
+                   for i in range(ncol)]
+    live = [i for i in range(ncol) if live_counts[i] >= max(2, len(data) / 4)]
+
+    def _row_number_fragment(i: int) -> bool:
+        vals = [num(r["cells"][i]) for r in data if i < len(r["cells"]) and r["cells"][i] is not None]
+        vals = [v for v in vals if v is not None]
+        return bool(vals) and live_counts[i] < len(data) / 2 \
+            and all(float(v).is_integer() and (0 <= v <= 12 or 1990 <= v <= 2100) for v in vals)
+
+    return [i for i in live if not _row_number_fragment(i)]
+
+
 def column_model(grid: list[dict], col_labels: list, bs: BandSet,
                  min_named: int = 4) -> list[tuple[int, str | None]] | None:
     """[(cell index, band)] for the matrix's value columns, the total last
@@ -102,20 +123,7 @@ def column_model(grid: list[dict], col_labels: list, bs: BandSet,
     headers = [r for r in grid if is_header_row(r, bs.header_label)]
     if not data:
         return None
-    ncol = max(len(r["cells"]) for r in data)
-    live_counts = [sum(1 for r in data if i < len(r["cells"]) and r["cells"][i] is not None)
-                   for i in range(ncol)]
-    live = [i for i in range(ncol) if live_counts[i] >= max(2, len(data) / 4)]
-
-    def _row_number_fragment(i: int) -> bool:
-        # a sparse column holding only tiny integers is the "1." / "2." of a
-        # numbered label ("1. Aşamaya Transfer") the capture split off
-        vals = [num(r["cells"][i]) for r in data if i < len(r["cells"]) and r["cells"][i] is not None]
-        vals = [v for v in vals if v is not None]
-        return bool(vals) and live_counts[i] < len(data) / 2 \
-            and all(float(v).is_integer() and 0 <= v <= 12 for v in vals)
-
-    live = [i for i in live if not _row_number_fragment(i)]
+    live = live_value_columns(data)
     if len(live) < 4:
         return None
     frags: dict[int, list[str]] = {}
