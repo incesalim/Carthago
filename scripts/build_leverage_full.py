@@ -71,13 +71,133 @@ CREATE INDEX IF NOT EXISTS idx_leverage_full_row
 """
 
 
+# the same fifteen rows by label, for the banks that print the template
+# without its numbers (BURGAN, ING, ZIRAAT, ANADOLU...) or split it over two
+# blocks (HALKB: rows 13-15 in the block after)
+_R = re.compile
+_BY_LABEL: list[tuple[int, re.Pattern]] = [
+    (3, _R(r"^BILANCO ICI VARLIKLARA ILISKIN TOPLAM|^TOTAL ON.?BALANCE SHEET EXPOSURE|^TOTAL ON.BALANCE|"
+           r"^TOTAL RISK AMOUNT RELATED TO ASSETS ON BALANCE")),
+    (1, _R(r"^BILANCO ICI VARLIKLAR \(|^ON.?BALANCE SHEET (ASSETS|ITEMS|EXPOSURES?) \(|^ON.?BALANCE SHEET ASSETS$|"
+           r"^ASSETS ON BALANCE SHEET")),
+    (2, _R(r"^\(?ANA SERMAYEDEN INDIRILEN|^\(?ASSETS (AMOUNTS? )?(THAT ARE )?DEDUCTED|^\(?DEDUCTIONS FROM TIER")),
+    (6, _R(r"^TUREV FINANSAL ARACLAR ILE KREDI TUREVLERINE ILISKIN TOPLAM|^(THE )?TOTAL (AMOUNT OF )?(RISKS? (ON|OF|RELATED TO) )?DERIVATIVE|"
+           r"^TOTAL DERIVATIVE|^TOTAL RISK AMOUNT RELATED TO DERIVATIVE")),
+    (4, _R(r"YENILEME MALIYET|^(THE )?REPLACEMENT COST")),
+    (5, _R(r"POTANSIYEL KREDI RISK|^(THE )?POTENTIAL (AMOUNT OF )?(CREDIT )?RISK|^POTENTIAL FUTURE")),
+    (9, _R(r"^MENKUL KIYMET VEYA EMTIA TEMINATLI FINANSMAN ISLEMLERINE ILISKIN TOPLAM|"
+           r"^(THE )?TOTAL (RISKS? )?(AMOUNT )?(RELATED TO |RELATED WITH |OF |ON )?(SECURITIES|INVESTMENT SECURITIES|SFT|FINANCIAL TRANSACTIONS HAVING)")),
+    (8, _R(r"^ARACILIK EDILEN|^(THE )?(RISK AMOUNT OF |AMOUNT OF RISK (FROM |OF )?)?(EXCHANGE )?BROKERAGE|^AGENT TRANSACTION|"
+           r"^RISKS? (FROM|OF) AGENT|^RISK AMOUNT SOURCING FROM TRANSACTIONS MEDIATED|INTERMEDIAT")),
+    (7, _R(r"^(MENKUL )?KIYMET VEYA EMTIA TEMINATLI FINANSMAN ISLEMLERININ|^(THE )?(AMOUNT OF )?RISK (AMOUNT )?(OF |FOR )?(INVESTMENT )?SECURITIES|"
+           r"^SECURITIES OR COMMODITY|^SFT (ASSETS|EXPOSURE)|^RISK AMOUNT OF FINANCIAL TRANSACTIONS HAVING SECURITY")),
+    (12, _R(r"^BILANCO DISI ISLEMLERE ILISKIN TOPLAM|^(THE )?TOTAL (RISKS? OF |AMOUNT OF |)OFF.?BALANCE|^TOTAL OFF.?BALANCE|"
+            r"^TOTAL RISK (AMOUNT )?(RELATED TO |OF )?OFF.?BALANCE")),
+    (10, _R(r"^BILANCO DISI ISLEMLERIN BRUT|^GROSS (NOTIONAL|NOMINAL)|^OFF.?BALANCE SHEET (ITEMS|EXPOSURES?) (AT |WITH )?GROSS")),
+    (11, _R(r"^\(?KREDIYE DONUSTURME|^\(?ADJUSTMENTS? (AMOUNT )?(FOR|OF|SOURCING)")),
+    (13, _R(r"^ANA SERMAYE$|^ANA SERMAYE \(|^TIER (I|1) CAPITAL|^CORE CAPITAL")),
+    (14, _R(r"^TOPLAM RISK TUTARI|^TOTAL (RISKS?|EXPOSURES?)( AMOUNT)?$|^TOTAL (RISKS?|EXPOSURES?) \(|^AMOUNT OF TOTAL RISK")),
+    (15, _R(r"^KALDIRAC ORANI|^(FINANCIAL )?LEVERAGE RATIO")),
+]
+
+
+def _template_row(label: str) -> int | None:
+    f = NT.fold(label).strip()
+    f = re.sub(r"^\d{1,2}[.)]?\s*", "", f)           # "3. Total on-balance..." numbered after all
+    for n, rx in _BY_LABEL:
+        if rx.search(f):
+            return n
+    return None
+
+
+def _unnumbered_gate(rows: list[dict]) -> bool:
+    """The template's own arithmetic on the current column: 15 = 13 / 14
+    (within 0.06 pp), or 14 = 3 + 6 + 9 + 12 where the ratio is absent."""
+    by = {x["template_row"]: x for x in rows}
+    t1, ex, r = (by.get(n, {}).get("amount") for n in (13, 14, 15))
+    if None not in (t1, ex, r) and ex:
+        return abs(t1 / ex * 100 - r) <= 0.06
+    parts = [by.get(n, {}).get("amount") for n in (3, 6, 9, 12)]
+    if ex is not None and parts[0] is not None:
+        return abs(sum(v or 0.0 for v in parts) - ex) <= max(2.0, 1e-4 * abs(ex))
+    return False
+
+
+def _chain_rows(chain: list[tuple], unit) -> list[dict]:
+    from src.audit_reports import band_matrix as BM
+    factor = NT.U.UNIT_SCALE.get(unit)
+    grid = [r for _pg, _bid, r, _n in chain]
+    live = BM.live_value_columns(grid)
+    cols = live[-2:] if len(live) >= 2 else [len(grid[0]["cells"]) - 2, len(grid[0]["cells"]) - 1]
+    rows = []
+    for pg, bid, r, n in chain:
+        cells = r["cells"]
+        vals = [NT.num(cells[c]) if 0 <= c < len(cells) else None for c in cols]
+        if n == 15:
+            vals = NT.repair_percent(vals, 1000)
+        elif factor is not None:
+            vals = [NT.U.scale_amount(v, factor) for v in vals]
+        rows.append({"template_row": n, "label": (r["label"] or "").strip(), "role": ROLE_BY_ROW.get(n),
+                     "page": pg, "block_id": bid, "amount": vals[0], "amount_prior": vals[1]})
+    return rows
+
+
+def assemble_unnumbered(tab: sqlite3.Connection, key: tuple) -> dict | None:
+    """The fifteen rows by label: a chain of template rows in template order,
+    continued over adjacent blocks (ING, HALKB split it), closed on row 15
+    or on the first block that does not continue it. The chain must open
+    on rows 1-3 (the capital note's "Tier I capital" rows cannot start one)
+    and pass the template's own arithmetic."""
+    chain: list[tuple] = []
+    unit = None
+    last = (-1, -1)
+    found: list[tuple[list, str | None]] = []
+
+    def close():
+        nonlocal chain
+        if chain and any(n in (1, 3) for *_x, n in chain) and chain[-1][3] >= 14 and len(chain) >= 8:
+            found.append((chain, unit))
+        chain = []
+
+    for pg, bid, grid, u in NT.partition_blocks(tab, key):
+        # sub-headers ("Bilanço içi varlıklar", "On-balance sheet assets") print
+        # no cells at all; only rows with cells take a template row
+        tagged = [(r, _template_row(r["label"] or "") if any(c is not None for c in r["cells"]) else None)
+                  for r in grid]
+        nums = [n for _r, n in tagged if n]
+        adjacent = (pg == last[0] and bid == last[1] + 1) or (pg == last[0] + 1 and bid == 1)
+        if not nums:
+            if chain and not adjacent:
+                close()
+            continue
+        continues = bool(chain) and adjacent and min(nums) > chain[-1][3]
+        if not continues:
+            close()
+            unit = u
+        for r, n in tagged:
+            if n and (not chain or n > chain[-1][3]):
+                if not chain and n not in (1, 2, 3):
+                    continue                          # a chain opens on the on-balance-sheet rows
+                chain.append((pg, bid, r, n))
+        last = (pg, bid)
+        if chain and chain[-1][3] == 15:
+            close()
+    close()
+    for chain, u in found:
+        rows = _chain_rows(chain, u)
+        if _unnumbered_gate(rows):
+            return {"unit": u, "instances": {"current": rows}}
+    return None
+
+
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
-    return NT.assemble(
+    got = NT.assemble(
         tab, key, sig=_SIG, max_row=15, bottom_row=14, n_values=2,
         percent_rows={15}, role_of=lambda n, _label: ROLE_BY_ROW.get(n),
         value_names=("amount", "amount_prior"),
         # a leverage ratio is single digits; "9,127" read as 9127 is 9.127%
         percent_repair_floor=1000)
+    return got if got is not None else assemble_unnumbered(tab, key)
 
 
 def main() -> int:

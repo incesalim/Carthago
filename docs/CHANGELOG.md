@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Leverage: 621 → 1,021 filings, 22 → 38 banks.** The banks
+that print the fifteen-row template without its numbers (BURGAN, ING,
+ZIRAAT, ANADOLU, QNBFB, ISCTR…) or split it over two blocks (HALKB: rows
+13–15 in the block after) are read by label in template order — a chain
+continued over adjacent blocks, opened only on the on-balance-sheet rows so
+the capital note's "Tier I capital" rows cannot start one, closed on row 15,
+and gated on the template's own arithmetic (15 = 13 / 14 within 0.06 pp, or
+14 = 3 + 6 + 9 + 12). Current ratio vs narrow 99.9% over 866 filings.
+
 2026-08-21 — **Derivatives: 560 → 848 filings, 24 → 33 banks.** The grid is
 cut to its instrument rows: a date row and a "TP YP TP YP" line ride above
 the first instrument in most captures; where the first instrument is the

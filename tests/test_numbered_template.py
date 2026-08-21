@@ -106,6 +106,53 @@ def test_one_signature_row_is_not_a_table(tmp_path):
     assert LV.assemble(db, KEY) is None
 
 
+def test_leverage_unnumbered_template_by_label_over_split_blocks(tmp_path):
+    """BURGAN / ING / ZIRAAT print the fifteen rows without their numbers,
+    with sub-headers, sometimes split over two blocks; the chain is read by
+    label in template order, and gated on 15 = 13 / 14. The capital note's
+    "Tier I capital" rows cannot open a chain."""
+    head = [
+        ("Bilanço içi varlıklar", [None, None]),
+        ("Bilanço içi varlıklar (türev finansal araçlar ile kredi türevleri hariç, teminatlar dahil)", [194153.0, 159040.0]),
+        ("(Ana sermayeden indirilen varlıklar)", [572.0, 517.0]),
+        ("Bilanço içi varlıklara ilişkin toplam risk tutarı", [193581.0, 158523.0]),
+        ("Türev finansal araçlar ile kredi türevleri", [None, None]),
+        ("Türev finansal araçlar ile kredi türevlerinin yenileme maliyeti", [2188.0, 5353.0]),
+        ("Türev finansal araçlar ile kredi türevlerinin potansiyel kredi risk tutarı", [1152.0, 1081.0]),
+        ("Türev finansal araçlar ile kredi türevlerine ilişkin toplam risk tutarı", [3340.0, 6434.0]),
+    ]
+    tail = [
+        ("Menkul kıymet veya emtia teminatlı finansman işlemlerinin risk tutarı", ["-", "-"]),
+        ("Aracılık edilen işlemlerden kaynaklanan risk tutarı", ["-", "-"]),
+        ("Menkul kıymet veya emtia teminatlı finansman işlemlerine ilişkin toplam risk tutarı", ["-", "-"]),
+        ("Bilanço dışı işlemler", [None, None]),
+        ("Bilanço dışı işlemlerin brüt nominal tutarı", [49542.0, 43833.0]),
+        ("(Krediye dönüştürme oranları ile çarpımdan kaynaklanan düzeltme tutarı)", ["-", "-"]),
+        ("Bilanço dışı işlemlere ilişkin toplam risk tutarı", [49542.0, 43833.0]),
+        ("Sermaye ve toplam risk", [None, None]),
+        ("Ana sermaye", [17414.0, 14396.0]),
+        ("Toplam risk tutarı", [246463.0, 208790.0]),
+        ("Kaldıraç oranı", [None, None]),
+        ("Kaldıraç oranı", [7.07, 6.89]),
+    ]
+    capital = [
+        ("Tier I capital", [20000.0, 18000.0]),
+        ("Total deductions from Tier I capital", [100.0, 90.0]),
+        ("Total capital", [25000.0, 22000.0]),
+    ]
+    db = _db(tmp_path, [(40, 1, "bin", capital), (72, 1, "bin", head), (72, 2, "bin", tail)])
+    got = LV.assemble(db, KEY)
+    cur = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert sorted(cur) == list(range(1, 16))
+    assert cur[1]["amount"] == 194153.0 and cur[3]["amount_prior"] == 158523.0
+    assert cur[13]["role"] == "tier1_capital" and cur[15]["amount"] == 7.07
+    assert cur[9]["block_id"] == 2 and cur[6]["block_id"] == 1
+    # the ratio off its own arithmetic is refused
+    db.execute("UPDATE bank_audit_document_tables SET grid_json=replace(grid_json, '7.07', '9.9') WHERE page=72")
+    db.commit()
+    assert LV.assemble(db, KEY) is None
+
+
 # --- the RWA overview (OV1) lane, same module -------------------------------
 
 _spec_rwa = importlib.util.spec_from_file_location(
