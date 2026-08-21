@@ -689,3 +689,38 @@ def test_tl_fc_notes_families_nesting_and_gate(tmp_path):
     b = {x["role"]: x for x in got["instances"][1]["rows"]}
     assert b["foreign_banks"]["parent"] == "banks" and b["foreign_banks"]["fc_current"] == 72.0
     assert b["other_institutions"]["parent"] is None and b["total"]["fc_prior"] == 65.0
+
+
+def test_npl_movement_identities_signed_tails_and_single_group(tmp_path):
+    NM = _load("build_npl_movement_full")
+    akbnk = [
+        ("Önceki Dönem Sonu Bakiyesi: 31 Aralık 2021", [1780068.0, 1068687.0, 15379062.0]),
+        ("Dönem İçinde İntikal (+)", [1268263.0, 47635.0, 277714.0]),
+        ("Diğer Donuk Alacak Hesaplarından Giriş (+)", ["-", 1771442.0, 327354.0]),
+        ("Diğer Donuk Alacak Hesaplarına Çıkış (-)", [1771442.0, 327354.0, "-"]),
+        ("Dönem İçinde Tahsilat (-)", [171327.0, 139623.0, 484784.0]),
+        ("Kayıttan düşülen (-) (**)", [1933.0, 2931.0, 59413.0]),
+        ("Satılan (-)", ["-", "-", "-"]),
+        ("Kurumsal ve Ticari Krediler", ["-", "-", "-"]),
+        ("Dönem Sonu Bakiyesi", [1103629.0, 2417856.0, 15439933.0]),
+        ("Karşılık (-)", [830444.0, 1612088.0, 9879874.0]),
+        ("Bilançodaki Net Bakiyesi", [273185.0, 805768.0, 5560059.0]),
+    ]
+    burgan = [   # wrapped transfer rows keep only their sign; group III only
+        ("Prior Period End Balance", [None, None, 100.0]),
+        ("Additions (+)", [None, None, 50.0]),
+        ("Loans (+)", [None, None, 20.0]),
+        ("Loans (-)", [None, None, 5.0]),
+        ("Collections (-)", [None, None, 15.0]),
+        ("Balance at the End of the Period", [None, None, 150.0]),
+        ("Specific Provision (-)", [None, None, 90.0]),
+        ("Net Balance on Balance Sheet", [None, None, 60.0]),
+    ]
+    broken = [(lab, cells) for lab, cells in akbnk]
+    broken[-1] = ("Bilançodaki Net Bakiyesi", [1.0, 805768.0, 5560059.0])
+    db = _db(tmp_path, [(61, 1, "bin", akbnk), (62, 1, "bin", burgan), (63, 1, "bin", broken)])
+    got = NM.assemble(db, KEY)
+    assert [NM._identity_holds(i["rows"], got["step"]) for i in got["instances"]] == [True, True, False]
+    a = {x["role"]: x["cells"] for x in got["instances"][0]["rows"] if x["role"]}
+    assert a["transfers_out"]["group_iii"] == 1771442.0 and a["net"]["group_v"] == 5560059.0
+    assert a["sold_corporate"]["group_iii"] is None

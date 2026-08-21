@@ -5,6 +5,13 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The nineteenth graduation: NPL movement by group — and the
+narrow lane vindicated.** `scripts/build_npl_movement_full.py` mints the
+III / IV / V movement table under two identities (net = closing −
+provision; the movement balances with printed signs). 8,287 of 8,290
+cells equal the narrow npl_movement lane — the first narrow lane the wide
+audit clears outright. 588 filings / 34,878 rows. Nineteen lanes graduated.
+
 2026-08-21 — **The eighteenth graduation: the TL/FC breakdown notes.**
 `scripts/build_tl_fc_note_full.py` mints five small notes (interest on
 loans / from banks / on securities / on funds borrowed, and funds borrowed)
