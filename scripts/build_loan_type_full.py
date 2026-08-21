@@ -42,8 +42,9 @@ AUDIT_DB = REPO / "data" / "bank_audit.db"
 # Row registry: role -> pattern on the folded label. Order matters where one
 # label contains another ("DIGER ALACAKLAR" before "DIGER").
 ROLES: list[tuple[str, re.Pattern]] = [
-    ("non_specialised", re.compile(r"^IHTISAS DISI|^NON.?SPECIALI[SZ]ED")),
-    ("working_capital", re.compile(r"^ISLETME|^WORKING CAPITAL|^OPERATING|"
+    # the participation banks head the same template with a bare "Krediler"
+    ("non_specialised", re.compile(r"^IHTISAS DISI|^NON.?SPECIALI[SZ]ED|^KREDILER$|^LOANS$|^CASH LOANS$|^KULLANDIRILAN FONLAR$")),
+    ("working_capital", re.compile(r"^ISLETME|^WORKING CAPITAL|^OPERATING|^BUSINESS LOAN|"
                                    r"^CORPORATION LOANS|^ENTERPRISE LOANS|"
                                    r"^LOANS (GIVEN|GRANTED|EXTENDED) TO ENTERPRISES")),
     ("export", re.compile(r"^IHRACAT|^EXPORT")),
@@ -53,7 +54,7 @@ ROLES: list[tuple[str, re.Pattern]] = [
     ("consumer", re.compile(r"^TUKETICI|^CONSUMER")),
     ("credit_cards", re.compile(r"^KREDI KART|^CREDIT CARD")),
     ("other_receivables", re.compile(r"^DIGER ALACAK|^OTHER RECEIVABLE")),
-    ("other", re.compile(r"^DIGER( \(\*+\))?$|^DIGER KREDI|^OTHER( \(\*+\))?$|^OTHER LOANS")),
+    ("other", re.compile(r"^DIGER ?(\(\*+\))?$|^DIGER KREDI|^OTHER ?(\(\*+\))?$|^OTHER LOANS")),
     ("specialised", re.compile(r"^IHTISAS KREDI|^SPECIALI[SZ]ED (LOANS|LENDING)")),
     ("total", re.compile(r"^TOPLAM$|^TOTAL$")),
 ]
@@ -98,7 +99,7 @@ CREATE INDEX IF NOT EXISTS idx_loan_type_full_role
 def _is_family(grid: list[dict]) -> bool:
     roles = [role_of(r["label"] or "") for r in grid]
     # AKBNK prints the sub-types without the "Ihtisas Disi Krediler" head
-    return roles and roles[0] in ("non_specialised", "working_capital") and "total" in roles \
+    return roles and roles[0] in ("non_specialised", "working_capital", "export") and "total" in roles \
         and sum(1 for r in roles if r in SUBTYPES) >= 4 and 7 <= len(grid) <= 16
 
 

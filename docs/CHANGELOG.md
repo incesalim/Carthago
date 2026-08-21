@@ -5,11 +5,12 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
-2026-08-21 — **Loan type: 464 → 572 filings.** Rows printed without figures
+2026-08-21 — **Loan type: 464 → 813 filings, 33 banks.** Rows printed without figures
 now arrive as inline rows (ISCTR), and AKBNK prints the sub-types without
 the "İhtisas Dışı Krediler" head — the head is their sum; YKBNK's phantom
 column is live only in a table merged below, so liveness is counted over
-registry rows. 9,155 rows.
+registry rows; the participation banks head the same template with a bare
+"Krediler" and print "Business loans" and "Other(*)". 12,845 rows.
 
 2026-08-21 — **The sector lane reads numbered rows and the full 20-column
 risk profile.** "1.1 Çiftçilik" prefixes stripped; a risk profile whose
