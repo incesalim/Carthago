@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-20.
 
+2026-08-20 — **The seventh graduation — the first notes-section family.**
+`scripts/build_loan_type_full.py` mints BRSA's cash-loans-by-type × credit-
+quality note (§5): eleven fixed rows × four quality columns, current + prior,
+via a TR+EN label registry — the capital pilot's method applied to a notes
+table. With no narrow lane to anchor against, the template's own arithmetic
+is the mint gate (non-specialised = Σ seven sub-types; total = non-specialised
++ specialised + other receivables): 436 filings / 7,354 proven rows stored,
+136 instances refused. The fleet taught the registry its EN variants
+("Corporation loans" is working capital) and a wrapped-label merge whose head
+row carries no cells at all — a disclosed-nothing row prints dashes and is a
+real row, which is how the two are told apart. Seven lanes graduated.
+
 2026-08-20 — **The sixth graduation (CR4 exposure by asset class) — the first
 lane with a mint gate.** Three BRSA forms number the same asset-class rows
 1–18, and a first pass stored all of them as "instances" (4 per filing,

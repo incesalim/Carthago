@@ -175,3 +175,44 @@ def test_cr4_percent_column_shape_filter_and_mint_gate(tmp_path):
     assert cur[7]["role"] == "corporates"
     assert CR._identity_holds(got["instances"]["current"])
     assert not CR._identity_holds(got["instances"]["prior"])   # the 'bad' copy
+
+
+# --- the loans-by-type notes family: label registry + identity gate ---------
+
+_spec_lt = importlib.util.spec_from_file_location(
+    "build_loan_type_full", REPO / "scripts" / "build_loan_type_full.py")
+LT = importlib.util.module_from_spec(_spec_lt)
+_spec_lt.loader.exec_module(LT)
+
+
+def test_loan_type_registry_wrap_merge_and_identity_gate(tmp_path):
+    """A Milyon instance: TR labels with the financial-sector row wrapped over
+    two captured rows ("Mali Kesime" / "Verilen Krediler"), an EN-variant
+    working-capital label, "Diğer (*)"; the identities hold and the rows
+    scale. A second instance whose sub-types do not sum is gated out."""
+    def rows(ns, wc, ex, fs, co, cc, ot, sp, orc, tot):
+        return [
+            ("İhtisas Dışı Krediler", [ns, 1.0, 2.0, "-"]),
+            ("Corporation Loans", [wc, "-", "-", "-"]),
+            ("İhracat Kredileri", [ex, "-", "-", "-"]),
+            ("İthalat Kredileri", ["-", "-", "-", "-"]),
+            ("Mali Kesime", [None, None, None, None]),           # wrapped head
+            ("Verilen Krediler", [fs, "-", "-", "-"]),           # wrapped tail
+            ("Tüketici Kredileri", [co, "-", "-", "-"]),
+            ("Kredi Kartları", [cc, "-", "-", "-"]),
+            ("Diğer (*)", [ot, "-", "-", "-"]),
+            ("İhtisas Kredileri", [sp, "-", "-", "-"]),
+            ("Diğer Alacaklar", [orc, "-", "-", "-"]),
+            ("Toplam", [tot, 1.0, 2.0, "-"]),
+        ]
+    good = rows(100.0, 10.0, 20.0, 30.0, 15.0, 5.0, 20.0, 7.0, 3.0, 110.0)
+    bad = rows(100.0, 10.0, 20.0, 30.0, 15.0, 5.0, 99.0, 7.0, 3.0, 110.0)
+    db = _db(tmp_path, [(64, 2, "milyon", good), (64, 3, "milyon", bad)])
+    got = LT.assemble(db, KEY)
+    cur, pri = got["instances"]["current"], got["instances"]["prior"]
+    assert LT._identities_hold(cur) and not LT._identities_hold(pri)
+    by = {r["role"]: r for r in cur}
+    assert by["financial_sector"]["standard"] == 30_000.0     # wrap merged, scaled
+    assert by["working_capital"]["standard"] == 10_000.0      # EN variant
+    assert by["other"]["standard"] == 20_000.0                # "Diğer (*)"
+    assert by["non_specialised"]["watch_modified"] == 2_000.0
