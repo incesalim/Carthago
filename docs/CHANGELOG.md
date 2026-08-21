@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The fourteenth graduation: deposits under and over the
+insurance limit.** `scripts/build_deposit_insurance_full.py` mints the
+five-row saving-deposit insurance note × (covered, exceeding) × (current,
+prior). HSBC prints the four columns period-major under a year header row,
+ANADOLU abbreviates its rows to "DTH" and "Diğ.H." — both read; refusals
+67 → 10. A printed total must balance; where the template prints none the
+instance is kept and says so (`total_check`). 476 filings / 2,833 rows.
+Fourteen lanes graduated.
+
 2026-08-21 — **The thirteenth graduation: the CR5 risk-weight matrix, 89,160
 rows.** `scripts/build_risk_weight_full.py` stores asset class × risk weight
 LONG. The matrix's header was the whole problem: weights vary by bank, a

@@ -453,3 +453,42 @@ def test_cr5_column_model_reads_split_headers_and_label_roles(tmp_path):
         {"template_row": 18, "role": "total", "col_role": "weight", "col_order": 0, "amount": 4000.0},
         {"template_row": 18, "role": "total", "col_role": "total", "col_order": 1, "amount": 5000.0},
     ], step=1000.0)
+
+
+def test_deposit_insurance_layouts_wraps_and_total_gate(tmp_path):
+    DI = _load("build_deposit_insurance_full")
+    standard = [   # covered (cur, prior), exceeding (cur, prior); a wrapped head
+        ("Tasarruf Mevduatı", [100.0, 90.0, 300.0, 250.0]),
+        ("Tasarruf Mevduatı Niteliğini Haiz DTH", [50.0, 40.0, 200.0, 150.0]),
+        ("Tasarruf Mevduatı Niteliğini Haiz Diğ.H.", [10.0, 5.0, 20.0, 10.0]),
+        ("Yurt Dışı Şubelerde Bulunan Yabancı Mercilerin", [None, None, None, None]),
+        ("Sigortasına Tabi Hesaplar", ["-", "-", "-", "-"]),
+        ("Toplam", [160.0, 135.0, 520.0, 410.0]),
+    ]
+    hsbc = [       # a year header row and a period-major layout
+        ("Tasarruf Mevduatı", [2023.0, 2023.0, 2022.0, 2022.0]),
+        ("Tasarruf Mevduatı", [100.0, 300.0, 90.0, 250.0]),
+        ("DTH", [50.0, 200.0, 40.0, 150.0]),
+        ("Diğ.H.", [10.0, 20.0, 5.0, 10.0]),
+        ("Toplam (*)", [160.0, 520.0, 135.0, 410.0]),
+    ]
+    broken = [
+        ("Saving Deposits", [100.0, 90.0, 300.0, 250.0]),
+        ("Foreign Currency Saving Deposits", [50.0, 40.0, 200.0, 150.0]),
+        ("Total", [999.0, 135.0, 520.0, 410.0]),
+    ]
+    db = _db(tmp_path, [(88, 1, "bin", standard), (89, 1, "bin", hsbc), (90, 1, "bin", broken)])
+    db.execute("UPDATE bank_audit_document_tables SET heading='Mevduat Sigortası Kapsamında Bulunan ve Limitini Aşan'")
+    db.commit()
+    got = DI.assemble(db, KEY)
+    a, b, c = got["instances"]
+    assert DI.total_check(a) == "holds" and DI.total_check(b) == "holds" and DI.total_check(c) is None
+    ra = {x["role"]: x for x in a}
+    assert ra["foreign_branches"]["label"].endswith("Sigortasına Tabi Hesaplar")
+    assert ra["foreign_branches"]["covered_current"] is None
+    rb = {x["role"]: x for x in b}
+    assert (rb["saving_tl"]["covered_current"], rb["saving_tl"]["covered_prior"],
+            rb["saving_tl"]["exceeding_current"], rb["saving_tl"]["exceeding_prior"]) == (100.0, 90.0, 300.0, 250.0)
+    assert rb["saving_fc"]["label"] == "DTH" and rb["saving_other"]["label"] == "Diğ.H."
+    assert DI.columns_swapped(["Exceeding the insurance limit", "", "Under the guarantee of insurance", ""], None)
+    assert not DI.columns_swapped(["Covered by Deposit Insurance", "", "Over Deposit Insurance Limit", ""], None)
