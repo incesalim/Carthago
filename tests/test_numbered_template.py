@@ -359,3 +359,37 @@ def test_cr1_row_live_cells_unstagger_a_merged_block_and_cr2_is_dropped(tmp_path
     assert prior[2]["defaulted_gross"] is None                 # printed "-"
     assert all(CQ._net_holds(x) for x in prior.values())
     assert not CQ._is_cr1([{"label": l, "cells": c} for l, c in cr3])
+
+
+def test_cr2_conventions_one_column_shift_and_mint_gate(tmp_path):
+    DM = _load("build_defaulted_movement_full")
+    akbnk = [   # every line positive; closing = 1 + 2 - 3 - 4 - 5
+        ("30 Haziran 2022", [None, 2022.0, 2021.0]),
+        ("1 Önceki raporlama dönemi sonundaki temerrüt etmiş krediler", [1.0, 18227817.0, 17880294.0]),
+        ("2 Son raporlama döneminden itibaren temerrüt eden krediler", [2.0, 15247803.0, 4891485.0]),
+        ("3 Tekrar temerrüt etmemiş durumuna gelen alacaklar", [3.0, 74780.0, 78299.0]),
+        ("4 Aktiften silinen tutarlar", [4.0, 12735105.0, 1557732.0]),
+        ("5 Diğer değişimler", [5.0, 2106483.0, 2907931.0]),
+        ("6 Raporlama dönemi sonundaki temerrüt etmiş krediler", [6.0, 18559252.0, 18227817.0]),
+    ]
+    signed_one_col = [   # deductions printed negative, a single column
+        ("1 Defaulted loans and debt securities at end of the previous reporting period", [1.0, 448957.0]),
+        ("2 Loans and debt securities that have defaulted since the last reporting period", [2.0, 120768.0]),
+        ("3 Returned to non-defaulted status", [3.0, "-"]),
+        ("4 Amounts written off", [4.0, -39867.0]),
+        ("5 Other changes", [5.0, -64545.0]),
+        ("6 Defaulted loans and debt securities at end of the reporting period", [6.0, 465313.0]),
+    ]
+    broken = [r for r in signed_one_col]
+    broken[5] = ("6 Defaulted loans and debt securities at end of the reporting period", [6.0, 999999.0])
+    db = _db(tmp_path, [(50, 1, "bin", akbnk), (51, 1, "bin", signed_one_col), (52, 1, "bin", broken)])
+    got = DM.assemble(db, KEY)
+    assert set(got["instances"]) == {"current", "prior"} and got["gated"] == 1
+    cur = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert cur[6]["convention"] == "deductions_3_4_5"
+    assert cur[4]["amount"] == 12735105.0 and cur[4]["amount_prior"] == 1557732.0
+    assert DM.convention_of(got["instances"]["current"], "amount_prior") == "deductions_3_4_5"
+    pri = {x["template_row"]: x for x in got["instances"]["prior"]}
+    assert pri[1]["convention"] == "signed"
+    assert pri[4]["amount"] == -39867.0 and pri[4]["amount_prior"] is None   # one column, shifted left
+    assert pri[3]["amount"] is None

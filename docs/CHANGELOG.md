@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twelfth graduation: CR2 defaulted-exposure movement.**
+`scripts/build_defaulted_movement_full.py` mints the numbered 1–6 form.
+Banks disagree on signs — AKBNK prints every line positive and subtracts
+three of them, AKTIF prints deductions negative and sums — so each instance
+is stored as printed with the `convention` its own arithmetic balanced under,
+which is the mint gate (8 refused of 458). The closing stock ties to CR1's
+defaulted stock on 98.7% of filings once both perimeters are allowed: 211
+banks run the movement on loans + debt securities, 83 on the CR1 total
+including off-balance-sheet. 373 filings / 2,700 rows. Twelve lanes
+graduated.
+
 2026-08-21 — **The eleventh graduation: CR1 credit quality of assets.**
 `scripts/build_credit_quality_full.py` mints BRSA's numbered 1–4 form (loans /
 debt securities / off-balance-sheet / total × defaulted, non-defaulted,
