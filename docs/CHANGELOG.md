@@ -5,6 +5,12 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twenty-sixth graduation: the risk-group disclosures.**
+Related-party loans, deposits and derivatives by party class, opening /
+closing / income, under the one identity the table offers — the prior
+block's closing is the current block's opening (1,708 paired, 70 refused).
+1,006 filings / 63,525 rows. Twenty-six lanes graduated.
+
 2026-08-21 — **The twenty-fifth graduation: NPL by borrower class.** Gross /
 provision / net × Groups III–V, current and prior, gated by net = gross −
 provision per cell; Σ gross per group equals the NPL movement's closing on

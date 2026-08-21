@@ -912,3 +912,31 @@ def test_npl_by_borrower_periods_classes_and_net_identity(tmp_path):
     assert NB._identity_holds(cur["rows"], got["step"]) and not NB._identity_holds(pri["rows"], got["step"])
     prov = [x for x in cur["rows"] if x["measure"] == "provision"]
     assert prov[0]["class"] == "individuals_corporates" and prov[1]["class"] == "banks"
+
+
+def test_risk_group_pairing_by_opening_closing_handoff(tmp_path):
+    RG = _load("build_risk_group_full")
+    cur = [("Dönem Başı Bakiyesi", ["-", "-", 18578260.0, 7976674.0, 101792.0, 4532.0]),
+           ("Dönem Sonu Bakiyesi", ["-", "-", 28929188.0, 11740072.0, 90661.0, 14957.0]),
+           ("Alınan Faiz ve Komisyon Gelirleri", ["-", "-", 2800443.0, 47605.0, 7218.0, 293.0])]
+    pri = [("Dönem Başı Bakiyesi", ["-", "-", 11503560.0, 4863943.0, 132122.0, 140263.0]),
+           ("Dönem Sonu Bakiyesi", ["-", "-", 18578260.0, 7976674.0, 101792.0, 4532.0]),
+           ("Alınan Faiz ve Komisyon Gelirleri", ["-", "-", 2714832.0, 41777.0, 11594.0, 1120.0])]
+    bad = [("Dönem Başı Bakiyesi", ["-", "-", 1.0, 2.0, 3.0, 4.0]),
+           ("Dönem Sonu Bakiyesi", ["-", "-", 5.0, 6.0, 7.0, 8.0]),
+           ("Alınan Faiz ve Komisyon Gelirleri", ["-", "-", 1.0, 1.0, 1.0, 1.0])]
+    dep = [("Dönem Başı", [10.0, 20.0, 30.0]), ("Dönem Sonu", [11.0, 21.0, 31.0]), ("Mevduat Faiz Gideri", [1.0, 2.0, 3.0])]
+    db = _db(tmp_path, [(127, 1, "bin", cur), (127, 2, "bin", pri), (128, 1, "bin", dep)])
+    db.execute("UPDATE bank_audit_document_tables SET heading='Grubun Dahil Olduğu Risk Grubu Nakdi G.Nakdi'")
+    db.commit()
+    got = RG.assemble(db, KEY)
+    kept, refused = RG._pair(got["instances"], got["step"])
+    assert refused == 0
+    assert [(i["measure"], lab, c) for i, lab, c in kept] == [
+        ("loans", "current", "paired"), ("loans", "prior", "paired"), ("deposits", "current", "unpaired")]
+    assert kept[0][0]["rows"][1]["cells"][2] == (("shareholders", "cash"), 28929188.0)
+    db2 = _db(tmp_path / "b", [(127, 1, "bin", cur), (127, 2, "bin", bad)]) if (tmp_path / "b").mkdir() is None else None
+    db2.execute("UPDATE bank_audit_document_tables SET heading='Risk Grubu Nakdi G.Nakdi'")
+    db2.commit()
+    got2 = RG.assemble(db2, KEY)
+    assert RG._pair(got2["instances"], got2["step"])[1] == 2
