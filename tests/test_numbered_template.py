@@ -860,3 +860,23 @@ def test_eps_division_gate_share_factor_and_single_column(tmp_path):
     fs = [EP._division_factor(i["profit"][0], i["shares"][0], i["eps"][0]) for i in got["instances"]]
     assert fs == [1.0, 1000.0, None]
     assert got["instances"][1]["profit"] == (1000.0, None)
+
+
+def test_shareholder_loans_two_identities(tmp_path):
+    SL = _load("build_shareholder_loans_full")
+    ok = [("Banka Ortaklarına Verilen Doğrudan Krediler", ["-", 396.0, "-", 159.0]),
+          ("Tüzel Kişi Ortaklara Verilen Krediler", ["-", 396.0, "-", 159.0]),
+          ("Gerçek Kişi Ortaklara Verilen Krediler", ["-", "-", "-", "-"]),
+          ("Banka Ortaklarına Verilen Dolaylı Krediler", [28896527.0, 11739676.0, 18578260.0, 7976515.0]),
+          ("Banka Mensuplarına Verilen Krediler", [750313.0, "-", 606978.0, "-"]),
+          ("Toplam", [29646840.0, 11740072.0, 19185238.0, 7976674.0])]
+    bad = [(lab, cells) for lab, cells in ok]
+    bad[1] = ("Tüzel Kişi Ortaklara Verilen Krediler", ["-", 300.0, "-", 159.0])
+    db = _db(tmp_path, [(96, 1, "bin", ok), (97, 1, "bin", bad)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+               (json.dumps(["Cari Nakdi", "Dönem Gayrinakdi", "Önceki Nakdi", "Dönem Gayrinakdi"]),))
+    db.commit()
+    got = SL.assemble(db, KEY)
+    assert [SL._identities_hold(i, got["step"]) for i in got["instances"]] == [True, False]
+    r = {x["role"]: x for x in got["instances"][0]}
+    assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
