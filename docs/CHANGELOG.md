@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **LCR: 656 → 1,000 filings, 25 → 37 banks.** The unnumbered
+reading of a numbered template is now a shared helper,
+`numbered_template.assemble_by_label`: a chain of rows matched by label in
+template order, continued over adjacent blocks, sub-headers (no cells)
+skipped, a label that wraps onto a values-only line adopting those values,
+current / prior from the block heading, the lane's own arithmetic as the
+gate. The LCR gate is 23 ≈ 21 / 22 within 10% relative — the printed LCR is
+the quarter's average of ratios while rows 21–22 are averages of levels, so
+the identity is exact on 76% of the numbered instances and within 10% on
+99.7%. Current LCR vs narrow 96.2% over 880 filings.
+
 2026-08-22 — **Leverage: 621 → 1,021 filings, 22 → 38 banks.** The banks
 that print the fifteen-row template without its numbers (BURGAN, ING,
 ZIRAAT, ANADOLU, QNBFB, ISCTR…) or split it over two blocks (HALKB: rows

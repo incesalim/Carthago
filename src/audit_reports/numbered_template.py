@@ -207,6 +207,117 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
             "instances": {labels[i]: inst for i, inst in enumerate(instances[:4])}}
 
 
+def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
+                      labels: list[tuple[int, re.Pattern]], n_values: int,
+                      percent_rows: set[int], open_rows: set[int], close_row: int,
+                      min_rows: int, role_of: Callable[[int, str], str | None],
+                      value_names: tuple[str, ...], gate: Callable[[list[dict]], bool],
+                      percent_repair_floor: float = 10000,
+                      period_hint: Callable[[str | None, list[dict]], str | None] | None = None,
+                      ) -> dict | None:
+    """The same numbered template read WITHOUT its numbers: a chain of rows
+    matched by label (`labels`: (template_row, regex) in match-priority
+    order, tried on the folded label with any leading number stripped),
+    kept in template order, continued over adjacent blocks, opened only on
+    `open_rows`, closed on `close_row` or on the first block that does not
+    continue it, and kept only when `gate(rows)` — the template's own
+    arithmetic — holds. Sub-headers print no cells and take no row; a
+    matched row with no cells adopts the cells of the unmatched row below
+    (a label that wrapped). Values are the last `n_values` live columns.
+
+    Instances are labelled current / prior / extra... in print order, or by
+    `period_hint(heading, grid)` where it says.
+    """
+    from . import band_matrix as BM
+
+    def template_row(label: str) -> int | None:
+        f = re.sub(r"^\d{1,2}[.)]?\s*", "", fold(label).strip())
+        for n, rx in labels:
+            if rx.search(f):
+                return n
+        return None
+
+    blocks = [(pg, bid, h, json.loads(g), unit) for pg, bid, h, g, unit in tab.execute(
+        "SELECT page, block_id, heading, grid_json, declared_unit "
+        "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
+        "AND kind=? ORDER BY page, block_id", key)]
+    chain: list[tuple] = []
+    unit = None
+    hint = None
+    last = (-1, -1)
+    found: list[tuple[list, str | None, str | None]] = []
+
+    def close():
+        nonlocal chain, hint
+        if chain and any(n in open_rows for *_x, n in chain) and len(chain) >= min_rows:
+            found.append((chain, unit, hint))
+        chain, hint = [], None
+
+    for pg, bid, heading, grid, u in blocks:
+        tagged = []
+        for i, r in enumerate(grid):
+            has_cells = any(c is not None for c in r["cells"])
+            n = template_row(r["label"] or "") if (r["label"] or "").strip() else None
+            if n is not None and not has_cells:
+                nxt = grid[i + 1] if i + 1 < len(grid) else None
+                if nxt is not None and template_row(nxt["label"] or "") is None \
+                        and any(c is not None for c in nxt["cells"]):
+                    r = {**r, "cells": nxt["cells"]}        # the label wrapped; values below
+                    has_cells = True
+            tagged.append((r, n if has_cells else None))
+        nums = [n for _r, n in tagged if n]
+        adjacent = (pg == last[0] and bid == last[1] + 1) or (pg == last[0] + 1 and bid == 1)
+        if not nums:
+            if chain and not adjacent:
+                close()
+            continue
+        continues = bool(chain) and adjacent and min(nums) > chain[-1][3]
+        if not continues:
+            close()
+            unit = u
+            hint = period_hint(heading, grid) if period_hint else None
+        for r, n in tagged:
+            if n and (not chain or n > chain[-1][3]):
+                if not chain and n not in open_rows:
+                    continue
+                chain.append((pg, bid, r, n))
+        last = (pg, bid)
+        if chain and chain[-1][3] == close_row:
+            close()
+    close()
+    instances: list[tuple[list[dict], str | None]] = []
+    for chain, u, h in found:
+        factor = U.UNIT_SCALE.get(u)
+        grid = [r for _pg, _bid, r, _n in chain]
+        live = BM.live_value_columns(grid)
+        ncol = max(len(r["cells"]) for r in grid)
+        cols = live[-n_values:] if len(live) >= n_values else list(range(ncol - n_values, ncol))
+        rows = []
+        for pg, bid, r, n in chain:
+            cells = r["cells"]
+            vals = [num(cells[c]) if 0 <= c < len(cells) else None for c in cols]
+            vals = [None] * (n_values - len(vals)) + vals
+            if n in percent_rows:
+                vals = repair_percent(vals, percent_repair_floor)
+            elif factor is not None:
+                vals = [U.scale_amount(v, factor) for v in vals]
+            row = {"template_row": n, "label": (r["label"] or "").strip(), "role": role_of(n, r["label"] or ""),
+                   "page": pg, "block_id": bid}
+            row.update(zip(value_names, vals))
+            rows.append(row)
+        if gate(rows):
+            instances.append((rows, h))
+    if not instances:
+        return None
+    unit = found[0][1]
+    out: dict[str, list[dict]] = {}
+    order = ("current", "prior", "extra2", "extra3")
+    for rows, h in instances[:4]:
+        label = h if h in ("current", "prior") and h not in out else next(o for o in order if o not in out)
+        out[label] = rows
+    return {"unit": unit, "instances": out}
+
+
 def absorb_inline(grid: list[dict], role_of, keep=None) -> list[dict]:
     """Fold the document layer's `inline` rows (label-only lines printed
     inside a block: a wrapped row head, or a sub-header) into a grid a

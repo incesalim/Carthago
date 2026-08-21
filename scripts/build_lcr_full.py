@@ -78,12 +78,74 @@ ROLE_BY_ROW = {
     20: "total_cash_inflows", 21: "total_hqla",
     22: "total_net_cash_outflows", 23: "lcr",
 }
+# the same 23 rows by label, for the banks that print the template without
+# its numbers (HALKB, ING, YKBNK, ZIRAAT, ANADOLU, HSBC, ICBCT, ISCTR...)
+_R = re.compile
+_BY_LABEL: list[tuple[int, re.Pattern]] = [
+    (21, _R(r"^TOPLAM Y(KLV|UKSEK KALITELI)|^TOTAL (HQLA|HIGH.?QUALITY)")),
+    (1, _R(r"^YUKSEK KALITELI LIKIT|^HIGH.?QUALITY LIQUID")),
+    (22, _R(r"^TOPLAM NET NAKIT CIKIS|^TOTAL NET CASH OUTFLOW")),
+    (23, _R(r"^LIKIDITE KARSILAMA ORANI|^LIQUIDITY COVERAGE RATIO")),
+    (16, _R(r"^TOPLAM NAKIT CIKIS|^TOTAL CASH OUTFLOW")),
+    (20, _R(r"^TOPLAM NAKIT GIRIS|^TOTAL CASH INFLOW")),
+    (3, _R(r"^ISTIKRARLI MEVDUAT|^STABLE DEPOSIT")),
+    (4, _R(r"^DUSUK ISTIKRARLI|^LESS STABLE")),
+    (5, _R(r"^GERCEK KISI MEVDUAT VE PERAKENDE MEVDUAT DISINDA|^UNSECURED (WHOLESALE )?FUNDING( OTHER THAN)?|"
+           r"^UNSECURED FUNDING OTHER|^TEMINATSIZ (TOPTAN )?BORCLAR$")),
+    (2, _R(r"^GERCEK KISI MEVDUAT|^RETAIL (AND SMALL BUSINESS )?(CUSTOMERS? )?DEPOSIT|^PERAKENDE MEVDUAT")),
+    (7, _R(r"^OPERASYONEL OLMAYAN|^NON.?OPERATIONAL")),
+    (6, _R(r"^OPERASYONEL MEVDUAT|^OPERATIONAL DEPOSIT")),
+    (8, _R(r"^DIGER TEMINATSIZ|^OTHER UNSECURED")),
+    (9, _R(r"^TEMINATLI BORCLAR|^SECURED (FUNDING|BORROWING|DEBT)")),
+    (11, _R(r"^TUREV (YUKUMLULUK|BORC)|^DERIVATIVES? (CASH OUTFLOW|LIABILIT|EXPOSURE)|^LIABILITIES RELATED TO DERIVATIVE|"
+            r"^OUTFLOWS RELATED TO DERIVATIVE")),
+    (12, _R(r"^YAPILANDIRILMIS|^(DEBTS|LIABILITIES|OUTFLOWS|OBLIGATIONS) (RELATED TO |FROM )?STRUCTURED|^STRUCTURED FINANC")),
+    (13, _R(r"^FINANSAL PIYASALARA|^(PAYMENT )?COMMITMENTS? (RELATED TO |FOR )?(DEBTS TO )?FINANCIAL MARKET|"
+            r"^CREDIT AND LIQUIDITY FACILIT|^OTHER OFF.?BALANCE SHEET (LIABILITIES|OBLIGATIONS)")),
+    (14, _R(r"^HERHANGI BIR SARTA BAGLI OLMAKSIZIN CAYILABILIR|^(OTHER )?(UNCONDITIONALLY )?REVOCABLE|^OTHER CONTRACTUAL")),
+    (15, _R(r"^DIGER SARTA BAGLI|^OTHER (IRREVOCABLE|CONTINGENT|CONDITIONAL)")),
+    (10, _R(r"^DIGER NAKIT CIKIS|^OTHER CASH OUTFLOW|^ADDITIONAL REQUIREMENT")),
+    (17, _R(r"^TEMINATLI ALACAK|^SECURED (RECEIVABLE|LENDING)")),
+    (18, _R(r"^TEMINATSIZ ALACAK|^UNSECURED (RECEIVABLE|LENDING)|^INFLOWS FROM FULLY PERFORMING")),
+    (19, _R(r"^DIGER NAKIT GIRIS|^OTHER CASH INFLOW")),
+]
+
+
+def _lcr_gate(rows: list[dict]) -> bool:
+    """23 ≈ 21 / 22 on the weighted total column. The printed LCR is the
+    quarter's average of ratios while 21 and 22 are averages of levels, so
+    the identity is exact on 76% of the numbered instances and within 10%
+    relative on 99.7%: that is the bar (the FC column is not checked — a
+    bank with no FC outflows prints a dash)."""
+    by = {x["template_row"]: x for x in rows}
+    h, n, r = (by.get(k, {}).get("w_total") for k in (21, 22, 23))
+    if None in (h, n, r) or not n:
+        return False
+    return abs(h / n * 100 - r) <= max(5.0, 0.1 * abs(r))
+
+
+def _period_hint(heading: str | None, grid: list[dict]) -> str | None:
+    text = NT.fold(heading or "") + " " + " ".join(NT.fold(r["label"] or "") for r in grid[:4])
+    if re.search(r"ONCEKI DONEM|PRIOR PERIOD|PREVIOUS PERIOD", text):
+        return "prior"
+    if re.search(r"CARI DONEM|CURRENT PERIOD", text):
+        return "current"
+    return None
+
+
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     """Both LCR instances (current, prior) of one partition, or None."""
-    return NT.assemble(
+    got = NT.assemble(
         tab, key, sig=_SIG, max_row=23, bottom_row=21, n_values=4,
         percent_rows={23}, role_of=lambda n, _label: ROLE_BY_ROW.get(n),
         value_names=("uw_total", "uw_fc", "w_total", "w_fc"))
+    if got is not None:
+        return got
+    return NT.assemble_by_label(
+        tab, key, labels=_BY_LABEL, n_values=4, percent_rows={23}, open_rows={1, 2},
+        close_row=23, min_rows=10, role_of=lambda n, _label: ROLE_BY_ROW.get(n),
+        value_names=("uw_total", "uw_fc", "w_total", "w_fc"), gate=_lcr_gate,
+        period_hint=_period_hint)
 
 
 DDL = """

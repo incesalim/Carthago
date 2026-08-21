@@ -153,6 +153,59 @@ def test_leverage_unnumbered_template_by_label_over_split_blocks(tmp_path):
     assert LV.assemble(db, KEY) is None
 
 
+def test_lcr_unnumbered_template_by_label_wrapped_rows_and_period_hints(tmp_path):
+    """HALKB / ING / YKBNK print the 23 LCR rows without numbers, current
+    and prior in separate blocks, with sub-headers and labels that wrap
+    onto a values-only line; read by label through `assemble_by_label`."""
+    LC = _load("build_lcr_full")
+
+    def table(hqla, retail, stable, less, whole, op, nonop, other, out_, inflow, net, ratio):
+        return [
+            ("Total Unweighted Value (1)", [None, None, None, None]),
+            ("High Quality Liquid Assets", [None, None, None, None]),
+            ("High Quality Liquid Assets", [None, None, hqla, hqla / 2]),
+            ("Cash Outflows", [None, None, None, None]),
+            ("Retail and Small Business Customers Deposits", [retail, retail / 2, retail / 10, retail / 20]),
+            ("Stable Deposits", [stable, "-", stable / 20, "-"]),
+            ("Less Stable Deposits", [less, less / 2, less / 10, less / 20]),
+            ("Unsecured Wholesale Funding", [whole, whole / 2, whole / 2, whole / 4]),
+            ("Operational Deposits", [op, op / 2, op / 4, op / 8]),
+            ("Non-Operational Deposits", [nonop, nonop / 2, nonop / 2, nonop / 4]),
+            ("Other Unsecured Funding", [other, other / 2, other, other / 2]),
+            ("Secured Funding", [None, None, "-", "-"]),
+            ("Other Revocable Off-Balance Sheet Commitments and Contractual", [None, None, None, None]),
+            ("Obligations", ["-", "-", "-", "-"]),
+            ("Total Cash Outflows", [None, None, out_, out_ / 3]),
+            ("Cash Inflows", [None, None, None, None]),
+            ("Unsecured Lending", [inflow, inflow / 4, inflow / 2, inflow / 8]),
+            ("Total Cash Inflows", [inflow, inflow / 4, inflow / 2, inflow / 8]),
+            ("Total Adjusted Value", [None, None, None, None]),
+            ("Total HQLA Stock", [None, None, hqla, hqla / 2]),
+            ("Total Net Cash Outflows", [None, None, net, net / 3]),
+            ("Liquidity Coverage Ratio (%)", [None, None, ratio, ratio * 1.3]),
+        ]
+    cur = table(1418220.0, 1693538.0, 333770.0, 1359768.0, 1781375.0, 303080.0, 1336934.0, 141361.0,
+                1210772.0, 477547.0, 891262.0, 159.62)
+    pri = table(1470902.0, 1570111.0, 294494.0, 1275617.0, 1577298.0, 315990.0, 1261308.0, 120000.0,
+                1100000.0, 400000.0, 816463.0, 180.35)
+    db = _db(tmp_path, [(52, 1, "bin", cur), (53, 1, "bin", pri)])
+    db.execute("UPDATE bank_audit_document_tables SET heading=? WHERE page=53", ("Prior Period TRY+FC FC TRY+FC FC",))
+    db.execute("UPDATE bank_audit_document_tables SET heading=? WHERE page=52", ("Current Period TRY+FC FC TRY+FC FC",))
+    db.commit()
+    got = LC.assemble(db, KEY)
+    assert sorted(got["instances"]) == ["current", "prior"]
+    c = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert c[1]["w_total"] == 1418220.0 and c[1]["uw_total"] is None
+    assert c[14]["uw_total"] is None and c[14]["label"].startswith("Other Revocable")   # the wrapped "-" row
+    assert c[23]["w_total"] == 159.62 and c[23]["role"] == "lcr" and c[20]["role"] == "total_cash_inflows"
+    p_ = {x["template_row"]: x for x in got["instances"]["prior"]}
+    assert p_[23]["w_total"] == 180.35 and p_[21]["w_total"] == 1470902.0
+    # a ratio far off its own arithmetic is refused
+    db.execute("UPDATE bank_audit_document_tables SET grid_json=replace(grid_json, '159.62', '400.0') WHERE page=52")
+    db.commit()
+    assert list(LC.assemble(db, KEY)["instances"]) == ["prior"]
+
+
 # --- the RWA overview (OV1) lane, same module -------------------------------
 
 _spec_rwa = importlib.util.spec_from_file_location(
