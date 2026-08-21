@@ -312,3 +312,50 @@ def test_securities_identity_handles_both_sign_conventions(tmp_path):
     assert rows[(None, "valuation")]["current"] == 30_000.0
     assert SC.portfolio_of("B. Detailed table of financial assets measured at fair "
                            "value through other comprehensive income", None) == "fvoci"
+
+
+def _load(name: str):
+    spec = importlib.util.spec_from_file_location(name, REPO / "scripts" / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_cr1_row_live_cells_unstagger_a_merged_block_and_cr2_is_dropped(tmp_path):
+    CQ = _load("build_credit_quality_full")
+    current = [
+        ("1 Krediler", [1.0, 465313.0, 16102820.0, 412596.0, 16155537.0]),
+        ("2 Borçlanma araçları", [2.0, "-", 2226078.0, 519.0, 2225559.0]),
+        ("3 Bilanço dışı alacaklar", [3.0, "-", 4765678.0, 14636.0, 4751042.0]),
+        ("4 Toplam", [4.0, 465313.0, 23094576.0, 427751.0, 23132138.0]),
+    ]
+    # AKTIF 2022Q2 p49 block 2: CR1 prior and CR2 captured as ONE six-column
+    # grid. CR1 rows sit in columns 1-3 and 5, CR2 rows in 4-5.
+    merged = [
+        ("1 Krediler", [1.0, 448957.0, 14515241.0, 415427.0, None, 14548771.0]),
+        ("2 Borçlanma araçları", [2.0, "-", 686520.0, 167.0, None, 686353.0]),
+        ("3 Bilanço dışı alacaklar", [3.0, "-", 4466204.0, 13349.0, None, 4452855.0]),
+        ("4 Toplam", [4.0, 448957.0, 19667965.0, 428943.0, None, 19687979.0]),
+        ("1 Önceki raporlama dönemi sonundaki temerrüt", [1.0, None, None, None, 448957.0, 318636.0]),
+        ("2 Son raporlama döneminden itibaren temerrüt", [2.0, None, None, None, 120768.0, 216863.0]),
+        ("4 Aktiften silinen tutarlar", [4.0, None, None, None, -39867.0, -6763.0]),
+        ("6 Raporlama dönemi sonundaki temerrüt", [6.0, None, None, None, 465313.0, 448957.0]),
+    ]
+    # CR3 look-alike: seven value columns, row 4 "Temerrüde düşmüş"
+    cr3 = [
+        ("1 Krediler", [1.0, 14680356.0, 1475181.0, 333841.0, "-", "-", "-", "-"]),
+        ("2 Borçlanma araçları", [2.0, 2225559.0, "-", "-", "-", "-", "-", "-"]),
+        ("3 Toplam", [3.0, 16905915.0, 1475181.0, 333841.0, "-", "-", "-", "-"]),
+        ("4 Temerrüde düşmüş", [4.0, 465313.0, "-", "-", "-", "-", "-", "-"]),
+    ]
+    db = _db(tmp_path, [(49, 1, "bin", current), (49, 2, "bin", merged), (49, 3, "bin", cr3)])
+    got = CQ.assemble(db, KEY)
+    assert set(got["instances"]) == {"current", "prior"}      # CR2 split off and dropped
+    assert got["gated"] == 0
+    prior = {x["template_row"]: x for x in got["instances"]["prior"]}
+    assert prior[1]["defaulted_gross"] == 448957.0
+    assert prior[1]["allowances"] == 415427.0
+    assert prior[1]["net"] == 14548771.0
+    assert prior[2]["defaulted_gross"] is None                 # printed "-"
+    assert all(CQ._net_holds(x) for x in prior.values())
+    assert not CQ._is_cr1([{"label": l, "cells": c} for l, c in cr3])

@@ -140,8 +140,16 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
              value_names: tuple[str, ...],
              percent_repair_floor: float = 10000,
              percent_cols: frozenset[int] = frozenset(),
-             block_filter: Callable[[list[dict]], bool] | None = None) -> dict | None:
+             block_filter: Callable[[list[dict]], bool] | None = None,
+             row_live_cells: bool = False) -> dict | None:
     """All instances of one numbered template in one partition, or None.
+
+    `row_live_cells`: a row holding exactly `n_values` non-empty cells after
+    its number uses THOSE, whatever the block-level column model says. For
+    when the capture merged two side-by-side templates into one block (CR1
+    prior + CR2 share a six-column grid at AKTIF) and the block's last-N live
+    columns stagger one of them. Opt-in: the lanes minted before it are
+    untouched.
 
     Returns {"unit", "instances": {"current": [...], "prior": [...], ...}},
     each row a dict with template_row / label / role / page / block_id and
@@ -159,7 +167,11 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
         prev_unnumbered: list[float | None] | None = None
         for r in grid:
             cells = r["cells"]
-            vals = [num(cells[c]) if c < len(cells) else None for c in cols]
+            live = [c for c in cells[1:] if c is not None] if row_live_cells else []
+            if len(live) == n_values:
+                vals = [num(c) for c in live]
+            else:
+                vals = [num(cells[c]) if c < len(cells) else None for c in cols]
             vals = [None] * (n_values - len(vals)) + vals
             n = rowno(r, max_row)
             if n is None:

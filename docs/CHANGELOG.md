@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-08-20.
+Last verified: 2026-08-21.
+
+2026-08-21 — **The eleventh graduation: CR1 credit quality of assets.**
+`scripts/build_credit_quality_full.py` mints BRSA's numbered 1–4 form (loans /
+debt securities / off-balance-sheet / total × defaulted, non-defaulted,
+allowances, net; current + prior year-end) over `numbered_template`. Two
+lessons: a short template ending in "Total" admits every short numbered
+table unless the block filter demands its row-1 signature, and AKTIF's
+capture merges CR1-prior with CR2 into one six-column grid that the
+block-level column model staggers — the new opt-in `row_live_cells` reads a
+row's own four live cells, refusals 161 → 7. Defaulted loans match the
+narrow NPL-movement closing sum (III+IV+V) on 97.5% of 321 filings; the
+misses are all EMLAK, a perimeter gap. 360 filings / 658 instances / 2,631
+rows. Eleven lanes graduated.
 
 2026-08-20 — **The tenth graduation: securities by instrument and listing.**
 `scripts/build_securities_full.py`: debt / funds / shares × quoted / unquoted,
