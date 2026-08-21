@@ -15,6 +15,19 @@ line — minted from the document layer under a family registry:
   funds_borrowed           CBRT loans, domestic banks and institutions,
                            foreign banks, funds
                                            → BS funds borrowed
+  funds_borrowed_maturity  short-term, medium/long-term
+                                           → BS funds borrowed
+  cash_and_cbrt            cash, CBRT, other
+                                           → BS cash and balances with CBRT
+  securities_issued        bills, asset-backed securities, bonds
+                                           → BS securities issued
+  subordinated_debt        AT1-eligible (loans, instruments), Tier 2-eligible
+                           (loans, instruments)
+                                           → BS subordinated debt
+
+Families tried and dropped for want of an anchor: the balance-sheet banks
+note, FVTPL securities by type, hedging derivatives by hedge type — their
+first rows admit other tables and the statement lines did not confirm them.
 
 The balance-sheet "banks" note prints the interest-from-banks rows under
 the assets section; it anchors to nothing the narrow lanes hold and is
@@ -83,16 +96,45 @@ FAMILIES: dict[str, tuple[str, re.Pattern, list[tuple[str, str | None, re.Patter
         ("foreign", None, R(r"^YURT ?DISI BANKA|^(FROM )?FOREIGN (BANKS|INSTITUTIONS)")),
         ("funds", None, R(r"^FONLAR|^FUNDS$|^FROM FUNDS")),
     ]),
+    "funds_borrowed_maturity": ("bs", R(r"^ALINAN KREDILER|^FUNDS BORROWED|^BORROWINGS"), [
+        ("short_term", None, R(r"^KISA VADELI|^SHORT.?TERM")),
+        ("medium_long_term", None, R(r"^ORTA VE UZUN|^MEDIUM|^LONG.?TERM")),
+    ]),
+    "cash_and_cbrt": ("bs", R(r"^NAKIT DEGERLER VE MERKEZ|^CASH AND (BALANCES WITH|CASH EQUIVALENTS AND)? ?(THE )?CENTRAL|^CASH AND BALANCES"), [
+        ("cash", None, R(r"^KASA|^CASH(?! AND)|^CASH IN|^CASH ON HAND")),
+        ("cbrt", None, R(r"^T\.?C\.? ?MERKEZ|^TCMB|^CBRT|^CENTRAL BANK|^BALANCES WITH")),
+        ("other", None, R(r"^DIGER|^OTHER")),
+    ]),
+    "securities_issued": ("bs", R(r"^IHRAC EDILEN MENKUL|^(MARKETABLE |DEBT )?SECURITIES ISSUED|^ISSUED (MARKETABLE |DEBT )?SECURITIES|^BONDS ISSUED"), [
+        ("bills", None, R(r"^BONOLAR|^BILLS|^BONO")),
+        ("asset_backed", None, R(r"^VARLIGA DAYALI|^ASSET.?BACKED")),
+        ("bonds", None, R(r"^TAHVILLER|^BONDS|^TAHVIL")),
+    ]),
+    "subordinated_debt": ("bs", R(r"^SERMAYE BENZERI|^SUBORDINATED"), [
+        ("at1_included", None, R(r"^ILAVE ANA SERMAYE|^(DEBT INSTRUMENTS )?(TO BE )?INCLUDED IN (THE )?(CALCULATION OF )?ADDITIONAL TIER")),
+        ("loans", "*", R(r"^SERMAYE BENZERI KREDILER$|^SUBORDINATED LOANS$")),
+        ("instruments", "*", R(r"^SERMAYE BENZERI BORCLANMA ARACLARI$|^SUBORDINATED (DEBT )?INSTRUMENTS$")),
+        ("tier2_included", None, R(r"^KATKI SERMAYE|^(DEBT INSTRUMENTS )?(TO BE )?INCLUDED IN (THE )?(CALCULATION OF )?TIER ?2|^INCLUDED IN SUPPLEMENTARY")),
+    ]),
 }
 _TOTAL = R(r"^TOPLAM|^TOTAL")
 VALUES = ("tl_current", "fc_current", "tl_prior", "fc_prior")
-_FIRST_ROLE = {"interest_on_loans": "short_term", "interest_from_banks": "cbrt",
-               "interest_on_securities": "fvtpl", "interest_on_borrowings": "banks",
-               "funds_borrowed": "cbrt_loans"}
+# the roles a family's first row may carry (None: an unregistered head such
+# as a bare "Bankalar" above its items)
+_FIRST_ROLE: dict[str, tuple] = {
+    "interest_on_loans": ("short_term",), "interest_from_banks": ("cbrt",),
+    "interest_on_securities": ("fvtpl",), "interest_on_borrowings": ("banks",),
+    "funds_borrowed": ("cbrt_loans",), "funds_borrowed_maturity": ("short_term",),
+    "cash_and_cbrt": ("cash", None),
+    "securities_issued": ("bills", "bonds"), "subordinated_debt": ("at1_included", "tier2_included"),
+}
+_ANY = R(r".")
 _CTX = {  # words in the block heading / labels that confirm a family when first rows tie
     "interest_on_loans": R(r"FAIZ|INTEREST"), "interest_from_banks": R(r"FAIZ|INTEREST"),
     "interest_on_securities": R(r"FAIZ|INTEREST"), "interest_on_borrowings": R(r"FAIZ|INTEREST"),
-    "funds_borrowed": R(r"KREDI|BORROW|FUND"),
+    "funds_borrowed": R(r"KREDI|BORROW|FUND"), "funds_borrowed_maturity": R(r"KREDI|BORROW|FUND"),
+    "cash_and_cbrt": _ANY, "securities_issued": R(r"IHRAC|ISSUED|MENKUL|SECURIT"),
+    "subordinated_debt": R(r"SERMAYE BENZERI|SUBORDINATED"),
 }
 
 DDL = """
@@ -122,16 +164,25 @@ CREATE INDEX IF NOT EXISTS idx_tl_fc_note_full_role
 
 
 def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]:
+    """(role, parent) per row. A child registered with parent "*" belongs to
+    the latest head above it — the subordinated note repeats "loans" and
+    "instruments" under its AT1 and Tier 2 heads."""
     out = []
+    head = None
     for lab in labels:
         f = fold(lab).strip()
-        hit = (None, None)
+        hit: tuple[str | None, str | None] = (None, None)
         if _TOTAL.search(f):
             hit = ("total", None)
         else:
             for role, parent, rx in FAMILIES[fam][2]:
                 if rx.search(f):
-                    hit = (role, parent)
+                    if parent == "*":
+                        hit = (f"{head}.{role}" if head else role, head)
+                    else:
+                        hit = (role, parent)
+                        if parent is None:
+                            head = role
                     break
         out.append(hit)
     return out
@@ -146,7 +197,7 @@ def family_of(grid: list[dict], heading: str | None) -> str | None:
     best, best_n = None, 0
     for fam in FAMILIES:
         rs = roles_of(fam, labels)
-        if rs[0][0] != _FIRST_ROLE[fam]:
+        if rs[0][0] not in _FIRST_ROLE[fam]:
             continue
         n = sum(1 for role, _p in rs if role and role != "total")
         if n >= 2 and n > best_n and _CTX[fam].search(fold(heading or "") + " " + fold(" ".join(labels))):

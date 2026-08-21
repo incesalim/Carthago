@@ -5,6 +5,13 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The TL/FC notes lane grows to nine families.** Funds borrowed
+by maturity, cash & CBRT, securities issued and subordinated debt join the
+interest notes; children of a repeated label attach to the latest head.
+Three candidates (the BS banks note, FVTPL by type, hedging by type) were
+dropped because their totals met no statement line. 2,485 instances /
+10,897 rows.
+
 2026-08-21 — **The twentieth graduation: TFRS 9 stage movements.**
 `scripts/build_stage_movement_full.py` mints the gross-loan and ECL
 movement tables by stage under two identities; the printed sign convention
