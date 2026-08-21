@@ -357,6 +357,66 @@ def test_derivatives_context_and_sum_gate():
     assert not DV._identity_holds(good)
 
 
+def test_derivatives_header_rows_glued_forward_and_inline_instruments(tmp_path):
+    # AKBNK / HSBC: a date row and a "TP YP TP YP" line above the first
+    # instrument; QNBFB: the forward's figures glued onto the note title
+    # above the header lines; ISCTR: valueless "Futures" / "Other" as inline
+    # lines; BURGAN: the commitments note is not this family
+    akbnk = [
+        ("31 Mart 2022", [31.0, None, 31.0, None]),
+        ("TP YP TP YP", [None, None, None, None]),
+        ("Vadeli İşlemler", [2282941.0, 2388.0, 3902610.0, "-"]),
+        ("Swap İşlemleri", [13524803.0, 2258776.0, 17767991.0, 2418025.0]),
+        ("Futures İşlemleri", ["-", "-", "-", "-"]),
+        ("Opsiyonlar", [62.0, 578506.0, 3788.0, 564064.0]),
+        ("Diğer", ["-", "-", "-", "-"]),
+        ("Toplam", [15807806.0, 2839670.0, 21674389.0, 2982089.0]),
+    ]
+    qnbfb = [
+        ("Given as collateral/ blocked", ["-", 37354.0, "-", "-"]),
+        ("Total", ["-", 37354.0, "-", "-"]),
+        ("2.2 Positive differences related to derivative financial assets held for trading",
+         [416758.0, 76419.0, 412983.0, 19352.0]),
+        ("Current Period Prior Period", [None, None, None, None]),
+        ("TL FC TL FC", [None, None, None, None]),
+        ("Swap Transactions", [1197241.0, 8591037.0, 833727.0, 3216184.0]),
+        ("Futures Transactions", ["-", "-", "-", "-"]),
+        ("Options", [12163.0, 1239818.0, 911.0, 503741.0]),
+        ("Others", ["-", "-", "-", "-"]),
+        ("Total", [1626162.0, 9907274.0, 1247621.0, 3739277.0]),
+    ]
+    isctr = [
+        ("Forward Transactions", [1558715.0, 400701.0, 312088.0, 661448.0]),
+        ("Swap Transactions", [1061776.0, 14647323.0, 145386.0, 17376452.0]),
+        ("Futures", [None, None, None, None]),
+        ("Options", [698.0, 892386.0, 7615.0, 466813.0]),
+        ("Other", [None, None, None, None]),
+        ("Total", [2621189.0, 15940410.0, 465089.0, 18504713.0]),
+    ]
+    burgan = [
+        ("Forward foreign exchange commitments", [None, None, 6057440.0, 1912509.0]),
+        ("Time deposit buy-sell commitments", [None, None, 544185.0, None]),
+        ("Forward securities purchase-sale commitments", [None, None, 428782.0, None]),
+        ("Payment commitment for check settlements", [None, None, 100731.0, 81744.0]),
+        ("Total", [None, None, 7131138.0, 1994253.0]),
+    ]
+    db = _db(tmp_path, [(69, 3, "bin", akbnk), (101, 3, "bin", qnbfb), (63, 1, "bin", isctr), (80, 1, "bin", burgan)])
+    db.execute("UPDATE bank_audit_document_tables SET grid_json=replace(replace(grid_json, ?, ?), ?, ?)",
+               ('"label": "Futures", "cells": [null, null, null, null]}',
+                '"label": "Futures", "cells": [null, null, null, null], "inline": true}',
+                '"label": "Other", "cells": [null, null, null, null]}',
+                '"label": "Other", "cells": [null, null, null, null], "inline": true}'))
+    db.commit()
+    got = DV.assemble(db, KEY)
+    inst = {i["rows"][0]["page"]: i for i in got["instances"]}
+    assert sorted(inst) == [63, 69, 101]
+    assert all(DV._identity_holds(i["rows"]) for i in inst.values())
+    assert [x["role"] for x in inst[69]["rows"]] == ["forward", "swap", "futures", "options", "other", "total"]
+    assert inst[101]["rows"][0]["role"] == "forward" and inst[101]["rows"][0]["current_tl"] == 416758.0
+    assert [x["role"] for x in inst[63]["rows"]] == ["forward", "swap", "futures", "options", "other", "total"]
+    assert inst[63]["rows"][2]["current_tl"] is None
+
+
 # --- the securities notes family: signed adjustments + head-or-children -----
 
 _spec_sc = importlib.util.spec_from_file_location(

@@ -97,11 +97,36 @@ CREATE INDEX IF NOT EXISTS idx_derivative_full_ctx
 """
 
 
+_TITLE = re.compile(r"TUREV|DERIVATIVE")
+
+
+def _normalise(grid: list[dict]) -> list[dict]:
+    """The grid from its first instrument row on: the period / "TP YP"
+    header rows the capture puts above it (AKBNK, HSBC, ICBCT, ISCTR,
+    KLNMA...) are dropped. Where the first instrument row is the swap, the
+    forward row's figures may have been glued onto the note title above the
+    header lines (QNBFB, ZIRAAT: "2.2 Positive differences related to
+    derivative..." carrying the forward's four figures) — that row comes
+    back as the forward."""
+    first = next((i for i, r in enumerate(grid) if role_of(r["label"] or "") in ("forward", "swap")), None)
+    if first is None:
+        return grid
+    if role_of(grid[first]["label"] or "") == "swap":
+        j = first - 1
+        while j >= 0 and not any(num(c) is not None for c in grid[j]["cells"]):
+            j -= 1
+        if j >= 0 and _TITLE.search(fold(grid[j]["label"] or "")) and role_of(grid[j]["label"] or "") is None:
+            return [{**grid[j], "label": "Vadeli İşlemler"}] + grid[first:]
+    return grid[first:]
+
+
 def _is_family(grid: list[dict]) -> bool:
     if not 5 <= len(grid) <= 8:
         return False
     roles = [role_of(r["label"] or "") for r in grid]
-    return roles[0] in ("forward", "swap") and "total" in roles \
+    # the template always has a swap row; BURGAN's "Forward foreign exchange
+    # commitments ... Total" is the commitments note, not this
+    return roles[0] in ("forward", "swap") and "swap" in roles and "total" in roles \
         and roles.count("total") == 1
 
 
@@ -131,7 +156,8 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = [(pg, bid, h, it, grid, unit)
              for pg, bid, h, it, g, unit in blocks
-             if _is_family(grid := absorb_inline(json.loads(g), role_of))]
+             if _is_family(grid := _normalise(absorb_inline(
+                 json.loads(g), role_of, keep=lambda lab: role_of(lab) in COMPONENTS)))]   # ISCTR: a valueless "Futures"
     if not found:
         return None
     unit = found[0][5]

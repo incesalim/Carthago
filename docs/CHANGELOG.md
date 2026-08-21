@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **Derivatives: 560 → 848 filings, 24 → 33 banks.** The grid is
+cut to its instrument rows: a date row and a "TP YP TP YP" line ride above
+the first instrument in most captures; where the first instrument is the
+swap, the forward's four figures were glued onto the note title above the
+header lines (QNBFB, ZIRAAT) and that row comes back as the forward; ISCTR's
+valueless "Futures" / "Other" inline lines stay as rows. A swap row is now
+required, which keeps BURGAN's forward-commitments note out. Refusals 366 →
+150 (AKBNK's 2022 assets table lost its forward row in the capture).
+
 2026-08-21 — **NPL by borrower: 559 → 765 filings, 22 → 27 banks.** TEB's
 "Önceki Dönem (Net)" head is an inline line the document layer flags and
 `absorb_inline` used to drop — it now takes a `keep` predicate and the head
