@@ -757,3 +757,21 @@ def test_stage_movement_phantom_digit_column_undigited_labels_and_stacked_instan
     assert SM._convention(pri["rows"], got["step"]) == "signed"
     t1 = next(x for x in cur["rows"] if x["role"] == "transfer_to_stage1")
     assert dict(t1["cells"])["stage1"] == 10.0 and dict(t1["cells"])["stage2"] == -10.0
+
+
+def test_two_period_notes_families_and_total_gate(tmp_path):
+    TP = _load("build_two_period_note_full")
+    log = [("Kesin teminat mektupları", [100.0, 90.0]), ("Gümrüklere verilen teminat mektupları", [5.0, 4.0]),
+           ("Geçici teminat mektupları", [20.0, 15.0]), ("Avans teminat mektupları", [10.0, 8.0]),
+           ("Diğer teminat mektupları", [15.0, 13.0]), ("Toplam", [150.0, 130.0])]
+    ncl = [("Teminat Mektupları", [150.0, 130.0]), ("Akreditifler", [30.0, 20.0]), ("Banka Kredileri", [5.0, 5.0]),
+           ("Diğer Garanti ve Kefaletler", [15.0, 10.0]), ("Toplam", [200.0, 165.0])]
+    broken = ncl[:-1] + [("Toplam", [999.0, 165.0])]
+    db = _db(tmp_path, [(130, 1, "bin", log), (131, 1, "bin", ncl), (132, 1, "bin", broken)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?", (json.dumps(["Cari Dönem", "Önceki Dönem"]),))
+    db.commit()
+    got = TP.assemble(db, KEY)
+    assert [(i["family"], TP._identity_holds(i["rows"], got["step"])) for i in got["instances"]] == [
+        ("letters_of_guarantee", True), ("non_cash_loans", True), ("non_cash_loans", False)]
+    a = {x["role"]: x for x in got["instances"][0]["rows"]}
+    assert a["customs"]["current"] == 5.0 and a["total"]["prior"] == 130.0

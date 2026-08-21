@@ -5,6 +5,13 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-21 — **The twenty-first graduation: the two-period notes.**
+`scripts/build_two_period_note_full.py` mints letters of guarantee by type
+and non-cash loans by type as items × (current, prior). The letters total
+equals the narrow off-balance line on 100% of 404 filings; the non-cash
+total meets the guarantees section head on half — a perimeter difference,
+recorded. 531 filings / 4,703 rows. Twenty-one lanes graduated.
+
 2026-08-21 — **The TL/FC notes lane grows to nine families.** Funds borrowed
 by maturity, cash & CBRT, securities issued and subordinated debt join the
 interest notes; children of a repeated label attach to the latest head.
