@@ -73,7 +73,9 @@ ITEMS: list[tuple[str, re.Pattern]] = [
     ("instalment", re.compile(r"^TAKSITLI|^WITH.?INSTAL|^INSTAL")),
     ("other", re.compile(r"^DIGER|^OTHER")),
 ]
-VALUES = ("short_term", "long_term", "total")
+VALUES = ("short_term", "long_term", "accruals", "total")
+# ISCTR prints a fourth column, the accruals, between the maturities and the total
+_ACCRUALS_COL = re.compile(r"ACCRUAL|REESKONT|TAHAKKUK")
 
 
 def _group_of(label: str) -> str | None:
@@ -105,6 +107,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_consumer_loan_full (
     -- canonical thousand TL (scaled at mint). NULL = the filing printed "-".
     short_term   REAL,
     long_term    REAL,
+    accruals     REAL,               -- ISCTR's fourth column; NULL where the template has three
     total        REAL,
     page         INTEGER NOT NULL,
     block_id     INTEGER NOT NULL,
@@ -149,8 +152,8 @@ def _is_family(grid: list[dict]) -> bool:
 
 
 def _identity_holds(inst: list[dict]) -> bool:
-    """total = short + long on >= 90% of value-bearing rows, and on the grand
-    total row itself."""
+    """total = short + long (+ accruals where a bank prints them) on >= 90%
+    of value-bearing rows, and on the grand total row itself."""
     checked = ok = 0
     grand_ok = False
     for x in inst:
@@ -158,29 +161,73 @@ def _identity_holds(inst: list[dict]) -> bool:
         if t is None or (s is None and lg is None):
             continue
         checked += 1
-        hit = abs((s or 0.0) + (lg or 0.0) - t) <= max(2.0, 1e-5 * abs(t))
+        hit = abs((s or 0.0) + (lg or 0.0) + (x.get("accruals") or 0.0) - t) <= max(2.0, 1e-5 * abs(t))
         ok += int(hit)
         if x["item_role"] is None and x["group_role"] is None \
                 and _TOTAL.search(fold(x["label"]).strip()):
             grand_ok = hit
+    has_grand = any(x["item_role"] is None and x["group_role"] is None and _TOTAL.search(fold(x["label"]).strip())
+                    for x in inst)
+    if not has_grand:
+        # no grand total printed (ISCTR 2025Q4): the per-row identity alone,
+        # on a table long enough to be the whole note
+        return checked >= 12 and ok / checked >= 0.9
     return checked >= 4 and ok / checked >= 0.9 and grand_ok
+
+
+def _has_total(grid: list[dict]) -> bool:
+    return any(_TOTAL.search(fold(r["label"] or "").strip()) for r in grid)
 
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     blocks = tab.execute(
-        "SELECT page, block_id, grid_json, declared_unit "
+        "SELECT page, block_id, grid_json, col_labels_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
-    found = [(pg, bid, grid, unit) for pg, bid, g, unit in blocks
-             if _is_family(grid := _normalise(absorb_inline(
-                 json.loads(g), lambda lab: _group_of(lab) or _item_of(lab)
-                 or ("total" if _TOTAL.search(fold(lab).strip()) else None))))]
+
+    def role(lab):
+        return _group_of(lab) or _item_of(lab) or ("total" if _TOTAL.search(fold(lab).strip()) else None)
+
+    found = []
+    pending = None          # ISCTR: the table split over several blocks, the total in the last
+    for pg, bid, g, cl, unit in blocks:
+        raw = json.loads(g)
+        grid = _normalise(absorb_inline(raw, role))
+        accruals = bool(_ACCRUALS_COL.search(fold(" ".join(str(c or "") for c in json.loads(cl or "[]")))))
+        if pending is not None:
+            ppg, pbid, pgrid, paccr, punit, n, (lpg, lbid) = pending
+            adjacent = (pg == lpg and bid == lbid + 1) or (pg == lpg + 1 and bid == 1)
+            restart = bool(raw) and bool(_FIRST.search(fold(raw[0]["label"] or "")))
+            # the chain ends where a block opens on a label the template does
+            # not know (ISCTR 2025Q4: the commercial instalment loans follow,
+            # and no grand total was printed)
+            lead = next((r for r in raw if any(num(c) is not None for c in r["cells"])), None)
+            foreign = lead is not None and role(lead["label"] or "") is None
+            if adjacent and n < 6 and not restart and not foreign:
+                tail = [{**r, "_page": pg, "_block_id": bid} for r in raw
+                        if any(num(c) is not None for c in r["cells"])]     # header rows of the continuation dropped
+                joined = pgrid + tail
+                if _has_total(joined):
+                    found.append((ppg, pbid, joined, paccr or accruals, punit))
+                    pending = None
+                else:
+                    pending = (ppg, pbid, joined, paccr or accruals, punit, n + 1, (pg, bid))
+                continue
+            if len(pgrid) >= 12:
+                found.append((ppg, pbid, pgrid, paccr, punit))     # a chain without a grand total
+            pending = None
+        if _is_family(grid):
+            found.append((pg, bid, grid, accruals, unit))
+        elif grid and len(grid) >= 4 and _FIRST.search(fold(grid[0]["label"] or "")) and not _has_total(grid):
+            pending = (pg, bid, grid, accruals, unit, 1, (pg, bid))
+    if pending is not None and len(pending[2]) >= 12:
+        found.append(pending[:5])
     if not found:
         return None
-    unit = found[0][3]
+    unit = found[0][4]
     factor = U.UNIT_SCALE.get(unit)
     instances = []
-    for pg, bid, grid, _u in found:
+    for pg, bid, grid, accruals, _u in found:
         rows, group = [], None
         for r in grid:
             label = (r["label"] or "").strip()
@@ -190,12 +237,15 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
             if g:
                 group = g
             item = None if g else _item_of(label)
-            vals = [num(c) for c in r["cells"][-3:]]
-            vals = [None] * (3 - len(vals)) + vals
+            width = 4 if accruals else 3
+            vals = [num(c) for c in r["cells"][-width:]]
+            vals = [None] * (width - len(vals)) + vals
+            if not accruals:
+                vals = vals[:2] + [None] + vals[2:]
             if factor is not None:
                 vals = [U.scale_amount(v, factor) for v in vals]
             row = {"label": label, "group_role": group if (g or item) else None,
-                   "item_role": item, "page": pg, "block_id": bid}
+                   "item_role": item, "page": r.get("_page", pg), "block_id": r.get("_block_id", bid)}
             row.update(zip(VALUES, vals))
             rows.append(row)
         instances.append(rows)
@@ -219,6 +269,9 @@ def main() -> int:
     out = None
     if args.write:
         out = sqlite3.connect(args.tables_db)
+        cols = [r[1] for r in out.execute("PRAGMA table_info(bank_audit_consumer_loan_full)")]
+        if cols and "accruals" not in cols:
+            out.execute("DROP TABLE bank_audit_consumer_loan_full")     # local derived table, rebuilt whole
         out.executescript(DDL)
 
     where, params = [], []
@@ -263,9 +316,9 @@ def main() -> int:
             for lab, inst in kept.items():
                 out.executemany(
                     "INSERT INTO bank_audit_consumer_loan_full VALUES "
-                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     [(*key, lab, i, x["label"], x["group_role"], x["item_role"],
-                      x["short_term"], x["long_term"], x["total"], x["page"],
+                      x["short_term"], x["long_term"], x["accruals"], x["total"], x["page"],
                       x["block_id"], got["unit"]) for i, x in enumerate(inst)])
                 written += len(inst)
             out.commit()

@@ -295,6 +295,44 @@ def test_consumer_loans_header_row_title_row_and_label_variants(tmp_path):
     assert d[("overdraft_personnel_tl", None)]["short_term"] == 5.0
 
 
+def test_consumer_loans_isctr_accruals_column_over_split_blocks(tmp_path):
+    # ISCTR: short / long / accruals / total over three adjacent blocks, the
+    # total in the last; a second filing prints no grand total at all and
+    # the chain ends on the commercial-loans block
+    head = [("Consumer Loans-TL", [100.0, 200.0, 10.0, 310.0]),
+            ("Real Estate Loans", [10.0, 150.0, 5.0, 165.0]),
+            ("Vehicle Loans", [20.0, 30.0, 1.0, 51.0]),
+            ("General Purpose Consumer Loans", [70.0, 20.0, 4.0, 94.0]),
+            ("Consumer Loans – FC Indexed", [None, 2.0, 1.0, 3.0]),
+            ("Real Estate Loans", [None, 2.0, 1.0, 3.0])]
+    mid = [("Short-Term", ["Term", "Accruals", "Total", None]),
+           ("Retail Credit Cards-TL", [50.0, 5.0, 2.0, 57.0]),
+           ("With Installments", [20.0, 5.0, 1.0, 26.0]),
+           ("Without Installments", [30.0, None, 1.0, 31.0]),
+           ("Personnel Loans-TL", [3.0, 4.0, None, 7.0]),
+           ("General Purpose Consumer Loans", [3.0, 4.0, None, 7.0]),
+           ("Overdraft Accounts – TL (real persons)", [40.0, None, 2.0, 42.0])]
+    tail = [("Overdraft Accounts – FC (real persons)", [1.0, None, None, 1.0]),
+            ("Total", [194.0, 211.0, 15.0, 420.0])]
+    commercial = [("Commercial Loans With Installments-TL", [5.0, 6.0, 1.0, 12.0]),
+                  ("Business Loans", [5.0, 6.0, 1.0, 12.0]), ("Other", [None, None, None, None]),
+                  ("Total", [5.0, 6.0, 1.0, 12.0])]
+    db = _db(tmp_path, [(108, 1, "bin", head), (108, 2, "bin", mid), (108, 3, "bin", tail),
+                        (120, 1, "bin", head), (120, 2, "bin", mid), (120, 3, "bin", commercial)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+               (json.dumps(["Short-Term", "Term", "Accruals", "Total"]),))
+    db.commit()
+    got = CL.assemble(db, KEY)
+    cur, pri = got["instances"]["current"], got["instances"]["prior"]
+    assert CL._identity_holds(cur) and CL._identity_holds(pri)
+    assert [x["block_id"] for x in cur] == [1] * 6 + [2] * 6 + [3] * 2
+    by = {(r["group_role"], r["item_role"]): r for r in cur}
+    assert by[("consumer_tl", "housing")]["accruals"] == 5.0 and by[("consumer_tl", "housing")]["total"] == 165.0
+    assert by[("retail_cards_tl", "non_instalment")]["long_term"] is None
+    assert by[(None, None)]["total"] == 420.0
+    assert len(pri) == 12 and not any(r["label"].startswith("Commercial") for r in pri)
+
+
 # --- the derivatives notes family: context + Σ-instruments gate -------------
 
 _spec_dv = importlib.util.spec_from_file_location(
