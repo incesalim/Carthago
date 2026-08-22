@@ -5,6 +5,41 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **An asset note filed as a liability.** ZIRAAT's
+"Teminata Verilen/Bloke İtfa Edilmiş Maliyeti Üzerinden Değerlenen Finansal
+Varlıklar" — securities the bank holds and has pledged — lists "Bono /
+Tahvil ve Benzeri Menkul Değerler / Diğer / Toplam", the issued-securities
+note's rows word for word. "MENKUL" among those labels confirmed the
+family, so an asset note became a liability and both the consolidated and
+the unconsolidated filing carried the same 220,122,149 against balance
+sheets of 128,832,441 and 105,996,532.
+
+A liability family is now refused from a block whose heading names a
+pledged note. Only the collateral wording is used: widening the guard to
+the asset-notes contents item ("Bilançonun aktif hesaplarına ilişkin
+dipnotlar") also cost ten funds-borrowed instances that agreed with the
+narrow lane, so the two halves were measured apart and only the clean half
+kept.
+
+And where several blocks carry one family's rows, the block whose OWN
+heading names the family is now instance 0. BURGAN prints three tables with
+the issued note's rows; only one carries the title — "d. İhraç edilen
+menkul kıymetlere ait bilgiler" — and only that one totals 1,623,857, the
+balance sheet's figure. Nothing is dropped; the titled reading is simply
+first, which is the instance every consumer takes.
+
+`securities_issued` goes 75.0% → 81.6% against the narrow line with every
+agreeing instance kept, and its indictments 29 → 11. Every other family
+anchor is unchanged. Repair list 257 → 239.
+
+The 11 that remain are all BURGAN, and the narrow zero is the correct
+figure: no block in those filings has a heading naming issued securities,
+and the two the lane reads sit on page 122 between the NPL tables and the
+securities-portfolio tables — the asset notes — with their headings lost by
+the capture. Requiring a titled block would clear them and take the family
+to 100%, but it also drops 52 instances that agree with the narrow lane, so
+it was not taken.
+
 2026-08-22 — **YKBNK's OV1 total was its own prior figure, every Q1 and
 Q3.** The wide-vs-wide check — the capital note's RWA against the OV1 form,
 both minted under identities — had YKBNK disagreeing at five filings, and

@@ -147,6 +147,21 @@ _CTX = {  # words in the block heading / labels that confirm a family when first
     "cash_and_cbrt": _ANY, "cbrt_accounts": _ANY, "securities_issued": R(r"IHRAC|ISSUED|MENKUL|SECURIT"),
     "subordinated_debt": R(r"SERMAYE BENZERI|SUBORDINATED"),
 }
+# A liability family never comes from a note about securities the bank HOLDS
+# and has pledged. ZIRAAT's "Teminata Verilen/Bloke Itfa Edilmis Maliyeti
+# Uzerinden Degerlenen Finansal Varliklar" lists "Bono / Tahvil ve Benzeri
+# Menkul Degerler / Diger / Toplam" -- the issued-securities note's rows word
+# for word -- and "MENKUL" among those labels confirmed the family, so an
+# asset note was stored as a liability. Both its consolidated and its
+# unconsolidated filing then carried the same 220,122,149.
+#
+# Only the collateral wording is used. Widening this to the asset-notes
+# CONTENTS ITEM ("Bilanconun aktif hesaplarina iliskin dipnotlar") also cost
+# ten funds-borrowed instances that agreed with the narrow lane, so it is
+# left out: the two halves were measured apart.
+_LIABILITY_FAMILIES = frozenset({"securities_issued", "subordinated_debt", "funds_borrowed",
+                                 "funds_borrowed_maturity"})
+_PLEDGED_NOTE = R(r"TEMINATA VERILEN|BLOKE EDILEN|PLEDGED|GIVEN AS COLLATERAL")
 
 DDL = """
 CREATE TABLE IF NOT EXISTS bank_audit_tl_fc_note_full (
@@ -226,9 +241,32 @@ def family_of(grid: list[dict], heading: str | None, item_title: str | None = No
         # sits under ("Faiz gelirlerine ilişkin bilgiler"), never in the
         # heading the capture kept ("Cari Dönem Önceki Dönem")
         ctx = fold(heading or "") + " " + fold(item_title or "") + " " + fold(" ".join(labels))
+        if fam in _LIABILITY_FAMILIES and _PLEDGED_NOTE.search(fold(heading or "")
+                                                               + " " + fold(item_title or "")):
+            continue
         if n >= 2 and n > best_n and _CTX[fam].search(ctx):
             best, best_n = fam, n
     return best
+
+
+def heading_confirms(fam: str, heading: str | None, item_title: str | None) -> bool:
+    """True when the block's OWN heading names the family, rather than the
+    family being inferred from the row labels.
+
+    BURGAN prints three tables with the issued note's rows. Only one carries
+    the title — "d. İhraç edilen menkul kıymetlere ait bilgiler" — and only
+    that one totals 1,623,857, the balance sheet's figure; the other two sit
+    under the loan notes with an empty heading and were confirmed by the word
+    "Menkul" among their labels alone. Both readings stay, but the titled one
+    is instance 0, which is the instance every consumer takes."""
+    ctx = fold(heading or "")
+    if _CTX[fam] is _ANY:
+        return bool(ctx.strip())
+    if not _CTX[fam].search(ctx):
+        return False
+    # the generic contents line is not a title: it names the section, not
+    # this table ("Faaliyet bolumlerine iliskin aciklamalar...")
+    return ctx.strip() != fold(item_title or "").strip()
 
 
 def _identity_holds(rows: list[dict], step: float) -> bool:
@@ -260,6 +298,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
+    item_title_of: dict[tuple, str | None] = {}
     for pg, bid, heading, item_title, g, unit in blocks:
         grid = NT.strip_date_lines(absorb_inline(json.loads(g), _any_role))
         fam = family_of(grid, heading, item_title)
@@ -274,6 +313,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
                 fam = None
         if fam:
             found.append((fam, pg, bid, heading, grid, unit))
+            item_title_of[(pg, bid)] = item_title
     if not found:
         return None
     unit = found[0][5]
@@ -301,7 +341,8 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
             row = {"label": lab, "role": role, "parent": parent, "page": pg, "block_id": bid}
             row.update(zip(VALUES, vals))
             rows.append(row)
-        instances.append({"family": fam, "rows": rows, "heading": heading})
+        instances.append({"family": fam, "rows": rows, "heading": heading,
+                          "strong": heading_confirms(fam, heading, item_title_of[(pg, bid)])})
     return {"unit": unit, "step": float(factor or 1.0), "instances": instances}
 
 
@@ -392,7 +433,9 @@ def main() -> int:
         if out is not None:
             out.execute("DELETE FROM bank_audit_tl_fc_note_full WHERE bank_ticker=? AND period=? AND kind=?", key)
             n_by: Counter = Counter()
-            for inst in kept:
+            # a block whose own heading names the family is instance 0 of
+            # that family; page order breaks the tie, as before
+            for inst in sorted(kept, key=lambda i: not i.get("strong")):
                 n = n_by[inst["family"]]
                 n_by[inst["family"]] += 1
                 out.executemany(

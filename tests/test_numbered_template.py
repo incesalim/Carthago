@@ -1936,6 +1936,42 @@ def test_deposit_maturity_participation_template(tmp_path):
             "public_institutions", "commercial_institutions", "total"} <= roles
 
 
+def test_securities_issued_refuses_a_pledged_asset_note():
+    """ZIRAAT's "Teminata Verilen/Bloke İtfa Edilmiş Maliyeti Üzerinden
+    Değerlenen Finansal Varlıklar" lists the issued note's rows word for
+    word, and "Menkul" among those labels confirmed the family — so an asset
+    note was stored as a liability, and both the consolidated and the
+    unconsolidated filing carried the same 220,122,149."""
+    TF = _load("build_tl_fc_note_full")
+    grid = [{"label": "Bono", "cells": ["-", "-", "-", "-"]},
+            {"label": "Tahvil ve Benzeri Menkul Değerler",
+             "cells": [151047745.0, 69074404.0, 143859019.0, 62284619.0]},
+            {"label": "Diğer", "cells": ["-", "-", "-", "-"]},
+            {"label": "Toplam", "cells": [151047745.0, 69074404.0, 143859019.0, 62284619.0]}]
+    pledged = "Teminata Verilen/Bloke İtfa Edilmiş Maliyeti Üzerinden Değerlenen Finansal Varlıklar"
+    item = "Konsolide Bilançonun aktif hesaplarına ilişkin açıklama ve dipnotlar"
+    assert TF.family_of(grid, pledged, item) is None
+    # the same rows under the issued note's own title are the real thing
+    assert TF.family_of(grid, "d. İhraç edilen menkul kıymetlere ait bilgiler:", item) == "securities_issued"
+    # and with no heading at all the row labels still carry it -- 129
+    # instances that agree with the narrow lane rest on that, so it stays
+    assert TF.family_of(grid, "", item) == "securities_issued"
+
+
+def test_securities_issued_titled_block_is_instance_zero():
+    """BURGAN prints three tables with the issued note's rows; only one
+    carries the title, and only that one totals the balance sheet's figure.
+    Both readings are kept — the titled one is instance 0, which is the
+    instance every consumer takes."""
+    TF = _load("build_tl_fc_note_full")
+    item = "Faaliyet bölümlerine ilişkin açıklamalar......................."
+    assert TF.heading_confirms("securities_issued", "d. İhraç edilen menkul kıymetlere ait bilgiler:", item)
+    assert not TF.heading_confirms("securities_issued", "", item)
+    assert not TF.heading_confirms("securities_issued", None, item)
+    # a heading that merely repeats the contents line is not a title
+    assert not TF.heading_confirms("securities_issued", item, item)
+
+
 def test_ov1_stops_at_row_25_when_another_table_shares_the_block(tmp_path):
     """YKBNK prints the IRB RWA movement table under OV1, in the same block,
     its rows numbered 1-9 again in columns of their own. Those columns
