@@ -2147,6 +2147,10 @@ def test_securities_currency_split_read_from_the_column_labels(tmp_path):
     assert SC._split_by_currency(grid, [0, 1, 2, 3], cols)
     assert not SC._split_by_currency(grid, [0, 1, 2, 3], ["Current Period", "Prior Period", "", ""])
     assert not SC._split_by_currency(grid, [0, 1], cols)          # only four columns split
+    # QNBFB writes the lira column TRY and runs "Current Period" between the
+    # two: 21,584,370 + 16,644,057 = 38,228,427, its balance-sheet line
+    assert SC._split_by_currency(grid, [0, 1, 2, 3],
+                                 ["TRY", "Current Period FC", "Prior TRY", "Period FC"])
 
     db = _db(tmp_path, [(66, 4, "bin", [(r["label"], r["cells"]) for r in grid])])
     db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?", (json.dumps(cols),))

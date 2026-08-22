@@ -5,6 +5,16 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The securities lane goes clean.** The last sizeable
+amortised-cost residue was the same currency split again, worded
+differently: QNBFB writes the lira column `TRY` rather than `TL` and runs
+"Current Period" between the pair, so the column-label pattern reached
+neither. Its note totals 21,584,370 + 16,644,057 = 38,228,427, its
+balance-sheet line exactly.
+
+securities.amortised_cost 20 -> 3. The lane now reads 0 of 66 fvtpl, 0 of
+933 fvoci and 3 of 902 amortised_cost indicted. Repair list 131 -> 114.
+
 2026-08-22 — **The capital seed was landing on the prior table.** ZIRAAT's
 own funds read 135,100,145 for both 2022Q1 and 2022Q2 — the same figure
 twice, and neither was June's 196,252,360. It is ZIRAAT's 31 December 2021

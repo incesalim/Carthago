@@ -200,7 +200,8 @@ _TL_FC_HEADER = re.compile(r"\b(TP|TL)\b.{0,6}\b(YP|FC|FX)\b.{0,12}\b(TP|TL)\b.{
 # The same four-way header as it survives in COLUMN LABELS, where the
 # capture splits "Current Period TL / FC" across the cells and the gaps run
 # longer: EXIM's read ["Current TL", "Period FC", "Prior TL", "Period FC"].
-_TL_FC_COLS = re.compile(r"\b(TP|TL)\b.{0,12}\b(YP|FC|FX)\b.{0,16}\b(TP|TL)\b.{0,12}\b(YP|FC|FX)\b")
+_TL_FC_COLS = re.compile(r"\b(TP|TL|TRY|TRL)\b.{0,16}\b(YP|FC|FX)\b.{0,16}"
+                         r"\b(TP|TL|TRY|TRL)\b.{0,16}\b(YP|FC|FX)\b")
 
 
 def _split_by_currency(grid: list[dict], live: list[int],
