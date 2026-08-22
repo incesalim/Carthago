@@ -214,11 +214,15 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
                       value_names: tuple[str, ...], gate: Callable[[list[dict]], bool],
                       percent_repair_floor: float = 10000,
                       period_hint: Callable[[str | None, list[dict]], str | None] | None = None,
+                      tail_of: Callable[[int, int], list[tuple[int, str, list]] | None] | None = None,
                       ) -> dict | None:
     """The same numbered template read WITHOUT its numbers: a chain of rows
     matched by label (`labels`: (template_row, regex) in match-priority
-    order, tried on the folded label with any leading number stripped),
-    kept in template order, continued over adjacent blocks, opened only on
+    order, tried on the folded label with any leading number stripped; a
+    template_row may be a tuple of alternatives — the NSFR's twin "%35 or
+    lower risk weight" rows 21 and 23 — the first one after the chain's
+    last row taken), kept in template order, continued over adjacent
+    blocks, opened only on
     `open_rows`, closed on `close_row` or on the first block that does not
     continue it, and kept only when `gate(rows)` — the template's own
     arithmetic — holds. Sub-headers print no cells and take no row; a
@@ -227,13 +231,21 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
 
     Instances are labelled current / prior / extra... in print order, or by
     `period_hint(heading, grid)` where it says.
+
+    `tail_of(page, block_id)` supplies rows the capture kept as prose rather
+    than grid rows — the NSFR's total-RSF and ratio lines, which print as
+    "Gerekli İstikrarlı Fon 364,384" with the figure inside the text. It is
+    called with the chain's last block and returns [(template_row, label,
+    cells)] appended before the gate, so the gate still decides.
     """
     from . import band_matrix as BM
 
-    def template_row(label: str) -> int | None:
+    def template_row(label: str, after: int = 0) -> int | None:
         f = re.sub(r"^\d{1,2}[.)]?\s*", "", fold(label).strip())
         for n, rx in labels:
             if rx.search(f):
+                if isinstance(n, tuple):
+                    return next((c for c in n if c > after), None)
                 return n
         return None
 
@@ -241,6 +253,27 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
         "SELECT page, block_id, heading, grid_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key)]
+    # one sequence over the partition, so a label that wraps across a block
+    # boundary (TEB's NSFR row 20: the label closes one block, its values
+    # open the next) still adopts its values
+    seq: list[tuple[int, int, str | None, str | None, dict]] = [
+        (pg, bid, h, unit, r) for pg, bid, h, grid, unit in blocks for r in grid]
+    tagged_seq: list[tuple[int, int, str | None, str | None, dict, int | None]] = []
+    for i, (pg, bid, h, unit, r) in enumerate(seq):
+        has_cells = any(c is not None for c in r["cells"])
+        n = template_row(r["label"] or "") if (r["label"] or "").strip() else None
+        if n is not None and not has_cells and i + 1 < len(seq):
+            nxt = seq[i + 1][4]
+            if template_row(nxt["label"] or "") is None and any(c is not None for c in nxt["cells"]):
+                r = {**r, "cells": nxt["cells"]}            # the label wrapped; values below
+                has_cells = True
+        tagged_seq.append((pg, bid, h, unit, r, n if has_cells else None))
+    by_block: dict[tuple[int, int], list] = {}
+    meta: dict[tuple[int, int], tuple] = {}
+    for pg, bid, h, unit, r, n in tagged_seq:
+        by_block.setdefault((pg, bid), []).append((r, n))
+        meta[(pg, bid)] = (h, unit)
+
     chain: list[tuple] = []
     unit = None
     hint = None
@@ -248,35 +281,43 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
     found: list[tuple[list, str | None, str | None]] = []
 
     def close():
+        """End the chain: where it stops short of `close_row`, `tail_of` may
+        still supply the rows the capture kept as prose."""
         nonlocal chain, hint
+        if chain and tail_of is not None and chain[-1][3] < close_row:
+            extra = tail_of(chain[-1][0], chain[-1][1])
+            if extra:
+                width = max(len(r["cells"]) for _p, _b, r, _n in chain)
+                for n, label, cells in extra:
+                    if n > chain[-1][3]:
+                        # the callback puts each figure in its LAST cell; pad
+                        # left so the row lines up with the block's columns
+                        cells = [None] * (width - len(cells)) + list(cells)
+                        chain.append((chain[-1][0], chain[-1][1], {"label": label, "cells": cells}, n))
         if chain and any(n in open_rows for *_x, n in chain) and len(chain) >= min_rows:
             found.append((chain, unit, hint))
         chain, hint = [], None
 
-    for pg, bid, heading, grid, u in blocks:
-        tagged = []
-        for i, r in enumerate(grid):
-            has_cells = any(c is not None for c in r["cells"])
-            n = template_row(r["label"] or "") if (r["label"] or "").strip() else None
-            if n is not None and not has_cells:
-                nxt = grid[i + 1] if i + 1 < len(grid) else None
-                if nxt is not None and template_row(nxt["label"] or "") is None \
-                        and any(c is not None for c in nxt["cells"]):
-                    r = {**r, "cells": nxt["cells"]}        # the label wrapped; values below
-                    has_cells = True
-            tagged.append((r, n if has_cells else None))
+    for (pg, bid), tagged in by_block.items():
+        heading, u = meta[(pg, bid)]
+        grid = [r for r, _n in tagged]
         nums = [n for _r, n in tagged if n]
         adjacent = (pg == last[0] and bid == last[1] + 1) or (pg == last[0] + 1 and bid == 1)
         if not nums:
             if chain and not adjacent:
                 close()
             continue
-        continues = bool(chain) and adjacent and min(nums) > chain[-1][3]
+        # a block continues the chain only when its FIRST template row does:
+        # a block that opens on row 1 is the next table (ING's prior NSFR)
+        first_n = next((template_row(r["label"] or "", chain[-1][3]) for r, n in tagged if n), None) if chain else None
+        continues = bool(chain) and adjacent and first_n is not None and first_n > chain[-1][3]
         if not continues:
             close()
             unit = u
             hint = period_hint(heading, grid) if period_hint else None
         for r, n in tagged:
+            if n and chain:
+                n = template_row(r["label"] or "", chain[-1][3])   # the alternatives, after the chain's last row
             if n and (not chain or n > chain[-1][3]):
                 if not chain and n not in open_rows:
                     continue
@@ -285,16 +326,28 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
         if chain and chain[-1][3] == close_row:
             close()
     close()
-    instances: list[tuple[list[dict], str | None]] = []
-    for chain, u, h in found:
+    # instances are labelled in CHAIN order — a refused first table still
+    # makes the surviving second one the prior — unless the heading says
+    order = ("current", "prior", "extra2", "extra3")
+    out: dict[str, list[dict]] = {}
+    unit_out = found[0][1] if found else None
+    for idx, (chain, u, h) in enumerate(found[:4]):
         factor = U.UNIT_SCALE.get(u)
-        grid = [r for _pg, _bid, r, _n in chain]
-        live = BM.live_value_columns(grid)
-        ncol = max(len(r["cells"]) for r in grid)
-        cols = live[-n_values:] if len(live) >= n_values else list(range(ncol - n_values, ncol))
+        # the value columns are a BLOCK's, not the chain's: a chain that
+        # spans blocks of different widths (TEB's NSFR: six cells on one
+        # page, seven on the next) would misread every row otherwise
+        cols_by_block: dict[tuple[int, int], list[int]] = {}
+        for pg, bid, r, _n in chain:
+            cols_by_block.setdefault((pg, bid), []).append(r)
+        for pgbid, block_rows in list(cols_by_block.items()):
+            live = BM.live_value_columns(block_rows)
+            ncol = max(len(r["cells"]) for r in block_rows)
+            cols_by_block[pgbid] = (live[-n_values:] if len(live) >= n_values
+                                    else list(range(ncol - n_values, ncol)))
         rows = []
         for pg, bid, r, n in chain:
             cells = r["cells"]
+            cols = cols_by_block[(pg, bid)]
             vals = [num(cells[c]) if 0 <= c < len(cells) else None for c in cols]
             vals = [None] * (n_values - len(vals)) + vals
             if n in percent_rows:
@@ -305,17 +358,15 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
                    "page": pg, "block_id": bid}
             row.update(zip(value_names, vals))
             rows.append(row)
-        if gate(rows):
-            instances.append((rows, h))
-    if not instances:
-        return None
-    unit = found[0][1]
-    out: dict[str, list[dict]] = {}
-    order = ("current", "prior", "extra2", "extra3")
-    for rows, h in instances[:4]:
-        label = h if h in ("current", "prior") and h not in out else next(o for o in order if o not in out)
+        if not gate(rows):
+            continue
+        label = h if h in ("current", "prior") and h not in out else order[idx]
+        if label in out:
+            label = next(o for o in order if o not in out)
         out[label] = rows
-    return {"unit": unit, "instances": out}
+    if not out:
+        return None
+    return {"unit": unit_out, "instances": out}
 
 
 def absorb_inline(grid: list[dict], role_of, keep=None) -> list[dict]:

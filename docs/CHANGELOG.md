@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **NSFR: 435 → 524 filings, 29 → 36 banks.** The label reader
+gained two things the NSFR needed: each block in a chain is read on its own
+columns (TEB's template is six cells wide on one page and seven on the
+next, so one column model for the chain misread every row), and a `tail_of`
+callback supplies rows the capture kept as prose — "Gerekli İstikrarlı Fon
+364,384" and "Net İstikrarlı Fonlama Oranı (%) 142.75" print as single
+lines with the figure inside the text, parsed in either printed convention
+(the last separator is the decimal point with one or two digits after it, a
+thousands separator with three). The gate stays the template's own
+arithmetic, 34 = 14 / 33. Current NSFR vs narrow 97.4% over 453 filings.
+
 2026-08-22 — **LCR: 656 → 1,000 filings, 25 → 37 banks.** The unnumbered
 reading of a numbered template is now a shared helper,
 `numbered_template.assemble_by_label`: a chain of rows matched by label in

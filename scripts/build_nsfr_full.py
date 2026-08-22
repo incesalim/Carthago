@@ -85,12 +85,142 @@ def _role_of(n: int, label: str) -> str | None:
     return role
 
 
-def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
-    return NT.assemble(
+# the 34 rows by label, for the banks that print the template without its
+# numbers (ING, TEB, ZIRAAT, ANADOLU, AKTIF, ICBCT, FIBA, TSKB...)
+_R = re.compile
+_BY_LABEL: list[tuple[int | tuple, re.Pattern]] = [
+    (34, _R(r"^NET ISTIKRARLI FONLAMA ORANI|^NET STABLE FUNDING RATIO|^NSFR")),
+    (33, _R(r"^(TOPLAM )?GEREKLI ISTIKRARLI FON|^TOTAL (REQUIRED STABLE FUNDING|RSF)")),
+    (14, _R(r"^(TOPLAM )?MEVCUT ISTIKRARLI FON|^TOTAL (AVAILABLE STABLE FUNDING|ASF)|^AVAILABLE STABLE FUNDING")),
+    (2, _R(r"^ANA SERMAYE VE KATKI|^TIER (1|I) AND TIER (2|II)|^REGULATORY CAPITAL")),
+    (3, _R(r"^DIGER OZKAYNAK|^OTHER CAPITAL (ITEMS|INSTRUMENTS)")),
+    (1, _R(r"^OZKAYNAK UNSURLARI|^CAPITAL (ITEMS|INSTRUMENTS)|^CAPITAL:?$")),
+    (5, _R(r"^ISTIKRARLI MEVDUAT|^STABLE DEPOSIT")),
+    (6, _R(r"^DUSUK ISTIKRARLI|^LESS STABLE")),
+    (4, _R(r"^GERCEK KISI VE PERAKENDE|^RETAIL DEPOSITS? AND DEPOSITS? FROM SMALL|^RETAIL (AND SMALL BUSINESS )?(CUSTOMERS? )?DEPOSIT")),
+    (8, _R(r"^OPERASYONEL MEVDUAT|^OPERATIONAL DEPOSIT")),
+    (10, _R(r"^BIRBIRLERINE BAGLI VARLIKLARA ESDEGER YUKUMLULUK|^LIABILITIES WITH MATCHING INTERDEPENDENT")),
+    (9, _R(r"^DIGER BORCLAR|^OTHER WHOLESALE FUNDING|^OTHER FUNDING")),
+    (7, _R(r"^DIGER KISILERE BORCLAR|^WHOLESALE FUNDING|^FUNDING FROM OTHER")),
+    (12, _R(r"^TUREV YUKUMLULUKLER$|^TUREV YUKUMLULUKLER \(|^NSFR DERIVATIVE LIABILIT|^DERIVATIVE LIABILITIES$")),
+    (13, _R(r"^YUKARIDA YER ALMAYAN DIGER (YUKUMLULUK|OZKAYNAK)|^ALL OTHER LIABILITIES AND (EQUITY|CAPITAL)|^OTHER LIABILITIES AND EQUITY")),
+    (11, _R(r"^DIGER YUKUMLULUKLER|^OTHER LIABILITIES")),
+    (15, _R(r"^BIRINCI KALITE LIKIT|^YUKSEK KALITELI LIKIT VARLIKLAR( \(|$)|^(TOTAL )?(NSFR )?HIGH.?QUALITY LIQUID|^TOTAL HQLA|^TOTAL NSFR HQLA")),
+    (16, _R(r"^KREDI KURULUSLARI VEYA FINANSAL KURULUSLARA DEPO EDILEN|^DEPOSITS HELD AT OTHER FINANCIAL INSTITUTIONS FOR OPERATIONAL")),
+    (18, _R(r"^TEMINATI BIRINCI KALITE LIKIT VARLIK OLAN|^PERFORMING LOANS TO FINANCIAL INSTITUTIONS SECURED BY LEVEL 1")),
+    (19, _R(r"^KREDI KURULUSLARI VEYA FINANSAL KURULUSLARDAN TEMINATSIZ|^TEMINATSIZ VEYA TEMINATI BIRINCI KALITE|"
+            r"^PERFORMING LOANS TO FINANCIAL INSTITUTIONS SECURED BY NON")),
+    (20, _R(r"^FINANSAL KURULUS OLMAYAN KURUMSAL|^KREDI KURULUSLARI VEYA FINANSAL KURULUSLAR DISINDAKI|"
+            r"^PERFORMING LOANS TO NON.?FINANCIAL CORPORATE")),
+    ((21, 23), _R(r"^%?35|^WITH A RISK WEIGHT OF (LESS THAN OR )?EQUAL TO (OR LESS THAN )?35|^RISK WEIGHT (OF )?(LESS THAN OR EQUAL TO )?35")),
+    (22, _R(r"^IKAMET AMACLI|^PERFORMING RESIDENTIAL MORTGAGE")),
+    (17, _R(r"^CANLI ALACAKLAR|^PERFORMING LOANS AND SECURITIES|^PERFORMING LOANS")),
+    (24, _R(r"^YUKSEK KALITELI LIKIT VARLIK NITELIGINI HAIZ OLMAYAN|^SECURITIES THAT ARE NOT IN DEFAULT")),
+    (25, _R(r"^BIRBIRLERINE BAGLI YUKUMLULUKLERE ESDEGER VARLIK|^ASSETS WITH MATCHING INTERDEPENDENT")),
+    (27, _R(r"^ALTIN DAHIL|^PHYSICAL(LY)? TRADED COMMODIT")),
+    (28, _R(r"^TUREV SOZLESMELERIN BASLANGIC TEMINATI|^ASSETS POSTED AS INITIAL MARGIN|^INITIAL MARGIN")),
+    (29, _R(r"^TUREV VARLIKLAR|^(NSFR )?DERIVATIVE ASSETS")),
+    (30, _R(r"^TUREV YUKUMLULUKLERIN DEGISIM TEMINATI|^(NSFR )?DERIVATIVE LIABILITIES BEFORE DEDUCTION")),
+    (31, _R(r"^YUKARIDA YER ALMAYAN DIGER VARLIK|^ALL OTHER ASSETS NOT INCLUDED")),
+    (26, _R(r"^DIGER VARLIKLAR|^OTHER ASSETS")),
+    (32, _R(r"^BILANCO DISI (BORC|YUKUMLULUK|ISLEM)|^OFF.?BALANCE SHEET (ITEMS|LIABILITIES)")),
+]
+
+
+def _nsfr_gate(rows: list[dict]) -> bool:
+    """34 = 14 / 33 on the weighted total, within 0.5 pp or 5% relative —
+    94.5% of the numbered instances hold it within 0.06."""
+    by = {x["template_row"]: x for x in rows}
+    a, r_, n = (by.get(k, {}).get("weighted_total") for k in (14, 33, 34))
+    if None in (a, r_, n) or not r_:
+        return False
+    return abs(a / r_ * 100 - n) <= max(0.5, 0.05 * abs(n))
+
+
+_TAIL_LINES = [
+    (33, re.compile(r"^(TOPLAM )?GEREKLI ISTIKRARLI FON\b"), re.compile(r"^(TOTAL )?REQUIRED STABLE FUNDING\b")),
+    (34, re.compile(r"^NET ISTIKRARLI FONLAMA ORANI\b"), re.compile(r"^NET STABLE FUNDING RATIO\b")),
+]
+_TRAILING = re.compile(r"([-+]?[\d.,]*\d)\s*$")
+
+
+def parse_printed(text: str) -> float | None:
+    """A number as the filing printed it, in either convention: the last
+    separator is the decimal point when it has one or two digits after it,
+    a thousands separator when it has three ("364,384" is 364384 and
+    "142.75" is 142.75; "1.234.567,89" and "1,234,567.89" both parse)."""
+    t = text.strip().replace(" ", "")
+    if not re.fullmatch(r"[-+]?[\d.,]*\d", t):
+        return None
+    sign = -1.0 if t.startswith("-") else 1.0
+    t = t.lstrip("-+")
+    dot, comma = t.rfind("."), t.rfind(",")
+    cut = max(dot, comma)
+    if cut == -1:
+        return sign * float(t)
+    tail = t[cut + 1:]
+    if len(tail) == 3 and (t.count(".") + t.count(",") > 1 or len(t[:cut].replace(".", "").replace(",", "")) >= 1):
+        whole = t.replace(".", "").replace(",", "")           # a thousands group
+        return sign * float(whole)
+    whole = t[:cut].replace(".", "").replace(",", "")
+    return sign * float(f"{whole or 0}.{tail}")
+
+
+def ledger_tail(cap: sqlite3.Connection | None, key: tuple, n_values: int):
+    """The template's last two rows where the capture kept them as prose:
+    "Gerekli İstikrarlı Fon 364,384" / "Net İstikrarlı Fonlama Oranı (%)
+    142.75" are single lines with the figure inside the text (TEB, ICBCT,
+    ZIRAAT, AKTIF…). Returns a callback for `assemble_by_label`."""
+    if cap is None:
+        return None
+
+    def tail(page: int, block_id: int):
+        rows = []
+        for n, tr, en in _TAIL_LINES:
+            hit = None
+            for _pg, text in cap.execute(
+                    "SELECT page, text FROM bank_audit_document_lines WHERE bank_ticker=? AND period=? "
+                    "AND kind=? AND page BETWEEN ? AND ? AND role!='data' ORDER BY page, line_order",
+                    (*key, page, page + 1)):
+                f = NT.fold(text).strip()
+                if not (tr.search(f) or en.search(f)):
+                    continue
+                m = _TRAILING.search(f)
+                v = parse_printed(m.group(1)) if m else None
+                if v is not None:
+                    hit = (text.strip(), v)         # the FIRST line that carries a figure
+                    break
+            if hit is None:
+                return None
+            rows.append((n, hit[0], [None] * (n_values - 1) + [hit[1]]))
+        return rows
+
+    return tail
+
+
+def _period_hint(heading: str | None, grid: list[dict]) -> str | None:
+    text = NT.fold(heading or "") + " " + " ".join(NT.fold(r["label"] or "") for r in grid[:8])
+    if re.search(r"ONCEKI DONEM|PRIOR PERIOD|PREVIOUS PERIOD", text):
+        return "prior"
+    if re.search(r"CARI DONEM|CURRENT PERIOD", text):
+        return "current"
+    return None
+
+
+def assemble(tab: sqlite3.Connection, key: tuple,
+             cap: sqlite3.Connection | None = None) -> dict | None:
+    got = NT.assemble(
         tab, key, sig=_SIG, max_row=_MAX_ROW, bottom_row=33, n_values=5,
         percent_rows={34}, role_of=_role_of,
         value_names=("no_maturity", "maturity_lt_6m", "maturity_6m_1y",
                      "maturity_gte_1y", "weighted_total"))
+    if got is not None:
+        return got
+    return NT.assemble_by_label(
+        tab, key, labels=_BY_LABEL, n_values=5, percent_rows={34}, open_rows={1, 2},
+        close_row=34, min_rows=14, role_of=_role_of,
+        value_names=("no_maturity", "maturity_lt_6m", "maturity_6m_1y", "maturity_gte_1y", "weighted_total"),
+        gate=_nsfr_gate, period_hint=_period_hint, tail_of=ledger_tail(cap, key, 5))
 
 
 DDL = """
@@ -131,6 +261,8 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--tables-db", default=str(TABLES_DB))
     ap.add_argument("--audit-db", default=str(AUDIT_DB))
+    ap.add_argument("--capture-db", default=str(REPO / "data" / "bank_audit_capture.db"),
+                    help="the capture ledger, for the total-RSF and ratio lines the capture kept as prose")
     ap.add_argument("--bank")
     ap.add_argument("--period")
     ap.add_argument("--kind")
@@ -139,6 +271,8 @@ def main() -> int:
     args = ap.parse_args()
 
     tab = sqlite3.connect(f"file:{args.tables_db}?mode=ro", uri=True)
+    cap = (sqlite3.connect(f"file:{args.capture_db}?mode=ro", uri=True)
+           if Path(args.capture_db).exists() else None)
     aud = sqlite3.connect(f"file:{args.audit_db}?mode=ro", uri=True)
     out = None
     if args.write:
@@ -172,7 +306,7 @@ def main() -> int:
     ident = [0, 0, 0]
     mism = []
     for key in keys:
-        got = assemble(tab, key)
+        got = assemble(tab, key, cap)
         if got is None:
             continue
         detected += 1

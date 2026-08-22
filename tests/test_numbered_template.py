@@ -206,6 +206,79 @@ def test_lcr_unnumbered_template_by_label_wrapped_rows_and_period_hints(tmp_path
     assert list(LC.assemble(db, KEY)["instances"]) == ["prior"]
 
 
+def test_nsfr_by_label_per_block_columns_and_the_prose_tail(tmp_path):
+    """TEB prints the NSFR rows without numbers, over two blocks of DIFFERENT
+    widths, and its last two rows ("Gerekli İstikrarlı Fon 364,384") are
+    prose lines the capture kept out of the grid — supplied by `tail_of`
+    and gated on 34 = 14 / 33."""
+    NS = _load("build_nsfr_full")
+    head = [                                   # six cells
+        ("Mevcut İstikrarlı Fon", [None, None, None, None, None, None]),
+        ("Özkaynak Unsurları", ["-", "-", None, "-", 111881.0, 111881.0]),
+        ("Ana Sermaye ve Katkı Sermaye", ["-", "-", None, "-", 111881.0, 111881.0]),
+        ("Diğer Özkaynak Unsurları", ["-", "-", None, "-", "-", "-"]),
+        ("Gerçek Kişi ve Perakende Müşteri Mevduatı/Katılım Fonu", [136682.0, 219075.0, None, "-", "-", 326759.0]),
+        ("İstikrarlı Mevduat/Katılım Fonu", [50000.0, 100000.0, None, "-", "-", 150000.0]),
+        ("Düşük İstikrarlı Mevduat/Katılım Fonu", [86682.0, 119075.0, None, "-", "-", 176759.0]),
+        ("Diğer Kişilere Borçlar", [10000.0, 20000.0, None, "-", "-", 30000.0]),
+        ("Operasyonel Mevduat/Katılım Fonu", ["-", "-", None, "-", "-", "-"]),
+        ("Diğer Borçlar", [10000.0, 20000.0, None, "-", "-", 30000.0]),
+        ("Diğer Yükümlülükler", ["-", "-", None, "-", "-", 51514.0]),
+        ("Türev Yükümlülükler", ["-", "-", None, "-", "-", "-"]),
+        ("Mevcut İstikrarlı Fon", [None, None, None, None, None, 520154.0]),
+        ("Gerekli İstikrarlı Fon", [None, None, None, None, None, None]),
+        ("Yüksek Kaliteli Likit Varlıklar", [None, None, None, None, None, 12000.0]),
+        ("Canlı Alacaklar", ["-", 39886.0, None, 273202.0, 219374.0, 295185.0]),
+    ]
+    tail = [                                   # seven cells: a different width
+        ("%35 ya da daha düşük risk ağırlığına tabi alacaklar", [35.0, "-", "-", None, "-", 166233.0, 108051.0]),
+        ("İkamet amaçlı gayrimenkul ipoteği ile teminatlandırılan alacaklar", [None, "-", "-", None, "-", 4050.0, 2632.0]),
+        ("Diğer Varlıklar", [None, 42619.0, 2745.0, None, "-", 617.0, 45726.0]),
+        ("Altın dahil fiziki teslimatlı emtia", [None, 1492.0, None, None, None, None, 1268.0]),
+        ("Türev Varlıklar", [None, None, None, 2015.0, None, None, 2015.0]),
+        ("Yukarıda yer almayan diğer varlıklar", [None, 41127.0, "-", None, "-", 617.0, 41744.0]),
+        ("Bilanço Dışı Borçlar", [None, None, "-", None, "-", 430716.0, 21536.0]),
+    ]
+    db = _db(tmp_path, [(50, 1, "milyon", head), (50, 2, "milyon", tail)])
+    db.commit()
+
+    def prose_tail(page, block_id):            # what the ledger would supply
+        return [(33, "Gerekli İstikrarlı Fon 364,384", [None, None, None, None, 364384.0]),
+                (34, "Net İstikrarlı Fonlama Oranı (%) 142.75", [None, None, None, None, 142.75])]
+
+    got = NT.assemble_by_label(
+        db, KEY, labels=NS._BY_LABEL, n_values=5, percent_rows={34}, open_rows={1, 2},
+        close_row=34, min_rows=14, role_of=NS._role_of,
+        value_names=("no_maturity", "maturity_lt_6m", "maturity_6m_1y", "maturity_gte_1y", "weighted_total"),
+        gate=NS._nsfr_gate, tail_of=prose_tail)
+    cur = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert cur[14]["weighted_total"] == 520_154_000.0        # milyon -> bin
+    assert cur[33]["weighted_total"] == 364_384_000.0        # the prose row, scaled like the rest
+    assert cur[34]["weighted_total"] == 142.75               # the percent row, never scaled
+    assert cur[32]["weighted_total"] == 21_536_000.0         # the seven-cell block, read on ITS columns
+    assert cur[1]["weighted_total"] == 111_881_000.0         # the six-cell block, on its own
+    # the same chain with a ratio that does not follow from 14 / 33 is refused
+    assert NT.assemble_by_label(
+        db, KEY, labels=NS._BY_LABEL, n_values=5, percent_rows={34}, open_rows={1, 2},
+        close_row=34, min_rows=14, role_of=NS._role_of,
+        value_names=("no_maturity", "maturity_lt_6m", "maturity_6m_1y", "maturity_gte_1y", "weighted_total"),
+        gate=NS._nsfr_gate,
+        tail_of=lambda p, b: [(33, "Gerekli İstikrarlı Fon 364,384", [None] * 4 + [364384.0]),
+                              (34, "Net İstikrarlı Fonlama Oranı (%) 999", [None] * 4 + [999.0])]) is None
+
+
+def test_nsfr_parses_numbers_in_either_printed_convention():
+    NS = _load("build_nsfr_full")
+    assert NS.parse_printed("364,384") == 364384.0           # thousands, English convention
+    assert NS.parse_printed("5.763.908") == 5763908.0        # thousands, Turkish
+    assert NS.parse_printed("142.75") == 142.75              # decimals, English
+    assert NS.parse_printed("119,90") == 119.90              # decimals, Turkish
+    assert NS.parse_printed("1.234.567,89") == 1234567.89
+    assert NS.parse_printed("1,234,567.89") == 1234567.89
+    assert NS.parse_printed("-12,5") == -12.5
+    assert NS.parse_printed("not a number") is None
+
+
 # --- the RWA overview (OV1) lane, same module -------------------------------
 
 _spec_rwa = importlib.util.spec_from_file_location(
