@@ -1671,6 +1671,32 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_sector_cash_loan_breakdown_is_not_the_stage_note(tmp_path):
+    """VAKBN's "Kredi alacaklarının sektörel kırılımı / Sektörlere Göre
+    Kırılım Nakdi Krediler" is three columns wide and carries no stage
+    vocabulary at all, so the bare three-column fallback claimed it and
+    17,521,436 of cash loans was stored where the narrow lane keeps
+    1,234,307 of stage-2. Requiring stage words instead took the
+    indictments to 316, because the fallback is also what catches the
+    genuine stage tables whose header words the capture lost."""
+    SE = _load("build_sector_full")
+    title = [{"label": "3. Kredi Riski Açıklamaları (Devamı)", "cells": [None, None, None]},
+             {"label": "Kredi alacaklarının sektörel kırılımı", "cells": [None, None, None]},
+             {"label": "Sektörlere Göre Kırılım Nakdi Krediler", "cells": [None, None, None]}]
+    body = [{"label": "Tarım", "cells": [18123868.0, 164088.0, 135256.0]},
+            {"label": "Çiftçilik ve Hayvancılık", "cells": [17521436.0, 157657.0, 129135.0]},
+            {"label": "Ormancılık", "cells": [114670.0, 963.0, 864.0]},
+            {"label": "Balıkçılık", "cells": [487762.0, 5468.0, 5257.0]},
+            {"label": "Sanayi", "cells": [532373690.0, 4890110.0, 4212558.0]}]
+    assert SE._says_cash_loans(title + body)
+    assert not SE._says_cash_loans(body)
+    # the flag is what refuses it; without it the fallback still reads it
+    assert SE.column_model(body, [], None, False)[0] == "stage_ecl"
+    assert SE.column_model(body, [], None, True) is None
+    # a block that NAMES a stage is read however it is worded
+    assert SE.column_model(body, ["Stage 2", "Stage 3", "ECL"], None, True)[0] == "stage_ecl"
+
+
 def test_sector_npl_note_with_write_offs_and_the_period_from_its_own_date():
     """Two ways a sector table was filed as the stage/ECL note when it is
     not: TFKB's non-performing note prints receivables / provisions /

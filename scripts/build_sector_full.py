@@ -192,7 +192,20 @@ def _class_header(grid: list[dict]) -> dict[int, str] | None:
     return None
 
 
-def column_model(grid: list[dict], col_labels: list, heading: str | None):
+_CASH_LOAN_TABLE = re.compile(r"NAKDI KREDI|CASH LOAN")
+
+
+def _says_cash_loans(grid: list[dict]) -> bool:
+    """The block's own title lines name cash loans. They carry no figures,
+    so their words never reach `htext` — which is built from the column
+    labels and the heading."""
+    text = fold(" ".join(r["label"] or "" for r in grid
+                         if not any(isinstance(c, (int, float)) for c in r["cells"])))
+    return bool(_CASH_LOAN_TABLE.search(text))
+
+
+def column_model(grid: list[dict], col_labels: list, heading: str | None,
+                 cash_loans: bool | None = None):
     """(family, [(cell index, column name, printed label)]) or None."""
     data = [r for r in grid if not _is_header_row(r)]
     if not data:
@@ -230,14 +243,14 @@ def column_model(grid: list[dict], col_labels: list, heading: str | None):
     # reading is tried too
     strict = [i for i in range(ncol) if counts[i] >= len(data) / 2]
     for live in ([live] if strict == live or not strict else [live, strict]):
-        model = _named_family(grid, col_labels, heading, headers, live)
+        model = _named_family(grid, col_labels, heading, headers, live, cash_loans)
         if model is not None:
             return model
     return None
 
 
 def _named_family(grid: list[dict], col_labels: list, heading: str | None,
-                  headers: list[dict], live: list[int]):
+                  headers: list[dict], live: list[int], cash_loans: bool | None = None):
     frags = {}
     for i in live:
         toks = [str(r["cells"][i]) for r in headers if i < len(r["cells"]) and r["cells"][i]]
@@ -260,7 +273,16 @@ def _named_family(grid: list[dict], col_labels: list, heading: str | None,
                  3: ["npl", "stage3_provision", "written_off"],
                  4: ["npl", "stage3_provision", "npl_prior", "stage3_provision_prior"]}[n]
         return "npl_provisions", [(i, nm, frags[i] or None) for i, nm in zip(live, names)]
-    if re.search(r"STAGE|ASAMA|KARSILIK|PROVISION|ECL|EXPECTED|BEKLENEN|TFRS 9|IFRS 9", htext) or n in (3, 6):
+    stage_words = re.search(r"STAGE|ASAMA|KARSILIK|PROVISION|ECL|EXPECTED|BEKLENEN|TFRS 9|IFRS 9", htext)
+    if not stage_words and n in (3, 6) and (_says_cash_loans(grid) if cash_loans is None else cash_loans):
+        # VAKBN's "Kredi alacaklarinin sektorel kirilimi / Sektorlere Gore
+        # Kirilim Nakdi Krediler" is three columns wide and carries no stage
+        # vocabulary at all, so the bare fallback claimed it: 17,521,436 of
+        # cash loans was stored where the narrow lane keeps 1,234,307 of
+        # stage-2. Only the fallback is refused -- a block that NAMES a stage
+        # is still read, however it is worded.
+        return None
+    if stage_words or n in (3, 6):
         if n == 3:
             names = ["stage2", "stage3", "ecl"]
         elif n == 6:
@@ -333,16 +355,20 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, cl, g, unit in blocks:
-        grid = _cut_to_sectors(absorb_inline(json.loads(g), lambda lab: sector_of(lab)[0]))
+        raw = json.loads(g)
+        # read the title lines off the RAW grid: absorb_inline merges them
+        # into the row below and the cut then drops what is left
+        cash_loans = _says_cash_loans(raw)
+        grid = _cut_to_sectors(absorb_inline(raw, lambda lab: sector_of(lab)[0]))
         if _is_family(grid):
-            found.append((pg, bid, heading, json.loads(cl or "[]"), grid, unit))
+            found.append((pg, bid, heading, json.loads(cl or "[]"), grid, unit, cash_loans))
     if not found:
         return None
     unit = found[0][5]
     factor = U.UNIT_SCALE.get(unit)
     instances, unread = [], 0
-    for pg, bid, heading, col_labels, grid, _u in found:
-        model = column_model(grid, col_labels, heading)
+    for pg, bid, heading, col_labels, grid, _u, cash_loans in found:
+        model = column_model(grid, col_labels, heading, cash_loans)
         if model is None:
             unread += 1
             continue

@@ -5,6 +5,29 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The sector lane's last 43 close.** VAKBN's "Kredi
+alacaklarının sektörel kırılımı / Sektörlere Göre Kırılım Nakdi Krediler"
+is three columns wide and carries no stage vocabulary at all, so the bare
+three-column fallback claimed it: 17,521,436 of cash loans stored where the
+narrow lane keeps 1,234,307 of stage-2.
+
+The earlier attempt at this — require stage words before reading three
+columns — took the indictments to 316, because that fallback is also what
+catches the genuine stage tables whose header words the capture lost. The
+guard is negative instead: only the FALLBACK is refused, and only where the
+block's own title lines say cash loans. A block that names a stage is still
+read however it is worded.
+
+Those title lines have to be read off the raw grid. `absorb_inline` merges
+them into the row below and the sector cut then drops what is left, so by
+the time the column model runs there is nothing left to read — the first
+two attempts at this fix looked like no-ops for exactly that reason, and a
+third because the flag was computed in one loop and used in the next, where
+it held the last block's value.
+
+Sector indictments 43 -> 3 — one ZIRAAT sector line, about 3% apart — and
+the lane goes 146,979 -> 146,916 rows. Repair list 187 -> 147.
+
 2026-08-22 — **The securities lane's last two portfolios go clean.**
 KUVEYT prints its note number in the first cell — "1.4 Gerçeğe uygun değer
 farkı diğer kapsamlı…" as [1.4, None, None, None] — and the title reader
