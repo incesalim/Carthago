@@ -90,6 +90,25 @@ CREATE INDEX IF NOT EXISTS idx_rwa_full_row
 """
 
 
+def _cut_after_the_form(grid: list[dict]) -> list[dict]:
+    """The form ends at row 25. YKBNK prints the IRB RWA movement table in
+    the same block, its rows numbered 1-9 again in columns of their own, and
+    those columns entered the block's column model — so the total row was
+    read one place over and YKBNK's 2024Q3 RWA came out as 1,115,540,871,
+    its own prior figure, against a minimum capital of 119,803,421 that is
+    8% of 1,497,542,746. Only 7 of 960 OV1 blocks carry numbered rows past
+    row 25 and none of them is a second copy of the form, but the guard is
+    kept: a tail that opens on the form's own row 1 is left alone."""
+    end = next((i for i, r in enumerate(grid) if NT.rowno(r, 25) == 25), None)
+    if end is None:
+        return grid
+    tail = grid[end + 1:]
+    if any(NT.rowno(r, 25) == 1 and _SIG[1].search(NT.fold(NT.strip_rowno(r["label"] or "")))
+           for r in tail):
+        return grid
+    return grid[:end + 1]
+
+
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     """The form prints three value columns at most banks — RWA current,
     RWA prior, minimum capital — and FOUR at others, adding the prior
@@ -101,13 +120,15 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     got = NT.assemble(
         tab, key, sig=_SIG, max_row=25, bottom_row=23, n_values=4,
         percent_rows=set(), role_of=lambda n, _label: ROLE_BY_ROW.get(n),
-        value_names=("rwa", "rwa_prior", "min_capital", "min_capital_prior"))
+        value_names=("rwa", "rwa_prior", "min_capital", "min_capital_prior"),
+        block_cut=_cut_after_the_form)
     if got is not None and _four_columns(got):
         return got
     got = NT.assemble(
         tab, key, sig=_SIG, max_row=25, bottom_row=23, n_values=3,
         percent_rows=set(), role_of=lambda n, _label: ROLE_BY_ROW.get(n),
-        value_names=("rwa", "rwa_prior", "min_capital"))
+        value_names=("rwa", "rwa_prior", "min_capital"),
+        block_cut=_cut_after_the_form)
     if got is None:
         return None
     for inst in got["instances"].values():

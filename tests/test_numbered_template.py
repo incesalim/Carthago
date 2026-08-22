@@ -1936,6 +1936,41 @@ def test_deposit_maturity_participation_template(tmp_path):
             "public_institutions", "commercial_institutions", "total"} <= roles
 
 
+def test_ov1_stops_at_row_25_when_another_table_shares_the_block(tmp_path):
+    """YKBNK prints the IRB RWA movement table under OV1, in the same block,
+    its rows numbered 1-9 again in columns of their own. Those columns
+    entered the block's column model and the total row was read one place
+    over: 2024Q3 came out as 1,115,540,871 — YKBNK's own prior figure —
+    against a minimum capital of 119,803,421, which is 8% of 1,497,542,746."""
+    RW = _load("build_rwa_full")
+    form = [("1 Credit risk (excluding counterparty credit risk)",
+             [1.0, 1276559025.0, 976167760.0, None, 102124722.0]),
+            ("16 Market risk", [16.0, 19347945.0, 14512699.0, None, 1547836.0]),
+            ("19 Operational risk", [19.0, 169906912.0, 99403270.0, None, 13592553.0]),
+            ("23 Amounts below the thresholds for deduction",
+             [23.0, 17600910.0, 11159544.0, None, 1408073.0]),
+            ("24 Floor adjustment", [24.0, "-", "-", None, "-"]),
+            ("25 TOTAL (1+4+7+8+9+10+11+12+16+19+23+24)",
+             [25.0, 1497542746.0, 1115540871.0, None, 119803421.0])]
+    movement = [("2.1.2. RWA Movement Table Under IRB Approach", [None, None, None, None, None]),
+                ("1 Previous Period Closing Amount", [1.0, None, None, 849958363.0, 556692068.0]),
+                ("2 Changes in Volume", [2.0, None, None, 290697671.0, 215651230.0]),
+                ("9 Current Period Closing Amount", [9.0, None, None, 1060662626.0, 849958363.0])]
+    grid = [{"label": lab, "cells": c} for lab, c in form + movement]
+    assert [r["label"][:2] for r in RW._cut_after_the_form(grid)] == \
+        ["1 ", "16", "19", "23", "24", "25"]
+    # a tail that opens on the form's own row 1 is a second copy: left alone
+    second = grid[:6] + [{"label": lab, "cells": c} for lab, c in form]
+    assert len(RW._cut_after_the_form(second)) == len(second)
+
+    db = _db(tmp_path, [(41, 1, "bin", form + movement)])
+    got = RW.assemble(db, KEY)
+    total = [r for r in got["instances"]["current"] if r["template_row"] == 25][0]
+    assert total["rwa"] == 1497542746.0 and total["rwa_prior"] == 1115540871.0
+    assert total["min_capital"] == 119803421.0
+    assert abs(total["min_capital"] / total["rwa"] - 0.08) <= 0.002    # the form's own ratio
+
+
 def test_securities_portfolio_from_the_title_line_inside_the_block():
     """ALNTF prints "e. Gerçeğe uygun değer farkı diğer kapsamlı gelire
     yansıtılan..." as a valueless row two lines above its own table, in a

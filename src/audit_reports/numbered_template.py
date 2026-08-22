@@ -164,8 +164,14 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
              percent_cols: frozenset[int] = frozenset(),
              block_filter: Callable[[list[dict]], bool] | None = None,
              row_live_cells: bool = False,
-             glued: bool = False) -> dict | None:
+             glued: bool = False,
+             block_cut: Callable[[list[dict]], list[dict]] | None = None) -> dict | None:
     """All instances of one numbered template in one partition, or None.
+
+    `block_cut`: trims a detected block before the column model is built.
+    For a capture that merged a SECOND, unrelated table into the block —
+    YKBNK prints the IRB RWA movement table under OV1, its rows numbered 1-9
+    again, and its columns pulled the form's column model one place over.
 
     `row_live_cells`: a row holding exactly `n_values` non-empty cells after
     its number uses THOSE, whatever the block-level column model says. For
@@ -186,6 +192,8 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
     instances: list[list[dict]] = [[]]
     last_no = 0
     for pg, bid, grid, _u, _s in hits:
+        if block_cut is not None:
+            grid = block_cut(grid)
         cols = block_columns(grid, max_row, n_values, glued)
         prev_unnumbered: list[float | None] | None = None
         for r in grid:

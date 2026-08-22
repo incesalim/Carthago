@@ -5,6 +5,29 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **YKBNK's OV1 total was its own prior figure, every Q1 and
+Q3.** The wide-vs-wide check — the capital note's RWA against the OV1 form,
+both minted under identities — had YKBNK disagreeing at five filings, and
+the OV1 side repeated: 1,115,540,871 for 2024Q1 and again for 2024Q3,
+1,458,076,711 for 2025Q1 and again for 2025Q3. A figure that repeats across
+two quarters of a year and equals the prior December is the prior column.
+
+YKBNK prints the IRB RWA movement table under OV1 in the same block, its
+rows numbered 1-9 again, in columns of their own. Those columns entered the
+block's column model, so the form was read one place over. The evidence was
+already in the row: minimum capital 119,803,421 is 8% of 1,497,542,746, not
+of the 1,115,540,871 stored beside it.
+
+`numbered_template.assemble(block_cut=…)` trims a detected block before the
+column model is built, and the OV1 lane cuts at row 25 — the form's last.
+Seven of 960 OV1 blocks carry numbered rows past row 25 and none of them is
+a second copy of the form; a tail that opens on the form's own row 1 is
+left alone regardless.
+
+Minimum capital = 8% × RWA now holds on 3,553 of 3,573 cells (98.9% →
+99.4%), two filings stop yielding spurious extra instances, and the
+capital-vs-OV1 disagreements fall 16 → 11. Repair list 262 → 257.
+
 2026-08-22 — **The securities note: one mislabelled portfolio, and a
 check that was looking at the wrong balance-sheet line.**
 
