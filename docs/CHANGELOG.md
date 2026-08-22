@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Sector: 253 → 291 filings** (loans by currency 169 → 223).
+QNBFB and VAKBN print TL / (%) / FC / (%) twice with a dead column between
+the pairs; the capture parks stray cells there, so the column is live in a
+fifth of the rows and the eight-column shape stayed hidden. The column
+model now retries on a half-of-the-rows reading when the quarter reading
+matches no family shape. 291 of the 346 partitions that print a sector
+table at all are minted.
+
 2026-08-22 — **NSFR: 435 → 524 filings, 29 → 36 banks.** The label reader
 gained two things the NSFR needed: each block in a chain is read on its own
 columns (TEB's template is six cells wide on one page and seven on the

@@ -198,8 +198,8 @@ def column_model(grid: list[dict], col_labels: list, heading: str | None):
     if not data:
         return None
     ncol = max(len(r["cells"]) for r in data)
-    live = [i for i in range(ncol)
-            if sum(1 for r in data if i < len(r["cells"]) and r["cells"][i] is not None) >= len(data) / 4]
+    counts = [sum(1 for r in data if i < len(r["cells"]) and r["cells"][i] is not None) for i in range(ncol)]
+    live = [i for i in range(ncol) if counts[i] >= len(data) / 4]
     if not live:
         return None
     classes = _class_header(grid) if len(live) >= 12 else None
@@ -223,6 +223,21 @@ def column_model(grid: list[dict], col_labels: list, heading: str | None):
                         cols[ka + step] = (i, f"class_{na + step}", lab)
             return "risk_profile", cols
     headers = [r for r in grid if _is_header_row(r)]
+    # a column live in a quarter of the rows is the base reading; where that
+    # admits a phantom the family shapes do not recognise (QNBFB and VAKBN
+    # print a dead column between every pair, live in a fifth of the rows
+    # because the capture parks stray cells there), a half-of-the-rows
+    # reading is tried too
+    strict = [i for i in range(ncol) if counts[i] >= len(data) / 2]
+    for live in ([live] if strict == live or not strict else [live, strict]):
+        model = _named_family(grid, col_labels, heading, headers, live)
+        if model is not None:
+            return model
+    return None
+
+
+def _named_family(grid: list[dict], col_labels: list, heading: str | None,
+                  headers: list[dict], live: list[int]):
     frags = {}
     for i in live:
         toks = [str(r["cells"][i]) for r in headers if i < len(r["cells"]) and r["cells"][i]]

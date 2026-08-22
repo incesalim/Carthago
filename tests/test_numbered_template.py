@@ -1242,6 +1242,42 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_sector_columns_ignore_the_dead_column_between_every_pair(tmp_path):
+    """QNBFB and VAKBN print TL / (%) / FC / (%) twice with a dead column
+    between the pairs; the capture parks stray cells there, so the column
+    is live in a fifth of the rows and the eight-column shape is hidden
+    until the model retries on a half-of-the-rows reading."""
+    SE = _load("build_sector_full")
+    rows = [
+        ("Agricultural", [598735.0, 0.46, None, 75073.0, 0.06, None, 502615.0, 0.44, None, 169239.0, 0.15]),
+        ("Farming and Raising Livestock", [443123.0, 0.34, None, 75073.0, 0.06, None, 356405.0, 0.31, None, 169239.0, 0.15]),
+        ("Forestry", [9703.0, 0.01, None, "-", 0.0, None, 10413.0, 0.01, None, "-", "-"]),
+        ("Fishing", [145909.0, 0.11, None, "-", 0.0, None, 135797.0, 0.12, None, "-", "-"]),
+        ("Manufacturing", [43007140.0, 32.99, 1.0, 61017018.0, 52.72, None, 36221373.0, 31.37, None, 55487095.0, 50.36]),
+        ("Mining and Quarrying", [969409.0, 0.74, None, 8007.0, 0.01, None, 849874.0, 0.74, None, 57167.0, 0.05]),
+        ("Production", [37109339.0, 28.47, None, 60298291.0, 52.1, 2.0, 31624534.0, 27.39, None, 54849294.0, 49.78]),
+        ("Electricity, Gas and Water", [4928392.0, 3.78, None, 710720.0, 0.61, None, 3746965.0, 3.24, None, 580634.0, 0.53]),
+        ("Construction", [29418784.0, 22.57, None, 23394806.0, 20.21, None, 28215225.0, 24.43, None, 23868664.0, 21.66]),
+        ("Services", [55626655.0, 42.68, None, 27344854.0, 23.63, None, 48974593.0, 42.41, None, 26974995.0, 24.48]),
+        ("Wholesale and Retail Trade", [55626655.0, 42.68, None, 27344854.0, 23.63, None, 48974593.0, 42.41, None, 26974995.0, 24.48]),
+        ("Other", [1300000.0, 1.0, None, 3000000.0, 2.59, None, 1200000.0, 1.04, None, 2500000.0, 2.27]),
+        ("Total", [130351314.0, 100.0, None, 115731751.0, 100.0, None, 115107806.0, 100.0, None, 115000993.0, 100.0]),
+    ]
+    db = _db(tmp_path, [(88, 1, "bin", rows)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, heading=?",
+               ('["TL","Current (%)","Period","FC","","","TL","Prior (%)","Period","FC",""]',
+                "Current Period Prior Period TL (%) FC (%) TL (%) FC (%)"))
+    db.commit()
+    grid = __import__("json").loads(db.execute("SELECT grid_json FROM bank_audit_document_tables").fetchone()[0])
+    fam, cols = SE.column_model(grid, __import__("json").loads(
+        db.execute("SELECT col_labels_json FROM bank_audit_document_tables").fetchone()[0]),
+        "Current Period Prior Period TL (%) FC (%) TL (%) FC (%)")
+    assert fam == "loans_currency"
+    assert [c for _i, c, _l in cols] == ["tl", "tl_pct", "fc", "fc_pct",
+                                         "tl_prior", "tl_pct_prior", "fc_prior", "fc_pct_prior"]
+    assert [i for i, _c, _l in cols] == [0, 1, 3, 4, 6, 7, 9, 10]
+
+
 def test_npl_by_borrower_periods_classes_and_net_identity(tmp_path):
     NB = _load("build_npl_by_borrower_full")
     grid = [
