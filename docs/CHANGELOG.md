@@ -5,6 +5,30 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The statement-line checks were reading the wrong P&L rows.**
+156 indicted rows across three families, and almost all of it was the
+check, not the lanes.
+
+Interest from banks (63 rows): the note's first row is interest from the
+CENTRAL BANK, which the P&L reports on its own line as interest on reserve
+requirements. ICBCT's 6,179 + 2,478 is exactly the note's 8,657 — the two
+lanes had agreed all along, and the check was comparing a total against one
+of its two parts. 63 → 2.
+
+Interest on securities (53 rows): the pattern matched "interest on
+securities ISSUED" — an expense line — and missed SKBNK's income line,
+"interest received from marketable securities portfolio", which the note's
+total matches to the lira (1,495,089 + 156,647 = 1,651,736). 53 → 3.
+
+Interest on borrowings: TAKAS's note covers money-market borrowings that
+the P&L keeps separately. 11 → 5.
+
+One real lane defect fell out of it: AKTIF prints "1.4. İştirak ve bağlı
+ortaklıklardan alınan faizler" under the securities table in the same
+block, and that note's total (7,919) was stored as the securities total.
+Each note is now cut at its own total. The repair list stands at 489, from
+2,251 when this line of work started.
+
 2026-08-22 — **Sector indictments 1,686 → 43.** Two more tables that were
 being filed as the stage/ECL note when they are not. TFKB's non-performing
 note prints receivables / provisions / write-offs — three columns, and the

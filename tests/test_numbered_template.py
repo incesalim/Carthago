@@ -1588,6 +1588,31 @@ def test_strip_date_lines_takes_the_row_and_keeps_the_label():
     assert out[0]["cells"] == [110656.0, 1933573.0, None, None]
 
 
+def test_tl_fc_note_stops_at_its_own_total(tmp_path):
+    """AKTIF prints "1.4. İştirak ve bağlı ortaklıklardan alınan faizler"
+    under the securities table, in the same block. Read together, the second
+    note's total (7,919) was stored as the securities total against a P&L
+    line of 1,031,905."""
+    TF = _load("build_tl_fc_note_full")
+    grid = [
+        ("Gerçeğe Uygun Değer Farkı Kar veya Zarara Yansıtılan", [2154.0, 95.0, 1000.0, 50.0]),
+        ("Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan", [708632.0, 136406.0, 500000.0, 100000.0]),
+        ("İtfa Edilmiş Maliyeti Üzerinden Değerlenen", [157892.0, 26726.0, 100000.0, 20000.0]),
+        ("Toplam", [868678.0, 163227.0, 601000.0, 120050.0]),
+        ("1.4. İştirak ve bağlı ortaklıklardan alınan faizler", [None, 7919.0, None, 5000.0]),
+        ("Toplam", [None, 7919.0, None, 5000.0]),
+    ]
+    db = _db(tmp_path, [(82, 1, "bin", grid)])
+    db.execute("UPDATE bank_audit_document_tables SET heading=?, item_title=?",
+               ("Cari Dönem Önceki Dönem", "Faiz gelirlerine ilişkin bilgiler"))
+    db.commit()
+    got = TF.assemble(db, KEY)
+    inst = [i for i in got["instances"] if i["family"] == "interest_on_securities"]
+    assert len(inst) == 1
+    totals = [x for x in inst[0]["rows"] if x["role"] == "total"]
+    assert len(totals) == 1 and totals[0]["tl_current"] == 868678.0 and totals[0]["fc_current"] == 163227.0
+
+
 def test_tl_fc_note_drops_the_date_line_above_the_first_row(tmp_path):
     """The capture prints the note's date line above the first row — as a
     row of its own ("31 Mart 2022 | 31 | 2022", HSBC) or glued onto the

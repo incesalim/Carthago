@@ -201,7 +201,12 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
     statements = {
         ("bank_audit_tl_fc_note_full", "interest_on_loans"): ("pl", r"^KREDILERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) LOANS"),
         ("bank_audit_tl_fc_note_full", "interest_from_banks"): ("pl", r"^BANKALARDAN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) BANKS|^INTEREST RECEIVED FROM BANKS"),
-        ("bank_audit_tl_fc_note_full", "interest_on_securities"): ("pl", r"^MENKUL DEGERLERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) (MARKETABLE )?SECURITIES"),
+        # "interest on securities ISSUED" is the expense line and was matching
+        # here, while SKBNK's income line ("interest received from marketable
+        # securities portfolio") was not
+        ("bank_audit_tl_fc_note_full", "interest_on_securities"):
+            ("pl", r"^MENKUL DEGERLERDEN ALINAN FAIZ|"
+                   r"^INTEREST (INCOME |RECEIVED )?(ON|FROM) (MARKETABLE )?SECURITIES(?! ISSUED)"),
         ("bank_audit_tl_fc_note_full", "interest_on_borrowings"): ("pl", r"^KULLANILAN KREDILERE VERILEN FAIZ|^INTEREST (EXPENSE )?ON (FUNDS )?BORROW|^INTEREST (PAID )?ON LOANS"),
         ("bank_audit_tl_fc_note_full", "funds_borrowed"): ("bs", r"^ALINAN KREDILER|^FUNDS BORROWED|^BORROWINGS"),
         ("bank_audit_tl_fc_note_full", "cash_and_cbrt"): ("bs", r"^NAKIT DEGERLER VE MERKEZ|^CASH AND (BALANCES WITH|CASH EQUIVALENTS AND)? ?(THE )?CENTRAL|^CASH AND BALANCES"),
@@ -227,6 +232,7 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
         if v is not None:
             bs_rows[(b, p, k, st)].append((fold(name or "").strip(), v))
     import re as _re
+    import re as _re2
     foot = _re.compile(r"(\s+[-–]?\s*[IVXA-Z0-9.(),]{1,8})+$")
     for (table, fam), (st, rx) in statements.items():
         rx_c = _re.compile(rx)
@@ -241,6 +247,22 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
             rows = pl_rows.get((b, p, k), []) if st == "pl" else bs_rows.get((b, p, k, st if st != "bs" else "liabilities"), []) + \
                 (bs_rows.get((b, p, k, "assets"), []) if st == "bs" else [])
             cands = [v for name, v in rows if rx_c.search(name) or rx_c.search(foot.sub("", name))]
+            if fam == "interest_on_borrowings":
+                # TAKAS's note covers money-market borrowings too, which the
+                # P&L keeps on its own line: 28,660 + 7,955 against the note's
+                # 36,746
+                mm = [v for name, v in rows
+                      if _re2.search(r"PARA PIYASASI ISLEMLERINE VERILEN|MONEY MARKET (BORROWING|FUND)", name)]
+                if mm:
+                    cands = cands + [c + mm[0] for c in cands]
+            if fam == "interest_from_banks":
+                # the note's first row is interest from the CENTRAL BANK, which
+                # the P&L reports on its own line as interest on reserve
+                # requirements — ICBCT 6,179 + 2,478 = the note's 8,657
+                res = [v for name, v in rows
+                       if _re2.search(r"ZORUNLU KARSILIK|RESERVE (DEPOSIT|REQUIREMENT)", name)]
+                if res:
+                    cands = cands + [c + res[0] for c in cands]
             if not cands:
                 continue                           # no narrow line at all: a gap, not a contradiction
             if not any(close(wv, v) for v in cands):

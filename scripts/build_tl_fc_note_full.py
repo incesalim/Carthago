@@ -280,6 +280,14 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     factor = U.UNIT_SCALE.get(unit)
     instances = []
     for fam, pg, bid, heading, grid, _u in found:
+        # each note has ONE total; anything after it is the next note the
+        # capture glued on (AKTIF prints "1.4. İştirak ve bağlı ortaklıklardan
+        # alınan faizler" under the securities table, and its 7,919 was stored
+        # as the securities total)
+        first_total = next((i for i, r in enumerate(grid)
+                            if _TOTAL.search(fold(r["label"] or "").strip())), None)
+        if first_total is not None:
+            grid = grid[:first_total + 1]
         labels = [(r["label"] or "").strip() for r in grid]
         rs = roles_of(fam, labels)
         rows = []
