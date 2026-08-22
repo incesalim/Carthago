@@ -1645,6 +1645,29 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_sector_cut_past_another_table_but_not_past_its_own_header(tmp_path):
+    """ING prints the sector note in the same block as the risk-weight table
+    above it, and the note's rows were being read with that table's columns
+    — so the lane fell through to the next page's copy, which is the
+    NON-CASH table, and disagreed with the narrow lane on every cell. The
+    cut fires only where another table really sits above: fewer than three
+    figure-bearing non-sector rows and the block keeps its own header, which
+    the column model reads for the class labels."""
+    SE = _load("build_sector_full")
+    above = [("Kredi riski azaltımı öncesi tutar", [77510790.0, "-", 15437133.0]),
+             ("Kredi riski azaltımı sonrası tutar", [77513183.0, "-", 14603328.0]),
+             ("Önceki dönem", [42994639.0, "-", 21632773.0])]
+    note = [("Tarım", ["-", 13503.0, 21032.0]), ("Çiftçilik ve hayvancılık", ["-", 11231.0, 9005.0]),
+            ("Ormancılık", ["-", 114.0, 91.0]), ("Balıkçılık", ["-", 2158.0, 11936.0]),
+            ("Sanayi", [4506293.0, 255023.0, 526738.0])]
+    assert [r["label"] for r in SE._cut_to_sectors([{"label": lab, "cells": c} for lab, c in above + note])] \
+        == [lab for lab, _c in note]
+    # two header-ish rows above are the note's own: nothing is cut
+    header = [("Cari Dönem", [None, None, None]), ("Değer kaybına uğramış", [None, 9.0, None])]
+    kept = SE._cut_to_sectors([{"label": lab, "cells": c} for lab, c in header + note])
+    assert [r["label"] for r in kept] == [lab for lab, _c in header + note]
+
+
 def test_sector_block_holding_two_copies_of_the_table(tmp_path):
     """AKTIF prints the current sector table and last year's in one block.
     Stored as a single instance both copies were labelled 'current', and a

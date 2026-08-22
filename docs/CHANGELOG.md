@@ -5,6 +5,22 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **ING's sector note was being read from the wrong page.** The
+last of the big sector disagreements: ING prints the note in the same block
+as the risk-weight table above it, the note's own rows were read with that
+table's columns, and the lane fell through to the copy on the next page —
+which is the NON-CASH table. Both sides were internally consistent, because
+they were different tables: agri_farming 11,231 in the wide lane against
+6,345 in the narrow, and the narrow one recorded page 47 while the wide had
+page 48.
+
+The grid is cut to the sector list where another table sits above it —
+three or more figure-bearing rows naming no sector. The threshold matters:
+cutting unconditionally also removed the class-label header the risk-weight
+family reads, which cost 22,000 rows and 69 blocks before the condition was
+added. ING now reads page 47 like the narrow lane; indictments 472 → 357
+and rows 145,204 → 146,979.
+
 2026-08-22 — **The repair list halves: most of it was the check's fault.**
 `bank_audit_loans_by_sector` had 1,686 indicted rows, by far the largest
 item, and the comparison was the problem twice over. It kept the LAST row

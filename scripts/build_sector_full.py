@@ -271,6 +271,27 @@ def _named_family(grid: list[dict], col_labels: list, heading: str | None,
     return None
 
 
+def _cut_to_sectors(grid: list[dict]) -> list[dict]:
+    """The grid from its first sector row on. ING prints the sector note in
+    the same block as the risk-weight table above it, and the note's own
+    first rows were being read with that table's columns — so the lane fell
+    through to the second copy of the note on the next page, which is the
+    NON-CASH table, and disagreed with the narrow lane on every cell."""
+    first = next((i for i, r in enumerate(grid)
+                  if sector_of((r["label"] or "").strip())[0] in ("agri_total", "agri_farming")), None)
+    if first is None:
+        return grid
+    # only where ANOTHER TABLE sits above: three or more rows that carry
+    # figures and name no sector. Fewer than that and the rows above are the
+    # note's own header, which the column model reads for the class labels.
+    other = sum(1 for r in grid[:first]
+                if sector_of((r["label"] or "").strip())[0] is None
+                and sum(1 for c in r["cells"] if num(c) is not None) >= 2)
+    if other < 3:
+        return grid
+    return [r for r in grid[:first] if _is_header_row(r)] + grid[first:]
+
+
 def _is_family(grid: list[dict]) -> bool:
     if len(grid) < 8:
         return False
@@ -308,7 +329,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, cl, g, unit in blocks:
-        grid = absorb_inline(json.loads(g), lambda lab: sector_of(lab)[0])
+        grid = _cut_to_sectors(absorb_inline(json.loads(g), lambda lab: sector_of(lab)[0]))
         if _is_family(grid):
             found.append((pg, bid, heading, json.loads(cl or "[]"), grid, unit))
     if not found:
