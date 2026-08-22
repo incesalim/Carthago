@@ -261,6 +261,42 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
             out[f"securities.{portfolio} (narrow balance-sheet line)"].append(
                 (b, p, k, f"securities.{portfolio}", cands[0], wv))
 
+    # the deposit-maturity matrix's grand total against the balance sheet's
+    # deposits line — the same figure captured from two pages
+    _DEPOSITS_BS = _re2.compile(r"^MEVDUAT$|^MEVDUAT \(|^DEPOSITS?$|^DEPOSITS? \(|^TOPLANAN FONLAR")
+    # the matrix prints a total row per section (savings, commercial, banks…)
+    # and one for the whole table; the grand total is the largest of them
+    dep_total: dict[tuple, float] = {}
+    for b, p, k, v in tab.execute(
+            "SELECT bank_ticker, period, kind, MAX(amount) FROM bank_audit_deposit_maturity_full "
+            "WHERE row_role='total' AND band='total' AND period_label='current' AND measure='balance' "
+            "AND amount IS NOT NULL GROUP BY bank_ticker, period, kind"):
+        dep_total[(b, p, k)] = v
+    for (b, p, k), wv in dep_total.items():
+        rows = bs_rows.get((b, p, k, "liabilities"), [])
+        cands = [v for name, v in rows if _DEPOSITS_BS.search(name) or _DEPOSITS_BS.search(foot.sub("", name))]
+        if not cands or any(close(wv, v) for v in cands):
+            continue
+        out["deposit_maturity (narrow balance-sheet line)"].append(
+            (b, p, k, "deposits.total", cands[0], wv))
+
+    # two WIDE lanes on the same number: the own-funds note's total RWA and
+    # the OV1 form's. Both are gated, and they are captured from different
+    # pages of the same filing
+    ov1: dict[tuple, float] = {}
+    for b, p, k, v in tab.execute(
+            "SELECT bank_ticker, period, kind, rwa FROM bank_audit_rwa_full "
+            "WHERE row_role='total_rwa' AND period_label='current' AND rwa IS NOT NULL"):
+        ov1.setdefault((b, p, k), v)
+    for b, p, k, wv in tab.execute(
+            "SELECT bank_ticker, period, kind, amount FROM bank_audit_capital_full "
+            "WHERE row_role='total_rwa' AND amount IS NOT NULL"):
+        other = ov1.get((b, p, k))
+        if other is None or close(wv, other):
+            continue
+        out["capital.total_rwa vs the OV1 form (wide vs wide)"].append(
+            (b, p, k, "total_rwa", other, wv))
+
     for ctx, rx in deriv.items():
         rx_c = _re2.compile(rx)
         st = "assets" if ctx == "assets" else "liabilities"

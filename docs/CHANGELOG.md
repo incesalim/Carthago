@@ -5,6 +5,26 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Two more cross-checks: deposits, and wide against wide.**
+The deposit-maturity matrix's grand total now meets the balance sheet's
+deposits line, and the own-funds note's total RWA meets the OV1 form's —
+the first check between two wide lanes, both gated and captured from
+different pages of the same filing.
+
+Deposits agree on all but 2 of the filings compared (ICBCT 2023Q1, ZIRAAT
+2026Q1, both inside 0.2%), which is the strongest confirmation any lane
+has and it covers the largest one. RWA agrees on 531 of 611 (86.9%); the 80
+that disagree concentrate at HALKB (36) and QNBFB (25), and at HALKB the
+OV1 total looks like the suspect — the capital note's RWA reproduces the
+printed capital adequacy ratio from its own own-funds figure while the OV1
+total does not.
+
+Both checks were wrong before they were right: the deposit one first
+compared the interest-expense matrix (the lane holds three measures) and
+the first sub-total rather than the grand total, and read 84 disagreements
+that were its own fault. A check that indicts a lane has to be read as
+carefully as the lane.
+
 2026-08-22 — **The securities cross-check finds the currency split.** The
 note's total per measurement portfolio now meets the balance sheet's line
 for that portfolio, and the check indicted 94 rows. The cause at AKTIF and
