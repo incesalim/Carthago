@@ -5,6 +5,28 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The capital seed was landing on the prior table.** ZIRAAT's
+own funds read 135,100,145 for both 2022Q1 and 2022Q2 — the same figure
+twice, and neither was June's 196,252,360. It is ZIRAAT's 31 December 2021
+own funds.
+
+The lane seeds on the first block carrying one of the template's opening
+lines. ZIRAAT prints the current table opening partway down the template,
+so none of those lines are in it, and the prior table in full below —
+seed lines and all. The scan met the prior opener first and chained from
+there.
+
+A fourth seed dialect reads a block that carries the note's own title
+("Özkaynak Kalemlerine İlişkin Bilgiler") and says CARİ DÖNEM without
+ÖNCEKİ DÖNEM. Nothing is refused: a filing that prints only the prior copy
+is read exactly as before, the titled current block is simply found first.
+
+Every anchor improves and none regresses — cet1_total 99.5% -> 100.0%,
+tier1_total 99.7% -> 100.0%, at1_total 95.5% -> 96.4%, tier2_total 99.6% ->
+99.9%, total_own_funds 98.4% -> 98.9%, total_rwa 99.0% -> 99.6%, cet1_ratio
+98.3% -> 99.1%, tier1_ratio 98.9% -> 99.5%. Capital indictments 17 -> 7 and
+the wide-vs-wide capital/OV1 disagreement 11 -> 7. Repair list 145 -> 131.
+
 2026-08-22 — **A stray split fragment was hiding whole tables.** ALNTF's
 repricing table repeated the same figures for all four quarters of 2025 —
 every band, every quarter — and they were December 2024's. The current

@@ -84,6 +84,17 @@ _SEED_HEADER_MIN_ROWS = 15
 _SEED_PAIR = (re.compile(r"^(SERMAYE|CAPITAL|PAID.?IN CAPITAL|ODENMIS SERMAYE)$"),
               re.compile(r"^(HISSE SENEDI IHRAC PRIM|SHARE ISSUE PREMIUM|SHARE PREMIUM)"))
 _SEED_PAIR_MIN_ROWS = 10
+# The fourth dialect: the block carries the note's own title and says CARI
+# DONEM, but opens partway down the template so none of the seed lines are
+# in it. ZIRAAT 2022Q1/Q2 print the current table that way and the prior
+# table in full below it, so the first seed the scan met was the PRIOR
+# opener -- and 135,100,145, ZIRAAT's 31 December 2021 own funds, was stored
+# as June 2022's against the narrow lane's 196,252,360.
+_SEED_TITLE = re.compile(r"OZKAYNAK KALEMLERINE ILISKIN BILGILER|"
+                         r"INFORMATION (ON|ABOUT) (THE )?(SHAREHOLDERS.? |OWN )?(EQUITY|FUNDS?) ITEMS")
+_SEED_TITLE_MIN_ROWS = 20
+_CURRENT_PERIOD = re.compile(r"\bCARI DONEM\b|\bCURRENT PERIOD\b")
+_PRIOR_PERIOD = re.compile(r"\bONCEKI DONEM\b|\bPRIOR PERIOD\b|\bPREVIOUS PERIOD\b")
 
 # A chained block must keep speaking the template's vocabulary.
 _VOCAB = re.compile(
@@ -272,7 +283,11 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         pair = (len(grid) >= _SEED_PAIR_MIN_ROWS
                 and _SEED_PAIR[0].match(fold(grid[0]["label"] or "").strip())
                 and _SEED_PAIR[1].match(fold(grid[1]["label"] or "").strip()))
-        if any(_SEED.search(fold(r["label"])) for r in grid[:6]) or pair or (
+        head = fold(" ".join(r["label"] or "" for r in grid[:6]))
+        titled = (len(grid) >= _SEED_TITLE_MIN_ROWS
+                  and _SEED_TITLE.search(head)
+                  and _CURRENT_PERIOD.search(head) and not _PRIOR_PERIOD.search(head))
+        if any(_SEED.search(fold(r["label"])) for r in grid[:6]) or pair or titled or (
                 len(grid) >= _SEED_HEADER_MIN_ROWS
                 and _SEED_HEADER.match(fold(grid[0]["label"]))):
             seed_at = i

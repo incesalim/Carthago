@@ -1671,6 +1671,37 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_capital_seeds_on_the_titled_current_block(tmp_path):
+    """ZIRAAT prints the current own-funds table opening partway down the
+    template — no seed line in it — and the prior table in full below. The
+    scan met the PRIOR opener first, so 135,100,145, ZIRAAT's 31 December
+    2021 own funds, was stored as June 2022's against the narrow lane's
+    196,252,360."""
+    CP = _load("build_capital_full")
+    head = ["1. Konsolide Özkaynak Kalemlerine İlişkin Bilgiler (Devamı)", "1/1/2014 Öncesi"]
+    current = [(lab, [None, None]) for lab in head + ["Cari Dönem Uygulamaya", "30 Haziran 2022"]] + \
+        [(f"Ortaklık payları satırı {i}", ["-", "-"]) for i in range(20)] + \
+        [("Toplam Özkaynak (Ana Sermaye ve Katkı Sermaye Toplamı)", [196252360.0, "-"])]
+    prior = [(lab, [None, None]) for lab in head + ["Önceki Dönem Uygulamaya", "31 Aralık 2021"]] + \
+        [("Çekirdek Sermaye", [None, None]),
+         ("Bankanın tasfiyesi hâlinde alacak hakkı açısından diğer tüm alacaklardan sonra gelen "
+          "ödenmiş sermaye", [84600000.0, "-"])] + \
+        [(f"Ortaklık payları satırı {i}", ["-", "-"]) for i in range(18)] + \
+        [("Toplam Özkaynak (Ana Sermaye ve Katkı Sermaye Toplamı)", [135100145.0, "-"])]
+    db = _db(tmp_path, [(42, 1, "bin", current), (44, 1, "bin", prior)])
+    rows = CP.assemble(db, KEY)
+    own = [r for r in rows["rows"] if r.get("role") == "total_own_funds"]
+    assert own and own[0]["cur"] == 196252360.0 and own[0]["page"] == 42
+
+    # the prior copy on its own is still read -- nothing is refused, the
+    # titled current block is simply found first
+    (tmp_path / "b").mkdir()
+    db2 = _db(tmp_path / "b", [(44, 1, "bin", prior)])
+    only = CP.assemble(db2, KEY)
+    own2 = [r for r in only["rows"] if r.get("role") == "total_own_funds"]
+    assert own2 and own2[0]["cur"] == 135100145.0
+
+
 def test_band_header_survives_a_stray_split_fragment():
     """ALNTF's repricing header reads ['1 Aya Kadar', '1-3 Ay', '3-12 ay',
     5.0, '1-5 yıl 5 Yıl ve Üzeri', 'Faizsiz', 'Toplam'] — the "5" of "5 Yıl"
