@@ -84,6 +84,14 @@ BANDSETS: dict[str, BM.BandSet] = {
         ],
         header_label=_HEADER_LABEL),
 }
+# Words that name ONE matrix and no other. Tried before _FAMILY_HINT, whose
+# liquidity_gap entry also lists bands the repricing table prints.
+_FAMILY_HINT_STRICT = {
+    "fx_position": re.compile(r"\bEURO?\b|\bAVRO\b|\bUSD\b|ABD DOLARI|US DOLLAR"),
+    "liquidity_gap": re.compile(r"DAGITILAMAYAN|UNALLOCATED|UNDISTRIBUTED|NOT DISTRIBUTED|"
+                                r"VADESIZ|DEMAND"),
+    "repricing": re.compile(r"FAIZSIZ|NON.?INTEREST|INTEREST.?FREE|BEARING|\bINTEREST\b"),
+}
 _FAMILY_HINT = {
     "fx_position": re.compile(r"\bEURO?\b|\bAVRO\b|\bUSD\b|ABD DOLARI|US DOLLAR"),
     "repricing": re.compile(r"FAIZSIZ|NON.?INTEREST|INTEREST.?FREE|BEARING"),
@@ -189,10 +197,29 @@ def family_of(grid: list[dict], col_labels: list, heading: str | None) -> str | 
     headers = [r for r in grid if BM.is_header_row(r, _HEADER_LABEL)]
     text = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or "") + " "
                 + " ".join(str(c) for r in headers for c in r["cells"] if isinstance(c, str)))
+    # The specific words first. "5 YIL / 5 YEAR / OVER 5" are bands BOTH
+    # matrices print, so on HALKB -- whose capture truncated "Non-bearing
+    # interest" to "interest" and "5 years and over" to "over" -- the
+    # repricing table matched nothing under its own name and fell to
+    # liquidity_gap on a band they share. Its prior-period copy, whose labels
+    # survived, was then the only repricing instance in the filing.
+    for fam in ("fx_position", "liquidity_gap", "repricing"):
+        if _FAMILY_HINT_STRICT[fam].search(text):
+            return fam
     for fam in ("fx_position", "repricing", "liquidity_gap"):
         if _FAMILY_HINT[fam].search(text):
             return fam
-    return None
+    # Last resort, by shape. AKTIF's current repricing table survives capture
+    # as ["itibariyla) aya", "", "", "", "yil ve", "", ""] -- not one word
+    # naming a family -- so it was dropped and the prior copy beside it read
+    # as current: 49,018,578 where the narrow lane has 65,778,856. The two
+    # matrices differ in width: repricing prints six bands and a total, the
+    # liquidity gap seven and a total. Only reached when nothing is named,
+    # which is why the 113 seven-column liquidity tables (all of which DO
+    # name themselves) never arrive here.
+    data = [r for r in grid if not BM.is_header_row(r, _HEADER_LABEL)]
+    wide = len(BM.live_value_columns(data)) if data else 0
+    return {7: "repricing", 8: "liquidity_gap"}.get(wide)
 
 
 def _identity_holds(rows: list[dict], step: float) -> bool:

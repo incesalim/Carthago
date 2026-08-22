@@ -1671,6 +1671,43 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_section4_family_from_the_specific_words_then_the_shape():
+    """Two ways the wrong matrix won. HALKB's capture truncated "Non-bearing
+    interest" to "interest" and "5 years and over" to "over", so the
+    repricing table matched nothing under its own name and fell to
+    liquidity_gap on "1-5 years" — a band BOTH matrices print. AKTIF's
+    survives as ["itibarıyla) aya", "", "", "", "yıl ve", "", ""], naming no
+    family at all. Each time the prior-period copy beside it became the only
+    repricing instance: 3,022,219,724 for HALKB's 4,028,954,890, and
+    49,018,578 for AKTIF's 65,778,856."""
+    S4 = _load("build_section4_matrix_full")
+    assets = [("Cash (cash in vault)", [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 21.0]),
+              ("Banks", [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 21.0]),
+              ("Loans", [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 21.0]),
+              ("Total assets", [3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 63.0])]
+    grid = [{"label": lab, "cells": c} for lab, c in assets]
+
+    # the truncated repricing header: "interest" alone now names it, and the
+    # shared band "1-5 years" no longer hands it to liquidity_gap
+    halkb = ["month", "1-3 months", "3-12 months", "1-5 years", "over", "interest", "Total"]
+    assert S4.family_of(grid, halkb, None) == "repricing"
+    # a real liquidity table still wins on its own word, at any width
+    liq = ["Demand", "Up to 1 month", "1-3 months", "3-12 months", "1-5 years",
+           "5 years and over", "Unallocated", "Total"]
+    wide = [{"label": lab, "cells": c + [99.0]} for lab, c in assets]
+    assert S4.family_of(wide, liq, None) == "liquidity_gap"
+    # and currency beats both
+    assert S4.family_of(grid, ["EUR", "USD", "Other FC", "Total"], None) == "fx_position"
+
+    # nothing named: by shape, six bands and a total against seven and a total
+    shredded = ["itibarıyla) aya", "", "", "", "yıl ve", "", ""]
+    assert S4.family_of(grid, shredded, None) == "repricing"
+    assert S4.family_of(wide, ["", "", "", "", "", "", "", ""], None) == "liquidity_gap"
+    # a width the templates do not print stays unread
+    narrow = [{"label": lab, "cells": c[:3]} for lab, c in assets]
+    assert S4.family_of(narrow, ["", "", ""], None) is None
+
+
 def test_capital_seeds_on_the_titled_current_block(tmp_path):
     """ZIRAAT prints the current own-funds table opening partway down the
     template — no seed line in it — and the prior table in full below. The

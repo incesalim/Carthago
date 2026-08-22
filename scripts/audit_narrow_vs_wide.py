@@ -191,8 +191,16 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
                 out["bank_audit_loans_by_sector"].append((b, p, k, f"{sector}.{col}", narrow, w))
 
     # --- repricing: narrow rate-sensitive assets per bucket vs the wide total-assets row
-    bucket_of = {"m1": ("1 AY", "1 MONTH", "UP TO 1"), "m1_3": ("1-3",), "m3_12": ("3-12",),
-                 "y1_5": ("1-5",), "y5_plus": ("5 Y", "OVER 5"), "non_interest": ("FAIZSIZ", "NON", "INTEREST")}
+    # The narrow lane stores the bucket as a CODE -- lt_1m, 1_3m, 3_12m,
+    # 1_5y, gt_5y, non_sensitive, total -- and every needle here was written
+    # for the printed Turkish. Only "non_sensitive" ever matched, through
+    # "NON", so the check compared one of the seven buckets and left the
+    # other six unexamined.
+    bucket_of = {"m1": ("LT_1M", "1 AY", "1 MONTH", "UP TO 1"),
+                 "m1_3": ("1_3M", "1-3"), "m3_12": ("3_12M", "3-12"),
+                 "y1_5": ("1_5Y", "1-5"), "y5_plus": ("GT_5Y", "5 Y", "OVER 5"),
+                 "non_interest": ("NON_SENSITIVE", "FAIZSIZ", "NON", "INTEREST"),
+                 "total": ("TOTAL", "TOPLAM")}
     wide_rp = {}
     for b, p, k, band, v in tab.execute(
             "SELECT bank_ticker, period, kind, band, amount FROM bank_audit_section4_matrix_full "

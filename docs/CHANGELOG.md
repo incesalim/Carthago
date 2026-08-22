@@ -5,6 +5,39 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The repricing check was comparing one bucket in seven.**
+The narrow lane stores the bucket as a code — lt_1m, 1_3m, 3_12m, 1_5y,
+gt_5y, non_sensitive, total — and every needle in the check was written for
+the printed Turkish. Only `non_sensitive` ever matched, through "NON". Six
+of the seven buckets had never been looked at, and the 16 rows on the list
+were really 110.
+
+Two causes behind them, both about which matrix a block is.
+
+HALKB's capture truncated "Non-bearing interest" to "interest" and "5 years
+and over" to "over", so its repricing table matched nothing under its own
+name and fell to liquidity_gap on "1-5 years" — a band both matrices print.
+The words that name ONE matrix are tried first now.
+
+AKTIF's survives as ["itibarıyla) aya", "", "", "", "yıl ve", "", ""] and
+names no family at all, so it was dropped outright. A block naming none is
+read by shape: repricing prints six bands and a total, the liquidity gap
+seven and a total. The 113 seven-column liquidity tables all name
+themselves, so they never reach that fallback.
+
+Each time the prior-period copy beside it had been the only repricing
+instance in the filing — 3,022,219,724 for HALKB's 4,028,954,890,
+49,018,578 for AKTIF's 65,778,856.
+
+One needle had to come back out. Adding a bare "FAIZ" to the strict
+repricing words pulled VAKBN's and ICBCT's liquidity tables across, 224
+rows of them; "INTEREST" alone does not.
+
+Repricing instances 1,308 -> 1,507 and liquidity_gap 1,759 -> 1,761;
+repricing anchor 96.1% -> 96.5% and the liquidity gap's total assets
+against the narrow balance sheet 92.8% -> 98.7%. Indictments 110 -> 47 on
+all seven buckets. Repair list 208 -> 145.
+
 2026-08-22 — **The securities lane goes clean.** The last sizeable
 amortised-cost residue was the same currency split again, worded
 differently: QNBFB writes the lira column `TRY` rather than `TL` and runs
