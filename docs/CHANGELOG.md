@@ -5,6 +5,28 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **TSKB reported last year's LCR for four quarters running.**
+The narrow lane had 578% for 2024Q1 and the wide lane 829% — and 829% for
+2024Q2 as well, and 334% for every quarter of 2023. A wide figure repeating
+across a year is a year-end figure.
+
+TSKB's filings print the template twice, current then prior. The capture
+welds the row number to the label from row 15 on — "21TOTAL HQLA STOCK",
+with nothing in the number column — but only on the current-period page. So
+the current table stopped at row 14, failed `bottom_row`, and was dropped;
+the prior-period copy on the next page was the only survivor and took the
+'current' label by position. Its own row 23 read 578% all along, one page
+earlier.
+
+`numbered_template.rowno(glued=True)` reads the welded form. It is opt-in
+and only the LCR lane passes it: across the whole document layer 329 labels
+have that shape, and away from this template they are maturity bands
+("1Ay"), dates ("31Aralık 2024") and a footnote. The rule also needs three
+characters of word after the digits, which is what keeps "1Ay" out.
+
+Current LCR total 96.2% → 97.5% against the narrow lane, FC 96.7% → 97.9%,
+prior 95.8% → 95.9%, no partition lost. Repair list 291 → 280.
+
 2026-08-22 — **`collections` meant opposite things in neighbouring rows.**
 The NPL roll-forward's largest disagreement with the narrow lane — 204
 rows — was not a disagreement about any figure. Nine banks (ALNTF, EXIM,

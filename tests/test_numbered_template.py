@@ -1936,6 +1936,71 @@ def test_deposit_maturity_participation_template(tmp_path):
             "public_institutions", "commercial_institutions", "total"} <= roles
 
 
+def test_rowno_reads_a_number_welded_to_its_label_only_when_asked():
+    """TSKB's capture prints "21TOTAL HQLA STOCK" with an empty number
+    column. Opt-in, because the same shape elsewhere in the corpus is a
+    maturity band, a date or a footnote."""
+    def r(label):
+        return {"cells": [None], "label": label}
+    for label, n in (("21TOTAL HQLA STOCK", 21), ("17Secured Lending Transactions", 17),
+                     ("23LIQUIDITY COVERAGE RATIO (%)", 23), ("16TOPLAM NAKİT ÇIKIŞLARI", 16),
+                     ("2Gerçek kişi mevduat ve perakende mevduat", 2), ("9Teminatlı borçlar", 9)):
+        assert NT.rowno(r(label), 23, glued=True) == n, label
+        assert NT.rowno(r(label), 23) is None, label          # off by default
+    # a maturity band, a date and an out-of-range number stay unread
+    assert NT.rowno(r("1Ay"), 23, glued=True) is None
+    assert NT.rowno(r("31Aralık 2024"), 40, glued=True) is None
+    assert NT.rowno(r("24TOTAL"), 23, glued=True) is None     # past max_row
+    # the SPACED date has always read as row 31 through the older prefix
+    # rule; `glued` neither causes that nor fixes it
+    assert NT.rowno(r("31 Aralık 2024"), 40) == 31
+    # the number comes off the label the same way
+    assert NT.strip_rowno("21TOTAL HQLA STOCK", True) == "TOTAL HQLA STOCK"
+    assert NT.strip_rowno("21TOTAL HQLA STOCK") == "21TOTAL HQLA STOCK"
+    assert NT.strip_rowno("21 TOTAL HQLA STOCK") == "TOTAL HQLA STOCK"
+    assert NT.strip_rowno("31Aralık 2024", True) == "31Aralık 2024"
+
+
+def test_lcr_keeps_the_current_table_when_its_numbers_are_welded(tmp_path):
+    """TSKB 2024Q1 prints the current table on page 57 and the prior one on
+    58. The current table's numbers are welded to its labels from row 15 on,
+    so it stopped short of `bottom_row` and was dropped — and the prior copy
+    became 'current', reporting last year's 829% for four quarters running
+    against the narrow lane's 578%."""
+    LC = _load("build_lcr_full")
+
+    def table(rows, weld_from):
+        out = []
+        for n, label, w_total, w_fc in rows:
+            if n >= weld_from:
+                out.append((f"{n}{label}", [None, "-", "-", w_total, w_fc]))
+            else:
+                out.append((f"{n} {label}", [float(n), "-", "-", w_total, w_fc]))
+        return out
+
+    body = [(1, "High quality liquid assets", 17189886.0, 10855867.0),
+            (2, "Retail and Customers Deposits", 1.0, 1.0),
+            (16, "TOTAL CASH OUTFLOWS", 3000000.0, 2500000.0),
+            (20, "TOTAL CASH INFLOWS", 15120609.0, 12434008.0),
+            (21, "TOTAL HQLA STOCK", 17189886.0, 10855867.0),
+            (22, "TOTAL NET CASH OUTFLOWS", 2974814.0, 2489915.0),
+            (23, "LIQUIDITY COVERAGE RATIO (%)", 578.0, 436.0)]
+    prior = [(1, "High quality liquid assets", 16966338.0, 11220341.0),
+             (2, "Retail and Customers Deposits", 1.0, 1.0),
+             (16, "TOTAL CASH OUTFLOWS", 3000000.0, 2500000.0),
+             (20, "TOTAL CASH INFLOWS", 16832353.0, 11613207.0),
+             (21, "TOTAL HQLA STOCK", 16966338.0, 11220341.0),
+             (22, "TOTAL NET CASH OUTFLOWS", 2045519.0, 1612019.0),
+             (23, "LIQUIDITY COVERAGE RATIO (%)", 829.0, 696.0)]
+    db = _db(tmp_path, [(57, 2, "bin", table(body, 15)), (58, 1, "bin", table(prior, 99))])
+    got = LC.assemble(db, KEY)
+    ratio = {lab: [x for x in inst if x["template_row"] == 23][0]["w_total"]
+             for lab, inst in got["instances"].items()}
+    assert ratio == {"current": 578.0, "prior": 829.0}
+    cur = [x for x in got["instances"]["current"] if x["template_row"] == 21][0]
+    assert cur["page"] == 57 and cur["label"] == "TOTAL HQLA STOCK"
+
+
 def test_npl_movement_signed_page_with_a_child_that_carries_its_own_minus(tmp_path):
     """GARAN prints "Other (***)" under the debt sale as -123,549 in a
     filing whose sale reads +3,726 and in one reading -259,367 — the same

@@ -135,10 +135,14 @@ def _period_hint(heading: str | None, grid: list[dict]) -> str | None:
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     """Both LCR instances (current, prior) of one partition, or None."""
+    # `glued`: TSKB's capture prints the row number welded to the label
+    # ("21TOTAL HQLA STOCK") with an empty number column, so the CURRENT
+    # table stopped at row 14, failed `bottom_row` and was dropped -- leaving
+    # the prior-period copy on the next page to be labelled current.
     got = NT.assemble(
         tab, key, sig=_SIG, max_row=23, bottom_row=21, n_values=4,
         percent_rows={23}, role_of=lambda n, _label: ROLE_BY_ROW.get(n),
-        value_names=("uw_total", "uw_fc", "w_total", "w_fc"))
+        value_names=("uw_total", "uw_fc", "w_total", "w_fc"), glued=True)
     if got is not None:
         return got
     return NT.assemble_by_label(

@@ -49,6 +49,11 @@ from . import units as U
 _TR_FOLD = str.maketrans("İıŞşĞğÜüÖöÇçÂâÎîÛû", "IiSsGgUuOoCcAaIiUu")
 _ROW_IN_LABEL = re.compile(r"^(\d{1,2})\s+\S")
 _LABEL_PREFIX = re.compile(r"^\d{1,2}\s+")
+# TSKB's capture glues the row number to its label -- "21TOTAL HQLA STOCK",
+# with nothing in the number column. Opt-in per lane (`glued=True`): the
+# same shape elsewhere in the corpus is a maturity band ("1Ay"), a date
+# ("31Aralik 2024") or a footnote, so no lane gets it by default.
+_ROW_GLUED = re.compile(r"^(\d{1,2})(?!\s)[A-ZÇĞİÖŞÜ]\w{2,}")
 
 
 def fold(s: str | None) -> str:
@@ -56,16 +61,29 @@ def fold(s: str | None) -> str:
     return (s or "").translate(_TR_FOLD).upper()
 
 
-def rowno(r: dict, max_row: int) -> int | None:
+def rowno(r: dict, max_row: int, glued: bool = False) -> int | None:
     """The template row number: the row's first cell, or the label's prefix."""
     cells = r["cells"]
     if cells and isinstance(cells[0], (int, float)) and 1 <= cells[0] <= max_row \
             and float(cells[0]).is_integer():
         return int(cells[0])
-    m = _ROW_IN_LABEL.match(r["label"] or "")
+    label = r["label"] or ""
+    m = _ROW_IN_LABEL.match(label)
     if m and 1 <= int(m.group(1)) <= max_row:
         return int(m.group(1))
+    if glued:
+        m = _ROW_GLUED.match(label)
+        if m and 1 <= int(m.group(1)) <= max_row and not _GLUED_DATE.match(fold(label)):
+            return int(m.group(1))
     return None
+
+
+def strip_rowno(label: str, glued: bool = False) -> str:
+    """The label without the number the template prints in front of it."""
+    out = _LABEL_PREFIX.sub("", (label or "").strip())
+    if glued and _ROW_GLUED.match(out) and not _GLUED_DATE.match(fold(out)):
+        out = re.sub(r"^\d{1,2}", "", out)
+    return out
 
 
 def num(cell) -> float | None:
@@ -88,16 +106,17 @@ def repair_percent(vals: list[float | None],
             else v for v in vals]
 
 
-def block_columns(grid: list[dict], max_row: int, n_values: int) -> list[int]:
+def block_columns(grid: list[dict], max_row: int, n_values: int,
+                  glued: bool = False) -> list[int]:
     """The value-column indices of one block: the last `n_values` LIVE columns
     after the row-number column (phantom all-None columns drop out)."""
     ncols = max((len(r["cells"]) for r in grid), default=0)
     if not ncols:
         return []
-    numbered = [r for r in grid if rowno(r, max_row) is not None]
+    numbered = [r for r in grid if rowno(r, max_row, glued) is not None]
     with_rowno = sum(1 for r in numbered if r["cells"]
                      and isinstance(r["cells"][0], (int, float))
-                     and r["cells"][0] == rowno(r, max_row))
+                     and r["cells"][0] == rowno(r, max_row, glued))
     start = 1 if numbered and with_rowno * 2 >= len(numbered) else 0
     live = [c for c in range(start, ncols)
             if any(len(r["cells"]) > c and r["cells"][c] is not None
@@ -121,7 +140,8 @@ def live_value_columns(grid: list[dict], max_row: int) -> int:
 
 def detect(blocks: list[tuple], sig: dict[int, re.Pattern], max_row: int,
            min_sig: int = 2,
-           block_filter: Callable[[list[dict]], bool] | None = None) -> list[tuple]:
+           block_filter: Callable[[list[dict]], bool] | None = None,
+           glued: bool = False) -> list[tuple]:
     hits = []
     for pg, bid, grid, unit in blocks:
         if block_filter is not None and not block_filter(grid):
@@ -129,8 +149,8 @@ def detect(blocks: list[tuple], sig: dict[int, re.Pattern], max_row: int,
         # signatures see the label WITHOUT its number prefix ("1 KREDI RISKI"
         # -> "KREDI RISKI"), so a template may anchor its patterns at ^.
         s = sum(1 for r in grid
-                if (n := rowno(r, max_row)) in sig
-                and sig[n].search(fold(_LABEL_PREFIX.sub("", (r["label"] or "").strip()))))
+                if (n := rowno(r, max_row, glued)) in sig
+                and sig[n].search(fold(strip_rowno(r["label"], glued))))
         if s:
             hits.append((pg, bid, grid, unit, s))
     return hits if sum(h[4] for h in hits) >= min_sig else []
@@ -143,7 +163,8 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
              percent_repair_floor: float = 10000,
              percent_cols: frozenset[int] = frozenset(),
              block_filter: Callable[[list[dict]], bool] | None = None,
-             row_live_cells: bool = False) -> dict | None:
+             row_live_cells: bool = False,
+             glued: bool = False) -> dict | None:
     """All instances of one numbered template in one partition, or None.
 
     `row_live_cells`: a row holding exactly `n_values` non-empty cells after
@@ -157,7 +178,7 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
     each row a dict with template_row / label / role / page / block_id and
     one key per `value_names`, money already scaled to canonical bin.
     """
-    hits = detect(partition_blocks(tab, key), sig, max_row, block_filter=block_filter)
+    hits = detect(partition_blocks(tab, key), sig, max_row, block_filter=block_filter, glued=glued)
     if not hits:
         return None
     unit = hits[0][3]
@@ -165,7 +186,7 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
     instances: list[list[dict]] = [[]]
     last_no = 0
     for pg, bid, grid, _u, _s in hits:
-        cols = block_columns(grid, max_row, n_values)
+        cols = block_columns(grid, max_row, n_values, glued)
         prev_unnumbered: list[float | None] | None = None
         for r in grid:
             cells = r["cells"]
@@ -175,11 +196,11 @@ def assemble(tab: sqlite3.Connection, key: tuple, *, sig: dict[int, re.Pattern],
             else:
                 vals = [num(cells[c]) if c < len(cells) else None for c in cols]
             vals = [None] * (n_values - len(vals)) + vals
-            n = rowno(r, max_row)
+            n = rowno(r, max_row, glued)
             if n is None:
                 prev_unnumbered = vals if any(v is not None for v in vals) else None
                 continue
-            label = _LABEL_PREFIX.sub("", (r["label"] or "").strip())
+            label = strip_rowno(r["label"], glued)
             if not label:
                 continue
             if all(v is None for v in vals) and prev_unnumbered is not None:
@@ -372,6 +393,8 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
 _MONTHS = (r"OCAK|SUBAT|MART|NISAN|MAYIS|HAZIRAN|TEMMUZ|AGUSTOS|EYLUL|EKIM|KASIM|ARALIK|"
            r"JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER")
 _DATE_PREFIX = re.compile(r"^(\d{1,2}[ ./]*(" + _MONTHS + r")[ ./]*\d{4}[ ./]*([-–]\s*)?)+")
+# "31Aralik 2024" is a date, not row 31 -- see `rowno(glued=True)`
+_GLUED_DATE = re.compile(r"^\d{1,2}(" + _MONTHS + r")")
 _CURRENCY_HEADER = re.compile(r"((TP|YP|TL|FC|FX|TRY|TRL)[ /]*)+")
 
 
