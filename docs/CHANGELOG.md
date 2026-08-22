@@ -5,6 +5,28 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **A stray split fragment was hiding whole tables.** ALNTF's
+repricing table repeated the same figures for all four quarters of 2025 —
+every band, every quarter — and they were December 2024's. The current
+table was on the page before, and the lane never saw it.
+
+Its band header reads ['1 Aya Kadar', '1-3 Ay', '3-12 ay', 5.0, '1-5 yıl 5
+Yıl ve Üzeri', 'Faizsiz', 'Toplam']: the "5" of "5 Yıl" split into a column
+of its own. `is_header_row` required every cell to be a string, so that
+lone float disqualified the whole row, the band vocabulary never reached
+the family test, and the block was not a repricing table at all — leaving
+the prior-period copy beside it to take the 'current' label.
+
+A band header may now carry a small integer fragment among its words: twice
+as many words as numbers, each number integral and no greater than 12. That
+is tight enough that a row of amounts is still a data row.
+
+Repricing instances 1,186 -> 1,308 and liquidity_gap 1,619 -> 1,759, with
+96 more agreeing repricing rows at a flat 96.1%. ALNTF now reads
+16,677,889 / 14,360,541 / 15,723,278 / 19,541,331 — the narrow lane's
+figures exactly — with December 2024 correctly labelled prior. Repair list
+147 -> 145.
+
 2026-08-22 — **The sector lane's last 43 close.** VAKBN's "Kredi
 alacaklarının sektörel kırılımı / Sektörlere Göre Kırılım Nakdi Krediler"
 is three columns wide and carries no stage vocabulary at all, so the bare

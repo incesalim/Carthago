@@ -1671,6 +1671,29 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_band_header_survives_a_stray_split_fragment():
+    """ALNTF's repricing header reads ['1 Aya Kadar', '1-3 Ay', '3-12 ay',
+    5.0, '1-5 yıl 5 Yıl ve Üzeri', 'Faizsiz', 'Toplam'] — the "5" of "5 Yıl"
+    split into a column of its own. That lone float disqualified the whole
+    row, so the band vocabulary never reached the family test and the
+    CURRENT table was dropped for the prior one beside it: every quarter of
+    2025 then carried December 2024's 11,429,617."""
+    import src.audit_reports.band_matrix as BM
+    hdr = {"label": "30 Haziran 2025",
+           "cells": ["1 Aya Kadar", "1-3 Ay", "3-12 ay", 5.0, "1-5 yıl 5 Yıl ve Üzeri",
+                     "Faizsiz", "Toplam"]}
+    assert BM.is_header_row(hdr)
+    # a row of figures is still a data row, however many labels ride with it
+    data = {"label": "Bankalar", "cells": [1115968.0, "-", "-", "-", "-", 3371412.0, 4487380.0]}
+    assert not BM.is_header_row(data)
+    # and one large number among the words is not a split fragment
+    amount = {"label": "x", "cells": ["1 Aya Kadar", "1-3 Ay", 4487380.0, "Toplam"]}
+    assert not BM.is_header_row(amount)
+    # the all-strings case is untouched
+    assert BM.is_header_row({"label": "x", "cells": ["1 Aya Kadar", "Faizsiz", "Toplam"]})
+    assert not BM.is_header_row({"label": "x", "cells": ["-", "-", "-"]})
+
+
 def test_sector_cash_loan_breakdown_is_not_the_stage_note(tmp_path):
     """VAKBN's "Kredi alacaklarının sektörel kırılımı / Sektörlere Göre
     Kırılım Nakdi Krediler" is three columns wide and carries no stage

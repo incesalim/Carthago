@@ -57,7 +57,18 @@ def is_header_row(r: dict, header_label: re.Pattern = _DEFAULT_HEADER_LABEL) -> 
     cells = [c for c in r["cells"] if c is not None]
     if not cells:
         return bool(header_label.search(fold(r["label"] or "")))
-    return all(isinstance(c, str) and c.strip() != "-" for c in cells)
+    words = [c for c in cells if isinstance(c, str) and c.strip() != "-"]
+    nums = [c for c in cells if not isinstance(c, str)]
+    if not words or len(words) + len(nums) != len(cells):
+        return all(isinstance(c, str) and c.strip() != "-" for c in cells)
+    # A band header may carry a stray fragment the capture split off one of
+    # its names: ALNTF's reads ['1 Aya Kadar', '1-3 Ay', '3-12 ay', 5.0,
+    # '1-5 yil 5 Yil ve Uzeri', 'Faizsiz', 'Toplam'], and that lone 5.0 --
+    # the "5" of "5 Yil" in a column of its own -- disqualified the whole
+    # row, so the band vocabulary never reached the family test and the
+    # CURRENT repricing table was dropped for the prior one beside it.
+    return len(words) >= 2 * len(nums) and all(
+        float(c).is_integer() and abs(c) <= 12 for c in nums)
 
 
 def _fmt(cell) -> str | None:
