@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Two more cross-checks, and both caught something.**
+`audit_narrow_vs_wide.py` now compares the narrow `bank_audit_stages`
+against the stage movement's closing balances, and the derivatives note's
+own total against the balance sheet's derivative line. The stage check
+indicted 19 rows: a small-portfolio ECL roll-forward was being read as the
+loan one (GARAN 905,454 against 880,845,339). Two guards — a table with
+figures in a single stage is not the form, and `measure` reads whichever
+roll-forward row the capture kept whole — plus a new `subject` column so
+the audit compares only the loan tables: **0 indicted across the 21 that
+meet the narrow lane**. The derivative check indicted 16: GARAN's
+derivatives-by-remaining-maturity table was passing as the trading note
+(4.9bn against the balance sheet's 16.6bn) and is refused by heading; the
+14 that remain are 1–8% perimeter gaps, open in the repair list.
+
 2026-08-22 — **The capital lane gets a mint gate; coverage 924 → 843.**
 Re-running `audit_narrow_vs_wide.py` after the widening showed the capital
 indictments jumping 15 → 44, and the wide side was the wrong one: the new

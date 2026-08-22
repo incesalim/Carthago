@@ -162,6 +162,28 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
                 out["bank_audit_npl_movement"].append((b, p, k, f"{g}.{role}", narrow, w))
 
     # --- the statement lines behind the breakdown notes: a gated note total
+    # the TFRS 9 stage balances: the narrow lane keeps three numbers per
+    # filing, the wide movement table derives the same three from a
+    # roll-forward that had to close. The gross-loan instances only —
+    # the ECL ones are provisions, not balances.
+    wide_stage: dict[tuple, dict[str, float]] = defaultdict(dict)
+    for b, p_, k, band, v in tab.execute(
+            "SELECT bank_ticker, period, kind, band, amount FROM bank_audit_stage_movement_full "
+            "WHERE row_role='closing' AND measure='gross_loans' AND subject='loans' AND instance_no=0 "
+            "AND band IN ('stage1','stage2','stage3') AND amount IS NOT NULL"):
+        wide_stage[(b, p_, k)].setdefault(band, v)
+    for b, p_, k, s1, s2, s3 in aud.execute(
+            "SELECT bank_ticker, period, kind, stage1_amount, stage2_amount, stage3_amount "
+            "FROM bank_audit_stages WHERE period_type='current'"):
+        w = wide_stage.get((b, p_, k))
+        if not w:
+            continue
+        for band, narrow in (("stage1", s1), ("stage2", s2), ("stage3", s3)):
+            wv = w.get(band)
+            if narrow is None or wv is None or close(narrow, wv):
+                continue
+            out["bank_audit_stages"].append((b, p_, k, band, narrow, wv))
+
     #     that meets no narrow line is a narrow line wrong or missing
     statements = {
         ("bank_audit_tl_fc_note_full", "interest_on_loans"): ("pl", r"^KREDILERDEN ALINAN FAIZ|^INTEREST (INCOME )?(ON|FROM) LOANS"),
@@ -173,6 +195,14 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
         ("bank_audit_tl_fc_note_full", "securities_issued"): ("bs", r"^IHRAC EDILEN MENKUL|^(MARKETABLE |DEBT )?SECURITIES ISSUED|^ISSUED (MARKETABLE |DEBT )?SECURITIES|^BONDS ISSUED"),
         ("bank_audit_two_period_note_full", "letters_of_guarantee"): ("off_balance", r"^TEMINAT MEKTUPLARI$|^LETTERS? OF GUARANTEES?$"),
         ("bank_audit_two_period_note_full", "trading_income"): ("pl", r"^TICARI KAR|^TRADING (INCOME|PROFIT|GAIN)|^NET TRADING"),
+    }
+    # the derivatives note's own total against the balance sheet's derivative
+    # line — two independent captures of the same figure
+    deriv = {
+        "assets": r"^ALIM SATIM AMACLI TUREV ?FINANSAL (ARACLAR|VARLIK)|"
+                  r"^DERIVATIVE FINANCIAL ASSETS( (HELD FOR TRADING|AT FAIR VALUE THROUGH PROFIT))?$",
+        "liabilities": r"^ALIM SATIM AMACLI TUREV FINANSAL (BORCLAR|YUKUMLULUK)|"
+                       r"^DERIVATIVE FINANCIAL LIABILITIES( HELD FOR TRADING)?$",
     }
     pl_rows: dict[tuple, list] = defaultdict(list)
     for b, p, k, name, v in aud.execute("SELECT bank_ticker, period, kind, item_name, amount FROM bank_audit_profit_loss"):
@@ -202,6 +232,23 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
                 continue                           # no narrow line at all: a gap, not a contradiction
             if not any(close(wv, v) for v in cands):
                 out[f"{fam} (narrow statement line)"].append((b, p, k, f"{fam}.total", cands[0], wv))
+
+    import re as _re2
+    for ctx, rx in deriv.items():
+        rx_c = _re2.compile(rx)
+        st = "assets" if ctx == "assets" else "liabilities"
+        for b, p, k, tl, fc in tab.execute(
+                "SELECT bank_ticker, period, kind, current_tl, current_fc FROM bank_audit_derivative_full "
+                "WHERE context=? AND row_role='total' AND instance_no=0", (ctx,)):
+            if tl is None and fc is None:
+                continue
+            wv = (tl or 0.0) + (fc or 0.0)
+            rows = bs_rows.get((b, p, k, st), [])
+            cands = [v for name, v in rows if rx_c.search(name) or rx_c.search(foot.sub("", name))]
+            if not cands or any(close(wv, v) for v in cands):
+                continue
+            out[f"derivative.{ctx} (narrow balance-sheet line)"].append(
+                (b, p, k, f"derivative.{ctx}", cands[0], wv))
     return out
 
 

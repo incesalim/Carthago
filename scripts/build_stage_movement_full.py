@@ -66,6 +66,8 @@ ROLES: list[tuple[str, re.Pattern]] = [
 _DEDUCT_LABEL = R(r"\(\s*-\s*\)")
 _ECL = R(r"KARSILIK|PROVISION|EXPECTED|ECL|BEKLENEN|IMPAIRMENT|ZARAR")
 _BARE_TRANSFER = R(r"^(TRANSFERS? TO STAGE|ASAMAYA TRANSFER)$")
+_LOANS = R(r"KREDI|LOAN|ALACAK|RECEIVABLE|FINANSMAN")
+_NOT_LOANS = R(r"NAKIT|CASH|MENKUL|SECURIT|BILANCO DISI|OFF.?BALANCE|GAYRINAKDI|NON.?CASH|BANKALAR|BANKS")
 _STAGES = ("stage1", "stage2", "stage3")
 
 
@@ -84,6 +86,11 @@ CREATE TABLE IF NOT EXISTS bank_audit_stage_movement_full (
     kind         TEXT NOT NULL,
     instance_no  INTEGER NOT NULL,
     measure      TEXT NOT NULL,      -- gross_loans / ecl
+    -- 'loans' where the heading or the note above says so, else NULL: the
+    -- same three-stage roll-forward is printed for cash, securities and
+    -- non-cash exposures too, and only the loan one is comparable with the
+    -- narrow bank_audit_stages
+    subject      TEXT,
     convention   TEXT NOT NULL,      -- signed / deductions_labelled
     heading      TEXT,
     row_order    INTEGER NOT NULL,
@@ -192,6 +199,20 @@ def _no_total_models(grid: list[dict]) -> list[list[tuple[int, str]]]:
     return []
 
 
+def _subject(heading: str | None, grid: list[dict], rows: list[dict]) -> str | None:
+    """'loans' where the table says it is the loan roll-forward. The same
+    three stages are printed for cash, securities and off-balance-sheet
+    exposures, and GARAN's ECL table for one of those read as the loan one
+    against the narrow lane's billions."""
+    first = next((i for i, r in enumerate(grid) if role_of(r["label"] or "") == "opening"), 0)
+    near = grid[max(0, first - 3):first + 1]
+    text = " ".join([fold(heading or "")] + [fold(r["label"] or "") for r in near]
+                    + [fold(str(c)) for r in near for c in r["cells"] if isinstance(c, str)])
+    if _LOANS.search(text) and not _NOT_LOANS.search(text):
+        return "loans"
+    return None
+
+
 def _measure(heading: str | None, grid: list[dict], rows: list[dict]) -> str:
     """'ecl' where the heading, the in-grid header rows or the opening row
     speak of provisions; else by the figures: a gross-loan table carries
@@ -202,10 +223,15 @@ def _measure(heading: str | None, grid: list[dict], rows: list[dict]) -> str:
                     + [fold(str(c)) for r in near for c in r["cells"] if isinstance(c, str)])
     if _ECL.search(text):
         return "ecl"
-    closing = next((dict(x["cells"]) for x in rows if x["role"] == "closing"), {})
-    parts = [closing.get(b) for b in _STAGES]
-    if all(v is not None for v in parts) and sum(parts):
-        return "gross_loans" if parts[0] / sum(parts) >= 0.5 else "ecl"
+    # the figures decide: a gross-loan table carries most of its closing in
+    # stage 1, an ECL table does not. Whichever roll-forward row the capture
+    # kept whole answers — DUNYAK's closing total is missing and its opening
+    # is not, and reading the incomplete one called an ECL table gross loans
+    for role in ("closing", "opening"):
+        cells = next((dict(x["cells"]) for x in rows if x["role"] == role), {})
+        parts = [cells.get(b) for b in _STAGES]
+        if all(v is not None for v in parts) and sum(parts):
+            return "gross_loans" if parts[0] / sum(parts) >= 0.5 else "ecl"
     return "gross_loans"
 
 
@@ -285,8 +311,15 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
                 if any(x["role"] == "closing" for x in part):
                     last = max(i for i, x in enumerate(part) if x["role"] == "closing")
                     del part[last + 1:]         # and the prose / next table captured below the closing
+                # the form has three stages: a table with values in only one
+                # of them is another movement note that happens to roll
+                bands = {b for x in part for b, v in x["cells"] if b in _STAGES and v is not None}
+                if len(bands) < 2:
+                    continue
                 if part:
-                    instances.append({"rows": part, "heading": heading, "measure": _measure(heading, grid, part)})
+                    instances.append({"rows": part, "heading": heading,
+                                      "measure": _measure(heading, grid, part),
+                                      "subject": _subject(heading, grid, part)})
     return {"unit": unit, "step": float(factor or 1.0), "no_header": no_header, "instances": instances}
 
 
@@ -350,8 +383,9 @@ def main() -> int:
             out.execute("DELETE FROM bank_audit_stage_movement_full WHERE bank_ticker=? AND period=? AND kind=?", key)
             for n, inst in enumerate(kept):
                 out.executemany(
-                    "INSERT INTO bank_audit_stage_movement_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    [(*key, n, inst["measure"], inst["convention"], inst["heading"], i, x["label"], x["role"],
+                    "INSERT INTO bank_audit_stage_movement_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [(*key, n, inst["measure"], inst["subject"], inst["convention"], inst["heading"],
+                      i, x["label"], x["role"],
                       k, b, v, x["page"], x["block_id"], got["unit"])
                      for i, x in enumerate(inst["rows"]) for k, (b, v) in enumerate(x["cells"])])
                 written += sum(len(x["cells"]) for x in inst["rows"])

@@ -130,6 +130,19 @@ def _is_family(grid: list[dict]) -> bool:
         and roles.count("total") == 1
 
 
+_MATURITY = re.compile(r"VADEYE KALAN|KALAN VADE|VADE DAGILIM|1 AYA KADAR|MATURIT|MEDIUM AND|"
+                       r"UP TO 1 MONTH|ORTA VE UZUN")
+
+
+def _is_maturity_table(heading: str | None, item_title: str | None, col_labels: list) -> bool:
+    """The same instrument rows are printed again split by remaining
+    maturity; those columns are months and years, not TL / FC, so the four
+    value slots would take the wrong figures — GARAN's 2025Q1 liabilities
+    read 4.9bn against the balance sheet's 16.6bn."""
+    ctx = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or "") + " " + (item_title or ""))
+    return bool(_MATURITY.search(ctx))
+
+
 def _identity_holds(inst: list[dict]) -> bool:
     by: dict = {}
     for x in inst:
@@ -151,13 +164,14 @@ def _identity_holds(inst: list[dict]) -> bool:
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     blocks = tab.execute(
-        "SELECT page, block_id, heading, item_title, grid_json, declared_unit "
+        "SELECT page, block_id, heading, item_title, grid_json, col_labels_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = [(pg, bid, h, it, grid, unit)
-             for pg, bid, h, it, g, unit in blocks
+             for pg, bid, h, it, g, cl, unit in blocks
              if _is_family(grid := _normalise(absorb_inline(
-                 json.loads(g), role_of, keep=lambda lab: role_of(lab) in COMPONENTS)))]   # ISCTR: a valueless "Futures"
+                 json.loads(g), role_of, keep=lambda lab: role_of(lab) in COMPONENTS)))   # ISCTR: a valueless "Futures"
+             and not _is_maturity_table(h, it, json.loads(cl or "[]"))]
     if not found:
         return None
     unit = found[0][5]

@@ -1329,6 +1329,60 @@ def test_eps_four_column_blocks_and_the_lost_decimal_comma(tmp_path):
     assert EP.repair_eps(6438442.0, 1193585.0, 5331.0) == (5331.0, None)
 
 
+def test_stage_movement_subject_and_single_band_guard(tmp_path):
+    """The same three-stage roll-forward is printed for cash, securities and
+    off-balance-sheet exposures. Only the loan one is comparable with the
+    narrow stage lane, so the subject is recorded; and a table with figures
+    in one stage only is another movement note that happens to roll."""
+    SM = _load("build_stage_movement_full")
+    loans = [
+        ("Kredilere ilişkin beklenen zarar karşılıkları", [None, None, None, None]),
+        ("Dönem Başı Bakiye", [1000.0, 200.0, 100.0, 1300.0]),
+        ("Dönem İçi İlave", [500.0, 50.0, 20.0, 570.0]),
+        ("Dönem Sonu Bakiye", [1500.0, 250.0, 120.0, 1870.0]),
+    ]
+    one_band = [
+        ("Balances at Beginning of Period", [237052.0, None, None, 237052.0]),
+        ("Additions during the Period (+)", [2570304.0, None, None, 2570304.0]),
+        ("Balances at End of Period", [2807356.0, None, None, 2807356.0]),
+    ]
+    db = _db(tmp_path, [(60, 1, "bin", loans), (92, 1, "bin", one_band)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, heading=? WHERE page=60",
+               (json.dumps(["1. Aşama", "2. Aşama", "3. Aşama", "Toplam"]),
+                "Kredilere ilişkin beklenen zarar karşılıkları"))
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, heading=? WHERE page=92",
+               (json.dumps(["1. Aşama", "2. Aşama", "3. Aşama", "Toplam"]),
+                "(Thousands of Turkish Lira (TL))"))
+    db.commit()
+    got = SM.assemble(db, KEY)
+    assert len(got["instances"]) == 1                       # the single-band table is not the form
+    inst = got["instances"][0]
+    assert inst["subject"] == "loans" and inst["measure"] == "ecl"
+    assert SM._subject("Nakit ve nakit benzerleri için beklenen zarar", [], []) is None
+
+
+def test_derivative_maturity_table_is_not_the_trading_note(tmp_path):
+    """GARAN prints the instrument rows again split by remaining maturity;
+    its columns are months, not TL / FC, and reading it as the note put
+    4.9bn against the balance sheet's 16.6bn."""
+    DV = _load("build_derivative_full")
+    rows = [
+        ("Vadeli İşlemler", [100.0, 200.0, 300.0, 600.0]),
+        ("Swap İşlemleri", [400.0, 500.0, 600.0, 1500.0]),
+        ("Futures İşlemleri", ["-", "-", "-", "-"]),
+        ("Opsiyonlar", [10.0, 20.0, 30.0, 60.0]),
+        ("Diğer", ["-", "-", "-", "-"]),
+        ("Toplam", [510.0, 720.0, 930.0, 2160.0]),
+    ]
+    db = _db(tmp_path, [(106, 1, "bin", rows)])
+    db.execute("UPDATE bank_audit_document_tables SET heading=?, item_title=?",
+               ("TL FC Prior Period Medium and Long Term", "Türev finansal borçlar"))
+    db.commit()
+    assert DV.assemble(db, KEY) is None
+    assert DV._is_maturity_table("Kalan vadeye göre türev işlemler", None, [])
+    assert not DV._is_maturity_table("Alım satım amaçlı türev finansal borçlar", None, [])
+
+
 def test_risk_weight_reads_the_unnumbered_cr5(tmp_path):
     """AKTIF and ATBANK print CR5's asset classes without the regulator's
     row numbers; the body rows are then the class rows themselves, the form
