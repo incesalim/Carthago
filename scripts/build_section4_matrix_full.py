@@ -90,7 +90,12 @@ _FAMILY_HINT_STRICT = {
     "fx_position": re.compile(r"\bEURO?\b|\bAVRO\b|\bUSD\b|ABD DOLARI|US DOLLAR"),
     "liquidity_gap": re.compile(r"DAGITILAMAYAN|UNALLOCATED|UNDISTRIBUTED|NOT DISTRIBUTED|"
                                 r"VADESIZ|DEMAND"),
-    "repricing": re.compile(r"FAIZSIZ|NON.?INTEREST|INTEREST.?FREE|BEARING|\bINTEREST\b"),
+    # "Yeniden fiyatlandirmaya kalan sureler itibariyla" is the repricing
+    # table's own caption -- the strongest evidence there is, and AKTIF
+    # prints it where nothing else names the family.
+    "repricing": re.compile(r"YENIDEN FIYATLANDIR|REPRICING|FAIZE DUYARLI|"
+                            r"INTEREST RATE SENSITIV|FAIZSIZ|NON.?INTEREST|INTEREST.?FREE|"
+                            r"BEARING|\bINTEREST\b"),
 }
 _FAMILY_HINT = {
     "fx_position": re.compile(r"\bEURO?\b|\bAVRO\b|\bUSD\b|ABD DOLARI|US DOLLAR"),
@@ -195,7 +200,11 @@ def family_of(grid: list[dict], col_labels: list, heading: str | None) -> str | 
     if not any(x in roles for x in ("loans", "money_market_payables", "money_market", "banks", "cash_and_cbrt")):
         return None
     headers = [r for r in grid if BM.is_header_row(r, _HEADER_LABEL)]
+    # the header rows' own LABELS count too: AKTIF's caption "(Yeniden
+    # fiyatlandirmaya kalan sureler itibariyla)" is a label, not a cell, and
+    # it is the only place the family is named
     text = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or "") + " "
+                + " ".join(r["label"] or "" for r in headers) + " "
                 + " ".join(str(c) for r in headers for c in r["cells"] if isinstance(c, str)))
     # The specific words first. "5 YIL / 5 YEAR / OVER 5" are bands BOTH
     # matrices print, so on HALKB -- whose capture truncated "Non-bearing

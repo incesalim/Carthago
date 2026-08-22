@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The table said what it was; nobody was reading that line.**
+AKTIF's repricing block carries the caption "(Yeniden fiyatlandırmaya kalan
+süreler itibarıyla)" — literally "by remaining repricing period". It is the
+strongest evidence a block can carry, and the family text was built from
+the header rows' CELLS only, never their labels. So the caption was invisible
+and the loose "5 YIL" needle in the surrounding prose claimed the block for
+liquidity_gap, leaving the prior-period copy as the filing's only repricing
+instance: 49,018,578 where the narrow lane has 65,778,856.
+
+Header labels count now, and the caption words lead the strict repricing
+pattern. Repricing instances 1,507 -> 1,606 with the anchor 96.5% -> 97.1%,
+and the indictments 47 -> 14 — the last of it two ODEA filings. Repair list
+145 -> 112.
+
 2026-08-22 — **The repricing check was comparing one bucket in seven.**
 The narrow lane stores the bucket as a code — lt_1m, 1_3m, 3_12m, 1_5y,
 gt_5y, non_sensitive, total — and every needle in the check was written for

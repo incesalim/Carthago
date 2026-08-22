@@ -1702,6 +1702,13 @@ def test_section4_family_from_the_specific_words_then_the_shape():
     # nothing named: by shape, six bands and a total against seven and a total
     shredded = ["itibarıyla) aya", "", "", "", "yıl ve", "", ""]
     assert S4.family_of(grid, shredded, None) == "repricing"
+    # but AKTIF names it in a header row's LABEL, which outranks the shape --
+    # and the loose "5 YIL" needle in the heading no longer wins first
+    caption = [{"label": "(Yeniden fiyatlandırmaya kalan süreler itibarıyla)",
+                "cells": [None] * 7}] + [{"label": "Varlıklar", "cells": [None] * 7}] + grid
+    assert S4.family_of(caption, shredded,
+                        "Varlıkların, yükümlülüklerin ve nazım hesap kalemlerinin faize "
+                        "duyarlılığı 5 yıl ve üzeri") == "repricing"
     assert S4.family_of(wide, ["", "", "", "", "", "", "", ""], None) == "liquidity_gap"
     # a width the templates do not print stays unread
     narrow = [{"label": lab, "cells": c[:3]} for lab, c in assets]
