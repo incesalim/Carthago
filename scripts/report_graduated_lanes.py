@@ -46,9 +46,17 @@ def main() -> int:
         n_rows = tab.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
         covered = {tuple(r) for r in tab.execute(f"SELECT DISTINCT bank_ticker, period, kind FROM {t}")}
         n_banks = len({b for b, _p, _k in covered})
-        n_periods = len({p for _b, p, _k in covered})
+        periods_seen = {p for _b, p, _k in covered}
+        n_periods = len(periods_seen)
+        # IN-SCOPE coverage: the share of the partitions from the periods and
+        # banks where this disclosure appears at all. A Pillar 3 table that
+        # starts in 2024, or one only deposit-taking banks print, is bounded
+        # by the document, not by the reader — the raw share hides that.
+        banks_seen = {b for b, _p, _k in covered}
+        scope = {(b, p, k) for (b, p, k) in partitions if p in periods_seen and b in banks_seen}
         rows_out.append((t.replace("bank_audit_", "").replace("_full", ""), len(covered), n_part,
-                         len(covered) / n_part if n_part else 0.0, n_banks, n_periods, n_rows))
+                         len(covered) / n_part if n_part else 0.0, n_banks, n_periods, n_rows,
+                         len(covered) / len(scope) if scope else 0.0, len(scope)))
         per_bank = {}
         for b in banks:
             have = sum(1 for (bb, _p, _k) in covered if bb == b)
@@ -58,14 +66,18 @@ def main() -> int:
 
     rows_out.sort(key=lambda r: -r[1])
     lines = [f"# Graduated lanes — readiness {date.today().isoformat()}", "",
-             f"Document layer: {n_part} partitions, {len(banks)} banks. Coverage = filings with ≥1 minted instance.", "",
-             "| lane | filings | coverage | banks | periods | rows |", "|---|---:|---:|---:|---:|---:|"]
-    print(f"{'lane':28} {'filings':>8} {'cover':>7} {'banks':>5} {'periods':>7} {'rows':>10}")
+             f"Document layer: {n_part} partitions, {len(banks)} banks. Coverage = filings with ≥1 minted "
+             "instance; in-scope = the same over the partitions from the periods and banks where the "
+             "disclosure appears at all (a Pillar 3 table that starts in 2024, or one only deposit-taking "
+             "banks print, is bounded by the document, not by the reader).", "",
+             "| lane | filings | coverage | in-scope | banks | periods | rows |",
+             "|---|---:|---:|---:|---:|---:|---:|"]
+    print(f"{'lane':28} {'filings':>8} {'cover':>7} {'in-scope':>9} {'banks':>5} {'periods':>7} {'rows':>10}")
     total_rows = 0
-    for name, cov, n, share, nb, np_, nr in rows_out:
+    for name, cov, n, share, nb, np_, nr, in_scope, scope_n in rows_out:
         total_rows += nr
-        print(f"{name:28} {cov:8} {share:7.1%} {nb:5} {np_:7} {nr:10,}")
-        lines.append(f"| {name} | {cov} / {n} | {share:.1%} | {nb} | {np_} | {nr:,} |")
+        print(f"{name:28} {cov:8} {share:7.1%} {in_scope:9.1%} {nb:5} {np_:7} {nr:10,}")
+        lines.append(f"| {name} | {cov} / {n} | {share:.1%} | {in_scope:.1%} of {scope_n} | {nb} | {np_} | {nr:,} |")
     print(f"{'total':28} {'':8} {'':7} {'':5} {'':7} {total_rows:10,}")
     lines += ["", f"Total rows across lanes: {total_rows:,}.", "", "## Coverage by bank (share of the bank's filings)", "",
               "| lane | " + " | ".join(banks) + " |", "|---|" + "---:|" * len(banks)]
