@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **TL/FC notes: 875 → 983 filings.** The capture prints the
+note's date line above the first row — as a row of its own ("31 Mart 2022 |
+31 | 2022", HSBC) or glued onto the first label ("30 Haziran 2023
+Kasa/Efektif", ZIRAATK, where the row IS the Kasa row and only the prefix
+is noise). The family is decided by the first row's role, so both readings
+dropped whole families: cash_and_cbrt 689 → 799 filings, funds_borrowed
+370 → 520, interest_on_loans 274 → 383, securities_issued 144 → 225. A
+"TP YP TP YP" line printed as a row rather than an inline header goes the
+same way, and the word that confirms a family ("faiz", "kredi") is often
+only in the contents item the block sits under, so the context test now
+reads the item title as well as the heading.
+
 2026-08-22 — **Shareholder loans: 651 → 778 filings, 32 → 34 banks.** Three
 capture shapes: the cash / non-cash pair that names the columns is an
 inline header row `absorb_inline` drops (HSBC, BURGAN), so the family test

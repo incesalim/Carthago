@@ -209,7 +209,35 @@ def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]
     return out
 
 
-def family_of(grid: list[dict], heading: str | None) -> str | None:
+_MONTHS = (r"OCAK|SUBAT|MART|NISAN|MAYIS|HAZIRAN|TEMMUZ|AGUSTOS|EYLUL|EKIM|KASIM|ARALIK|"
+           r"JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER")
+_DATE_PREFIX = R(r"^\d{1,2}[ ./]*(" + _MONTHS + r")[ ./]*\d{4}\s*")
+_CURRENCY_HEADER = R(r"((TP|YP|TL|FC|FX|TRY|TRL)[ /]*)+")
+
+
+def normalise(grid: list[dict]) -> list[dict]:
+    """The grid without the date line the capture prints above the first row
+    — as a row of its own ("31 Mart 2022", HSBC) or glued onto the first
+    label ("30 Haziran 2023 Kasa/Efektif", ZIRAATK, which keeps the row and
+    loses the prefix)."""
+    out = []
+    for r in grid:
+        lab = (r["label"] or "").strip()
+        if not any(c is not None for c in r["cells"]) and _CURRENCY_HEADER.fullmatch(fold(lab).strip()):
+            continue                            # "TP YP TP YP": the column header as a row
+        m = _DATE_PREFIX.match(fold(lab))
+        if m:
+            rest = lab[m.end():].strip()
+            if not rest:
+                if any(c is not None for c in r["cells"]):
+                    continue                    # "31 Mart 2022 | 31 | 2022": a date row
+                continue
+            r = {**r, "label": rest}
+        out.append(r)
+    return out
+
+
+def family_of(grid: list[dict], heading: str | None, item_title: str | None = None) -> str | None:
     if not 3 <= len(grid) <= 10 or len(grid[0]["cells"]) != 4:
         return None
     labels = [(r["label"] or "").strip() for r in grid]
@@ -221,7 +249,11 @@ def family_of(grid: list[dict], heading: str | None) -> str | None:
         if rs[0][0] not in _FIRST_ROLE[fam]:
             continue
         n = sum(1 for role, _p in rs if role and role != "total")
-        if n >= 2 and n > best_n and _CTX[fam].search(fold(heading or "") + " " + fold(" ".join(labels))):
+        # the confirming word is often only in the contents item the block
+        # sits under ("Faiz gelirlerine ilişkin bilgiler"), never in the
+        # heading the capture kept ("Cari Dönem Önceki Dönem")
+        ctx = fold(heading or "") + " " + fold(item_title or "") + " " + fold(" ".join(labels))
+        if n >= 2 and n > best_n and _CTX[fam].search(ctx):
             best, best_n = fam, n
     return best
 
@@ -256,8 +288,8 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, item_title, g, unit in blocks:
-        grid = absorb_inline(json.loads(g), _any_role)
-        fam = family_of(grid, heading)
+        grid = normalise(absorb_inline(json.loads(g), _any_role))
+        fam = family_of(grid, heading, item_title)
         if fam in ("interest_from_banks", "interest_on_securities"):
             # the balance-sheet "banks" and "securities by measurement" notes
             # print the same rows under the assets section and anchor to

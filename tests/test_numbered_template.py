@@ -1270,6 +1270,43 @@ def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tm
     assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
 
 
+def test_tl_fc_note_drops_the_date_line_above_the_first_row(tmp_path):
+    """The capture prints the note's date line above the first row — as a
+    row of its own ("31 Mart 2022 | 31 | 2022", HSBC) or glued onto the
+    first label ("30 Haziran 2023 Kasa/Efektif", ZIRAATK, where the row is
+    the Kasa row and only the prefix is noise). Either way the first role
+    decides the family, so the line has to go."""
+    TF = _load("build_tl_fc_note_full")
+    hsbc = [
+        ("31 Mart 2022", [31.0, 2022.0, 31.0, 2021.0]),
+        ("TP YP TP YP", [None, None, None, None]),
+        ("T.C. Merkez Bankasından", [851.0, "-", "-", "-"]),
+        ("Yurtiçi bankalardan", [19296.0, "-", 25789.0, 1.0]),
+        ("Yurtdışı bankalardan", [400.0, 227.0, 146.0, 78.0]),
+        ("Yurtdışı merkez ve şubelerden", ["-", "-", "-", "-"]),
+        ("Toplam", [20547.0, 227.0, 25935.0, 79.0]),
+    ]
+    ziraatk = [
+        ("30 Haziran 2023 Kasa/Efektif", [110656.0, 1933573.0, 121498.0, 827299.0]),
+        ("TP YP TP YP", [None, None, None, None]),
+        ("T.C. Merkez Bankası(*)", [5547061.0, 31513555.0, 6189305.0, 17634063.0]),
+        ("Diğer", ["-", 749964.0, "-", 202080.0]),
+        ("Toplam", [5657717.0, 34197092.0, 6310803.0, 18663442.0]),
+    ]
+    db = _db(tmp_path, [(78, 2, "bin", hsbc), (64, 1, "bin", ziraatk)])
+    db.execute("UPDATE bank_audit_document_tables SET heading='Cari Dönem Önceki Dönem', "
+               "item_title='Faiz gelirlerine ilişkin bilgiler'")
+    db.commit()
+    got = TF.assemble(db, KEY)
+    fams = [(i["family"], TF._identity_holds(i["rows"], got["step"])) for i in got["instances"]]
+    assert fams == [("cash_and_cbrt", True), ("interest_from_banks", True)]
+    cash = {x["role"]: x for x in got["instances"][0]["rows"] if x["role"]}
+    assert cash["cash"]["label"] == "Kasa/Efektif" and cash["cash"]["tl_current"] == 110656.0
+    assert cash["total"]["fc_current"] == 34197092.0
+    banks = {x["role"]: x for x in got["instances"][1]["rows"] if x["role"]}
+    assert banks["cbrt"]["tl_current"] == 851.0 and banks["total"]["tl_prior"] == 25935.0
+
+
 def test_shareholder_loans_two_identities(tmp_path):
     SL = _load("build_shareholder_loans_full")
     ok = [("Banka Ortaklarına Verilen Doğrudan Krediler", ["-", 396.0, "-", 159.0]),
