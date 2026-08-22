@@ -5,6 +5,41 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The securities note: one mislabelled portfolio, and a
+check that was looking at the wrong balance-sheet line.**
+
+ALNTF's FVOCI note was stored as `fvtpl`. Its total, 7,919,060, is the
+balance sheet's FVOCI line to the lira — but the note's own title, "e.
+Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan…", is a
+valueless row two lines above the table, inside a block whose heading
+belongs to the country table above it. The ledger lookback cannot see that
+line (it is in the tables layer, not the lines layer), so it reached past
+it to the FVTPL note. `portfolio_from_grid` now reads the nearest title
+printed above the table's first group row and outranks the ledger:
+unknown 129 → 1, fvoci 887 → 929, amortised_cost 802 → 901, fvtpl 82 → 69.
+
+Then three faults in the check itself.
+
+It compared every note total against the portfolio's balance-sheet parent
+only. A note may cover just the securities children of that line: ICBCT's
+FVOCI note totals 376,064, which is the government-debt child exactly,
+while the parent's other 11,902,440 sits in "other financial assets". The
+children and their sum are candidates now — fvoci 50 → 26 rows.
+
+Its amortised-cost pattern missed the line the note actually is. Most
+banks print "İtfa Edilmiş Maliyeti ile Ölçülen **Diğer** Finansal
+Varlıklar"; without that word the only candidate left was the roman-numeral
+parent, which also holds the loan book. Agreement 25.0% → **93.7%**.
+
+And it pinned `instance_no=0`, the first note of the filing. Amortised cost
+is almost always the second, so the check examined 44 of its 901 instances
+and never looked at the rest. It now takes the first instance of each
+portfolio: 44 → 694 checked.
+
+The repair total moves 280 → 262, but the two numbers are not comparable
+for amortised cost — that bucket reads 33 → 44 rows on 15× the coverage.
+fvtpl 9 → 2, fvoci 50 → 26.
+
 2026-08-22 — **TSKB reported last year's LCR for four quarters running.**
 The narrow lane had 578% for 2024Q1 and the wide lane 829% — and 829% for
 2024Q2 as well, and 334% for every quarter of 2023. A wide figure repeating

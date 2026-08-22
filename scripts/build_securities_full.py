@@ -77,6 +77,34 @@ def portfolio_of(heading: str | None, item_title: str | None) -> str:
 
 
 _TITLE_LINE = re.compile(r"ILISKIN BILGI|INFORMATION ON|FINANSAL VARLIK|FINANCIAL ASSETS|MENKUL|SECURITIES")
+_GROUP_HEAD = re.compile(r"^BORCLANMA SENETLERI|^DEBT SECURITIES|^DEBT INSTRUMENTS?( \(|$)|"
+                         r"^HISSE SENETLERI|^SHARE CERTIFICATES|^EQUITY (SECURITIES|SHARES|INSTRUMENTS)")
+
+
+def portfolio_from_grid(grid: list[dict]) -> str:
+    """The portfolio from a title line the capture left INSIDE the block.
+
+    ALNTF prints "e. Gerçeğe uygun değer farkı diğer kapsamlı gelire
+    yansıtılan..." as a valueless row two lines above its own table, in a
+    block whose heading belongs to the country table above it. The ledger
+    lookback cannot see that line — it is in the tables layer, not the lines
+    layer — so it reached past it to the FVTPL note and filed 7,919,060, the
+    balance sheet's FVOCI line to the lira, as fvtpl.
+
+    Only what is printed ABOVE the table's first group row counts, and the
+    nearest one wins."""
+    seen = "unknown"
+    for r in grid:
+        label = fold(r.get("label") or "").strip()
+        if _GROUP_HEAD.search(label) and any(c is not None for c in r.get("cells") or []):
+            return seen
+        if any(isinstance(c, (int, float)) for c in r.get("cells") or []):
+            continue                      # a data row of some other table
+        for name, rx in _PORTFOLIO:
+            if rx.search(label):
+                seen = name
+                break
+    return "unknown"
 
 
 def portfolio_from_ledger(cap: sqlite3.Connection | None, key: tuple, page: int, block_id: int) -> str:
@@ -305,6 +333,10 @@ def assemble(tab: sqlite3.Connection, key: tuple, cap: sqlite3.Connection | None
     instances = []
     for pg, bid, h, it, grid, _u, raw in found:
         portfolio = portfolio_of(h, it)
+        if portfolio == "unknown":
+            # the block's own title line first: it is the only evidence that
+            # is certainly about THIS table
+            portfolio = portfolio_from_grid(raw)
         if portfolio == "unknown":
             portfolio = portfolio_from_ledger(cap, key, pg, bid)
         instances.append({"portfolio": portfolio, "heading": h,

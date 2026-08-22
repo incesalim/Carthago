@@ -47,6 +47,26 @@ CHARACTERISED = {
 }
 
 
+_SEC_CHILD = __import__("re").compile(r"BORCLANMA SENET|SERMAYEDE PAYI|DEBT (INSTRUMENT|SECURIT)|"
+                                      r"EQUITY (INSTRUMENT|SECURIT)|SHARE CERTIFICATE")
+
+
+def _sec_children(tree: list[tuple], rx_c, foot) -> list[float]:
+    """The securities lines printed UNDER a matched portfolio line, and their
+    sum. The balance sheet nests them ("1.3" over "1.3.1", "1.3.2"), so the
+    parent is the prefix of its own children."""
+    out: list[float] = []
+    for h, name, _v in tree:
+        if not h or not (rx_c.search(name) or rx_c.search(foot.sub("", name))):
+            continue
+        kids = [v for hh, nn, v in tree
+                if hh.startswith(h + ".") and hh.count(".") == h.count(".") + 1
+                and _SEC_CHILD.search(nn)]
+        if kids:
+            out += kids + [sum(kids)]
+    return out
+
+
 def close(a, b, rel=1e-3, absolute=2.0) -> bool:
     return abs(a - b) <= max(absolute, rel * abs(b))
 
@@ -257,10 +277,14 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
         if v is not None:
             pl_rows[(b, p, k)].append((fold(name or "").strip(), v))
     bs_rows: dict[tuple, list] = defaultdict(list)
-    for b, p, k, st, name, v in aud.execute(
-            "SELECT bank_ticker, period, kind, statement, item_name, amount_total FROM bank_audit_balance_sheet"):
+    bs_tree: dict[tuple, list] = defaultdict(list)      # (hierarchy, name, value), assets only
+    for b, p, k, st, h, name, v in aud.execute(
+            "SELECT bank_ticker, period, kind, statement, hierarchy, item_name, amount_total "
+            "FROM bank_audit_balance_sheet"):
         if v is not None:
             bs_rows[(b, p, k, st)].append((fold(name or "").strip(), v))
+            if st == "assets":
+                bs_tree[(b, p, k)].append(((h or "").strip(), fold(name or "").strip(), v))
     import re as _re
     import re as _re2
     foot = _re.compile(r"(\s+[-–]?\s*[IVXA-Z0-9.(),]{1,8})+$")
@@ -308,20 +332,41 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
                  r"^FINANCIAL ASSETS (AT|MEASURED AT) FAIR VALUE THROUGH PROFIT",
         "fvoci": r"^(FINANSAL VARLIKLAR )?GERCEGE UYGUN DEGER FARKI DIGER KAPSAMLI GELIRE YANSITILAN|"
                  r"^FINANCIAL ASSETS (AT|MEASURED AT) FAIR VALUE THROUGH OTHER COMPREHENSIVE",
-        "amortised_cost": r"^ITFA EDILMIS MALIYETI ILE OLCULEN FINANSAL VARLIKLAR|"
-                          r"^FINANCIAL ASSETS MEASURED AT AMORTI[SZ]ED COST",
+        # "(DIGER )?": the note's perimeter is the securities line, and most
+        # banks print it "Itfa Edilmis Maliyeti ile Olculen DIGER Finansal
+        # Varliklar" -- without the word the only candidate left was the
+        # roman-numeral parent, which also holds the loan book. That one
+        # omission ran the amortised-cost agreement at 25.0%.
+        "amortised_cost": r"^ITFA EDILMIS MALIYETI ILE OLCULEN (DIGER )?FINANSAL VARLIKLAR|"
+                          r"^(OTHER )?FINANCIAL ASSETS MEASURED AT AMORTI[SZ]ED COST",
     }
     for portfolio, rx in portfolios.items():
         rx_c = _re2.compile(rx)
+        # the FIRST instance OF THIS PORTFOLIO, not instance 0 of the filing:
+        # amortised cost is almost always the second note, so pinning
+        # instance_no=0 checked 44 of its 901 instances and left the rest
+        # unexamined
+        firsts: dict[tuple, float] = {}
         for b, p, k, wv in tab.execute(
                 "SELECT bank_ticker, period, kind, current FROM bank_audit_securities_full "
-                "WHERE portfolio=? AND item_role='total' AND instance_no=0 AND current IS NOT NULL",
-                (portfolio,)):
+                "WHERE portfolio=? AND item_role='total' AND current IS NOT NULL "
+                "ORDER BY instance_no", (portfolio,)):
+            firsts.setdefault((b, p, k), wv)
+        for (b, p, k), wv in firsts.items():
             rows = bs_rows.get((b, p, k, "assets"), [])
             cands = [v for name, v in rows
                      if not _NOT_SEC.search(name)
                      and (rx_c.search(name) or rx_c.search(foot.sub("", name)))]
-            if not cands or any(close(wv, v) for v in cands):
+            if not cands:
+                continue
+            # A note may cover only the SECURITIES children of its
+            # balance-sheet line, not the whole line: ICBCT's FVOCI note
+            # totals 376,064, which is the government-debt child exactly,
+            # while the parent's other 11,902,440 sits in "other financial
+            # assets". So the children count as candidates, and so does
+            # their sum.
+            cands = cands + _sec_children(bs_tree.get((b, p, k), []), rx_c, foot)
+            if any(close(wv, v) for v in cands):
                 continue
             out[f"securities.{portfolio} (narrow balance-sheet line)"].append(
                 (b, p, k, f"securities.{portfolio}", cands[0], wv))

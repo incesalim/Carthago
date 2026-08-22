@@ -1936,6 +1936,37 @@ def test_deposit_maturity_participation_template(tmp_path):
             "public_institutions", "commercial_institutions", "total"} <= roles
 
 
+def test_securities_portfolio_from_the_title_line_inside_the_block():
+    """ALNTF prints "e. Gerçeğe uygun değer farkı diğer kapsamlı gelire
+    yansıtılan..." as a valueless row two lines above its own table, in a
+    block whose heading belongs to the country table above it. The ledger
+    lookback cannot see that line — it lives in the tables layer, not the
+    lines layer — so it reached past it to the FVTPL note and filed
+    7,919,060, the balance sheet's FVOCI line to the lira, as fvtpl."""
+    SC = _load("build_securities_full")
+    grid = [{"label": "AB Ülkeleri", "cells": [None, 609909.0, 304754.0]},
+            {"label": "Toplam", "cells": [None, 1694092.0, 1939220.0]},
+            {"label": "d. Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan finansal "
+                      "varlıklardan teminata verilen/bloke edilenlere ilişkin bilgiler",
+             "cells": [None, None, None]},
+            {"label": "e. Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan finansal "
+                      "varlıklara ilişkin bilgiler", "cells": [None, None, None]},
+            {"label": "Borçlanma Senetleri", "cells": [None, 8182536.0, 7364244.0]},
+            {"label": "Borsada İşlem Gören", "cells": [None, 8067345.0, 7211226.0]},
+            {"label": "Hisse Senetleri", "cells": [None, 16504.0, 13782.0]},
+            {"label": "Değer Azalma Karşılığı (-)", "cells": [None, 279980.0, 404032.0]},
+            {"label": "Toplam", "cells": [None, 7919060.0, 6973994.0]}]
+    assert SC.portfolio_from_grid(grid) == "fvoci"
+    # the block heading names no portfolio at all -- that is why the grid is
+    # consulted in the first place
+    assert SC.portfolio_of("Serbest Tutar Serbest Olmayan Tutar",
+                           "Aktif kalemlere ilişkin açıklama ve dipnotlar") == "unknown"
+    # a title BELOW the table does not claim it
+    below = grid[:2] + grid[4:] + [{"label": "f. İtfa edilmiş maliyeti üzerinden değerlenen finansal "
+                                             "varlıklara ilişkin bilgiler", "cells": [None, None, None]}]
+    assert SC.portfolio_from_grid(below) == "unknown"
+
+
 def test_rowno_reads_a_number_welded_to_its_label_only_when_asked():
     """TSKB's capture prints "21TOTAL HQLA STOCK" with an empty number
     column. Opt-in, because the same shape elsewhere in the corpus is a
