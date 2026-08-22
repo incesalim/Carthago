@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Capital 873 → 924 filings, loan type 813 → 826.** The
+own-funds template opens four ways across the fleet, and two were unread:
+QNBFB's "paid-in capital following all debts in terms of claim in
+liquidation", and the abbreviated table (FIBA) that opens on a bare
+"Sermaye" row followed by the share-issue premium — the pair is the
+signature, since either row alone appears all over the notes. The loan-type
+lane joins the note lanes in stripping the date line above its first row.
+A sweep of the other nine lanes that could take the same strip found it
+helps only these (npl_by_borrower would LOSE 87 filings: there the date
+lines are the period heads the lane splits on).
+
 2026-08-22 — **Two-period notes 715 → 806, movement notes 660 → 845
 filings.** The date line the TL/FC lane learned to drop is a fleet-wide
 capture habit, so it moved into `numbered_template.strip_date_lines` and

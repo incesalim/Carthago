@@ -69,13 +69,21 @@ def fold(s: str | None) -> str:
 _SEED = re.compile(
     r"TASFIYESI H[AÂ]LINDE.*ODENMIS SERMAYE|"
     r"ENTITLED FOR COMPENSATION AFTER ALL (CREDITORS|OTHER CREDITORS)|"
-    r"PAID-IN CAPITAL.*AFTER ALL CREDITORS")
+    r"PAID-IN CAPITAL.*AFTER ALL CREDITORS|"
+    r"PAID.?IN CAPITAL.*CLAIM IN LIQUIDATION|"          # QNBFB's wording
+    r"ODENMIS SERMAYE.*TASFIYE")
 # The second dialect: YKBNK/ALBRK-style filings open the template with the
 # bare section header as the block's first row instead of the tasfiyesi
 # opener. Only a LARGE block counts — the header also opens the 4-row
 # summary/reconciliation snippets in the notes.
 _SEED_HEADER = re.compile(r"^(COMMON EQUITY TIER 1 CAPITAL|CEKIRDEK SERMAYE)$")
 _SEED_HEADER_MIN_ROWS = 15
+# The third dialect: the abbreviated own-funds table (FIBA) opens on a bare
+# "Sermaye" / "Capital" row followed by the share-issue-premium row. The
+# pair is the signature — either row alone appears all over the notes.
+_SEED_PAIR = (re.compile(r"^(SERMAYE|CAPITAL|PAID.?IN CAPITAL|ODENMIS SERMAYE)$"),
+              re.compile(r"^(HISSE SENEDI IHRAC PRIM|SHARE ISSUE PREMIUM|SHARE PREMIUM)"))
+_SEED_PAIR_MIN_ROWS = 10
 
 # A chained block must keep speaking the template's vocabulary.
 _VOCAB = re.compile(
@@ -231,7 +239,10 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     seed_at = None
     for i, (pg, bid, nc, g, unit) in enumerate(blocks):
         grid = json.loads(g)
-        if any(_SEED.search(fold(r["label"])) for r in grid[:6]) or (
+        pair = (len(grid) >= _SEED_PAIR_MIN_ROWS
+                and _SEED_PAIR[0].match(fold(grid[0]["label"] or "").strip())
+                and _SEED_PAIR[1].match(fold(grid[1]["label"] or "").strip()))
+        if any(_SEED.search(fold(r["label"])) for r in grid[:6]) or pair or (
                 len(grid) >= _SEED_HEADER_MIN_ROWS
                 and _SEED_HEADER.match(fold(grid[0]["label"]))):
             seed_at = i

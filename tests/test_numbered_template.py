@@ -1270,6 +1270,36 @@ def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tm
     assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
 
 
+def test_capital_seeds_on_the_third_and_fourth_dialect(tmp_path):
+    """The own-funds template opens four ways across the fleet: the
+    tasfiyesi/creditors row, the bare "Çekirdek Sermaye" header over a long
+    block, QNBFB's "paid-in capital following all debts in terms of claim in
+    liquidation", and FIBA's abbreviated table that opens on a bare
+    "Sermaye" row followed by the share-issue premium."""
+    CP = _load("build_capital_full")
+    qnbfb = [("Explanations on equity", [2026.0, 2025.0]),
+             ("Common Equity Tier 1 Capital", [None, None]),
+             ("Paid-in capital following all debts in terms of claim in liquidation of the Bank", [5500000.0, 5500000.0]),
+             ("Share issue premiums", [714.0, 714.0]),
+             ("Reserves", [153216148.0, 105401365.0]),
+             ("Common Equity Tier 1 Capital", [158716862.0, 110902079.0])]
+    fiba = [("Sermaye", [4550000.0, 4550000.0]),
+            ("Hisse senedi ihraç primleri", ["--", "--"]),
+            ("Yedek akçeler", [1200000.0, 900000.0]),
+            ("Türkiye Muhasebe Standartları (TMS) uyarınca özkaynaklara yansıtılan kazançlar", [50000.0, 40000.0]),
+            ("Kâr", [300000.0, 250000.0]),
+            ("Net dönem kârı", [300000.0, 250000.0]),
+            ("Geçmiş yıllar kârı", ["--", "--"]),
+            ("İndirimler öncesi çekirdek sermaye", [6100000.0, 5740000.0]),
+            ("Çekirdek sermayeden yapılacak indirimler", [None, None]),
+            ("Çekirdek Sermaye", [6100000.0, 5740000.0])]
+    db = _db(tmp_path, [(44, 1, "bin", qnbfb)])
+    assert CP.assemble(db, KEY) is not None
+    (tmp_path / "b").mkdir()
+    db2 = _db(tmp_path / "b", [(30, 1, "bin", fiba)])
+    assert CP.assemble(db2, KEY) is not None
+
+
 def test_strip_date_lines_takes_the_row_and_keeps_the_label():
     """The shared helper the note lanes run their grids through: a date row
     of its own goes, a date PREFIX goes but its row stays with the values,
