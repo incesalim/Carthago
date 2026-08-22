@@ -77,6 +77,9 @@ CREATE TABLE IF NOT EXISTS bank_audit_rwa_full (
     rwa          REAL,
     rwa_prior    REAL,
     min_capital  REAL,
+    -- the prior period's minimum capital, where the form prints all four
+    -- columns (RWA current / prior, minimum capital current / prior)
+    min_capital_prior REAL,
     page         INTEGER NOT NULL,
     block_id     INTEGER NOT NULL,
     source_unit  TEXT,
@@ -88,10 +91,50 @@ CREATE INDEX IF NOT EXISTS idx_rwa_full_row
 
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
-    return NT.assemble(
+    """The form prints three value columns at most banks — RWA current,
+    RWA prior, minimum capital — and FOUR at others, adding the prior
+    period's minimum capital. Reading four as three took the last three and
+    shifted every figure one column left: HALKB's total RWA came out as its
+    PRIOR total (1,203,850,144 for 1,436,786,128), which is how the capital
+    note's RWA and this one disagreed at 80 filings while each stayed
+    internally consistent."""
+    got = NT.assemble(
+        tab, key, sig=_SIG, max_row=25, bottom_row=23, n_values=4,
+        percent_rows=set(), role_of=lambda n, _label: ROLE_BY_ROW.get(n),
+        value_names=("rwa", "rwa_prior", "min_capital", "min_capital_prior"))
+    if got is not None and _four_columns(got):
+        return got
+    got = NT.assemble(
         tab, key, sig=_SIG, max_row=25, bottom_row=23, n_values=3,
         percent_rows=set(), role_of=lambda n, _label: ROLE_BY_ROW.get(n),
         value_names=("rwa", "rwa_prior", "min_capital"))
+    if got is None:
+        return None
+    for inst in got["instances"].values():
+        for row in inst:
+            row["min_capital_prior"] = None
+    return got
+
+
+def _four_columns(got: dict) -> bool:
+    """True when the four-column reading is the right one: the form's own
+    ratio, minimum capital = 8% of RWA, holds on the total row for BOTH
+    period pairs. On a three-column form read as four the values shift and
+    the ratio fails."""
+    for inst in got["instances"].values():
+        total = next((r for r in inst if r["template_row"] == 25), None)
+        if total is None:
+            continue
+        pairs = ((total.get("rwa"), total.get("min_capital")),
+                 (total.get("rwa_prior"), total.get("min_capital_prior")))
+        ok = 0
+        for rwa, mc in pairs:
+            if rwa is None or mc is None or not rwa:
+                continue
+            ok += int(abs(mc / rwa - 0.08) <= 0.002)
+        if ok == 2:
+            return True
+    return False
 
 
 def main() -> int:
@@ -187,9 +230,9 @@ def main() -> int:
             for lab, inst in got["instances"].items():
                 out.executemany(
                     "INSERT INTO bank_audit_rwa_full VALUES "
-                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     [(*key, lab, i, x["template_row"], x["label"], x["role"],
-                      x["rwa"], x["rwa_prior"], x["min_capital"], x["page"],
+                      x["rwa"], x["rwa_prior"], x["min_capital"], x.get("min_capital_prior"), x["page"],
                       x["block_id"], got["unit"]) for i, x in enumerate(inst)])
                 written += len(inst)
             out.commit()

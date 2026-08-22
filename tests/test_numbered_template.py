@@ -287,6 +287,45 @@ RW = importlib.util.module_from_spec(_spec_rwa)
 _spec_rwa.loader.exec_module(RW)
 
 
+def test_rwa_overview_four_column_form(tmp_path):
+    """HALKB and QNBFB print all four columns — RWA current / prior, minimum
+    capital current / prior. Read as three the reader took the last three
+    and shifted every figure one column left, so the total RWA came out as
+    the PRIOR total (1,203,850,144 for 1,436,786,128). The 8% ratio on both
+    period pairs is what tells the two forms apart."""
+    four = [
+        ("1 Kredi riski (karşı taraf kredi riski hariç)", [1.0, 1260787163.0, 1058316927.0, 100862973.0, 84665354.0]),
+        ("2 Standart yaklaşım", [2.0, 1260787163.0, 1058316927.0, 100862973.0, 84665354.0]),
+        ("16 Piyasa riski", [16.0, 70960450.0, 60000000.0, 5676836.0, 4800000.0]),
+        ("19 Operasyonel Risk", [19.0, 66027862.0, 60000000.0, 5282229.0, 4800000.0]),
+        ("25 Toplam (1+4+7+8+9+10+11+12+16+19+23+24)",
+         [25.0, 1436786128.0, 1203850144.0, 114942890.0, 96308011.0]),
+    ]
+    db = _db(tmp_path, [(85, 1, "bin", four)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+               (json.dumps(["", "Current Period", "Prior Period", "Current Period", "Prior Period"]),))
+    db.commit()
+    cur = {x["template_row"]: x for x in RW.assemble(db, KEY)["instances"]["current"]}
+    assert cur[25]["rwa"] == 1436786128.0 and cur[25]["rwa_prior"] == 1203850144.0
+    assert cur[25]["min_capital"] == 114942890.0 and cur[25]["min_capital_prior"] == 96308011.0
+
+    # the three-column form still reads as three, with no prior minimum
+    three = [
+        ("1 Kredi riski (karşı taraf kredi riski hariç)", [1.0, 400000000.0, 380000000.0, 32000000.0]),
+        ("16 Piyasa riski", [16.0, 50000000.0, 45000000.0, 4000000.0]),
+        ("19 Operasyonel Risk", [19.0, 38583845.0, 35000000.0, 3086708.0]),
+        ("25 Toplam (1+4+7+8+9+10+11+12+16+19+23+24)", [25.0, 488583845.0, 475307435.0, 39086708.0]),
+    ]
+    (tmp_path / "b").mkdir()
+    db2 = _db(tmp_path / "b", [(60, 1, "bin", three)])
+    db2.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+                (json.dumps(["", "Cari Dönem", "Önceki Dönem", "Asgari sermaye"]),))
+    db2.commit()
+    cur2 = {x["template_row"]: x for x in RW.assemble(db2, KEY)["instances"]["current"]}
+    assert cur2[25]["rwa"] == 488583845.0 and cur2[25]["min_capital"] == 39086708.0
+    assert cur2[25]["min_capital_prior"] is None
+
+
 def test_rwa_overview_anchored_signatures_and_three_columns(tmp_path):
     """Signatures are matched on the label WITHOUT its number prefix, so the
     template may anchor at ^ ("1 KREDI RISKI" -> "KREDI RISKI"); the three

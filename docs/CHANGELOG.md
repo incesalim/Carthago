@@ -5,6 +5,24 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The wide-vs-wide check pays for itself: OV1 was reading the
+prior period as the current one.** Yesterday's new check said the own-funds
+note and the OV1 form disagree on 80 filings while each stayed internally
+consistent — which is the signature of a column, not an arithmetic, error.
+It was: the form prints three value columns at most banks and FOUR at
+others (RWA current / prior, minimum capital current / prior), and read as
+three the reader took the last three and shifted everything one column
+left. HALKB's total RWA was stored as its PRIOR total — 1,203,850,144 for
+1,436,786,128 — and the capital note reproduced the printed capital
+adequacy ratio while OV1 could not (14.84% vs 17.71%).
+
+The four-column reading is accepted only when the form's own ratio —
+minimum capital = 8% of RWA — holds on BOTH period pairs of the total row,
+so a three-column form misread as four refuses itself. 596 rows now carry a
+prior minimum capital. Agreement with the own-funds note 86.9% → 97.2%,
+with the narrow lane 99.2%, and the repair list drops 80 → 16 on that
+check.
+
 2026-08-22 — **Two more cross-checks: deposits, and wide against wide.**
 The deposit-maturity matrix's grand total now meets the balance sheet's
 deposits line, and the own-funds note's total RWA meets the OV1 form's —
