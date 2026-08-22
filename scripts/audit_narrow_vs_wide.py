@@ -33,9 +33,24 @@ AUDIT_DB = REPO / "data" / "bank_audit.db"
 KNOWLEDGE = REPO / "docs" / "knowledge"
 
 
+_BAND_NOTE = (
+    "Not a repair. The note and the balance sheet classify the same portfolio "
+    "differently: the note splits debt / equity / impairment, the balance sheet "
+    "splits government debt / equity / OTHER financial assets. A corporate "
+    "eurobond is \"debt securities\" in one and \"other\" in the other, so the "
+    "note's total lands between the sum of the named securities lines and the "
+    "parent, matching neither — FIBA 2025Q1: 14,801,532 < 19,528,563 < "
+    "36,611,898. Listed only where the balance sheet's own split carries a "
+    "non-zero \"other financial assets\"; a total outside that band stays an "
+    "indictment, which is how KUVEYT's fvtpl and the amortised-cost residue are "
+    "still on the list.")
+
 # Buckets that are understood and are NOT the narrow lane's repair list.
 # They are still printed, row by row, so a change in one is visible.
 CHARACTERISED = {
+    "securities.fvtpl (classification band)": _BAND_NOTE,
+    "securities.fvoci (classification band)": _BAND_NOTE,
+    "securities.amortised_cost (classification band)": _BAND_NOTE,
     "bank_audit_npl_movement.sign_only": (
         "Not a repair. The two lanes hold the same magnitude and differ only in "
         "sign: the wide lane normalises the roll-forward's outflows to the "
@@ -67,6 +82,32 @@ def _sec_children(tree: list[tuple], rx_c, foot) -> list[float]:
         if kids:
             out += kids + [sum(kids)]
     return out
+
+
+_OTHER_FIN = __import__("re").compile(r"DIGER FINANSAL|OTHER FINANCIAL")
+
+
+def _in_classification_band(tree: list[tuple], rx_c, foot, wv: float) -> bool:
+    """True where the note's total falls inside the band the balance sheet's
+    own split allows, and only because that split carries "other financial
+    assets" the note counts as debt securities.
+
+    The two documents classify differently, not wrongly. The note splits
+    debt / equity / impairment; the balance sheet splits government debt /
+    equity / other. A corporate eurobond is "debt securities" in the note and
+    "other financial assets" on the balance sheet, so the note's total sits
+    between the sum of the named securities lines and the parent, and equals
+    neither. FIBA 2025Q1: 14,801,532 < 19,528,563 < 36,611,898."""
+    for h, name, parent in tree:
+        if not h or not (rx_c.search(name) or rx_c.search(foot.sub("", name))):
+            continue
+        kids = [(n, v) for hh, n, v in tree
+                if hh.startswith(h + ".") and hh.count(".") == h.count(".") + 1]
+        secs = sum(v for n, v in kids if not _OTHER_FIN.search(n))
+        other = sum(v for n, v in kids if _OTHER_FIN.search(n))
+        if kids and other > 0 and secs - 2.0 <= wv <= parent + 2.0:
+            return True
+    return False
 
 
 def close(a, b, rel=1e-3, absolute=2.0) -> bool:
@@ -370,10 +411,14 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
             # while the parent's other 11,902,440 sits in "other financial
             # assets". So the children count as candidates, and so does
             # their sum.
-            cands = cands + _sec_children(bs_tree.get((b, p, k), []), rx_c, foot)
+            tree = bs_tree.get((b, p, k), [])
+            cands = cands + _sec_children(tree, rx_c, foot)
             if any(close(wv, v) for v in cands):
                 continue
-            out[f"securities.{portfolio} (narrow balance-sheet line)"].append(
+            lane = "narrow balance-sheet line"
+            if _in_classification_band(tree, rx_c, foot, wv):
+                lane = "classification band"
+            out[f"securities.{portfolio} ({lane})"].append(
                 (b, p, k, f"securities.{portfolio}", cands[0], wv))
 
     # the deposit-maturity matrix's grand total against the balance sheet's

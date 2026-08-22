@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -2005,6 +2006,49 @@ def test_ov1_stops_at_row_25_when_another_table_shares_the_block(tmp_path):
     assert total["rwa"] == 1497542746.0 and total["rwa_prior"] == 1115540871.0
     assert total["min_capital"] == 119803421.0
     assert abs(total["min_capital"] / total["rwa"] - 0.08) <= 0.002    # the form's own ratio
+
+
+def test_securities_portfolio_title_survives_the_note_number():
+    """KUVEYT prints "1.4 Gerçeğe uygun değer farkı diğer kapsamlı..." with
+    the note number in the first cell — [1.4, None, None, None]. Read as a
+    data row, the title was skipped and the FVOCI note was filed as fvtpl,
+    at 67,659,318 against a balance-sheet line of 24,927,386."""
+    SC = _load("build_securities_full")
+    grid = [{"label": "1.4 Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan finansal varlıklar",
+             "cells": [1.4, None, None, None]},
+            {"label": "Cari Dönem Önceki Dönem", "cells": [None, None, None, None]},
+            {"label": "Borçlanma Senetleri", "cells": [None, None, 73981413.0, 59608971.0]},
+            {"label": "Borsada İşlem Gören", "cells": [None, None, 64232745.0, 59608971.0]},
+            {"label": "Hisse Senetleri / Yatırım Fonları", "cells": [None, None, 205936.0, 157478.0]},
+            {"label": "Değer Azalma Karşılığı (-)", "cells": [None, None, 6528031.0, 3132851.0]},
+            {"label": "Toplam", "cells": [None, None, 67659318.0, 56633598.0]}]
+    assert SC.portfolio_from_grid(grid) == "fvoci"
+    # a real data row above the table still stops the search
+    with_data = [{"label": "Kar zarara yansıtılan", "cells": [None, 5.0, 6.0, 7.0]}] + grid[2:]
+    assert SC.portfolio_from_grid(with_data) == "unknown"
+
+
+def test_securities_classification_band_is_not_a_repair():
+    """The note and the balance sheet classify the same portfolio
+    differently — debt / equity / impairment against government debt /
+    equity / OTHER financial assets — so a corporate eurobond lands in
+    "debt securities" one side and "other" the other. FIBA 2025Q1:
+    14,801,532 < 19,528,563 < 36,611,898, matching neither end."""
+    AU = _load("audit_narrow_vs_wide")
+    rx = re.compile(r"^(FINANSAL VARLIKLAR )?GERCEGE UYGUN DEGER FARKI DIGER KAPSAMLI GELIRE YANSITILAN")
+    foot = re.compile(r"(\s+[-–]?\s*[IVXA-Z0-9.(),]{1,8})+$")
+    tree = [("1.3", "GERCEGE UYGUN DEGER FARKI DIGER KAPSAMLI GELIRE YANSITILAN F", 36611898.0),
+            ("1.3.1", "DEVLET BORCLANMA SENETLERI", 14796635.0),
+            ("1.3.2", "SERMAYEDE PAYI TEMSIL EDEN MENKUL DEGERLER", 4897.0),
+            ("1.3.3", "DIGER FINANSAL VARLIKLAR", 21810366.0)]
+    assert AU._in_classification_band(tree, rx, foot, 19528563.0)
+    assert AU._in_classification_band(tree, rx, foot, 14801532.0)     # the low end
+    assert AU._in_classification_band(tree, rx, foot, 36611898.0)     # the high end
+    assert not AU._in_classification_band(tree, rx, foot, 40000000.0)  # above the parent
+    assert not AU._in_classification_band(tree, rx, foot, 1000.0)      # below the securities
+    # with no "other financial assets" there is no band to hide in
+    tight = [t for t in tree if not t[0].endswith(".3")]
+    assert not AU._in_classification_band(tight, rx, foot, 19528563.0)
 
 
 def test_securities_currency_split_read_from_the_column_labels(tmp_path):

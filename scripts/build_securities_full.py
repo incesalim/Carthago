@@ -98,7 +98,9 @@ def portfolio_from_grid(grid: list[dict]) -> str:
         label = fold(r.get("label") or "").strip()
         if _GROUP_HEAD.search(label) and any(c is not None for c in r.get("cells") or []):
             return seen
-        if any(isinstance(c, (int, float)) for c in r.get("cells") or []):
+        # cells[0] is the note number, not data: KUVEYT prints "1.4 Gerçeğe
+        # uygun değer farkı diğer kapsamlı..." as [1.4, None, None, None]
+        if any(isinstance(c, (int, float)) for c in (r.get("cells") or [])[1:]):
             continue                      # a data row of some other table
         for name, rx in _PORTFOLIO:
             if rx.search(label):

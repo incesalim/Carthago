@@ -5,6 +5,26 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The securities lane's last two portfolios go clean.**
+KUVEYT prints its note number in the first cell — "1.4 Gerçeğe uygun değer
+farkı diğer kapsamlı…" as [1.4, None, None, None] — and the title reader
+skipped the row as data, so an FVOCI note was filed as fvtpl at 67,659,318
+against a balance-sheet line of 24,927,386. The number column is excluded
+from that test now, and `unknown` reaches 0.
+
+And the fvoci residue turned out not to be a defect at all. The note and
+the balance sheet classify the same portfolio differently: the note splits
+debt / equity / impairment, the balance sheet splits government debt /
+equity / OTHER financial assets. A corporate eurobond is "debt securities"
+in one and "other" in the other, so the note's total lands between the sum
+of the named securities lines and the parent and matches neither — FIBA
+2025Q1: 14,801,532 < 19,528,563 < 36,611,898. All 26 fell inside that band;
+KUVEYT's fvtpl pair and the 20 amortised-cost rows fell outside, which is
+what told them apart.
+
+The lane now reads 0 of 66 fvtpl, 0 of 933 fvoci and 20 of 902
+amortised_cost indicted. Repair list 215 -> 187.
+
 2026-08-22 — **A note read in lira only.** EXIM's amortised-cost note
 totals 3,694,986 TL + 6,133,573 FC = 9,828,559 — the balance sheet's line
 to the lira — and the lane stored the 3,694,986. It already knew to read
