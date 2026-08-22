@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **EPS: 351 → 363 filings.** Four-column blocks where the
+cumulative and quarterly figures print side by side (HALKB, EMLAK — the
+cumulative pair is the outer one), two more nominal scales, and the printed
+EPS repaired where the capture lost its decimal comma (BURGAN's "1,640" for
+1.640 TL per 1,000 nominal): only a bare integer is repaired, and only when
+the repair is what makes profit / shares come out, so the arithmetic
+decides rather than a guess about the format. A sweep of the fleet found
+only 22 further filings that print an EPS note at all — the lane is near
+its ceiling, and the rest disclose EPS only on the P&L line the narrow lane
+already holds.
+
 2026-08-22 — **Exposure classes (CR4): 231 → 321 filings, 24 → 32 banks.**
 AKBNK and the participation banks print the eighteen asset classes without
 the regulator's row numbers, so the numbered reader saw nothing; the lane

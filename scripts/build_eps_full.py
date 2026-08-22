@@ -78,12 +78,31 @@ CREATE TABLE IF NOT EXISTS bank_audit_eps_full (
 
 
 def _division_factor(profit, shares, eps) -> float | None:
+    """The scale that makes profit / shares equal the printed EPS. 1 = both
+    in thousands, 1000 = shares in units, 0.001 = the EPS per 1,000 nominal,
+    100 = the EPS per 100 nominal (EMLAK prints 0.01774 for 1.774 TL)."""
     if profit is None or shares is None or eps is None or shares == 0 or eps == 0:
         return None
-    for f in (1.0, 1000.0, 0.001):
+    for f in (1.0, 1000.0, 0.001, 100.0, 0.01):
         if abs(profit / shares * f - eps) <= max(1e-5, 0.01 * abs(eps)):
             return f
     return None
+
+
+def repair_eps(profit, shares, eps) -> tuple[float | None, float | None]:
+    """(eps, factor) with the printed EPS repaired where the capture lost its
+    decimal comma — BURGAN prints "1,640" for 1.640 TL per 1,000 nominal and
+    the capture reads 1640. Only a bare integer is repaired, and only when
+    the repair is what makes profit / shares come out: the arithmetic, not a
+    guess about the format, decides."""
+    f = _division_factor(profit, shares, eps)
+    if f is not None or eps is None or not float(eps).is_integer() or abs(eps) < 10:
+        return eps, f
+    for div in (1000.0, 100.0):
+        f = _division_factor(profit, shares, eps / div)
+        if f is not None:
+            return eps / div, f
+    return eps, None
 
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
@@ -93,8 +112,11 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     found = []
     for pg, bid, g, unit in blocks:
         grid = absorb_inline(json.loads(g), role_of)
-        if not 2 <= len(grid) <= 8 or len(grid[-1]["cells"]) not in (1, 2):
-            continue                       # one column: a block per period, dated above
+        # one column: a block per period, dated above. Four: the quarter and
+        # the year-to-date side by side (HALKB, EMLAK) — the first of each
+        # printed pair is the period's own figure
+        if not 2 <= len(grid) <= 8 or len(grid[-1]["cells"]) not in (1, 2, 3, 4):
+            continue
         roles = {role_of(r["label"] or ""): r for r in grid if role_of(r["label"] or "")}
         if {"eps", "shares", "net_profit"} <= set(roles):
             found.append((pg, bid, roles, unit))
@@ -106,9 +128,17 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     for pg, bid, roles, _u in found:
         def pair(role, scale):
             r = roles[role]
-            vals = [num(c) for c in r["cells"][-2:]]
-            if len(r["cells"]) == 1:        # a single-period block: current only
-                vals = [vals[0], None]
+            live = [num(c) for c in r["cells"] if num(c) is not None]
+            n = len(r["cells"])
+            if n >= 3 and len(live) >= 3:
+                # (current, current-quarter, prior, prior-quarter) or
+                # (current, prior, current-quarter, prior-quarter): the
+                # cumulative pair is the outer one in either reading
+                vals = [live[0], live[2] if live[1] == live[0] else live[1]]
+            else:
+                vals = [num(c) for c in r["cells"][-2:]]
+                if n == 1:                  # a single-period block: current only
+                    vals = [vals[0], None]
             vals = [None] * (2 - len(vals)) + vals
             if scale and factor is not None:
                 vals = [U.scale_amount(v, factor) for v in vals]
@@ -158,7 +188,7 @@ def main() -> int:
         except sqlite3.OperationalError:
             return []
 
-    detected = written = gated = 0
+    detected = written = gated = repaired = 0
     factors: Counter = Counter()
     anchor = [0, 0]
     mism = []
@@ -169,10 +199,15 @@ def main() -> int:
         detected += 1
         kept = []
         for inst in got["instances"]:
-            f = _division_factor(inst["profit"][0], inst["shares"][0], inst["eps"][0])
+            ec, f = repair_eps(inst["profit"][0], inst["shares"][0], inst["eps"][0])
             if f is None:
                 gated += 1
                 continue
+            if ec != inst["eps"][0]:
+                scale = ec / inst["eps"][0]
+                ep = inst["eps"][1]
+                inst["eps"] = (ec, ep * scale if ep is not None else None)
+                repaired += 1
             inst["factor"] = f
             factors[f] += 1
             kept.append(inst)
@@ -197,6 +232,8 @@ def main() -> int:
     print(f"\npartitions: {len(keys)} scanned | detected {detected} | instances refused (eps ≠ profit / shares): {gated}")
     if factors:
         print(f"instances kept: {sum(factors.values())} | share factor: {dict(factors)}")
+    if repaired:
+        print(f"  printed EPS repaired (a lost decimal comma; the division decides): {repaired}")
     if anchor[1]:
         print(f"  net profit vs narrow P&L net profit / group share: {anchor[0]}/{anchor[1]} ({anchor[0] / anchor[1]:.1%})")
     for key, p, ref in mism:

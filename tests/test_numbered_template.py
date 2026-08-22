@@ -1270,6 +1270,38 @@ def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tm
     assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
 
 
+def test_eps_four_column_blocks_and_the_lost_decimal_comma(tmp_path):
+    """HALKB prints the cumulative and quarterly EPS side by side (four
+    columns, the cumulative pair outside); BURGAN prints "1,640" for 1.640
+    TL per 1,000 nominal and the capture reads 1640 — repaired only because
+    the repair is what makes profit / shares come out."""
+    EP = _load("build_eps_full")
+    halkb = [
+        ("Net income/(loss) to be appropriated to ordinary shareholders", [20203677.0, 20203677.0, 15056329.0, 15056329.0]),
+        ("Number of issued ordinary shares (thousand)", [7184778.0, 7184778.0, 7184778.0, 7184778.0]),
+        ("Earnings per share (in full TRY)", [2.81201, 2.81201, 2.09559, 2.09559]),
+    ]
+    burgan = [
+        ("Adi hissedarlara dağıtılabilir net kar/(zarar)", [500231.0, 552874.0]),
+        ("Çıkarılmış adi hisselerin ağırlıklı ortalama adedi (adet)", [305000000.0, 305000000.0]),
+        ("Adi hisse başına kar/(zarar) (1.000 nominal için tam TL)", [1640.0, 1813.0]),
+    ]
+    db = _db(tmp_path, [(41, 1, "bin", halkb)])
+    got = EP.assemble(db, KEY)
+    i = got["instances"][0]
+    assert i["profit"] == (20203677.0, 15056329.0) and i["shares"] == (7184778.0, 7184778.0)
+    assert i["eps"] == (2.81201, 2.09559)                  # the cumulative pair, not the quarter's
+    assert EP._division_factor(i["profit"][0], i["shares"][0], i["eps"][0]) == 1.0
+
+    (tmp_path / "b").mkdir()
+    db2 = _db(tmp_path / "b", [(40, 1, "bin", burgan)])
+    j = EP.assemble(db2, KEY)["instances"][0]
+    eps, f = EP.repair_eps(j["profit"][0], j["shares"][0], j["eps"][0])
+    assert eps == 1.640 and f == 1000.0
+    # a printed EPS that no repair reconciles stays refused
+    assert EP.repair_eps(6438442.0, 1193585.0, 5331.0) == (5331.0, None)
+
+
 def test_exposure_class_reads_the_unnumbered_cr4_by_label(tmp_path):
     """AKBNK and the participation banks print CR4's eighteen asset classes
     without the regulator's row numbers; the label chain reads them and the
