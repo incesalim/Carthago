@@ -1645,6 +1645,41 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_sector_block_holding_two_copies_of_the_table(tmp_path):
+    """AKTIF prints the current sector table and last year's in one block.
+    Stored as a single instance both copies were labelled 'current', and a
+    blank current cell fell through to the prior copy's figure."""
+    SE = _load("build_sector_full")
+    one = [("Tarım", ["-", 100.0, 90.0]), ("Çiftçilik ve Hayvancılık", ["-", 60.0, 50.0]),
+           ("Ormancılık", ["-", 20.0, 20.0]), ("Balıkçılık", ["-", 20.0, 20.0]),
+           ("Sanayi", ["-", 3798.0, 3798.0]), ("Madencilik ve Taşocakçılığı", ["-", 3798.0, 3798.0]),
+           ("İmalat Sanayi", ["-", "-", "-"]), ("Elektrik, Gaz, Su", ["-", "-", "-"]),
+           ("İnşaat", ["-", 10.0, 10.0]), ("Hizmetler", ["-", 30.0, 30.0]),
+           ("Toptan ve Perakende Ticaret", ["-", 30.0, 30.0]), ("Diğer", ["-", "-", "-"]),
+           ("Toplam", ["-", 3938.0, 3928.0])]
+    two = [("Tarım", [1000.0, 200.0, 180.0]), ("Çiftçilik ve Hayvancılık", [600.0, 120.0, 100.0]),
+           ("Ormancılık", [200.0, 40.0, 40.0]), ("Balıkçılık", [200.0, 40.0, 40.0]),
+           ("Sanayi", [35396.0, 4725.0, 4861.0]), ("Madencilik ve Taşocakçılığı", [35396.0, 4725.0, 4861.0]),
+           ("İmalat Sanayi", ["-", "-", "-"]), ("Elektrik, Gaz, Su", ["-", "-", "-"]),
+           ("İnşaat", [100.0, 20.0, 20.0]), ("Hizmetler", [300.0, 60.0, 60.0]),
+           ("Toptan ve Perakende Ticaret", [300.0, 60.0, 60.0]), ("Diğer", ["-", "-", "-"]),
+           ("Toplam", [36796.0, 5005.0, 5121.0])]
+    db = _db(tmp_path, [(53, 1, "bin", one + two)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+               (json.dumps(["Kredi riskinde önemli artış (ikinci aşama)", "Temerrüt (üçüncü aşama)",
+                            "Beklenen kredi zarar karşılıkları"]),))
+    db.commit()
+    got = SE.assemble(db, KEY)
+    assert [i["period_label"] for i in got["instances"]] == ["current", "prior"]
+    cur = {(x["sector"], n): v for x in got["instances"][0]["rows"] for n, v in x["cells"]}
+    pri = {(x["sector"], n): v for x in got["instances"][1]["rows"] for n, v in x["cells"]}
+    assert cur[("mfg_mining", "stage3")] == 3798.0 and cur[("mfg_mining", "stage2")] is None
+    assert pri[("mfg_mining", "stage2")] == 35396.0        # last year's, kept apart
+    assert SE._split_on_restart([{"sector": "agri_total"}, {"sector": "total"},
+                                 {"sector": "agri_total"}]) == [
+        [{"sector": "agri_total"}, {"sector": "total"}], [{"sector": "agri_total"}]]
+
+
 def test_sector_columns_ignore_the_dead_column_between_every_pair(tmp_path):
     """QNBFB and VAKBN print TL / (%) / FC / (%) twice with a dead column
     between the pairs; the capture parks stray cells there, so the column

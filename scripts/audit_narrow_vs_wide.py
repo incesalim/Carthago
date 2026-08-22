@@ -90,8 +90,21 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
     for b, p, k, sector, col, v in tab.execute(
             "SELECT bank_ticker, period, kind, sector, column, amount FROM bank_audit_sector_full "
             "WHERE family='stage_ecl' AND period_label='current' AND instance_no=0 "
-            "AND column IN ('stage2','stage3','ecl') AND sector IS NOT NULL AND amount IS NOT NULL"):
-        wide_cells[(b, p, k, sector, col)] = v
+            "AND column IN ('stage2','stage3','ecl') AND sector IS NOT NULL AND amount IS NOT NULL "
+            "ORDER BY page, block_id, row_order, col_order"):
+        # the note prints the loan table and then the non-cash one in the same
+        # instance, so a sector appears twice; the narrow lane holds the first
+        wide_cells.setdefault((b, p, k, sector, col), v)
+    # a filing that prints the sector table in SEVERAL blocks (the loan one,
+    # the non-cash one, last year's copy) cannot be aligned with a narrow lane
+    # that keeps one row per sector, and a comparison that cannot be aligned
+    # is not evidence: those filings are skipped rather than indicted
+    many = {key for key, n in tab.execute(
+        "SELECT bank_ticker || '|' || period || '|' || kind, COUNT(DISTINCT page || ':' || block_id) "
+        "FROM bank_audit_sector_full WHERE family='stage_ecl' AND period_label='current' "
+        "GROUP BY 1 HAVING COUNT(DISTINCT page || ':' || block_id) > 1")}
+    wide_cells = {kk: v for kk, v in wide_cells.items()
+                  if f"{kk[0]}|{kk[1]}|{kk[2]}" not in many}
     for b, p, k, sector, s2, s3, e in aud.execute(
             "SELECT bank_ticker, period, kind, sector, stage2_amount, stage3_amount, ecl_amount "
             "FROM bank_audit_loans_by_sector WHERE period_type='current'"):

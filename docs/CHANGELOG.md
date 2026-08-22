@@ -5,6 +5,24 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The repair list halves: most of it was the check's fault.**
+`bank_audit_loans_by_sector` had 1,686 indicted rows, by far the largest
+item, and the comparison was the problem twice over. It kept the LAST row
+for a sector where the note prints the loan table and the non-cash one in
+one instance — the narrow lane holds the first — which alone accounted for
+1,149 of them. And the sector lane really did stack two copies of the table
+in one instance (AKTIF page 53: the current table, then last year's), both
+labelled 'current', so a blank current cell fell through to the prior
+copy's figure; the list is now split where it starts over and the second
+copy is `prior`.
+
+1,686 → 472, and the whole list drops 2,251 → 1,037. The 472 that remain
+concentrate at ING (213) and TFKB (142) and need the source PDF to
+adjudicate — they stay open. A probe of every other numbered lane for the
+OV1 column shift found none: CR1 agrees with the narrow NPL closing at
+97.5%, CR2 with CR1 at 98.7%, and leverage, LCR and NSFR were already
+anchored above 96%.
+
 2026-08-22 — **The wide-vs-wide check pays for itself: OV1 was reading the
 prior period as the current one.** Yesterday's new check said the own-funds
 note and the OV1 form disagree on 80 filings while each stayed internally

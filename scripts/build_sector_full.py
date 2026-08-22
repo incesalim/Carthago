@@ -358,11 +358,33 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         if secs.count("mfg_production") >= 2 and "mfg_total" not in secs:
             first = secs.index("mfg_production")
             rows[first]["sector"], rows[first]["group"] = "mfg_total", None
-        if rows:
-            instances.append({"family": fam, "cols": cols, "rows": rows, "heading": heading,
-                              "period_label": ("mixed" if any(c[1] and c[1].endswith("_prior") for c in cols)
-                                               else None)})
+        mixed = any(c[1] and c[1].endswith("_prior") for c in cols)
+        # a block that prints the sector list TWICE holds the current table
+        # and then last year's (AKTIF page 53). Stored as one instance both
+        # copies were labelled 'current', and a blank current cell fell
+        # through to the prior copy's figure.
+        for n, part in enumerate(_split_on_restart(rows)):
+            instances.append({"family": fam, "cols": cols, "rows": part, "heading": heading,
+                              "period_label": ("mixed" if mixed else
+                                               "current" if n == 0 else "prior")})
     return {"unit": unit, "step": float(factor or 1.0), "unread": unread, "instances": instances}
+
+
+def _split_on_restart(rows: list[dict]) -> list[list[dict]]:
+    """The sector list, split where it starts over. The template opens on
+    agriculture (or its first item) and every sector appears once, so a
+    repeat is the next copy of the table."""
+    parts: list[list[dict]] = [[]]
+    seen: set[str] = set()
+    for r in rows:
+        sector = r["sector"]
+        if sector and sector in seen and sector in ("agri_total", "agri_farming", "total"):
+            parts.append([])
+            seen = set()
+        if sector:
+            seen.add(sector)
+        parts[-1].append(r)
+    return [p for p in parts if p]
 
 
 def main() -> int:
