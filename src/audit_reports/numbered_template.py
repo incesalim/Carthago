@@ -369,6 +369,35 @@ def assemble_by_label(tab: sqlite3.Connection, key: tuple, *,
     return {"unit": unit_out, "instances": out}
 
 
+_MONTHS = (r"OCAK|SUBAT|MART|NISAN|MAYIS|HAZIRAN|TEMMUZ|AGUSTOS|EYLUL|EKIM|KASIM|ARALIK|"
+           r"JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER")
+_DATE_PREFIX = re.compile(r"^(\d{1,2}[ ./]*(" + _MONTHS + r")[ ./]*\d{4}[ ./]*([-–]\s*)?)+")
+_CURRENCY_HEADER = re.compile(r"((TP|YP|TL|FC|FX|TRY|TRL)[ /]*)+")
+
+
+def strip_date_lines(grid: list[dict]) -> list[dict]:
+    """The grid without the date line the capture prints above a note's
+    first row — as a row of its own ("31 Mart 2022 | 31 | 2022") or glued
+    onto the first label ("30 Haziran 2023 Kasa/Efektif", where the row IS
+    the Kasa row and only the prefix is noise) — and without a "TP YP TP
+    YP" column header printed as a row. A lane that decides its family from
+    the first row's role loses whole families to either."""
+    out = []
+    for r in grid:
+        lab = (r["label"] or "").strip()
+        f = fold(lab).strip()
+        if not any(c is not None for c in r["cells"]) and _CURRENCY_HEADER.fullmatch(f):
+            continue
+        m = _DATE_PREFIX.match(f)
+        if m:
+            rest = lab[m.end():].strip()
+            if not rest:
+                continue
+            r = {**r, "label": rest}
+        out.append(r)
+    return out
+
+
 def absorb_inline(grid: list[dict], role_of, keep=None) -> list[dict]:
     """Fold the document layer's `inline` rows (label-only lines printed
     inside a block: a wrapped row head, or a sub-header) into a grid a

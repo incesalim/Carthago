@@ -60,6 +60,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from src.audit_reports import units as U  # noqa: E402
+from src.audit_reports import numbered_template as NT  # noqa: E402
 from src.audit_reports.numbered_template import absorb_inline, fold, num  # noqa: E402
 
 TABLES_DB = REPO / "data" / "bank_audit_tables.db"
@@ -209,34 +210,6 @@ def roles_of(fam: str, labels: list[str]) -> list[tuple[str | None, str | None]]
     return out
 
 
-_MONTHS = (r"OCAK|SUBAT|MART|NISAN|MAYIS|HAZIRAN|TEMMUZ|AGUSTOS|EYLUL|EKIM|KASIM|ARALIK|"
-           r"JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER")
-_DATE_PREFIX = R(r"^\d{1,2}[ ./]*(" + _MONTHS + r")[ ./]*\d{4}\s*")
-_CURRENCY_HEADER = R(r"((TP|YP|TL|FC|FX|TRY|TRL)[ /]*)+")
-
-
-def normalise(grid: list[dict]) -> list[dict]:
-    """The grid without the date line the capture prints above the first row
-    — as a row of its own ("31 Mart 2022", HSBC) or glued onto the first
-    label ("30 Haziran 2023 Kasa/Efektif", ZIRAATK, which keeps the row and
-    loses the prefix)."""
-    out = []
-    for r in grid:
-        lab = (r["label"] or "").strip()
-        if not any(c is not None for c in r["cells"]) and _CURRENCY_HEADER.fullmatch(fold(lab).strip()):
-            continue                            # "TP YP TP YP": the column header as a row
-        m = _DATE_PREFIX.match(fold(lab))
-        if m:
-            rest = lab[m.end():].strip()
-            if not rest:
-                if any(c is not None for c in r["cells"]):
-                    continue                    # "31 Mart 2022 | 31 | 2022": a date row
-                continue
-            r = {**r, "label": rest}
-        out.append(r)
-    return out
-
-
 def family_of(grid: list[dict], heading: str | None, item_title: str | None = None) -> str | None:
     if not 3 <= len(grid) <= 10 or len(grid[0]["cells"]) != 4:
         return None
@@ -288,7 +261,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, item_title, g, unit in blocks:
-        grid = normalise(absorb_inline(json.loads(g), _any_role))
+        grid = NT.strip_date_lines(absorb_inline(json.loads(g), _any_role))
         fam = family_of(grid, heading, item_title)
         if fam in ("interest_from_banks", "interest_on_securities"):
             # the balance-sheet "banks" and "securities by measurement" notes

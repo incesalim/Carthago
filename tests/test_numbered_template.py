@@ -1270,6 +1270,22 @@ def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tm
     assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
 
 
+def test_strip_date_lines_takes_the_row_and_keeps_the_label():
+    """The shared helper the note lanes run their grids through: a date row
+    of its own goes, a date PREFIX goes but its row stays with the values,
+    a "TP YP TP YP" header row goes, and an ordinary row is untouched."""
+    grid = [
+        {"label": "31 Mart 2022", "cells": [31.0, 2022.0, 31.0, 2021.0]},
+        {"label": "TP YP TP YP", "cells": [None, None, None, None]},
+        {"label": "30 Haziran 2023 Kasa/Efektif", "cells": [110656.0, 1933573.0, None, None]},
+        {"label": "Dönem başındaki değer", "cells": [17532.0, 14374.0, None, None]},
+        {"label": "1 Ocak 2024 - 30 Haziran 2024", "cells": [None, None, None, None]},
+    ]
+    out = NT.strip_date_lines(grid)
+    assert [r["label"] for r in out] == ["Kasa/Efektif", "Dönem başındaki değer"]
+    assert out[0]["cells"] == [110656.0, 1933573.0, None, None]
+
+
 def test_tl_fc_note_drops_the_date_line_above_the_first_row(tmp_path):
     """The capture prints the note's date line above the first row — as a
     row of its own ("31 Mart 2022 | 31 | 2022", HSBC) or glued onto the

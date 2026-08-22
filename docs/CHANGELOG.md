@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Two-period notes 715 → 806, movement notes 660 → 845
+filings.** The date line the TL/FC lane learned to drop is a fleet-wide
+capture habit, so it moved into `numbered_template.strip_date_lines` and
+the other two note lanes run their grids through it: taxes_payable 579 →
+654, other operating expenses 495 → 583, letters of guarantee 443 → 485,
+non-cash loans 440 → 485, trading income 175 → 234; securities movement
+560 → 729 and investment movement 640 → 807 instances (26 → 33 banks).
+
 2026-08-22 — **TL/FC notes: 875 → 983 filings.** The capture prints the
 note's date line above the first row — as a row of its own ("31 Mart 2022 |
 31 | 2022", HSBC) or glued onto the first label ("30 Haziran 2023
