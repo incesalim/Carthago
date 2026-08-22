@@ -110,6 +110,30 @@ def _is_family(grid: list[dict], col_labels: list, heading: str | None) -> bool:
     return bool(_CTX.search(ctx))
 
 
+def _sum_holds(by: dict, step: float) -> bool:
+    """total = direct (or its two children) + indirect + employees, on every
+    printed column."""
+    def close(a, b):
+        return abs(a - b) <= max(2.0 * step, 1e-5 * abs(b))
+    tot = by.get("total")
+    if not tot:
+        return False
+    checked = 0
+    for col in VALUES:
+        t = tot[col]
+        if t is None:
+            continue
+        direct = (by.get("direct") or {}).get(col)
+        legal, real = (by.get("direct_legal") or {}).get(col), (by.get("direct_real") or {}).get(col)
+        if direct is None:
+            direct = (legal or 0.0) + (real or 0.0)
+        s = direct + ((by.get("indirect") or {}).get(col) or 0.0) + ((by.get("employees") or {}).get(col) or 0.0)
+        if not close(s, t):
+            return False
+        checked += 1
+    return checked >= 1
+
+
 def _identities_hold(rows: list[dict], step: float) -> bool:
     by: dict[str, dict] = {}
     for x in rows:
@@ -120,6 +144,18 @@ def _identities_hold(rows: list[dict], step: float) -> bool:
     tot = by.get("total")
     if not tot:
         return False
+    # EMLAK's capture copies one row's figures onto the row above it, so the
+    # sum double-counts. Where two consecutive rows carry the SAME tuple, the
+    # earlier is dropped and the identity decides whether that was right.
+    if not _sum_holds(by, step):
+        ordered = [x for x in rows if x["role"] and x["role"] != "total"]
+        for a, b in zip(ordered, ordered[1:]):
+            if [a[c] for c in VALUES] != [b[c] for c in VALUES] or all(a[c] is None for c in VALUES):
+                continue
+            trial = {r: x for r, x in by.items() if x is not a}
+            if _sum_holds(trial, step):
+                by = trial
+                break
 
     def close(a, b):
         return abs(a - b) <= max(2.0 * step, 1e-5 * abs(b))

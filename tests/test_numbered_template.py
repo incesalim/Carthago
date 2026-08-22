@@ -1270,6 +1270,33 @@ def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tm
     assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
 
 
+def test_shareholder_loans_drop_the_capture_duplicate_only_when_it_balances(tmp_path):
+    """EMLAK's capture copies the employees row's figures onto the indirect
+    row above it, so the sum double-counts. A consecutive pair carrying the
+    same tuple may be dropped — but only the one whose removal makes the
+    template's own total come out, and only when the plain sum has already
+    failed."""
+    SH = _load("build_shareholder_loans_full")
+    emlak = [
+        ("Grup Ortaklarına Verilen Doğrudan Krediler", [110617.0, "-", 714824.0, "-"]),
+        ("Tüzel Kişi Ortaklara Verilen Krediler", [110617.0, "-", 714824.0, "-"]),
+        ("Gerçek Kişi Ortaklara Verilen Krediler", ["-", "-", "-", "-"]),
+        ("Grup Ortaklarına Verilen Dolaylı Krediler", [997.0, "-", 973.0, "-"]),
+        ("Banka Mensuplarına Verilen Krediler", [997.0, "-", 973.0, "-"]),
+        ("Toplam", [111614.0, "-", 715797.0, "-"]),
+    ]
+    db = _db(tmp_path, [(48, 3, "bin", emlak)])
+    db.execute("UPDATE bank_audit_document_tables SET heading='Cari Dönem Önceki Dönem Nakdi G.Nakdi Nakdi G.Nakdi'")
+    db.commit()
+    got = SH.assemble(db, KEY)
+    assert SH._identities_hold(got["instances"][0], got["step"])
+    # a total that no single dropped duplicate reconciles stays refused
+    db.execute("UPDATE bank_audit_document_tables SET grid_json=replace(grid_json, '111614', '999999')")
+    db.commit()
+    got = SH.assemble(db, KEY)
+    assert not SH._identities_hold(got["instances"][0], got["step"])
+
+
 def test_eps_four_column_blocks_and_the_lost_decimal_comma(tmp_path):
     """HALKB prints the cumulative and quarterly EPS side by side (four
     columns, the cumulative pair outside); BURGAN prints "1,640" for 1.640

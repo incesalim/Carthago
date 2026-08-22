@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Shareholder loans: 778 → 810 filings, refusals 54 → 22.**
+EMLAK's capture copies the employees row's figures onto the indirect row
+above it, so the sum double-counts and the instance was refused. Where two
+consecutive rows carry the same tuple, one may now be dropped — but only
+the one whose removal makes the template's own total come out, and only
+after the plain sum has failed, so the arithmetic decides which reading was
+the capture's mistake.
+
 2026-08-22 — **EPS: 351 → 363 filings.** Four-column blocks where the
 cumulative and quarterly figures print side by side (HALKB, EMLAK — the
 cumulative pair is the outer one), two more nominal scales, and the printed
