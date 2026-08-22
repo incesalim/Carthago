@@ -195,11 +195,22 @@ def _normalise(grid: list[dict]) -> list[dict]:
 _TL_FC_HEADER = re.compile(r"\b(TP|TL)\b.{0,6}\b(YP|FC|FX)\b.{0,12}\b(TP|TL)\b.{0,6}\b(YP|FC|FX)\b")
 
 
-def _split_by_currency(grid: list[dict], live: list[int]) -> bool:
+# The same four-way header as it survives in COLUMN LABELS, where the
+# capture splits "Current Period TL / FC" across the cells and the gaps run
+# longer: EXIM's read ["Current TL", "Period FC", "Prior TL", "Period FC"].
+_TL_FC_COLS = re.compile(r"\b(TP|TL)\b.{0,12}\b(YP|FC|FX)\b.{0,16}\b(TP|TL)\b.{0,12}\b(YP|FC|FX)\b")
+
+
+def _split_by_currency(grid: list[dict], live: list[int],
+                       col_labels: list | None = None) -> bool:
     """True where the note prints TP YP TP YP — four columns, the period
     split by currency — rather than current and prior. Read off a header
-    row inside the grid: taking TL for "current" and FC for "prior" halved
-    every figure against the balance sheet."""
+    row inside the grid, or off the column labels: taking TL for "current"
+    and FC for "prior" halved every figure against the balance sheet.
+
+    EXIM's amortised-cost note totals 3,694,986 TL + 6,133,573 FC =
+    9,828,559, the balance sheet's line to the lira, and the lane was
+    storing the 3,694,986."""
     if len(live) != 4:
         return False
     for r in grid:
@@ -207,15 +218,18 @@ def _split_by_currency(grid: list[dict], live: list[int]) -> bool:
             continue
         if _TL_FC_HEADER.search(fold(r["label"] or "")):
             return True
+    if col_labels and _TL_FC_COLS.search(fold(" ".join(str(c or "") for c in col_labels))):
+        return True
     return False
 
 
-def _value_columns(grid: list[dict], raw: list[dict] | None = None) -> list[int]:
+def _value_columns(grid: list[dict], raw: list[dict] | None = None,
+                   col_labels: list | None = None) -> list[int]:
     """(current, prior) cell indexes, or four when the period is split by
     currency: the first live columns — VAKBN parks the figures in columns 4
     and 8 of a nine-cell row."""
     live = BM.live_value_columns(grid)
-    if _split_by_currency(raw if raw is not None else grid, live):
+    if _split_by_currency(raw if raw is not None else grid, live, col_labels):
         return live
     if len(live) >= 2:
         return live[:2]
@@ -233,11 +247,12 @@ def _is_family(grid: list[dict]) -> bool:
         _TOTAL.search(fold(r["label"] or "").strip()) for r in grid)
 
 
-def _rows_of(grid: list[dict], pg: int, bid: int, factor, raw: list[dict] | None = None) -> list[dict]:
+def _rows_of(grid: list[dict], pg: int, bid: int, factor, raw: list[dict] | None = None,
+             col_labels: list | None = None) -> list[dict]:
     rows, group = [], None
     # the TP YP TP YP header sits above the first debt-securities row, which
     # `_normalise` cuts away — so the split is read off the RAW grid
-    idx = _value_columns(grid, raw if raw is not None else grid)
+    idx = _value_columns(grid, raw if raw is not None else grid, col_labels)
     split = len(idx) == 4
     for r in grid:
         label = (r["label"] or "").strip()
@@ -317,11 +332,13 @@ def _identity_holds(inst: list[dict]) -> bool:
 
 def assemble(tab: sqlite3.Connection, key: tuple, cap: sqlite3.Connection | None = None) -> dict | None:
     blocks = tab.execute(
-        "SELECT page, block_id, heading, item_title, grid_json, declared_unit "
+        "SELECT page, block_id, heading, item_title, grid_json, declared_unit, col_labels_json "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
-    for pg, bid, h, it, g, unit in blocks:
+    cols_of: dict[tuple, list] = {}
+    for pg, bid, h, it, g, unit, cl in blocks:
+        cols_of[(pg, bid)] = json.loads(cl or "[]")
         raw = json.loads(g)                 # before absorb_inline: it drops the "TP YP TP YP" header
         grid = _normalise(absorb_inline(raw, _sec_role))
         if _is_family(grid):
@@ -340,7 +357,7 @@ def assemble(tab: sqlite3.Connection, key: tuple, cap: sqlite3.Connection | None
         if portfolio == "unknown":
             portfolio = portfolio_from_ledger(cap, key, pg, bid)
         instances.append({"portfolio": portfolio, "heading": h,
-                          "rows": _rows_of(grid, pg, bid, factor, raw)})
+                          "rows": _rows_of(grid, pg, bid, factor, raw, cols_of[(pg, bid)])})
     return {"unit": unit, "instances": instances}
 
 

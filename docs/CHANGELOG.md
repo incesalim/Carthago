@@ -5,6 +5,25 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **A note read in lira only.** EXIM's amortised-cost note
+totals 3,694,986 TL + 6,133,573 FC = 9,828,559 — the balance sheet's line
+to the lira — and the lane stored the 3,694,986. It already knew to read
+TP YP TP YP as one period split by currency, but only from a header row
+inside the grid; EXIM's survives in the COLUMN LABELS, split as ["Current
+TL", "Period FC", "Prior TL", "Period FC"], where the gaps run longer than
+the in-grid pattern allows. A second pattern reads the labels.
+
+The check had a matching fault: its amortised-cost line required "MEASURED
+at", so BURGAN's "Financial Assets at Amortized Cost I-g" — 5,449,143,
+which is its note's total exactly — was never a candidate. "Measured" is
+optional now, "Üzerinden Değerlenen" joins "ile Ölçülen", and the
+securities-child pattern learned "Public Sector Debt Securities" and
+"Government Securities".
+
+securities.amortised_cost 44 -> 20 rows. Across the three portfolios the
+lane now stands at 2 of 69 fvtpl, 26 of 929 fvoci and 20 of 902
+amortised_cost indicted. Repair list 239 -> 215.
+
 2026-08-22 — **An asset note filed as a liability.** ZIRAAT's
 "Teminata Verilen/Bloke İtfa Edilmiş Maliyeti Üzerinden Değerlenen Finansal
 Varlıklar" — securities the bank holds and has pledged — lists "Bono /

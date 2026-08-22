@@ -48,7 +48,9 @@ CHARACTERISED = {
 
 
 _SEC_CHILD = __import__("re").compile(r"BORCLANMA SENET|SERMAYEDE PAYI|DEBT (INSTRUMENT|SECURIT)|"
-                                      r"EQUITY (INSTRUMENT|SECURIT)|SHARE CERTIFICATE")
+                                      r"EQUITY (INSTRUMENT|SECURIT)|SHARE CERTIFICATE|"
+                                      r"PUBLIC SECTOR DEBT|GOVERNMENT (SECURIT|BOND|DEBT)|"
+                                      r"DEVLET BORCLANMA|KAMU BORCLANMA")
 
 
 def _sec_children(tree: list[tuple], rx_c, foot) -> list[float]:
@@ -337,8 +339,11 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
         # Varliklar" -- without the word the only candidate left was the
         # roman-numeral parent, which also holds the loan book. That one
         # omission ran the amortised-cost agreement at 25.0%.
-        "amortised_cost": r"^ITFA EDILMIS MALIYETI ILE OLCULEN (DIGER )?FINANSAL VARLIKLAR|"
-                          r"^(OTHER )?FINANCIAL ASSETS MEASURED AT AMORTI[SZ]ED COST",
+        # "MEASURED" optional and "Uzerinden Degerlenen" alongside "ile
+        # Olculen": BURGAN prints "Financial Assets at Amortized Cost I-g"
+        # = 5,449,143, which is its note's total to the lira
+        "amortised_cost": r"^ITFA EDILMIS MALIYETI (ILE OLCULEN|UZERINDEN DEGERLENEN)( DIGER)? FINANSAL VARLIKLAR|"
+                          r"^(OTHER )?FINANCIAL ASSETS (MEASURED )?AT AMORTI[SZ]ED COST",
     }
     for portfolio, rx in portfolios.items():
         rx_c = _re2.compile(rx)

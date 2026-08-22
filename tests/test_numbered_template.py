@@ -2007,6 +2007,32 @@ def test_ov1_stops_at_row_25_when_another_table_shares_the_block(tmp_path):
     assert abs(total["min_capital"] / total["rwa"] - 0.08) <= 0.002    # the form's own ratio
 
 
+def test_securities_currency_split_read_from_the_column_labels(tmp_path):
+    """EXIM's amortised-cost note totals 3,694,986 TL + 6,133,573 FC =
+    9,828,559, the balance sheet's line to the lira — and the lane stored
+    the 3,694,986. The four-way header survives only in the COLUMN LABELS
+    there, split as ["Current TL", "Period FC", "Prior TL", "Period FC"],
+    where the gaps run longer than the in-grid header's pattern allows."""
+    SC = _load("build_securities_full")
+    grid = [{"label": "Debt Securities", "cells": [3694986.0, 6133573.0, 2991563.0, 6965882.0]},
+            {"label": "Traded on the Stock Exchange", "cells": [3694986.0, 6133573.0, 2991563.0, 6965882.0]},
+            {"label": "Not Traded on the Stock Exchange", "cells": ["-", "-", "-", "-"]},
+            {"label": "Impairment Provision (-)", "cells": ["-", "-", "-", "-"]},
+            {"label": "Total", "cells": [3694986.0, 6133573.0, 2991563.0, 6965882.0]}]
+    cols = ["Current TL", "Period FC", "Prior TL", "Period FC"]
+    assert SC._split_by_currency(grid, [0, 1, 2, 3], cols)
+    assert not SC._split_by_currency(grid, [0, 1, 2, 3], ["Current Period", "Prior Period", "", ""])
+    assert not SC._split_by_currency(grid, [0, 1], cols)          # only four columns split
+
+    db = _db(tmp_path, [(66, 4, "bin", [(r["label"], r["cells"]) for r in grid])])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?", (json.dumps(cols),))
+    db.commit()
+    got = SC.assemble(db, KEY)
+    total = [r for r in got["instances"][0]["rows"] if r["item_role"] == "total"][0]
+    assert total["current"] == 9828559.0
+    assert total["current_tl"] == 3694986.0 and total["current_fc"] == 6133573.0
+
+
 def test_securities_portfolio_from_the_title_line_inside_the_block():
     """ALNTF prints "e. Gerçeğe uygun değer farkı diğer kapsamlı gelire
     yansıtılan..." as a valueless row two lines above its own table, in a
