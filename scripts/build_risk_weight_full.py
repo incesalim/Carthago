@@ -156,6 +156,18 @@ def _fmt(cell) -> str | None:
     return str(cell).strip() or None
 
 
+def data_rows(grid: list[dict]) -> list[dict]:
+    """The form's body rows. Most filings print the regulator's row numbers
+    and `rowno` finds them; AKTIF, ATBANK and the participation banks print
+    the asset classes bare, so a row carrying a class role and a figure is a
+    body row too."""
+    numbered = [r for r in grid if NT.rowno(r, MAX_ROW) is not None]
+    if numbered:
+        return numbered
+    return [r for r in grid
+            if role_of((r["label"] or "").strip()) and any(c is not None for c in r["cells"])]
+
+
 def column_model(grid: list[dict], col_labels: list, page_lines: list[str] | None = None
                  ) -> list[tuple[int, str, float | None, int, str | None]] | None:
     """[(cell index, col_role, risk_weight, secured_re, printed label)] for the
@@ -167,14 +179,20 @@ def column_model(grid: list[dict], col_labels: list, page_lines: list[str] | Non
     index — in-grid unnumbered rows and the captured column labels — under a
     left-to-right non-decreasing constraint, "others" from its label.
     """
-    numbered = [r for r in grid if NT.rowno(r, MAX_ROW) is not None]
-    headers = [r for r in grid if NT.rowno(r, MAX_ROW) is None]
-    if not numbered:
+    body = data_rows(grid)
+    if not body:
         return None
-    ncol = max(len(r["cells"]) for r in numbered)
-    live = [i for i in range(1, ncol)
-            if any(i < len(r["cells"]) and r["cells"][i] is not None for r in numbered)]
-    total_row = max(numbered, key=lambda r: NT.rowno(r, MAX_ROW))
+    ids = {id(r) for r in body}
+    headers = [r for r in grid if id(r) not in ids]
+    ncol = max(len(r["cells"]) for r in body)
+    first = 1 if NT.rowno(body[0], MAX_ROW) is not None else 0    # no row-number column when unnumbered
+    live = [i for i in range(first, ncol)
+            if any(i < len(r["cells"]) and r["cells"][i] is not None for r in body)]
+    if NT.rowno(body[0], MAX_ROW) is not None:
+        total_row = max(body, key=lambda r: NT.rowno(r, MAX_ROW))
+    else:
+        total_row = next((r for r in reversed(body) if role_of((r["label"] or "").strip()) == "total"),
+                         max(body, key=lambda r: sum(c is not None for c in r["cells"])))
     tot_live = [i for i in live if i < len(total_row["cells"]) and total_row["cells"][i] is not None]
     if len(live) < 6 or not tot_live:
         return None
@@ -278,10 +296,23 @@ def _model_from_lines(grid, lines: list[str], value_idx: list[int], total_idx: i
 
 
 def _is_cr5(grid: list[dict]) -> bool:
-    if NT.live_value_columns(grid, MAX_ROW) < 8:      # CR4 prints six
+    if any(NT.rowno(r, MAX_ROW) is not None for r in grid):
+        if NT.live_value_columns(grid, MAX_ROW) < 8:      # CR4 prints six
+            return False
+        return any(NT.rowno(r, MAX_ROW) == 1 and _ROW1.search(
+            fold(NT._LABEL_PREFIX.sub("", (r["label"] or "").strip()))) for r in grid)
+    # unnumbered: the class rows themselves, and a matrix at least eight
+    # columns wide (CR4 prints six)
+    body = data_rows(grid)
+    roles = {role_of((r["label"] or "").strip()) for r in body}
+    if len(roles - {None}) < 6 or "total" not in roles:
         return False
-    return any(NT.rowno(r, MAX_ROW) == 1 and _ROW1.search(
-        fold(NT._LABEL_PREFIX.sub("", (r["label"] or "").strip()))) for r in grid)
+    if not any(_ROW1.search(fold((r["label"] or "").strip())) for r in body):
+        return False
+    ncol = max((len(r["cells"]) for r in body), default=0)
+    live = sum(1 for i in range(ncol)
+               if any(i < len(r["cells"]) and r["cells"][i] is not None for r in body))
+    return live >= 8
 
 
 def _identity_holds(inst: list[dict], step: float = 1.0) -> bool:
@@ -350,16 +381,27 @@ def assemble(tab: sqlite3.Connection, key: tuple,
             continue
         rows: list[dict] = []
         last_no = 0
-        for r in grid:
-            n = NT.rowno(r, MAX_ROW)
-            if n is None:
-                continue
+        body = data_rows(grid)
+        numbered = NT.rowno(body[0], MAX_ROW) is not None if body else False
+        pos = 0
+        for r in body:
+            if numbered:
+                n = NT.rowno(r, MAX_ROW)
+                if n is None:
+                    continue
+            else:
+                pos += 1
+                n = pos                      # the form's order is its numbering
             label = NT._LABEL_PREFIX.sub("", (r["label"] or "").strip())
             if not label:
                 continue
-            if n <= last_no and rows:
+            if numbered and n <= last_no and rows:
                 instances.append(rows)
                 rows = []
+            elif not numbered and rows and role_of(label) == "central_governments":
+                instances.append(rows)       # the prior-period copy starts again
+                rows = []
+                pos = n = 1
             last_no = n
             role = role_of(label)
             cells = r["cells"]

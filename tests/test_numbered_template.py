@@ -1329,6 +1329,39 @@ def test_eps_four_column_blocks_and_the_lost_decimal_comma(tmp_path):
     assert EP.repair_eps(6438442.0, 1193585.0, 5331.0) == (5331.0, None)
 
 
+def test_risk_weight_reads_the_unnumbered_cr5(tmp_path):
+    """AKTIF and ATBANK print CR5's asset classes without the regulator's
+    row numbers; the body rows are then the class rows themselves, the form
+    is numbered by its own order, and the row sums still gate."""
+    RW = _load("build_risk_weight_full")
+    header = ("Risk Sınıfları / Risk Ağırlığı", [0.0, 10.0, 20.0, 50.0, 75.0, 100.0, 150.0, "Toplam"])
+    body = [
+        ("Merkezi yönetimlerden veya merkez bankalarından alacaklar", [8917818.0, "-", "-", "-", "-", "-", "-", 8917818.0]),
+        ("Bölgesel yönetimlerden veya yerel yönetimlerden alacaklar", ["-", "-", "-", "-", "-", "-", "-", "-"]),
+        ("İdari birimlerden ve ticari olmayan girişimlerden alacaklar", ["-", "-", "-", "-", "-", 1000.0, "-", 1000.0]),
+        ("Çok taraflı kalkınma bankalarından alacaklar", ["-", "-", "-", "-", "-", "-", "-", "-"]),
+        ("Uluslararası teşkilatlardan alacaklar", ["-", "-", "-", "-", "-", "-", "-", "-"]),
+        ("Bankalardan ve aracı kurumlardan alacaklar", ["-", "-", 500000.0, 250000.0, "-", "-", "-", 750000.0]),
+        ("Kurumsal alacaklar", ["-", "-", "-", "-", "-", 4000000.0, "-", 4000000.0]),
+        ("Perakende alacaklar", ["-", "-", "-", "-", 2000000.0, "-", "-", 2000000.0]),
+        ("Diğer alacaklar", ["-", "-", "-", "-", "-", 82182.0, "-", 82182.0]),
+        ("Toplam", [8917818.0, "-", 500000.0, 250000.0, 2000000.0, 4083182.0, "-", 15751000.0]),
+    ]
+    db = _db(tmp_path, [(51, 2, "bin", [header] + body)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?",
+               ('["%0","%10","%20","%50","%75","%100","%150","Toplam"]',))
+    db.commit()
+    got = RW.assemble(db, KEY)
+    cur = got["instances"]["current"]
+    assert RW._identity_holds(cur, got["step"])
+    weights = sorted({x["risk_weight"] for x in cur if x["col_role"] == "weight"})
+    assert weights == [0.0, 10.0, 20.0, 50.0, 75.0, 100.0, 150.0]
+    first = [x for x in cur if x["template_row"] == 1]
+    assert first[0]["role"] == "central_governments" and first[0]["amount"] == 8917818.0
+    # the form's own order numbers it: the total row is the tenth
+    assert max(x["template_row"] for x in cur) == 10
+
+
 def test_exposure_class_reads_the_unnumbered_cr4_by_label(tmp_path):
     """AKBNK and the participation banks print CR4's eighteen asset classes
     without the regulator's row numbers; the label chain reads them and the

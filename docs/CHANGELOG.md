@@ -5,6 +5,16 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Risk weights (CR5): 248 → 385 filings, 21 → 31 banks.** The
+same blindness CR4 had: AKTIF, ATBANK, ANADOLU and the participation banks
+print the asset classes without the regulator's row numbers, and the whole
+reader — family test, column model, row loop — was built on `rowno`, so it
+saw an empty body and read nothing. Where no numbers are printed the body
+rows are the class rows themselves and the form's own order numbers it; the
+prior-period copy is split on the class list starting again. The row sums
+still gate, and the grand total anchors to CR4's post-CRM on+off exposure
+at 86.0% current / 81.1% prior.
+
 2026-08-22 — **Shareholder loans: 778 → 810 filings, refusals 54 → 22.**
 EMLAK's capture copies the employees row's figures onto the indirect row
 above it, so the sum double-counts and the instance was refused. Where two
