@@ -230,6 +230,36 @@ def _num(cell) -> float | None:
     return float(cell) if isinstance(cell, (int, float)) else None
 
 
+_LANDMARKS = ("cet1_total", "at1_total", "tier1_total", "tier2_total",
+              "total_own_funds", "total_own_funds_final", "total_rwa",
+              "capital_adequacy_ratio")
+
+
+def mint_gate(roles: dict) -> bool:
+    """The own-funds form has no single sum to check, so the gate is its
+    landmarks plus one of its two identities: an instance is stored only if
+    it carries at least four of the template's aggregate rows AND either
+    tier 1 = CET1 + AT1 or the printed CAR equals total / RWA.
+
+    Without it a shareholders'-equity note passes for the form — AKBNK's
+    "Ödenmiş Sermaye / Hisse Senedi İhraç Primleri / Yedek Akçeler" block
+    seeded the chain and shipped 14.7bn as CET1 against the narrow lane's
+    89.5bn.
+    """
+    def g(name):
+        return (roles.get(name) or {}).get("cur")
+
+    land = sum(1 for name in _LANDMARKS if g(name) is not None)
+    if land < 4:
+        return False
+    c1, a1, t1 = g("cet1_total"), g("at1_total"), g("tier1_total")
+    if None not in (c1, t1) and abs((c1 + (a1 or 0.0)) - t1) <= max(2.0, 1e-5 * abs(t1)):
+        return True
+    tot = g("total_own_funds_final") or g("total_own_funds")
+    rwa, car = g("total_rwa"), g("capital_adequacy_ratio")
+    return None not in (tot, rwa, car) and bool(rwa) and abs(tot / rwa * 100 - car) <= 0.15
+
+
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     """Seed + chain the own-funds blocks of one partition; return rows."""
     blocks = tab.execute(
@@ -358,15 +388,21 @@ def main() -> int:
     ident = [0, 0]
     ratio_id = [0, 0]
     unmatched = Counter()
-    written = 0
+    written = gated = 0
+    gated_keys: list[tuple] = []
     for key in keys:
         got = assemble(tab, key)
         if got is None:
             continue
         detected += 1
         rows = got["rows"]
-        width[len(rows)] += 1
         roles = {r["role"]: r for r in rows if r.get("role")}
+        if not mint_gate(roles):
+            gated += 1
+            if len(gated_keys) < 8:
+                gated_keys.append(key)
+            continue
+        width[len(rows)] += 1
         role_cov[len(roles)] += 1
         for r in rows:
             if not r.get("role") and r["cur"] is not None \
@@ -444,7 +480,10 @@ def main() -> int:
     n_width = sorted(width.elements())
     both = [k for k in keys if k in narrow_parts]
     print(f"\npartitions: {len(keys)} scanned | detected {detected} | "
+          f"refused by the mint gate (landmarks + an identity): {gated} | "
           f"narrow-lane partitions present locally {len(both)}")
+    if gated_keys:
+        print("  first refused: " + ", ".join(" ".join(k) for k in gated_keys[:4]))
     if n_width:
         print(f"width: median {statistics.median(n_width):.0f} rows "
               f"(min {n_width[0]}, max {n_width[-1]}) vs 9 fields in the narrow lane")

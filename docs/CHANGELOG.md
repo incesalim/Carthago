@@ -5,6 +5,17 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The capital lane gets a mint gate; coverage 924 → 843.**
+Re-running `audit_narrow_vs_wide.py` after the widening showed the capital
+indictments jumping 15 → 44, and the wide side was the wrong one: the new
+seed let AKBNK's shareholders'-equity note ("Ödenmiş Sermaye / Hisse Senedi
+İhraç Primleri / Yedek Akçeler") open the own-funds chain and ship 14.7bn
+as CET1 where the narrow lane has 89.5bn. The form has no single sum to
+check, so the gate is its landmarks plus one of its two identities: at
+least four aggregate rows AND either tier 1 = CET1 + AT1 or the printed CAR
+= total / RWA. 81 instances refused — 30 of them minted before the gate
+existed and never satisfied either identity. Indictments back to 17.
+
 2026-08-22 — **Risk weights (CR5): 248 → 385 filings, 21 → 31 banks.** The
 same blindness CR4 had: AKTIF, ATBANK, ANADOLU and the participation banks
 print the asset classes without the regulator's row numbers, and the whole

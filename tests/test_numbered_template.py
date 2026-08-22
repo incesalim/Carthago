@@ -1393,6 +1393,31 @@ def test_exposure_class_reads_the_unnumbered_cr4_by_label(tmp_path):
     assert EC.assemble(db, KEY) is None
 
 
+def test_capital_mint_gate_refuses_an_equity_note():
+    """The own-funds form has no single sum to check, so the gate is its
+    landmarks plus one of its two identities. A shareholders'-equity note
+    that reaches the roles by accident carries too few landmarks."""
+    CP = _load("build_capital_full")
+
+    def roles(**kw):
+        return {k: {"cur": v} for k, v in kw.items()}
+
+    # AKBNK's equity note: CET1 and Tier 1 only, and equal, so the first
+    # identity passes trivially — the landmark count is what refuses it
+    assert not CP.mint_gate(roles(cet1_total=14686252.0, tier1_total=14686252.0))
+    # the form proper: four landmarks and tier 1 = CET1 + AT1
+    assert CP.mint_gate(roles(cet1_total=327125355.0, at1_total=0.0, tier1_total=327125355.0,
+                              total_own_funds=402382324.0, total_rwa=2035471894.0,
+                              capital_adequacy_ratio=19.77))
+    # landmarks but neither identity: a misread chain is refused
+    assert not CP.mint_gate(roles(cet1_total=12558830.0, tier1_total=8585373.0,
+                                  total_own_funds=4511856.0, total_rwa=114063225.0,
+                                  capital_adequacy_ratio=22.49))
+    # the CAR identity alone carries it
+    assert CP.mint_gate(roles(tier1_total=100.0, tier2_total=20.0, total_own_funds=120.0,
+                              total_rwa=1000.0, capital_adequacy_ratio=12.0))
+
+
 def test_capital_seeds_on_the_third_and_fourth_dialect(tmp_path):
     """The own-funds template opens four ways across the fleet: the
     tasfiyesi/creditors row, the bare "Çekirdek Sermaye" header over a long
