@@ -1270,6 +1270,37 @@ def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tm
     assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
 
 
+def test_exposure_class_reads_the_unnumbered_cr4_by_label(tmp_path):
+    """AKBNK and the participation banks print CR4's eighteen asset classes
+    without the regulator's row numbers; the label chain reads them and the
+    density identity on the total row still decides."""
+    EC = _load("build_exposure_class_full")
+    rows = [
+        ("Merkezi yönetimlerden veya merkez bankalarından alacaklar", [382980743.0, 37868.0, 387042538.0, 15766.0, 429365.0, 0.11]),
+        ("Bölgesel yönetimlerden veya yerel yönetimlerden alacaklar", [48174.0, "-", 48174.0, "-", 24087.0, 50.0]),
+        ("İdari birimlerden ve ticari olmayan girişimlerden alacaklar", [713879.0, 407967.0, 657850.0, 210079.0, 867930.0, 100.0]),
+        ("Çok taraflı kalkınma bankalarından alacaklar", ["-", "-", "-", "-", "-", 0.0]),
+        ("Uluslararası teşkilatlardan alacaklar", ["-", "-", "-", "-", "-", 0.0]),
+        ("Bankalardan ve aracı kurumlardan alacaklar", [63087399.0, 15101894.0, 63070189.0, 8757026.0, 22366802.0, 31.14]),
+        ("Kurumsal alacaklar", [303877331.0, 158663410.0, 297122067.0, 90412597.0, 315542666.0, 81.42]),
+        ("Perakende alacaklar", [216842508.0, 280878938.0, 211520162.0, 16451868.0, 185799199.0, 81.5]),
+        ("İkamet amaçlı gayrimenkul ipoteği ile teminatlandırılan alacaklar", [10000.0, "-", 10000.0, "-", 3500.0, 35.0]),
+        ("Tahsili gecikmiş alacaklar", [5000.0, "-", 5000.0, "-", 5000.0, 100.0]),
+        ("Hisse senedi yatırımları", [1000.0, "-", 1000.0, "-", 1000.0, 100.0]),
+        ("Toplam", [968565034.0, 455090077.0, 960475980.0, 115847336.0, 526038549.0, 48.87]),
+    ]
+    db = _db(tmp_path, [(50, 1, "bin", rows)])
+    got = EC.assemble(db, KEY)
+    cur = {x["template_row"]: x for x in got["instances"]["current"]}
+    assert cur[7]["row_role"] == "corporates" if "row_role" in cur[7] else cur[7]["role"] == "corporates"
+    assert cur[1]["rwa_density"] == 0.11 and cur[18]["rwa"] == 526038549.0
+    assert cur[6]["on_bs_pre_crm"] == 63087399.0           # already canonical bin
+    # a total row whose density does not follow from its own RWA is refused
+    db.execute("UPDATE bank_audit_document_tables SET grid_json=replace(grid_json, '48.87', '90.0')")
+    db.commit()
+    assert EC.assemble(db, KEY) is None
+
+
 def test_capital_seeds_on_the_third_and_fourth_dialect(tmp_path):
     """The own-funds template opens four ways across the fleet: the
     tasfiyesi/creditors row, the bare "Çekirdek Sermaye" header over a long

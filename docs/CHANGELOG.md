@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Exposure classes (CR4): 231 → 321 filings, 24 → 32 banks.**
+AKBNK and the participation banks print the eighteen asset classes without
+the regulator's row numbers, so the numbered reader saw nothing; the lane
+now falls back to `assemble_by_label` with the class names as the registry
+(match priority, not template order — "Toplam" first, "Diğer alacaklar"
+last). The mint gate is unchanged: the total row's density must equal its
+own RWA over its own post-CRM exposure.
+
 2026-08-22 — **Capital 873 → 924 filings, loan type 813 → 826.** The
 own-funds template opens four ways across the fleet, and two were unread:
 QNBFB's "paid-in capital following all debts in terms of claim in

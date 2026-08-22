@@ -101,11 +101,57 @@ def _identity_holds(inst: list[dict]) -> bool:
     return rwa is not None and dens is not None and bool(expo)         and abs(rwa / expo * 100 - dens) <= 0.15
 
 
+# the same eighteen asset classes by label, for the filings that print the
+# form without its row numbers (AKBNK, KUVEYT, ICBCT, ZIRAATK...). Order is
+# match priority, not template order.
+_R = re.compile
+_BY_LABEL: list[tuple[int, re.Pattern]] = [
+    (18, _R(r"^TOPLAM$|^TOTAL$|^GENEL TOPLAM|^TOTAL( CREDIT)? RISK")),
+    (1, _R(r"^MERKEZI YONETIM|^CENTRAL GOVERNMENT|^SOVEREIGN|^EXPOSURES TO CENTRAL|^CONDITIONAL AND UNCONDITIONAL "
+           r"(RECEIVABLES|EXPOSURES) (FROM|TO) (CENTRAL|SOVEREIGN)")),
+    (2, _R(r"^BOLGESEL YONETIM|^REGIONAL GOVERNMENT|^EXPOSURES TO REGIONAL|^CONDITIONAL AND UNCONDITIONAL "
+           r"(RECEIVABLES|EXPOSURES) (FROM|TO) (REGIONAL|LOCAL)")),
+    (3, _R(r"^IDARI BIRIM|^ADMINISTRATIVE (BODIES|UNITS)|^PUBLIC SECTOR ENTIT|^EXPOSURES TO ADMINISTRATIVE|"
+           r"^CONDITIONAL AND UNCONDITIONAL (RECEIVABLES|EXPOSURES) (FROM|TO) ADMINISTRATIVE")),
+    (4, _R(r"^COK TARAFLI KALKINMA|^MULTILATERAL DEVELOPMENT")),
+    (5, _R(r"^ULUSLARARASI TESKILAT|^INTERNATIONAL ORGANI[SZ]ATION")),
+    (6, _R(r"^BANKALARDAN VE ARACI KURUM|^BANKS AND (BROKERAGE|INTERMEDIAR|CAPITAL MARKET)|^EXPOSURES TO (BANKS|"
+           r"INSTITUTION)|^CONDITIONAL AND UNCONDITIONAL (RECEIVABLES|EXPOSURES) (FROM|TO) BANK")),
+    (7, _R(r"^KURUMSAL ALACAK|^CORPORATE (RECEIVABLE|EXPOSURE|CLAIM)|^EXPOSURES TO CORPORATE|"
+           r"^CONDITIONAL AND UNCONDITIONAL CORPORATE")),
+    (8, _R(r"^PERAKENDE ALACAK|^RETAIL (RECEIVABLE|EXPOSURE|CLAIM)|^EXPOSURES TO RETAIL|"
+           r"^CONDITIONAL AND UNCONDITIONAL RETAIL")),
+    (9, _R(r"^IKAMET AMACLI GAYRIMENKUL|^(EXPOSURES )?SECURED BY (RESIDENTIAL|MORTGAGES ON RESIDENTIAL)|"
+           r"^CONDITIONAL AND UNCONDITIONAL (RECEIVABLES|EXPOSURES) SECURED BY (RESIDENTIAL|MORTGAGE)")),
+    (10, _R(r"^TICARI AMACLI GAYRIMENKUL|^(EXPOSURES )?SECURED BY (COMMERCIAL|MORTGAGES ON COMMERCIAL)")),
+    (11, _R(r"^TAHSILI GECIKMIS|^PAST.?DUE (RECEIVABLE|EXPOSURE|ITEM|LOAN)|^EXPOSURES IN DEFAULT")),
+    (12, _R(r"^KURULCA RISKI YUKSEK|^(ITEMS|RECEIVABLES|EXPOSURES) (IN|DEFINED IN) HIGH.?RISK|^HIGHER.?RISK")),
+    (13, _R(r"^IPOTEK TEMINATLI MENKUL|^(SECURITIES|BONDS) (COLLATERALI[SZ]ED|SECURED) BY MORTGAGE|^COVERED BOND")),
+    (14, _R(r"^MENKUL KIYMETLESTIRME|^SECURITI[SZ]ATION")),
+    (15, _R(r"^BANKALAR VE ARACI KURUMLARDAN OLAN KISA|^SHORT.?TERM (RECEIVABLES|EXPOSURES|CLAIMS)")),
+    (16, _R(r"^KOLEKTIF YATIRIM|^(INVESTMENTS? (SIMILAR TO |IN THE NATURE OF )?)?COLLECTIVE INVESTMENT|"
+            r"^UNDERTAKINGS FOR COLLECTIVE")),
+    (17, _R(r"^HISSE SENEDI YATIRIM|^EQUITY (INVESTMENT|SHARE|EXPOSURE)|^DIGER ALACAK|^OTHER (RECEIVABLE|ITEM|"
+            r"ASSET|CLAIM|EXPOSURE)")),
+]
+
+
+def _label_gate(rows: list[dict]) -> bool:
+    """The same density identity as the numbered path, on the total row."""
+    return _identity_holds(rows)
+
+
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
-    return NT.assemble(
+    got = NT.assemble(
         tab, key, sig=_SIG, max_row=18, bottom_row=17, n_values=6,
         percent_rows=set(), role_of=lambda n, _label: ROLE_BY_ROW.get(n),
         value_names=VALUES, percent_cols=frozenset({5}), block_filter=_is_cr4)
+    if got is not None:
+        return got
+    return NT.assemble_by_label(
+        tab, key, labels=_BY_LABEL, n_values=6, percent_rows=set(), open_rows={1, 2, 3},
+        close_row=18, min_rows=8, role_of=lambda n, _label: ROLE_BY_ROW.get(n),
+        value_names=VALUES, gate=_label_gate)
 
 
 def main() -> int:
