@@ -5,6 +5,22 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The column borrow only looked backwards.** A Section-4
+block whose own header is unreadable takes the columns of the nearest block
+of the same family — but the search ran backwards only, so the block that
+got dropped was always the FIRST of a family, and the first is the
+current-period one.
+
+ODEA prints its current repricing table on page 58 with the labels shredded
+to ["gerektiği nazım hesap", "zaman önlem kalemlerinin", …] and the prior on
+page 59 with a header the model can read. Page 58 was skipped, page 59
+became the filing's only repricing instance, and both 2022Q3 and 2022Q4
+reported the prior 55,466,005 against 68,996,849 and 63,745,557.
+
+The borrow reaches in either direction now, nearest first. Two more
+repricing blocks read, the anchor 97.1% -> 97.2%, and the repricing bucket
+empties: 14 -> 0. Repair list 102 -> 88.
+
 2026-08-22 — **Half the derivative line was in a note nobody read.**
 GARAN's derivative liabilities came out at 14,462,104 against a
 balance-sheet line of 16,113,972 — short by 1,651,868, every quarter, by a

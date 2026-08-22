@@ -1671,6 +1671,37 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_section4_borrows_columns_from_either_direction(tmp_path):
+    """ODEA prints the current repricing table on page 58 with its labels
+    shredded to ["gerektiği nazım hesap", "zaman önlem kalemlerinin", …] and
+    the prior on page 59 with a header the model can read. A block borrowed
+    columns only from EARLIER blocks, so the first of a family — which is
+    the current-period one — was the block that got dropped, and both
+    2022Q3 and 2022Q4 reported the prior 55,466,005."""
+    S4 = _load("build_section4_matrix_full")
+    def table(unit, total):
+        body = [(lab, [unit] * 6 + [unit * 6]) for lab in
+                ("Nakit değerler", "Bankalar", "Krediler", "Para piyasalarından alacaklar")]
+        return body + [("Toplam varlıklar", [unit * 4] * 6 + [total])]
+    rows, prior = table(1.0, 24.0), table(0.5, 12.0)
+    db = _db(tmp_path, [(58, 1, "bin", rows), (59, 1, "bin", prior)])
+    # page 58's labels name nothing; page 59 carries the readable header
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, heading=? WHERE page=58",
+               (json.dumps(["gerektiği nazım hesap", "zaman önlem kalemlerinin", "", "", "", "", ""]),
+                "Cari dönem varlıkların faize duyarlılığı"))
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json=?, heading=? WHERE page=59",
+               (json.dumps(["1 aya kadar", "1-3 ay", "3-12 ay", "1-5 yıl", "5 yıl ve üzeri",
+                            "Faizsiz", "Toplam"]),
+                "Önceki dönem varlıkların faize duyarlılığı"))
+    db.commit()
+    got = S4.assemble(db, KEY)
+    pages = sorted({r["page"] for i in got["instances"] for r in i["rows"]})
+    assert pages == [58, 59], pages
+    totals = sorted(v for i in got["instances"] for r in i["rows"]
+                    if r["role"] == "total_assets" for band, v in r["cells"] if band == "total")
+    assert totals == [12.0, 24.0]
+
+
 def test_derivative_hedging_note_is_the_rest_of_the_line(tmp_path):
     """GARAN prints the trading derivatives in one table and the fair-value
     / cash-flow / net-investment hedges in another. Only the first was read,

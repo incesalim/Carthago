@@ -286,21 +286,36 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
     unit = found[0][6]
     factor = U.UNIT_SCALE.get(unit)
     instances, no_header = [], Counter()
-    prev_cols: dict[str, list] = {}
     streams: dict[str, list] = {}
-    for fam, pg, bid, heading, grid, col_labels, _u in found:
+    models = [BM.column_model(grid, col_labels, BANDSETS[fam], min_named=3)
+              for fam, _pg, _bid, _h, grid, col_labels, _u in found]
+    # A block whose own header is unreadable borrows the columns of the
+    # nearest block of the same family -- in EITHER direction. Backwards
+    # only lost the first block of a family, which is the current-period
+    # one: ODEA's current repricing table is page 58 with the labels
+    # shredded to ["gerektigi nazim hesap", "zaman onlem kalemlerinin", ...]
+    # and the prior on page 59 with a header the model can read, so the
+    # filing reported 55,466,005 for both 2022Q3 and 2022Q4 where the narrow
+    # lane has 68,996,849 and 63,745,557.
+    for n, (fam, _pg, _bid, _h, grid, _cl, _u) in enumerate(found):
+        if models[n] is not None:
+            continue
         bs = BANDSETS[fam]
-        cols = BM.column_model(grid, col_labels, bs, min_named=3)
-        if cols is None and fam in prev_cols:
-            data = [r for r in grid if not BM.is_header_row(r, bs.header_label)]
-            ncol = max((len(r["cells"]) for r in data), default=0)
-            if ncol and all(i < ncol for i, _b in prev_cols[fam]):
-                cols = prev_cols[fam]
-        if cols is None:
+        data = [r for r in grid if not BM.is_header_row(r, bs.header_label)]
+        ncol = max((len(r["cells"]) for r in data), default=0)
+        if not ncol:
+            continue
+        near = sorted((abs(m - n), m) for m in range(len(found))
+                      if models[m] is not None and found[m][0] == fam)
+        for _d, m in near:
+            if all(i < ncol for i, _b in models[m]):
+                models[n] = models[m]
+                break
+    for n, (fam, pg, bid, heading, grid, _cl, _u) in enumerate(found):
+        if models[n] is None:
             no_header[fam] += 1
             continue
-        prev_cols[fam] = cols
-        streams.setdefault(fam, []).extend((r, cols, pg, bid, heading) for r in grid)
+        streams.setdefault(fam, []).extend((r, models[n], pg, bid, heading) for r in grid)
     for fam, stream in streams.items():
         instances.extend(_instances_of(stream, fam, factor, BANDSETS[fam]))
     return {"unit": unit, "step": float(factor or 1.0), "no_header": no_header,
