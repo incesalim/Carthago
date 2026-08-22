@@ -233,7 +233,34 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
             if not any(close(wv, v) for v in cands):
                 out[f"{fam} (narrow statement line)"].append((b, p, k, f"{fam}.total", cands[0], wv))
 
+    # the securities note's total per measurement portfolio against the
+    # balance sheet's line for that portfolio. "Türev" first: the derivative
+    # lines carry the same words and are a different asset
     import re as _re2
+    _NOT_SEC = _re2.compile(r"^TUREV|^DERIVATIVE")
+    portfolios = {
+        "fvtpl": r"^(FINANSAL VARLIKLAR )?GERCEGE UYGUN DEGER FARKI KAR ?[/ ]?ZARARA YANSITILAN|"
+                 r"^FINANCIAL ASSETS (AT|MEASURED AT) FAIR VALUE THROUGH PROFIT",
+        "fvoci": r"^(FINANSAL VARLIKLAR )?GERCEGE UYGUN DEGER FARKI DIGER KAPSAMLI GELIRE YANSITILAN|"
+                 r"^FINANCIAL ASSETS (AT|MEASURED AT) FAIR VALUE THROUGH OTHER COMPREHENSIVE",
+        "amortised_cost": r"^ITFA EDILMIS MALIYETI ILE OLCULEN FINANSAL VARLIKLAR|"
+                          r"^FINANCIAL ASSETS MEASURED AT AMORTI[SZ]ED COST",
+    }
+    for portfolio, rx in portfolios.items():
+        rx_c = _re2.compile(rx)
+        for b, p, k, wv in tab.execute(
+                "SELECT bank_ticker, period, kind, current FROM bank_audit_securities_full "
+                "WHERE portfolio=? AND item_role='total' AND instance_no=0 AND current IS NOT NULL",
+                (portfolio,)):
+            rows = bs_rows.get((b, p, k, "assets"), [])
+            cands = [v for name, v in rows
+                     if not _NOT_SEC.search(name)
+                     and (rx_c.search(name) or rx_c.search(foot.sub("", name)))]
+            if not cands or any(close(wv, v) for v in cands):
+                continue
+            out[f"securities.{portfolio} (narrow balance-sheet line)"].append(
+                (b, p, k, f"securities.{portfolio}", cands[0], wv))
+
     for ctx, rx in deriv.items():
         rx_c = _re2.compile(rx)
         st = "assets" if ctx == "assets" else "liabilities"

@@ -629,6 +629,37 @@ def test_securities_identity_handles_both_sign_conventions(tmp_path):
                            "value through other comprehensive income", None) == "fvoci"
 
 
+def test_securities_period_split_by_currency(tmp_path):
+    """AKTIF prints TP YP TP YP — the period split by currency, not current
+    and prior — and reading the second column as "prior" halved every figure
+    against the balance sheet. The period totals are the sums; the halves
+    are kept beside them."""
+    rows = [
+        ("31 Aralık 2022", [None, None, 31.0, None, None, 2022.0, None, 31.0, None, 2021.0, None]),
+        ("TP YP TP YP", [None] * 11),
+        ("Borçlanma Senetleri (*)", [None, None, None, 5717610.0, None, None, 5824065.0, None, 4186608.0, None, 4039398.0]),
+        ("Borsada İşlem Gören", [None, None, None, 5717592.0, None, None, 5824065.0, None, 3817247.0, None, 4039398.0]),
+        ("Borsada İşlem Görmeyen", [None, None, None, 18.0, None, None, "-", None, 369361.0, None, "-"]),
+        ("Hisse Senetleri", [None, None, None, 1518.0, None, None, 19922.0, None, 1518.0, None, 615.0]),
+        ("Borsada İşlem Gören", [None, None, None, "-", None, None, 19307.0, None, "-", None, "-"]),
+        ("Borsada İşlem Görmeyen", [None, None, None, 1518.0, None, None, 615.0, None, 1518.0, None, 615.0]),
+        ("Değer Azalma Karşılığı (-)", [None, None, None, 3364.0, None, None, 180283.0, None, 3364.0, None, 180283.0]),
+        ("Toplam", [None, None, None, 5715764.0, None, None, 5663704.0, None, 4184762.0, None, 3859730.0]),
+    ]
+    db = _db(tmp_path, [(86, 1, "bin", rows)])
+    db.execute("UPDATE bank_audit_document_tables SET grid_json=replace(grid_json, ?, ?)",
+               ('"label": "TP YP TP YP", "cells": [null, null, null, null, null, null, null, null, null, null, null]}',
+                '"label": "TP YP TP YP", "cells": [null, null, null, null, null, null, null, null, null, null, null], '
+                '"inline": true}'))
+    db.commit()
+    got = SC.assemble(db, KEY)
+    total = [r for r in got["instances"][0]["rows"] if r["item_role"] == "total"][0]
+    assert total["current"] == 5715764.0 + 5663704.0          # the period, not the TL half
+    assert total["current_tl"] == 5715764.0 and total["current_fc"] == 5663704.0
+    assert total["prior"] == 4184762.0 + 3859730.0
+    assert SC._identity_holds(got["instances"][0]["rows"])
+
+
 def test_securities_date_row_phantom_columns_glued_movement_other_and_accruals(tmp_path):
     # VAKBN: a date row above, the figures parked in columns 4 and 8 of a
     # nine-cell row, the amortised-cost movement table glued on below

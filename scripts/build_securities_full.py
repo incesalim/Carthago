@@ -120,8 +120,15 @@ CREATE TABLE IF NOT EXISTS bank_audit_securities_full (
     group_role   TEXT,
     item_role    TEXT,
     -- canonical thousand TL (scaled at mint). NULL = the filing printed "-".
+    -- `current` and `prior` are the PERIOD totals: where the note splits the
+    -- period into TL and FC columns (AKTIF, ALNTF, ZIRAAT…) they are the sum
+    -- and the halves are kept beside them.
     current      REAL,
     prior        REAL,
+    current_tl   REAL,
+    current_fc   REAL,
+    prior_tl     REAL,
+    prior_fc     REAL,
     page         INTEGER NOT NULL,
     block_id     INTEGER NOT NULL,
     source_unit  TEXT,
@@ -157,10 +164,31 @@ def _normalise(grid: list[dict]) -> list[dict]:
     return grid if total is None else grid[:total + 1]
 
 
-def _value_columns(grid: list[dict]) -> list[int]:
-    """(current, prior) cell indexes: the first two live columns — VAKBN
-    parks the figures in columns 4 and 8 of a nine-cell row."""
+_TL_FC_HEADER = re.compile(r"\b(TP|TL)\b.{0,6}\b(YP|FC|FX)\b.{0,12}\b(TP|TL)\b.{0,6}\b(YP|FC|FX)\b")
+
+
+def _split_by_currency(grid: list[dict], live: list[int]) -> bool:
+    """True where the note prints TP YP TP YP — four columns, the period
+    split by currency — rather than current and prior. Read off a header
+    row inside the grid: taking TL for "current" and FC for "prior" halved
+    every figure against the balance sheet."""
+    if len(live) != 4:
+        return False
+    for r in grid:
+        if any(c is not None for c in r["cells"]):
+            continue
+        if _TL_FC_HEADER.search(fold(r["label"] or "")):
+            return True
+    return False
+
+
+def _value_columns(grid: list[dict], raw: list[dict] | None = None) -> list[int]:
+    """(current, prior) cell indexes, or four when the period is split by
+    currency: the first live columns — VAKBN parks the figures in columns 4
+    and 8 of a nine-cell row."""
     live = BM.live_value_columns(grid)
+    if _split_by_currency(raw if raw is not None else grid, live):
+        return live
     if len(live) >= 2:
         return live[:2]
     if len(live) == 1:
@@ -177,9 +205,12 @@ def _is_family(grid: list[dict]) -> bool:
         _TOTAL.search(fold(r["label"] or "").strip()) for r in grid)
 
 
-def _rows_of(grid: list[dict], pg: int, bid: int, factor) -> list[dict]:
+def _rows_of(grid: list[dict], pg: int, bid: int, factor, raw: list[dict] | None = None) -> list[dict]:
     rows, group = [], None
-    cur_i, pri_i = _value_columns(grid)
+    # the TP YP TP YP header sits above the first debt-securities row, which
+    # `_normalise` cuts away — so the split is read off the RAW grid
+    idx = _value_columns(grid, raw if raw is not None else grid)
+    split = len(idx) == 4
     for r in grid:
         label = (r["label"] or "").strip()
         if not label:
@@ -199,12 +230,23 @@ def _rows_of(grid: list[dict], pg: int, bid: int, factor) -> list[dict]:
             item = next((name for name, rx in ITEMS if rx.search(f)), None)
             item_role = item
         cells = r["cells"]
-        vals = [num(cells[i]) if 0 <= i < len(cells) else None for i in (cur_i, pri_i)]
+        got = [num(cells[i]) if 0 <= i < len(cells) else None for i in idx]
         if factor is not None:
-            vals = [U.scale_amount(v, factor) for v in vals]
+            got = [U.scale_amount(v, factor) for v in got]
+        if split:
+            ctl, cfc, ptl, pfc = got
+
+            def _sum(a, b):
+                return None if a is None and b is None else (a or 0.0) + (b or 0.0)
+            vals = [_sum(ctl, cfc), _sum(ptl, pfc)]
+            parts = [ctl, cfc, ptl, pfc]
+        else:
+            vals = got[:2]
+            parts = [None, None, None, None]
         row = {"label": label, "group_role": group if item_role in ("group", "quoted", "unquoted") else None,
                "item_role": item_role, "page": pg, "block_id": bid}
         row.update(zip(VALUES, vals))
+        row.update(zip(("current_tl", "current_fc", "prior_tl", "prior_fc"), parts))
         rows.append(row)
     return rows
 
@@ -250,19 +292,23 @@ def assemble(tab: sqlite3.Connection, key: tuple, cap: sqlite3.Connection | None
         "SELECT page, block_id, heading, item_title, grid_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
-    found = [(pg, bid, h, it, grid, unit)
-             for pg, bid, h, it, g, unit in blocks
-             if _is_family(grid := _normalise(absorb_inline(json.loads(g), _sec_role)))]
+    found = []
+    for pg, bid, h, it, g, unit in blocks:
+        raw = json.loads(g)                 # before absorb_inline: it drops the "TP YP TP YP" header
+        grid = _normalise(absorb_inline(raw, _sec_role))
+        if _is_family(grid):
+            found.append((pg, bid, h, it, grid, unit, raw))
     if not found:
         return None
     unit = found[0][5]
     factor = U.UNIT_SCALE.get(unit)
     instances = []
-    for pg, bid, h, it, grid, _u in found:
+    for pg, bid, h, it, grid, _u, raw in found:
         portfolio = portfolio_of(h, it)
         if portfolio == "unknown":
             portfolio = portfolio_from_ledger(cap, key, pg, bid)
-        instances.append({"portfolio": portfolio, "heading": h, "rows": _rows_of(grid, pg, bid, factor)})
+        instances.append({"portfolio": portfolio, "heading": h,
+                          "rows": _rows_of(grid, pg, bid, factor, raw)})
     return {"unit": unit, "instances": instances}
 
 
@@ -321,9 +367,11 @@ def main() -> int:
             for n, i in enumerate(kept):
                 out.executemany(
                     "INSERT INTO bank_audit_securities_full VALUES "
-                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     [(*key, n, i["portfolio"], i["heading"], k, x["label"],
                       x["group_role"], x["item_role"], x["current"], x["prior"],
+                      x.get("current_tl"), x.get("current_fc"),
+                      x.get("prior_tl"), x.get("prior_fc"),
                       x["page"], x["block_id"], got["unit"])
                      for k, x in enumerate(i["rows"])])
                 written += len(i["rows"])

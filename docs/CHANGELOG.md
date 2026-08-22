@@ -5,6 +5,21 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **The securities cross-check finds the currency split.** The
+note's total per measurement portfolio now meets the balance sheet's line
+for that portfolio, and the check indicted 94 rows. The cause at AKTIF and
+others: the note prints **TP YP TP YP** — the period split by currency, not
+current and prior — and the reader took the second column as the prior
+period, halving every figure (5,715,764 where the balance sheet says
+11,379,468, and 5,715,764 + 5,663,704 is exactly that). `current` and
+`prior` are now the period totals, with the halves kept beside them in
+`current_tl` / `current_fc` / `prior_tl` / `prior_fc`; 292 rows carry a
+split. Indictments 94 → 90, and the remainder are perimeter differences —
+ANADOLU's note total is struck after impairment while the balance sheet
+carries the gross figure. A tightening of the portfolio-title match was
+tried and reverted: it cost more (unknown portfolios 129 → 187) than it
+fixed.
+
 2026-08-22 — **Two more cross-checks, and both caught something.**
 `audit_narrow_vs_wide.py` now compares the narrow `bank_audit_stages`
 against the stage movement's closing balances, and the derivatives note's
