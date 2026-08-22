@@ -1645,6 +1645,32 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_sector_npl_note_with_write_offs_and_the_period_from_its_own_date():
+    """Two ways a sector table was filed as the stage/ECL note when it is
+    not: TFKB's non-performing note prints receivables / provisions /
+    write-offs — three columns, so it fell through to the stage branch — and
+    ICBCT prints last year's copy first, which position alone called
+    current."""
+    SE = _load("build_sector_full")
+    grid = [{"label": "Önceki dönem Takipteki Alacak Tutarı Özel Karşılık Aktiften Silinen Tutar",
+             "cells": [None, None, None]},
+            {"label": "Tarım", "cells": [1659462.0, 1353223.0, 930571.0]},
+            {"label": "Çiftçilik ve Hayvancılık", "cells": [530.0, 446.0, 66961.0]},
+            {"label": "Ormancılık", "cells": [5.0, 5.0, 3.0]},
+            {"label": "Balıkçılık", "cells": [1.0, 1.0, 1.0]},
+            {"label": "Toplam", "cells": [1717577.0, 1381251.0, 997611.0]}]
+    fam, cols = SE.column_model(grid, ["Takipteki Alacak Tutarı", "Özel Karşılık", "Aktiften Silinen Tutar"], None)
+    assert fam == "npl_provisions"
+    assert [c for _i, c, _l in cols] == ["npl", "stage3_provision", "written_off"]
+
+    dated = [{"label": "Krediler (1)", "cells": [None, None, None]},
+             {"label": "31 Aralık 2022 Önemli sektörler / karşı taraflar", "cells": [None, None, None]},
+             {"label": "Tarım", "cells": [1.0, 2.0, 3.0]}]
+    assert SE._period_from_dates(dated, "2023Q4") == "prior"
+    assert SE._period_from_dates(dated, "2022Q4") == "current"
+    assert SE._period_from_dates([{"label": "Tarım", "cells": [1.0]}], "2023Q4") is None
+
+
 def test_sector_cut_past_another_table_but_not_past_its_own_header(tmp_path):
     """ING prints the sector note in the same block as the risk-weight table
     above it, and the note's rows were being read with that table's columns

@@ -5,6 +5,23 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Sector indictments 1,686 → 43.** Two more tables that were
+being filed as the stage/ECL note when they are not. TFKB's non-performing
+note prints receivables / provisions / write-offs — three columns, and the
+NPL branch only accepted two or four, so it fell through to the stage
+branch and put non-performing receivables where the narrow lane keeps
+stage-2 loans (240 rows). ICBCT prints last year's copy of the note first,
+and position alone called it current, so a 2023 filing carried 31 December
+2022 as its current period (48 rows); an instance is now labelled from the
+date printed above it.
+
+The 43 that remain are VAKBN's sector breakdown of cash loans, whose first
+column is the loan amount. It has no stage vocabulary to tell it apart, and
+requiring some — dropping the bare three-column fallback — took the count
+to 316 rather than down: the fallback is also what catches the genuine
+stage tables whose header words the capture lost. Reverted; those 43 stay
+open.
+
 2026-08-22 — **ING's sector note was being read from the wrong page.** The
 last of the big sector disagreements: ING prints the note in the same block
 as the risk-weight table above it, the note's own rows were read with that

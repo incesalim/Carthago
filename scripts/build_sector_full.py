@@ -252,8 +252,12 @@ def _named_family(grid: list[dict], col_labels: list, heading: str | None,
         if n == 4 and not re.search(r"%", htext) and re.search(r"ONCEKI|PRIOR|PREVIOUS", htext):
             names = ["tl", "fc", "tl_prior", "fc_prior"]
         return "loans_currency", [(i, nm, frags[i] or None) for i, nm in zip(live, names)]
-    if re.search(r"TAKIPTEKI|NON.?PERFORMING|NPL|DONUK", htext) and n in (2, 4):
+    if re.search(r"TAKIPTEKI|NON.?PERFORMING|NPL|DONUK", htext) and n in (2, 3, 4):
+        # three columns is the same note with the write-offs beside it
+        # (TFKB): read as stage 2 / stage 3 / ECL it put non-performing
+        # receivables where the narrow lane keeps stage-2 loans
         names = {2: ["npl", "stage3_provision"],
+                 3: ["npl", "stage3_provision", "written_off"],
                  4: ["npl", "stage3_provision", "npl_prior", "stage3_provision_prior"]}[n]
         return "npl_provisions", [(i, nm, frags[i] or None) for i, nm in zip(live, names)]
     if re.search(r"STAGE|ASAMA|KARSILIK|PROVISION|ECL|EXPECTED|BEKLENEN|TFRS 9|IFRS 9", htext) or n in (3, 6):
@@ -384,11 +388,35 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         # and then last year's (AKTIF page 53). Stored as one instance both
         # copies were labelled 'current', and a blank current cell fell
         # through to the prior copy's figure.
+        dated = _period_from_dates(grid, key[1])
         for n, part in enumerate(_split_on_restart(rows)):
+            label = "mixed" if mixed else ("current" if n == 0 else "prior")
+            if dated and not mixed and n == 0:
+                label = dated          # the table's own date beats its position
             instances.append({"family": fam, "cols": cols, "rows": part, "heading": heading,
-                              "period_label": ("mixed" if mixed else
-                                               "current" if n == 0 else "prior")})
+                              "period_label": label})
     return {"unit": unit, "step": float(factor or 1.0), "unread": unread, "instances": instances}
+
+
+_YEAR = re.compile(r"\b(20\d\d)\b")
+
+
+def _period_from_dates(grid: list[dict], period: str) -> str | None:
+    """'current' or 'prior' from the date the table prints above itself.
+    ICBCT prints the prior-year copy first and the lane, going by position,
+    filed 31 December 2022 as the current period of a 2023 filing."""
+    year = int(period[:4])
+    for r in grid[:6]:
+        text = fold(r["label"] or "") + " " + " ".join(
+            str(c) for c in r["cells"] if isinstance(c, str))
+        years = {int(y) for y in _YEAR.findall(text)}
+        if not years:
+            continue
+        if year in years:
+            return "current"
+        if year - 1 in years:
+            return "prior"
+    return None
 
 
 def _split_on_restart(rows: list[dict]) -> list[list[dict]]:
