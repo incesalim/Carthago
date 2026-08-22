@@ -465,6 +465,17 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
         out["capital.total_rwa vs the OV1 form (wide vs wide)"].append(
             (b, p, k, "total_rwa", other, wv))
 
+    # the HEDGING note is the rest of the balance-sheet line: GARAN prints
+    # the trading derivatives in one table and the fair-value / cash-flow /
+    # net-investment hedges in another, and 14,462,104 + 1,651,868 is its
+    # 2024Q2 derivative liabilities to the lira
+    hedge_total: dict[tuple, float] = {}
+    for b, p, k, ctx, tl, fc in tab.execute(
+            "SELECT bank_ticker, period, kind, context, current_tl, current_fc "
+            "FROM bank_audit_derivative_full WHERE context LIKE 'hedging_%' AND row_role='total'"):
+        if tl is None and fc is None:
+            continue
+        hedge_total.setdefault((b, p, k, ctx[len("hedging_"):]), (tl or 0.0) + (fc or 0.0))
     for ctx, rx in deriv.items():
         rx_c = _re2.compile(rx)
         st = "assets" if ctx == "assets" else "liabilities"
@@ -474,12 +485,16 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
             if tl is None and fc is None:
                 continue
             wv = (tl or 0.0) + (fc or 0.0)
+            hedged = hedge_total.get((b, p, k, ctx))
             rows = bs_rows.get((b, p, k, st), [])
             cands = [v for name, v in rows if rx_c.search(name) or rx_c.search(foot.sub("", name))]
-            if not cands or any(close(wv, v) for v in cands):
+            if not cands:
+                continue
+            totals = [wv] + ([wv + hedged] if hedged is not None else [])
+            if any(close(t, v) for v in cands for t in totals):
                 continue
             out[f"derivative.{ctx} (narrow balance-sheet line)"].append(
-                (b, p, k, f"derivative.{ctx}", cands[0], wv))
+                (b, p, k, f"derivative.{ctx}", cands[0], totals[-1]))
     return out
 
 

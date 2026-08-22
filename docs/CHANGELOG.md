@@ -5,6 +5,22 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Half the derivative line was in a note nobody read.**
+GARAN's derivative liabilities came out at 14,462,104 against a
+balance-sheet line of 16,113,972 — short by 1,651,868, every quarter, by a
+varying percentage. The bank prints the trading derivatives in one table
+and the fair-value / cash-flow / net-investment hedges in another, and
+973,098 + 678,770 is that gap to the lira.
+
+The hedge types are roles of their own now and the note is its own family:
+42 `hedging_liabilities` instances and 4 `hedging_assets`. Its four figures
+sit among dead columns — the total reads [None, None, 973098, 678770, None,
+None, 10165, 153624] — so the row is compacted to what is printed; taking
+the last four cells would have been the prior period twice over. The
+identity is checked against the hedge types, not the instrument rows.
+
+`derivative.liabilities` indictments 11 -> 1. Repair list 112 -> 102.
+
 2026-08-22 — **The table said what it was; nobody was reading that line.**
 AKTIF's repricing block carries the caption "(Yeniden fiyatlandırmaya kalan
 süreler itibarıyla)" — literally "by remaining repricing period". It is the

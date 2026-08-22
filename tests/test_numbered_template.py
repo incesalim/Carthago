@@ -1671,6 +1671,36 @@ def test_shareholder_loans_two_identities(tmp_path):
     assert r["indirect"]["cash_current"] == 28896527.0 and r["direct_real"]["noncash_prior"] is None
 
 
+def test_derivative_hedging_note_is_the_rest_of_the_line(tmp_path):
+    """GARAN prints the trading derivatives in one table and the fair-value
+    / cash-flow / net-investment hedges in another. Only the first was read,
+    so the lane reported 14,462,104 against a balance-sheet line of
+    16,113,972 — and the hedging note's 973,098 + 678,770 is the 1,651,868
+    between them, to the lira."""
+    DV = _load("build_derivative_full")
+    hedging = [("Fair Value Hedges", [None, None, "-", 228125.0, None, None, "-", 97242.0]),
+               ("Cash Flow Hedges", [None, None, 973098.0, 450645.0, None, None, 10165.0, 56382.0]),
+               ("Net Foreign Investment Hedges", [None, None, "-", "-", None, None, "-", "-"]),
+               ("Total", [None, None, 973098.0, 678770.0, None, None, 10165.0, 153624.0])]
+    grid = [{"label": lab, "cells": c} for lab, c in hedging]
+    assert DV._is_hedging_family(grid)
+    assert not DV._is_family(grid)
+    assert DV.context_of("Derivative Financial Liabilities Held for Hedging", "") == "hedging_liabilities"
+
+    db = _db(tmp_path, [(126, 1, "bin", hedging)])
+    got = DV.assemble(db, KEY)
+    inst = got["instances"][0]
+    assert inst["context"] == "unknown" or inst["context"].startswith("hedging")
+    tot = [r for r in inst["rows"] if r["role"] == "total"][0]
+    # the four figures sit among dead columns: the last four CELLS would be
+    # the prior period twice over
+    assert tot["current_tl"] == 973098.0 and tot["current_fc"] == 678770.0
+    assert tot["prior_tl"] == 10165.0 and tot["prior_fc"] == 153624.0
+    assert (tot["current_tl"] + tot["current_fc"]) == 1651868.0
+    assert DV._identity_holds(inst["rows"], hedging=True)
+    assert not DV._identity_holds(inst["rows"])       # not the instrument template
+
+
 def test_section4_family_from_the_specific_words_then_the_shape():
     """Two ways the wrong matrix won. HALKB's capture truncated "Non-bearing
     interest" to "interest" and "5 years and over" to "over", so the

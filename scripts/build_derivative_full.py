@@ -42,9 +42,16 @@ ROLES: list[tuple[str, re.Pattern]] = [
     ("futures", re.compile(r"^FUTURES|^FUTURE ")),
     ("options", re.compile(r"^OPSIYON|^OPTION")),
     ("other", re.compile(r"^DIGER|^OTHER")),
+    ("fair_value_hedge", re.compile(r"^GERCEGE UYGUN DEGER RISKINDEN KORUNMA|^FAIR VALUE HEDGE")),
+    ("cash_flow_hedge", re.compile(r"^NAKIT AKIS RISKINDEN KORUNMA|^CASH FLOW HEDGE")),
+    ("net_investment_hedge", re.compile(r"^YURTDISINDAKI NET YATIRIM|^NET (FOREIGN )?INVESTMENT HEDGE")),
     ("total", re.compile(r"^TOPLAM|^TOTAL")),
 ]
 COMPONENTS = ("forward", "swap", "futures", "options", "other")
+# The hedging note lists hedge TYPES, not instruments. GARAN prints it
+# beside the trading note and the two together are the balance-sheet line:
+# 14,462,104 + 1,651,868 = 16,113,972 for 2024Q2, to the lira.
+HEDGE_COMPONENTS = ("fair_value_hedge", "cash_flow_hedge", "net_investment_hedge")
 VALUES = ("current_tl", "current_fc", "prior_tl", "prior_fc")
 _HEDGE = re.compile(r"RISKTEN KORUNMA|HEDG")
 _ASSET = re.compile(r"VARLIK|ASSET|POZITIF|POSITIVE|AKTIF")
@@ -130,6 +137,16 @@ def _is_family(grid: list[dict]) -> bool:
         and roles.count("total") == 1
 
 
+def _is_hedging_family(grid: list[dict]) -> bool:
+    """The hedging note: hedge types over the same four value columns."""
+    if not 3 <= len(grid) <= 8:
+        return False
+    roles = [role_of(r["label"] or "") for r in grid]
+    return (roles[0] in HEDGE_COMPONENTS
+            and sum(1 for r in roles if r in HEDGE_COMPONENTS) >= 2
+            and roles.count("total") == 1)
+
+
 _MATURITY = re.compile(r"VADEYE KALAN|KALAN VADE|VADE DAGILIM|1 AYA KADAR|MATURIT|MEDIUM AND|"
                        r"UP TO 1 MONTH|ORTA VE UZUN")
 
@@ -143,7 +160,7 @@ def _is_maturity_table(heading: str | None, item_title: str | None, col_labels: 
     return bool(_MATURITY.search(ctx))
 
 
-def _identity_holds(inst: list[dict]) -> bool:
+def _identity_holds(inst: list[dict], hedging: bool = False) -> bool:
     by: dict = {}
     for x in inst:
         by.setdefault(x["role"], x)
@@ -155,7 +172,8 @@ def _identity_holds(inst: list[dict]) -> bool:
         t = tot[col]
         if t is None:
             continue
-        s = sum((by[c][col] or 0.0) for c in COMPONENTS if c in by)
+        parts = HEDGE_COMPONENTS if hedging else COMPONENTS
+        s = sum((by[c][col] or 0.0) for c in parts if c in by)
         if abs(s - t) > max(2.0, 1e-5 * abs(t)):
             return False
         checked += 1
@@ -167,23 +185,33 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "SELECT page, block_id, heading, item_title, grid_json, col_labels_json, declared_unit "
         "FROM bank_audit_document_tables WHERE bank_ticker=? AND period=? "
         "AND kind=? ORDER BY page, block_id", key).fetchall()
-    found = [(pg, bid, h, it, grid, unit)
-             for pg, bid, h, it, g, cl, unit in blocks
-             if _is_family(grid := _normalise(absorb_inline(
-                 json.loads(g), role_of, keep=lambda lab: role_of(lab) in COMPONENTS)))   # ISCTR: a valueless "Futures"
-             and not _is_maturity_table(h, it, json.loads(cl or "[]"))]
+    found = []
+    for pg, bid, h, it, g, cl, unit in blocks:
+        grid = _normalise(absorb_inline(
+            json.loads(g), role_of, keep=lambda lab: role_of(lab) in COMPONENTS))   # ISCTR: a valueless "Futures"
+        if _is_maturity_table(h, it, json.loads(cl or "[]")):
+            continue
+        if _is_family(grid):
+            found.append((pg, bid, h, it, grid, unit, False))
+        elif _is_hedging_family(grid):
+            found.append((pg, bid, h, it, grid, unit, True))
     if not found:
         return None
     unit = found[0][5]
     factor = U.UNIT_SCALE.get(unit)
     instances = []
-    for pg, bid, heading, item_title, grid, _u in found:
+    for pg, bid, heading, item_title, grid, _u, hedging in found:
         rows = []
         for r in grid:
             label = (r["label"] or "").strip()
             if not label:
                 continue
-            vals = [num(c) for c in r["cells"][-4:]]
+            # the hedging note's rows carry the four figures among dead
+            # columns -- GARAN's total reads [None, None, 973098, 678770,
+            # None, None, 10165, 153624] -- so the last four CELLS are the
+            # prior period twice over. Compact to what is printed.
+            cells = [c for c in r["cells"] if c is not None] if hedging else r["cells"]
+            vals = [num(c) for c in cells[-4:]]
             vals = [None] * (4 - len(vals)) + vals
             if factor is not None:
                 vals = [U.scale_amount(v, factor) for v in vals]
@@ -193,7 +221,7 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
             rows.append(row)
         instances.append({"context": context_of(heading, item_title),
                           "heading": heading, "item_title": item_title,
-                          "rows": rows})
+                          "hedging": hedging, "rows": rows})
     return {"unit": unit, "instances": instances}
 
 
@@ -233,7 +261,7 @@ def main() -> int:
         if got is None:
             continue
         detected += 1
-        kept = [i for i in got["instances"] if _identity_holds(i["rows"])]
+        kept = [i for i in got["instances"] if _identity_holds(i["rows"], i.get("hedging", False))]
         gated += len(got["instances"]) - len(kept)
         if not kept:
             continue
