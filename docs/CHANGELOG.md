@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **Shareholder loans: 651 → 778 filings, 32 → 34 banks.** Three
+capture shapes: the cash / non-cash pair that names the columns is an
+inline header row `absorb_inline` drops (HSBC, BURGAN), so the family test
+now reads its context from the raw grid; ZIRAATK wraps every label onto a
+"Krediler" row that carries the values, and the role row adopts them; and a
+value-bearing row wins its role over a valueless one, so BURGAN's note
+sentence — "…granted to shareholders and employees of the Bank" — no longer
+takes the employees role from the row with the money.
+
 2026-08-22 — **Sector: 253 → 291 filings** (loans by currency 169 → 223).
 QNBFB and VAKBN print TL / (%) / FC / (%) twice with a dead column between
 the pairs; the capture parks stray cells there, so the column is live in a

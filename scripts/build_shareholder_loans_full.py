@@ -73,18 +73,48 @@ CREATE TABLE IF NOT EXISTS bank_audit_shareholder_loans_full (
 """
 
 
+def _adopt_wrapped(grid: list[dict]) -> list[dict]:
+    """A role row printed without cells takes the cells of the row below
+    when that row has no role of its own — ZIRAATK wraps every label, so
+    "Tüzel kişi ortaklara verilen" and its "krediler 3.330 - 2.374 -" are
+    two rows."""
+    out = []
+    skip = -1
+    for i, r in enumerate(grid):
+        if i == skip:
+            continue
+        if role_of(r["label"] or "") and not any(c is not None for c in r["cells"]) and i + 1 < len(grid):
+            nxt = grid[i + 1]
+            if role_of(nxt["label"] or "") is None and any(c is not None for c in nxt["cells"]):
+                r = {**r, "label": (r["label"] or "").strip() + " " + (nxt["label"] or "").strip(),
+                     "cells": nxt["cells"]}
+                skip = i + 1
+        out.append(r)
+    return out
+
+
 def _is_family(grid: list[dict], col_labels: list, heading: str | None) -> bool:
-    if not 4 <= len(grid) <= 9 or len(grid[0]["cells"]) != 4:
+    # ZIRAATK's wrapped labels and BURGAN's in-grid title push the row count
+    # past the printed six
+    if not 4 <= len(grid) <= 12 or len(grid[0]["cells"]) != 4:
         return False
     roles = [role_of(r["label"] or "") for r in grid]
     if "direct" not in roles or "total" not in roles or "employees" not in roles:
         return False
-    ctx = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or ""))
+    if not ("indirect" in roles or "direct_legal" in roles):
+        return False
+    # the cash / non-cash pair names the columns — in the heading, the column
+    # labels, or (HSBC, BURGAN, ZIRAATK) a header row inside the grid itself
+    ctx = fold(" ".join(str(c or "") for c in col_labels) + " " + (heading or "") + " "
+               + " ".join(r["label"] or "" for r in grid if not any(c is not None for c in r["cells"])))
     return bool(_CTX.search(ctx))
 
 
 def _identities_hold(rows: list[dict], step: float) -> bool:
     by: dict[str, dict] = {}
+    for x in rows:
+        if any(x[c] is not None for c in VALUES):
+            by.setdefault(x["role"], x)          # a value-bearing row wins the role
     for x in rows:
         by.setdefault(x["role"], x)
     tot = by.get("total")
@@ -119,8 +149,13 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
         "AND kind=? ORDER BY page, block_id", key).fetchall()
     found = []
     for pg, bid, heading, cl, g, unit in blocks:
-        grid = absorb_inline(json.loads(g), role_of)
-        if _is_family(grid, json.loads(cl or "[]"), heading):
+        raw = json.loads(g)
+        grid = _adopt_wrapped(absorb_inline(raw, role_of))
+        # the cash / non-cash header is an inline row absorb_inline drops, so
+        # the context comes from the RAW grid
+        ctx = (heading or "") + " " + " ".join(
+            r["label"] or "" for r in raw if not any(c is not None for c in r["cells"]))
+        if _is_family(grid, json.loads(cl or "[]"), ctx):
             found.append((pg, bid, grid, unit))
     if not found:
         return None
@@ -137,7 +172,10 @@ def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
             vals = [None] * (4 - len(vals)) + vals
             if factor is not None:
                 vals = [U.scale_amount(v, factor) for v in vals]
-            row = {"label": label, "role": role_of(label), "page": pg, "block_id": bid}
+            role = role_of(label)
+            if role and len(label) > 50 and not any(c is not None for c in r["cells"]):
+                role = None                      # the note's own sentence, not a row
+            row = {"label": label, "role": role, "page": pg, "block_id": bid}
             row.update(zip(VALUES, vals))
             rows.append(row)
         instances.append(rows)

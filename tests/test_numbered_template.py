@@ -1222,6 +1222,54 @@ def test_eps_division_gate_share_factor_and_single_column(tmp_path):
     assert got["instances"][1]["profit"] == (1000.0, None)
 
 
+def test_shareholder_loans_inline_header_wrapped_labels_and_the_note_sentence(tmp_path):
+    """The cash / non-cash pair that names the columns is an inline header
+    row (HSBC, BURGAN) the grid loses; ZIRAATK wraps every label onto a
+    "Krediler" row that carries the values; BURGAN's note sentence mentions
+    employees and must not take that role from the row that has the money."""
+    SH = _load("build_shareholder_loans_full")
+    burgan = [
+        ("1. Information on all types of loan or advance granted to shareholders and employees of the Bank", [None, None, None, None]),
+        ("Direct Loans Granted To Shareholders", ["-", 89324.0, "-", 24860.0]),
+        ("Cash Non-Cash Cash Non-Cash", [None, None, None, None]),
+        ("Corporate Shareholders", ["-", 89324.0, "-", 24860.0]),
+        ("Real Person Shareholders", ["-", "-", "-", "-"]),
+        ("Indirect Loans Granted To Shareholders", ["-", "-", "-", "-"]),
+        ("Loans Granted To Employees", [4180.0, "-", 4361.0, "-"]),
+        ("Total", [4180.0, 89324.0, 4361.0, 24860.0]),
+    ]
+    ziraatk = [
+        ("30 Haziran 2023 Krediler", [3330.0, "-", 2374.0, "-"]),
+        ("Nakdi Gayrinakdi Nakdi Gayrinakdi", [None, None, None, None]),
+        ("Banka Ortaklarına Verilen Doğrudan", [None, None, None, None]),
+        ("Tüzel Kişi Ortaklara Verilen", [None, None, None, None]),
+        ("Krediler", [3330.0, "-", 2374.0, "-"]),
+        ("Gerçek Kişi Ortaklara Verilen", [None, None, None, None]),
+        ("Krediler", ["-", "-", "-", "-"]),
+        ("Banka Ortaklarına Verilen Dolaylı", [None, None, None, None]),
+        ("Krediler", ["-", "-", "-", "-"]),
+        ("Banka Mensuplarına Verilen Krediler", [202860.0, "-", 101173.0, "-"]),
+        ("Toplam(*)", [206190.0, "-", 103547.0, "-"]),
+    ]
+    db = _db(tmp_path, [(60, 1, "bin", burgan), (69, 2, "bin", ziraatk)])
+    db.execute("UPDATE bank_audit_document_tables SET col_labels_json='[]', heading=?, grid_json="
+               "replace(replace(grid_json, ?, ?), ?, ?)",
+               ("A) Bilgiler",
+                '"label": "Cash Non-Cash Cash Non-Cash", "cells": [null, null, null, null]}',
+                '"label": "Cash Non-Cash Cash Non-Cash", "cells": [null, null, null, null], "inline": true}',
+                '"label": "Nakdi Gayrinakdi Nakdi Gayrinakdi", "cells": [null, null, null, null]}',
+                '"label": "Nakdi Gayrinakdi Nakdi Gayrinakdi", "cells": [null, null, null, null], "inline": true}'))
+    db.commit()
+    got = SH.assemble(db, KEY)
+    assert [SH._identities_hold(i, got["step"]) for i in got["instances"]] == [True, True]
+    b = {x["role"]: x for x in got["instances"][0] if x["role"]}
+    assert b["employees"]["cash_current"] == 4180.0        # not the note's sentence
+    assert b["total"]["noncash_prior"] == 24860.0
+    z = {x["role"]: x for x in got["instances"][1] if x["role"]}
+    assert z["direct_legal"]["cash_current"] == 3330.0     # the wrapped label took its values
+    assert z["employees"]["cash_prior"] == 101173.0 and z["total"]["cash_current"] == 206190.0
+
+
 def test_shareholder_loans_two_identities(tmp_path):
     SL = _load("build_shareholder_loans_full")
     ok = [("Banka Ortaklarına Verilen Doğrudan Krediler", ["-", 396.0, "-", 159.0]),
