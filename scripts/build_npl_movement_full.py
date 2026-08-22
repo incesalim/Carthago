@@ -89,6 +89,10 @@ CREATE TABLE IF NOT EXISTS bank_audit_npl_movement_full (
     npl_group    TEXT NOT NULL,      -- group_iii / group_iv / group_v
     -- canonical thousand TL (scaled at mint). NULL = the filing printed "-".
     amount       REAL,
+    -- how the FILING printed it: 'labelled' (magnitude, direction in the
+    -- "(-)" label) or 'signed' (already negative). Stored amounts are always
+    -- normalised to 'labelled'; this column keeps the page's own convention.
+    sign_convention TEXT NOT NULL,
     page         INTEGER NOT NULL,
     block_id     INTEGER NOT NULL,
     source_unit  TEXT,
@@ -192,7 +196,15 @@ def _rows_of(grid, pg, bid, factor):
     return rows
 
 
-def _identity_holds(rows: list[dict], step: float) -> bool:
+def _convention(rows: list[dict], step: float) -> str | None:
+    """Which sign convention the page prints the roll-forward in, or None
+    where neither closes.
+
+    Most filings print the outflows as magnitudes and carry the direction in
+    the label — "Donem icinde tahsilat (-)" against a positive number. A
+    minority print the number already negative. Both close; they are not the
+    same table, and storing each as printed left `collections` meaning
+    opposite things in neighbouring rows."""
     def close(a, b):
         return abs(a - b) <= max(2.0 * step, 1e-5 * abs(b))
     by: dict[str, dict] = {}
@@ -200,7 +212,16 @@ def _identity_holds(rows: list[dict], step: float) -> bool:
         if x["role"] and x["role"] not in by and any(v is not None for v in x["cells"].values()):
             by[x["role"]] = x["cells"]
     if "closing" not in by:
-        return False
+        return None
+    for convention in ("labelled", "signed"):
+        if _closes(rows, by, step, convention):
+            return convention
+    return None
+
+
+def _closes(rows: list[dict], by: dict[str, dict], step: float, convention: str) -> bool:
+    def close(a, b):
+        return abs(a - b) <= max(2.0 * step, 1e-5 * abs(b))
     checked = 0
     for g in GROUPS:
         close_v = by["closing"].get(g)
@@ -238,22 +259,51 @@ def _identity_holds(rows: list[dict], step: float) -> bool:
                 unsigned += v
         # the deductions are labelled "(-)" and printed unsigned in most
         # filings; TFKB prints them negative (the signed convention)
-        ok = False
-        for convention in ("deductions_labelled", "signed"):
-            s = sum((sg if convention == "deductions_labelled" else 1) * (by[r].get(g) or 0.0)
-                    for r, sg in SIGNS.items() if r in by) + residual
-            s += signed if convention == "deductions_labelled" else sum(
-                x["cells"].get(g) or 0.0 for x in rows if x["role"] is None and x["cells"].get(g) is not None)
-            if convention == "deductions_labelled" and (close(s + unsigned, close_v) or close(s - unsigned, close_v)):
-                ok = True
-            if close(s, close_v):
-                ok = True
-            if ok:
-                break
+        total = sum((sg if convention == "labelled" else 1) * (by[r].get(g) or 0.0)
+                    for r, sg in SIGNS.items() if r in by)
+        total += signed if convention == "labelled" else sum(
+            x["cells"].get(g) or 0.0 for x in rows if x["role"] is None and x["cells"].get(g) is not None)
+        # GARAN's "Other (***)" under the sale row carries its own minus in
+        # BOTH conventions -- the same -123,549 in a filing whose sale is
+        # printed +3,726 and in one printing it -259,367 -- so the residual
+        # over the head has no fixed direction and enters like an
+        # unregistered row: either way, but the group has to close
+        options = [total + residual, total - residual] if residual else [total]
+        ok = any(close(t, close_v) for t in options)
+        if convention == "labelled":
+            ok = ok or any(close(t + unsigned, close_v) or close(t - unsigned, close_v) for t in options)
         if not ok:
             return False
         checked += 1
     return checked >= 1
+
+
+_MINUS = re.compile(r"\(\s*-\s*\)")
+
+
+def _to_labelled(rows: list[dict]) -> None:
+    """Rewrite a signed page into the labelled convention, in place.
+
+    Negation, not magnitude: ING 2025Q3 prints a positive write-off among
+    negative ones — a reversal — and 791,015 + 46,222 + 186,523 - 113,920 +
+    23,102 - 178,413 is its closing balance to the lira. Taking magnitudes
+    would lose the reversal; flipping the sign keeps it."""
+    for x in rows:
+        x["cells"] = {g: (-v if v is not None else None) for g, v in x["cells"].items()} \
+            if _is_outflow(x) else x["cells"]
+
+
+_OUT_HEADS = tuple(r for r, sg in SIGNS.items() if sg == -1)
+
+
+def _is_outflow(x: dict) -> bool:
+    """A row the roll-forward subtracts. The split-by-loan-type children
+    ("Satilan (-) / Bireysel krediler" -> `sold_retail`) follow their head,
+    and an unregistered row follows the "(-)" its own label carries."""
+    role = x["role"]
+    if role is None:
+        return bool(_MINUS.search(fold(x["label"])))
+    return SIGNS.get(role) == -1 or role.startswith(tuple(h + "_" for h in _OUT_HEADS))
 
 
 def assemble(tab: sqlite3.Connection, key: tuple) -> dict | None:
@@ -349,7 +399,7 @@ def main() -> int:
             pass
         return got
 
-    detected = written = gated = 0
+    detected = written = gated = signed_pages = 0
     per_filing: Counter = Counter()
     labels: Counter = Counter()
     anchor_cells = [0, 0]
@@ -364,9 +414,20 @@ def main() -> int:
         kept = []
         order = 0
         for inst in got["instances"]:
-            if not _identity_holds(inst["rows"], got["step"]):
+            convention = _convention(inst["rows"], got["step"])
+            if convention is None:
                 gated += 1
                 continue
+            if convention == "signed":
+                _to_labelled(inst["rows"])
+                # the flip has to land back on the labelled convention: a
+                # child row whose head the capture lost would silently move
+                # the roll-forward, so re-run the identity on the result
+                if _convention(inst["rows"], got["step"]) != "labelled":
+                    gated += 1
+                    continue
+                signed_pages += 1
+            inst["convention"] = convention
             inst["label"] = inst["hint"] or ("current" if order == 0 else "prior" if order == 1 else "extra")
             order += 1
             labels[inst["label"]] += 1
@@ -402,13 +463,15 @@ def main() -> int:
             out.execute("DELETE FROM bank_audit_npl_movement_full WHERE bank_ticker=? AND period=? AND kind=?", key)
             for n_i, inst in enumerate(kept):
                 out.executemany(
-                    "INSERT INTO bank_audit_npl_movement_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    [(*key, n_i, inst["label"], i, x["label"], x["role"], g, v, x["page"], x["block_id"], got["unit"])
+                    "INSERT INTO bank_audit_npl_movement_full VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [(*key, n_i, inst["label"], i, x["label"], x["role"], g, v, inst["convention"],
+                      x["page"], x["block_id"], got["unit"])
                      for i, x in enumerate(inst["rows"]) for g, v in x["cells"].items()])
                 written += 3 * len(inst["rows"])
             out.commit()
 
     print(f"\npartitions: {len(keys)} scanned | detected {detected} | instances refused by the identities: {gated}")
+    print(f"instances printed in the signed convention, normalised to labelled: {signed_pages}")
     if per_filing:
         print(f"instances per filing kept: {dict(sorted(per_filing.items()))} | labels: {dict(labels)}")
     if anchor_cells[1]:

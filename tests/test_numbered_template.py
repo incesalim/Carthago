@@ -1150,7 +1150,7 @@ def test_npl_movement_identities_signed_tails_and_single_group(tmp_path):
     broken[-1] = ("Bilançodaki Net Bakiyesi", [1.0, 805768.0, 5560059.0])
     db = _db(tmp_path, [(61, 1, "bin", akbnk), (62, 1, "bin", burgan), (63, 1, "bin", broken)])
     got = NM.assemble(db, KEY)
-    assert [NM._identity_holds(i["rows"], got["step"]) for i in got["instances"]] == [True, True, False]
+    assert [NM._convention(i["rows"], got["step"]) for i in got["instances"]] == ["labelled", "labelled", None]
     a = {x["role"]: x["cells"] for x in got["instances"][0]["rows"] if x["role"]}
     assert a["transfers_out"]["group_iii"] == 1771442.0 and a["net"]["group_v"] == 5560059.0
     assert a["sold_corporate"]["group_iii"] is None
@@ -1936,6 +1936,59 @@ def test_deposit_maturity_participation_template(tmp_path):
             "public_institutions", "commercial_institutions", "total"} <= roles
 
 
+def test_npl_movement_signed_page_with_a_child_that_carries_its_own_minus(tmp_path):
+    """GARAN prints "Other (***)" under the debt sale as -123,549 in a
+    filing whose sale reads +3,726 and in one reading -259,367 — the same
+    number, both ways round. So the residual of the children over their head
+    has no fixed direction, and normalising a signed page must not assume
+    one: the group still has to close, either way."""
+    NM = _load("build_npl_movement_full")
+    signed = [
+        ("Balances at End of Prior Period", [None, None, 14626239.0]),
+        ("Additions during the Period (+)", [None, None, 7772993.0]),
+        ("Transfer from Other NPL Categories (+)", [None, None, 2126311.0]),
+        ("Transfer to Other NPL Categories (-)", [None, None, -25178.0]),
+        ("Collections during the Period (-)", [None, None, -1848826.0]),
+        ("Write down /Write-offs (-)(*)", [None, None, -8146761.0]),
+        ("Debt Sale (-)(**)", [None, None, -259367.0]),
+        ("Corporate and Commercial Loans", [None, None, -58267.0]),
+        ("Retail Loans", [None, None, -156028.0]),
+        ("Credit Cards", [None, None, -45072.0]),
+        ("Other (***)", [None, None, -123549.0]),
+        ("Foreign Currency Differences", [None, None, 1851835.0]),
+        ("Balances at End of Period", [None, None, 15973697.0]),
+        ("Provisions (-)", [None, None, -11720790.0]),
+        ("Net Balance on Balance Sheet", [None, None, 4252907.0]),
+    ]
+    db = _db(tmp_path, [(90, 1, "bin", signed)])
+    got = NM.assemble(db, KEY)
+    rows = got["instances"][0]["rows"]
+    assert NM._convention(rows, got["step"]) == "signed"
+    NM._to_labelled(rows)
+    # the children follow their head: sold_retail is an outflow too
+    by = {x["role"]: x["cells"]["group_v"] for x in rows if x["role"]}
+    assert by["collections"] == 1848826.0 and by["sold"] == 259367.0
+    assert by["sold_retail"] == 156028.0 and by["sold_other"] == 123549.0
+    assert by["opening"] == 14626239.0 and by["fx_difference"] == 1851835.0
+    # and it lands back on the labelled convention -- the builder refuses
+    # the instance if it does not
+    assert NM._convention(rows, got["step"]) == "labelled"
+
+
+def test_npl_movement_outflow_children_follow_their_head():
+    NM = _load("build_npl_movement_full")
+    out = {"collections", "transfers_out", "write_offs", "sold", "to_performing",
+           "sold_retail", "write_offs_corporate", "transfers_out_cards"}
+    for role in out:
+        assert NM._is_outflow({"role": role, "label": ""}), role
+    for role in ("opening", "additions", "transfers_in", "closing", "provision", "net",
+                 "fx_difference", "additions_retail"):
+        assert not NM._is_outflow({"role": role, "label": ""}), role
+    # an unregistered row follows the "(-)" its own label carries
+    assert NM._is_outflow({"role": None, "label": "Diğer donuk alacak hesaplarından çıkış (-)"})
+    assert not NM._is_outflow({"role": None, "label": "Diğer donuk alacak hesaplarına giriş (+)"})
+
+
 def test_npl_movement_split_blocks_sub_rows_signed_and_date_labelled_variants(tmp_path):
     NM = _load("build_npl_movement_full")
     # ISCTR: every movement split by loan type, the closing in the next block
@@ -2002,14 +2055,27 @@ def test_npl_movement_split_blocks_sub_rows_signed_and_date_labelled_variants(tm
                         (80, 1, "bin", alntf), (90, 1, "bin", garan)])
     got = NM.assemble(db, KEY)
     inst = got["instances"]
-    assert [(i["hint"], NM._identity_holds(i["rows"], got["step"])) for i in inst] == [
-        (None, True), (None, True), (None, True), (None, True), ("prior", True)]
+    assert [(i["hint"], NM._convention(i["rows"], got["step"])) for i in inst] == [
+        (None, "labelled"), (None, "signed"), (None, "labelled"), (None, "labelled"), ("prior", "labelled")]
+    # TFKB prints the outflows already negative; normalising flips them to
+    # the magnitude every other filing prints, so `collections` means one
+    # thing across the lane
+    tfkb_rows = inst[1]["rows"]
+    before = {x["role"]: dict(x["cells"]) for x in tfkb_rows if x["role"]}
+    NM._to_labelled(tfkb_rows)
+    after = {x["role"]: x["cells"] for x in tfkb_rows if x["role"]}
+    for role in ("collections", "transfers_out", "write_offs"):
+        if role in before and before[role]["group_iii"] is not None:
+            assert after[role]["group_iii"] == -before[role]["group_iii"]
+    assert after["opening"] == before["opening"] and after["closing"] == before["closing"]
+    assert NM._convention(tfkb_rows, got["step"]) == "labelled"   # and it still closes
     roles = [x["role"] for x in inst[0]["rows"]]
     assert roles[:6] == ["opening", "opening_corporate", "opening_retail", "additions", "additions_corporate",
                          "additions_retail"]
     assert roles[-3:] == ["closing", "provision", "net"] and inst[0]["rows"][-1]["block_id"] == 2
     tf = {x["role"]: x["cells"] for x in inst[1]["rows"] if x["role"]}
-    assert tf["write_offs_retail"]["group_v"] == -3.0 and tf["collections"]["group_iii"] == -10.0
+    # normalised above: TFKB's signed page now reads like every other one
+    assert tf["write_offs_retail"]["group_v"] == 3.0 and tf["collections"]["group_iii"] == 10.0
     al = {x["role"]: x["cells"] for x in inst[2]["rows"] if x["role"]}
     assert al["opening"]["group_iii"] == 100.0 and al["closing"]["group_v"] == 185.0
     assert len(inst[3]["rows"]) == 10 and len(inst[4]["rows"]) == 7

@@ -33,6 +33,20 @@ AUDIT_DB = REPO / "data" / "bank_audit.db"
 KNOWLEDGE = REPO / "docs" / "knowledge"
 
 
+# Buckets that are understood and are NOT the narrow lane's repair list.
+# They are still printed, row by row, so a change in one is visible.
+CHARACTERISED = {
+    "bank_audit_npl_movement.sign_only": (
+        "Not a repair. The two lanes hold the same magnitude and differ only in "
+        "sign: the wide lane normalises the roll-forward's outflows to the "
+        "magnitude the template's `(-)` label declares, and the narrow lane keeps "
+        "whatever sign the page printed. Nine banks print signed — ALNTF, EXIM, "
+        "GARAN, HAYATK, ING, KLNMA, PASHA, TFKB, TSKB — and two of them switch "
+        "between filings. Repairing the narrow lane here means normalising it the "
+        "same way, not correcting a figure."),
+}
+
+
 def close(a, b, rel=1e-3, absolute=2.0) -> bool:
     return abs(a - b) <= max(absolute, rel * abs(b))
 
@@ -151,6 +165,7 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
 
     # --- npl_movement, every cell: the wide movement table per group
     gmap = {"III": "group_iii", "IV": "group_iv", "V": "group_v"}
+    _NPL_OUTFLOWS = ("collections", "transfers_out", "write_offs", "sold")
     wide_npl = {}
     for b, p, k, role, g, v in tab.execute(
             "SELECT bank_ticker, period, kind, row_role, npl_group, amount FROM bank_audit_npl_movement_full "
@@ -171,8 +186,23 @@ def audit(tab: sqlite3.Connection, aud: sqlite3.Connection) -> dict[str, list[tu
             continue
         for role, narrow in zip(cols, vals):
             w = wide_npl.get((b, p, k, role, g))
-            if narrow is not None and w is not None and not close(narrow, w):
-                out["bank_audit_npl_movement"].append((b, p, k, f"{g}.{role}", narrow, w))
+            if narrow is None or w is None:
+                continue
+            # the wide lane normalises the outflows to the magnitude the
+            # "(-)" label declares; the narrow lane keeps whatever sign the
+            # page printed, so a comparison on the raw value indicts the 9
+            # banks that print signed. Compare the magnitude, and keep the
+            # cells that agree there but differ in sign as their own bucket
+            # rather than folding them away.
+            if role in _NPL_OUTFLOWS:
+                if close(abs(narrow), abs(w)):
+                    if (narrow < 0) != (w < 0) and narrow and w:
+                        out["bank_audit_npl_movement.sign_only"].append(
+                            (b, p, k, f"{g}.{role}", narrow, w))
+                    continue
+            elif close(narrow, w):
+                continue
+            out["bank_audit_npl_movement"].append((b, p, k, f"{g}.{role}", narrow, w))
 
     # --- the statement lines behind the breakdown notes: a gated note total
     # the TFRS 9 stage balances: the narrow lane keeps three numbers per
@@ -366,17 +396,25 @@ def main() -> int:
              "read-only on both databases. Each row: a narrow figure a gated wide lane",
              "contradicts. The wide figure has the template's identity behind it; the",
              "narrow one has none. Tolerance 0.1% (ratios 0.5%).", ""]
-    total = 0
+    total = characterised = 0
     for lane in sorted(found):
         rows = found[lane]
-        total += len(rows)
-        print(f"{lane:48} {len(rows):5} rows indicted")
-        lines += [f"## {lane} — {len(rows)} rows", "", "| bank | period | kind | what | narrow | wide |",
-                  "|---|---|---|---|---:|---:|"]
+        note = CHARACTERISED.get(lane)
+        if note:
+            characterised += len(rows)
+        else:
+            total += len(rows)
+        print(f"{lane:48} {len(rows):5} rows {'(characterised)' if note else 'indicted'}")
+        lines += [f"## {lane} — {len(rows)} rows", ""]
+        if note:
+            lines += [note, ""]
+        lines += ["| bank | period | kind | what | narrow | wide |", "|---|---|---|---|---:|---:|"]
         for b, p, k, what, n, w in sorted(rows):
             lines.append(f"| {b} | {p} | {k} | {what} | {n:,.2f} | {w:,.2f} |")
         lines.append("")
-    print(f"{'total':48} {total:5}")
+    print(f"{'total to repair':48} {total:5}")
+    if characterised:
+        print(f"{'characterised, not a repair':48} {characterised:5}")
     if not args.no_write:
         KNOWLEDGE.mkdir(exist_ok=True)
         path = KNOWLEDGE / f"{date.today().isoformat()}-narrow-vs-wide-repair-list.md"

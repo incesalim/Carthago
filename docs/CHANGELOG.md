@@ -5,6 +5,40 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-21.
 
+2026-08-22 — **`collections` meant opposite things in neighbouring rows.**
+The NPL roll-forward's largest disagreement with the narrow lane — 204
+rows — was not a disagreement about any figure. Nine banks (ALNTF, EXIM,
+GARAN, HAYATK, ING, KLNMA, PASHA, TFKB, TSKB, two of them switching
+between filings) print the outflows already negative; the rest print them
+as magnitudes and carry the direction in the "(-)" the label wears. Both
+close, and the lane stored each as printed — so a consumer summing the
+roll-forward had to know which bank it was reading.
+
+The gate already tried both conventions to decide whether to mint. It now
+reports which one it validated with, a signed page is normalised to the
+labelled convention, and the flip is re-gated: if it does not land back on
+an identity that closes, the instance is refused rather than stored.
+`sign_convention` keeps what the filing itself did.
+
+The transform is negation, not magnitude. ING 2025Q3 prints a positive
+write-off among negative ones — 791,015 + 46,222 + 186,523 − 113,920 +
+23,102 − 178,413 is its closing balance to the lira — so it is a reversal,
+not a typo, and taking absolute values would have erased it. It survives
+as the only signed outflow cell in the lane.
+
+One thing the flip broke on the way through: GARAN's "Other (***)" under
+the debt sale carries its own minus in BOTH conventions — the same
+−123,549 in a filing whose sale reads +3,726 and in one reading −259,367 —
+so the residual of the children over their head has no fixed direction.
+Forcing it to follow the sale cost 62 instances; it now enters like an
+unregistered row, either way, with the group still required to close.
+
+Coverage, refusals (109) and the narrow-lane anchor (100.0%, 12,885 of
+12,888 cells) are all exactly as before. The repair list drops 489 → 291,
+and the 468 sign-only rows move to a bucket the report prints in full but
+no longer counts as a repair — the narrow lane needs the same
+normalisation, not a corrected figure.
+
 2026-08-22 — **The statement-line checks were reading the wrong P&L rows.**
 156 indicted rows across three families, and almost all of it was the
 check, not the lanes.
