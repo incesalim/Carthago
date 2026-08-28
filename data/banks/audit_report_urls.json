@@ -1353,14 +1353,16 @@
     "COLENDI": {
       "name": "Colendi Bank A.Ş.",
       "ir_page": "https://www.colendibank.com/kurumsal-bilgiler/",
-      "_note": "English editions (TR also published each quarter).",
+      "_note": "English editions (TR also published each quarter). 2026Q2 sourced from BDDK BdrUyg (institution code 158, SOLO): colendibank.com ConnectTimeouts from the GitHub runner on the 2026-08 wp-content file while the same URL answers from a Turkish address — the VAKBN/ZIRAATK pattern. Code proved with a 2026-03 control (200/zip) and identity read off the June zip's own cover (73pp, '30 HAZİRAN 2026 ... KONSOLİDE OLMAYAN').",
       "urls": {
         "unconsolidated": {
           "2025Q2": "https://www.colendibank.com/wp-content/uploads/2025/10/ENG-ColendiBank-A.S.-BDR-30.06.2025-Final.pdf",
           "2025Q3": "https://www.colendibank.com/wp-content/uploads/2026/02/30.09.2025-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf",
           "2025Q4": "https://www.colendibank.com/wp-content/uploads/2026/04/31.12.2025-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf",
-          "2026Q1": "https://www.colendibank.com/wp-content/uploads/2026/06/31.03.2026-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf",
-          "2026Q2": "https://www.colendibank.com/wp-content/uploads/2026/08/30.06.2026-%E2%80%93-Konsolide-Olmayan-Bagimsiz-Denetim-Raporu.pdf"
+          "2026Q1": "https://www.colendibank.com/wp-content/uploads/2026/06/31.03.2026-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf"
+        },
+        "unconsolidated_zip": {
+          "2026Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-158-SOLO-2026-06.zip"
         }
       }
     },
