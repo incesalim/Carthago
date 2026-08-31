@@ -9,6 +9,7 @@ changed validation rows are sent to D1.
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 import sys
 import tempfile
@@ -47,7 +48,17 @@ def _pending_lanes(
     lanes: tuple[str, ...],
     *,
     refresh_existing: bool,
+    only_failing: bool = False,
 ) -> tuple[str, ...]:
+    if only_failing:
+        failures = conn.execute(
+            "SELECT statement, failed_detail FROM bank_audit_validation "
+            "WHERE bank_ticker=? AND period=? AND kind=? AND checks_failed>0",
+            (bank, period, kind)).fetchall()
+        pending = {lane for lane, detail in failures
+                   if any(str(item.get("check", "")).startswith("capture_")
+                          for item in json.loads(detail or "[]"))}
+        return tuple(lane for lane in lanes if lane in pending)
     if refresh_existing:
         return lanes
     return tuple(
@@ -72,6 +83,8 @@ def main() -> int:
                         help="maximum PDFs after filters; 0 means all")
     parser.add_argument("--refresh-existing", action="store_true",
                         help="recompute existing manifests too (content-idempotent)")
+    parser.add_argument("--only-failing", action="store_true",
+                        help="refresh only existing failed capture checks; overrides refresh-existing")
     parser.add_argument("--dry-run", action="store_true",
                         help="update only the local DB; no D1 or R2 snapshot writes")
     parser.add_argument("--no-pull", action="store_true",
@@ -112,6 +125,7 @@ def main() -> int:
                 pending = _pending_lanes(
                     conn, bank, period, kind, lanes,
                     refresh_existing=args.refresh_existing,
+                    only_failing=args.only_failing,
                 )
                 if not pending:
                     skipped += 1

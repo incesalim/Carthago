@@ -1385,6 +1385,13 @@ def test_npl_movement_clean_passes():
     assert res.failed == 0, res.failures
 
 
+def test_npl_movement_separate_signed_accrual_changes_the_footing():
+    res = v.check_npl_movement([_npl_row(accrual_movement=-4_000, closing_balance=111_000)])
+    assert res.passed == 1 and res.failed == 0
+    broken = v.check_npl_movement([_npl_row(accrual_movement=4_000, closing_balance=111_000)])
+    assert any(f["check"] == "npl_movement" for f in broken.failures)
+
+
 def test_npl_movement_broken_fails():
     res = v.check_npl_movement([_npl_row(closing_balance=200_000)])
     assert any(f["check"] == "npl_movement" for f in res.failures)

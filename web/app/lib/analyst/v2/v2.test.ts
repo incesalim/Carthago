@@ -51,6 +51,7 @@ function mockDb(): Queryable {
       if (/FROM bank_audit_npl_movement/.test(sql)) {
         return [
           { group_code: "III", opening_balance: 10, additions: 5, transfers_in: 1, transfers_out: 2, collections: 3, write_offs: 0, sold: 0, fx_diff: 0, closing_balance: 11 },
+          { group_code: "IV", opening_balance: 662, additions: 36, transfers_in: 1135, transfers_out: 545, collections: 66, write_offs: 0, sold: null, fx_diff: null, accrual_movement: 34, closing_balance: 1256 },
           { group_code: "V", opening_balance: 20, additions: 1, transfers_in: 2, transfers_out: 0, collections: 1, write_offs: 4, sold: 0, fx_diff: 0, closing_balance: 99 },
         ] as T[];
       }
@@ -151,6 +152,7 @@ describe("reconciliations", () => {
     const rec = await runTool(c, "reconcile_statements", { reconciliation: "npl_movement_footing" });
     const rows = rec.data as { group: string; verdict: string; computed_closing: number }[];
     expect(rows.find((r) => r.group === "III")?.verdict).toBe("reconciles"); // 10+5+1−2−3 = 11
+    expect(rows.find((r) => r.group === "IV")).toMatchObject({ verdict: "reconciles", computed_closing: 1256 });
     expect(rows.find((r) => r.group === "V")?.verdict).toBe("BREAKS"); // computed 18 ≠ 99
   });
 });

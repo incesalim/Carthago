@@ -20,10 +20,9 @@ from .extractor import (
     _HAS_FITZ,
     StatementRow,
     _detect_pl_ncols,
-    _fitz_merge_rows,
     _fitz_page_text,
     _fitz_visual_rows,
-    _parse_rows,
+    _parse_with_chain,
     _split_label,
 )
 from .validator import _roman_to_int, _tol, check_hierarchy_sums
@@ -78,7 +77,7 @@ def _rows_from_parsed(parsed: list[tuple[str, list[float | None]]], n_cols: int)
 
 def _parse_oci_with(text: str, n_cols: int) -> list[StatementRow]:
     """One candidate: parse a text reconstruction at a column template."""
-    return _rows_from_parsed(_parse_rows(_fitz_merge_rows(text, n_cols), n_cols), n_cols)
+    return _rows_from_parsed(_parse_with_chain(text, n_cols, "oci"), n_cols)
 
 
 def _oci_romans(rows: list[StatementRow]) -> dict[int, float]:

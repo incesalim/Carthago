@@ -1259,7 +1259,7 @@ _CAP_CAR_TOL = 2.0  # ±2 percentage-point tolerance for CAR reconciliation;
 
 def check_capital(rows: list[dict]) -> ValidationResult:
     """Capital adequacy — RECONCILE the table (not just orderings):
-      composition: Tier1 = CET1 + AT1 ; Total Capital = Tier1 + Tier2
+      composition: Tier1 = CET1 + AT1 ; Total Capital = Tier1 + Tier2 - deductions
       sub-ratios:  cet1_ratio = CET1/RWA ; tier1_ratio = Tier1/RWA ; CAR = Total/RWA
       plus a CAR plausibility band [5, 80]%.
     An optional component (AT1 / Tier2) is treated as 0 when NULL, but the
@@ -1297,6 +1297,7 @@ def _check_capital_row(res: ValidationResult, cur: dict, *, completeness: bool,
     at1  = cur.get("additional_tier1_capital")
     t1   = cur.get("tier1_capital")
     t2   = cur.get("tier2_capital")
+    deductions = cur.get("capital_deductions")
     tc   = cur.get("total_capital")
     rwa  = cur.get("total_rwa")
     cet1r = cur.get("cet1_ratio")
@@ -1322,7 +1323,16 @@ def _check_capital_row(res: ValidationResult, cur: dict, *, completeness: bool,
             res.add_fail("cap_composition", label, expected=parent, actual=implied)
 
     _composition(t1, cet1, at1, "Tier1 = CET1 + AT1" + label_suffix)
-    _composition(tc, t1, t2, "Total Capital = Tier1 + Tier2" + label_suffix)
+    if deductions is not None and deductions < 0:
+        res.add_fail("cap_deductions_sign", "Capital deductions must be non-negative" + label_suffix,
+                     expected=0.0, actual=deductions)
+    else:
+        # A NULL deduction keeps the historical strict identity; it is never
+        # inferred as the residual that would make arbitrary components tie.
+        adjusted_tc = tc + deductions if tc is not None and deductions is not None else tc
+        label = ("Total Capital = Tier1 + Tier2 - deductions" if deductions is not None
+                 else "Total Capital = Tier1 + Tier2")
+        _composition(adjusted_tc, t1, t2, label + label_suffix)
 
     def _ratio(reported, num, label):
         # reported sub-ratio must equal num / RWA * 100 (±2pp, as for CAR)
@@ -2305,7 +2315,8 @@ def check_npl_movement(
     NULL flow-columns as 0 and PASS only when the roll-forward then TIES: a
     genuinely-missed NON-zero column wouldn't tie, so it stays a SKIP — never a
     false pass, never a false fail. fx_diff is 0 when NULL (absent in most BRSA
-    formats).
+    formats). Separately disclosed accrual movements keep their signed value;
+    they are not exchange-rate effects.
 
     When all flow columns ARE present and it STILL doesn't tie, the flow
     roll-forward is unreliable for this bank — many tables carry an unmodeled
@@ -2336,7 +2347,7 @@ def check_npl_movement(
         if (op is None or cl is None) and any(
                 r.get(k) is not None for k in
                 ("additions", "transfers_in", "transfers_out",
-                 "collections", "write_offs", "sold")):
+                 "collections", "write_offs", "sold", "accrual_movement")):
             res.add_fail("npl_movement_balance_missing",
                          f"group {r.get('group_code') or ''}: opening/closing dropped "
                          "(movement flows present, balance NULL)",
@@ -2352,6 +2363,7 @@ def check_npl_movement(
         writeoffs   = r.get("write_offs")    or 0.0
         sold        = r.get("sold")          or 0.0
         fx          = r.get("fx_diff")       or 0.0
+        accrual     = r.get("accrual_movement") or 0.0
         # The always-outflow columns are magnitudes the roll-forward SUBTRACTS.
         # Most banks print them positive ("Tahsilat (-) 829.970"); some print the
         # value itself in parentheses ("Tahsilat (-) (8.115)") which the extractor
@@ -2361,7 +2373,7 @@ def check_npl_movement(
         # tie are unaffected.
         t_out, collections, writeoffs, sold = (
             abs(t_out), abs(collections), abs(writeoffs), abs(sold))
-        implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx
+        implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx + accrual
         tol = _tol(abs(cl), base=100.0, rel=0.002)
         if abs(implied - cl) <= tol:
             res.add_pass()

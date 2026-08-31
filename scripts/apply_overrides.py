@@ -355,7 +355,7 @@ def _apply_one(conn: sqlite3.Connection, o: dict, *, unit: UnitContext) -> str:
         # period's. cq was right and the movement was wrong; patching cq would
         # have overwritten a correct value with a wrong one.
         allowed = {"opening_balance", "additions", "transfers_in", "transfers_out",
-                   "collections", "write_offs", "sold", "fx_diff", "closing_balance",
+                   "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "closing_balance",
                    "provision", "net_balance", "source_page"}
         cols = [c for c in o["fields"] if c in allowed]
         if not cols:

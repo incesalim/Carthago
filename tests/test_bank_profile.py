@@ -261,6 +261,35 @@ def test_note8_requires_header_no_junk_match():
     assert _personnel("Residents Abroad Domestic Branches 212 606 total") is None
 
 
+def test_note8_numbered_footnote_precedes_subsidiaries():
+    text = ("Number of Number Employees Domestic branches (1) 1 483 "
+            "Foreign branches - - (1) The total number of branches of the "
+            "consolidated subsidiaries is 12 and the number of employees is 206.")
+    assert _branches(text)[2] == 1
+    assert _personnel(text) == 483
+    text = ("Number Employees Domestic Branches (1) 997 20,246 "
+            "Number Employees Domestic Branches 1 170")
+    assert _branches(text)[2] == 997
+    assert _personnel(text) == 20246
+
+
+def test_current_branch_split_beats_parenthetical_prior():
+    text = ("Banka, yurt içinde 1.746 şube, yurt dışında İngiltere'de Londra "
+            "Şubesi, Arnavutluk'ta Tiran şubesi olmak üzere toplam 25 şube ve "
+            "genel toplamda 1.771 şube ile faaliyet göstermektedir "
+            "(31 Aralık 2025: Yurt içinde 1.745 şube, yurt dışında 24 şube "
+            "genel toplamda 1.769 şube).")
+    assert _branches(text) == (1746, 25, 1771)
+
+
+def test_english_country_and_abroad_branch_disclosure():
+    assert _branches("the Bank has 710 branches dispersed throughout the country "
+                     "and 1 branch operating abroad (31 December 2021: 710 "
+                     "branches and 1 branch operating abroad)") == (710, 1, 711)
+    assert _branches("the Parent Bank has 32 branches operating in Turkey "
+                     "(31 December 2021: 32)") == (32, None, 32)
+
+
 def test_ps_bbva_group_headcount_not_captured():
     # GARAN — "more than 127 thousand employees" describes the BBVA group, not
     # Garanti; the "thousand" between number and noun blocks the match.

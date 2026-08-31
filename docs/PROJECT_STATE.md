@@ -16,18 +16,27 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
-**Anomaly repair (2026-08-31; source-verified, application pending):** The first
-repair batch covers 51 failed audit-opinion partitions and 36 free-provision
-partitions (18 flagged, plus 18 incorrect adjacent stocks). Opinion extraction
-now finds later signature pages, separates historical Other Matter paragraphs
-from the current verdict, and supports the observed heading variants. One
-image-only signature has an exact-PDF-hash override. Reserve corrections are
-transcribed from each filing's current qualification or liability note with
-source hashes; an unreadable disclosure never implies zero. Targeted repairs
-accept exact bank/quarter/kind triples and apply prior-year roots before their
-dependent comparisons. Production application and the residual anomaly count
-are still pending. Internal evidence: `docs/knowledge/2026-08-31-anomaly-repair/`.
+**Anomaly repair (2026-08-31; in progress):** All 51 failed audit-opinion
+partitions have been repaired in Actions (run 33431870133), with all gates
+passing. The 36 source-verified reserve repairs completed in run 33431875000;
+final live-value reconciliation is pending. These correct historical-opinion
+misclassification, missing later signatures, and reserve stocks confused with
+reversals, prior amounts or deferred-tax assets. Missing values remain distinct
+from explicit zero.
 
+The next parser batch fixes source-row boundaries, rotated and sparse tables,
+small signed amounts and footnote references. Capital deductions and NPL accrual
+movements now have separate nullable fields (migrations 0045/0046); deploy these
+before repair pushes. Source-capture refresh can target only failed capture
+checks without re-extracting any financial facts. Extreme liquidity values
+verified against the exact PDF are retained as observations bound to the exact
+partition/metric/value; changed values alert again. P&L sign changes are only
+observations when every signed deduction block is complete and the full
+statement reconciles. Genuine reversals must not be blindly made positive.
+A separate ICBC 2026Q2 consolidated unit error is confirmed: abbreviated
+Milyon TL headers were ignored. Correct unit detection is prepared; coordinated
+financial repair and the final residual anomaly count are still pending.
+Internal evidence: `docs/knowledge/2026-08-31-anomaly-repair/`.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain

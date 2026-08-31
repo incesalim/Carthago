@@ -76,6 +76,23 @@ _DASH_RUN_RX = re.compile(r'-{2,}')
 _YEAR_RX = re.compile(r'\b(20\d\d)\b')
 
 
+def _period_header(line: str) -> str | None:
+    """Read the table's block heading, excluding profit-column/row labels.
+
+    TSKB prints both "Prior Period" and "Current Period" in its column labels,
+    but the actual block header is "Prior Period – 31 March 2022". Date tokens
+    belong to that heading and must not make it look like a wide data row.
+    """
+    line = line.strip()
+    for pattern, kind in ((_CURRENT_RX, 'current'), (_PRIOR_RX, 'prior')):
+        match = pattern.match(line)
+        if match:
+            tail = line[match.end():].strip().lstrip('-–:(').strip()
+            if not tail or tail[0].isdigit():
+                return kind
+    return None
+
+
 def _max_year(text: str) -> int | None:
     """The latest 20xx year on the page. The current equity table closes on the
     later period-end date, so when the CARİ/ÖNCEKİ markers are absent (ALNTF
@@ -479,6 +496,61 @@ def _fitz_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
         return []
 
 
+def _join_equity_words(words: list[tuple[float, float, str]]) -> str:
+    """Join geometry-adjacent number fragments without merging separate cells."""
+    joined: list[tuple[float, float, str]] = []
+    for left, right, text in sorted(words):
+        if joined:
+            prev_left, prev_right, prev = joined[-1]
+            gap = left - prev_right
+            if (prev == '-' and re.fullmatch(r'\d[\d.,]*', text)
+                    and 0 <= gap <= 2):
+                # TSKB prints '- 33' with a 1.06pt gap; zero cells have ~26pt
+                # before the next column. Text alone cannot distinguish them.
+                joined[-1] = (prev_left, right, '-' + text)
+                continue
+            if 0 <= gap < 4 and (
+                (re.fullmatch(r'\d{1,2}', prev) and re.match(r'^[.,\d]', text))
+                or (prev[-1:].isdigit() and re.match(r'^[.,]\d', text))
+            ):
+                joined[-1] = (prev_left, right, prev + text)
+                continue
+        joined.append((left, right, text))
+    return ' '.join(text for _, _, text in joined)
+
+
+def _fitz_dense_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
+    """An additional reconstruction for small-font equity matrices.
+
+    FIBA's dash glyphs sit 3.8pt above the same row's figures. The shared 3pt
+    bucketing splits row IV into two incomplete rows. A bounded 4pt bucket joins
+    that row, while the next row begins more than 7pt later. This candidate is
+    still subject to the same row and column-chain identities as other reads.
+    """
+    if not _HAS_FITZ:
+        return []
+    try:
+        with _fitz.open(pdf_path) as doc:
+            page = doc[page_idx_0]
+            words = []
+            for word in page.get_text('words'):
+                rect = _fitz.Rect(word[:4])
+                if page.rotation:
+                    rect = rect * page.rotation_matrix
+                    rect.normalize()
+                words.append((rect.y0, rect.x0, rect.x1, word[4]))
+        buckets: list[list[tuple[float, float, str]]] = []
+        start_y = None
+        for y, left, right, text in sorted(words):
+            if start_y is None or y - start_y > 4:
+                start_y = y
+                buckets.append([])
+            buckets[-1].append((left, right, text))
+        return [_join_equity_words(row) for row in buckets]
+    except Exception:
+        return []
+
+
 # ---------------------------------------------------------------------------
 # Checklist-anchored row admission
 # ---------------------------------------------------------------------------
@@ -590,13 +662,16 @@ def _block1_period_for_split(pdf_path: str, page_idx_1: int) -> str:
     # value grid.
     headers: list[tuple[int, str]] = []
     for i, line in enumerate(lines):
-        if _count_value_tokens(line) >= 2:
-            continue
-        if _CURRENT_RX.search(line):
-            headers.append((i, 'current'))
-        elif _PRIOR_RX.search(line):
-            headers.append((i, 'prior'))
+        kind = _period_header(line)
+        if kind:
+            headers.append((i, kind))
     if headers:
+        # When both headings are present they directly establish block order.
+        # ANADOLU's first closing row loses its label in the text layer, leaving
+        # only the SECOND closing formula. Taking the last heading before that
+        # formula incorrectly reverses the two complete tables.
+        if len({kind for _, kind in headers}) == 2:
+            return headers[0][1]
         if close_i is None:
             return headers[0][1]
         before = [kind for i, kind in headers if i < close_i]
@@ -788,6 +863,13 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         recons.append([])
 
     candidates: list[list[EquityChangeRow]] = [_parse_with(lines, n_cols) for lines in recons]
+    # Only expand the geometry search when neither established reconstruction
+    # closes the statement. In particular, keep already valid page reads stable.
+    if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
+        dense_lines = _fitz_dense_page_lines(pdf_path, page_idx_1 - 1)
+        if dense_lines:
+            recons.append(dense_lines)
+            candidates.append(_parse_with(dense_lines, n_cols))
     # Self-gated both-template search: if NO candidate's column chain validates at
     # the detected n_cols, the template may be wrong for this bank — also parse each
     # reconstruction with the OTHER template (14↔16) and let the scorer pick. This
@@ -916,7 +998,11 @@ def _locate_equity_pages(pdf_path: str,
         # None and are resolved by year below. (Mid-page-split single pages are
         # reassigned downstream by _block1_period_for_split regardless.)
         ptext = text  # the rotation-aware fitz text already read for the scan
-        if _CURRENT_RX.search(ptext):
+        block_headers = [kind for line in ptext.splitlines()
+                         if (kind := _period_header(line))]
+        if block_headers:
+            period_type = block_headers[0]
+        elif _CURRENT_RX.search(ptext):
             period_type = 'current'
         elif _PRIOR_RX.search(ptext):
             period_type = 'prior'

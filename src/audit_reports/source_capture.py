@@ -17,7 +17,7 @@ import re
 import sqlite3
 import unicodedata
 from dataclasses import dataclass, field
-from functools import lru_cache
+from itertools import combinations, product
 from pathlib import Path
 from typing import Iterable
 
@@ -117,7 +117,9 @@ _STATIC_MAPPINGS: dict[str, tuple[tuple[str, tuple[str, ...]], ...]] = {
     ),
     "credit_quality": (
         ("ending_balance", ("donem sonu bakiyesi", "closing balance", "period end balance",
-                            "balance at end of period")),
+                            "balance at end of period", "balance at the end of period",
+                            "current period ending balance",
+                            "ending balance of the current period")),
     ),
     "capital": (
         ("cet1_capital", ("cekirdek sermaye", "common equity tier 1", "core tier 1 capital")),
@@ -165,20 +167,6 @@ _SPACE_RX = re.compile(r"\s+")
 _VALUE_RX = re.compile(
     r"(?<![\w])(?:%?\(?-?\d(?:[\d.,]*\d)?%?\)?|[-–—]+)(?![\w])"
 )
-
-
-@lru_cache(maxsize=1)
-def _npl_parser_mappings() -> tuple[tuple[str, tuple[str, ...]], ...]:
-    """Use the production parser's complete, longest-first NPL taxonomy.
-
-    Keeping a second abbreviated label list here would turn known legacy
-    wording into false ``capture_unmapped_rows`` failures.  The local import
-    avoids adding parser dependencies to module import/startup for lanes that
-    do not need it.
-    """
-    from .npl_movement import _ROW_LABELS_SORTED
-
-    return tuple((key, (phrase,)) for phrase, key in _ROW_LABELS_SORTED)
 
 
 def _fold(value: str) -> str:
@@ -297,7 +285,19 @@ def _selected_pages(
 
 
 def _word_lines(page: object, y_tolerance: float = 3.0) -> list[str]:
-    words = sorted(page.get_text("words"), key=lambda word: (word[1], word[0]))
+    words = page.get_text("words")
+    # fitz returns unrotated coordinates. Equity tables often use /Rotate 90;
+    # bucketing those coordinates by y transposes movements into component rows.
+    if getattr(page, "rotation", 0):
+        import fitz
+
+        rotated = []
+        for word in words:
+            rect = fitz.Rect(*word[:4]) * page.rotation_matrix
+            rect.normalize()
+            rotated.append((rect.x0, rect.y0, rect.x1, rect.y1, *word[4:]))
+        words = rotated
+    words = sorted(words, key=lambda word: (word[1], word[0]))
     if not words:
         return [line.strip() for line in page.get_text("text").splitlines() if line.strip()]
     rows: list[tuple[float, list[tuple[float, str]]]] = []
@@ -338,11 +338,18 @@ def _mapped_key(
     lane: str,
     dynamic_mappings: Iterable[tuple[str, str]] = (),
 ) -> str | None:
+    if lane == "credit_quality" and _fold(line_text).startswith((
+            "12 aylik beklenen zarar karsiligi", "12 month expected credit loss")):
+        return "loans_ecl_brsa.stage1"
+    if lane == "npl_movement":
+        from .npl_movement import _match_row_label
+
+        # Prefix semantics matter: "Collections in the current period" is a
+        # collection, not the bare "current period" closing-balance fallback.
+        return _match_row_label(line_text)
     label = _fold(_VALUE_RX.sub(" ", line_text))
     compact = label.replace(" ", "")
     static_mappings = _STATIC_MAPPINGS.get(lane, ())
-    if lane == "npl_movement":
-        static_mappings = (*_npl_parser_mappings(), *static_mappings)
     for key, phrases in static_mappings:
         if any(_compact(phrase) in compact for phrase in phrases):
             return key
@@ -353,6 +360,141 @@ def _mapped_key(
                 or (len(compact) >= 7 and compact in candidate_compact)):
             return key
     return None
+
+
+def _numeric_tail(line: str) -> tuple[str, ...]:
+    """Value cells are a trailing run; dates/footnote IDs in prose are not cells."""
+    cells: list[str] = []
+    for token in reversed(line.split()):
+        if not _VALUE_RX.fullmatch(token):
+            break
+        cells.append(token)
+    return tuple(reversed(cells))
+
+
+def _npl_breakdown_ties(parent: str, children: list[str]) -> bool:
+    """Trace category detail only when its three columns reconcile to the total.
+
+    Some ISCTR PDFs leave zero cells blank. Try their ordered column placements
+    solely to prove the relationship; never create or change financial cells.
+    Ambiguous placements and non-reconciling category blocks stay unmapped.
+    """
+    from .extractor import parse_amount
+
+    totals = [parse_amount(token) for token in _numeric_tail(parent)[-3:]]
+    if len(totals) != 3 or any(value is None for value in totals):
+        return False
+    options = []
+    for line in children:
+        values = [parse_amount(token) for token in _numeric_tail(line)]
+        if len(values) > 3 or any(value is None for value in values):
+            return False
+        placements = set()
+        for columns in combinations(range(3), len(values)):
+            cells = [0.0, 0.0, 0.0]
+            for column, value in zip(columns, values):
+                cells[column] = value
+            placements.add(tuple(cells))
+        options.append(placements)
+    matches = 0
+    for matrix in product(*options):
+        if all(abs(totals[col] - sum(row[col] for row in matrix)) <= 2
+               for col in range(3)):
+            matches += 1
+            if matches > 1:
+                return False
+    return matches == 1
+
+
+def _npl_table_rows(lines: list[str]) -> tuple[set[int], dict[int, str]]:
+    """Bound III/IV/V movement blocks independently of normalized output.
+
+    Adjacent NPL stock, FX-subset, maturity and repricing tables remain in the
+    lossless ledger but are not rows of the gross movement disclosure. Unknown
+    numeric rows between a movement table's balances remain unclassified.
+    """
+    from .npl_movement import (
+        _DATE_BALANCE_RX, _GROUPS_RX, _HEADING_RX, _match_row_label,
+        _merge_wrapped_labels,
+    )
+
+    headers = [i for i, line in enumerate(lines) if _GROUPS_RX.search(line)]
+    rows: set[int] = set()
+    context: dict[int, str] = {}
+    flow_keys = {"additions", "transfers_in", "transfers_out", "collections",
+                 "write_offs", "sold", "fx_diff", "accrual_movement"}
+    for n, header in enumerate(headers):
+        stop = headers[n + 1] if n + 1 < len(headers) else len(lines)
+        # A stage 1/2/3 ECL table can follow the III/IV/V stock table on the same
+        # page. Its sale/write-off rows do not turn that stock table into NPL flows.
+        for i in range(header + 1, stop):
+            folded = _fold(lines[i])
+            if (all(f"{stage} asama" in folded for stage in (1, 2, 3))
+                    or all(f"stage {stage}" in folded for stage in (1, 2, 3))):
+                stop = i
+                break
+        candidates = [i for i in range(header + 1, stop)
+                      if len(_numeric_tail(lines[i])) >= 3]
+        keys = {i: _match_row_label(lines[i]) for i in candidates}
+        for i in candidates:
+            if keys[i] is None and i > header + 1:
+                merged = _merge_wrapped_labels(lines[i - 1:i + 1])
+                if len(merged) == 1:
+                    keys[i] = _match_row_label(merged[0])
+                    if keys[i] is not None:
+                        context[i + 1] = keys[i]
+        flows = [i for i in candidates if keys[i] in flow_keys]
+        if not flows:
+            # New labels must still fail completeness under an explicit movement
+            # title; knowing a parser label is not a prerequisite for discovery.
+            previous = headers[n - 1] + 1 if n else 0
+            if _HEADING_RX.search(" ".join(lines[previous:header])):
+                rows.update(i + 1 for i in candidates)
+            continue  # a stock/subset table with the same column headings
+        starts = [i for i in candidates if i < flows[0]
+                  and (keys[i] in {"opening_balance", "closing_balance"}
+                       or _DATE_BALANCE_RX.match(lines[i]))]
+        start = starts[-1] if starts else candidates[0]
+        ends = [i for i in candidates if i > flows[-1]
+                and keys[i] == "net_balance"]
+        end = ends[0] if ends else candidates[-1]
+        for i in candidates:
+            if start <= i <= end:
+                rows.add(i + 1)
+                if _DATE_BALANCE_RX.match(lines[i]):
+                    context[i + 1] = ("opening_balance" if i < flows[0]
+                                      else "closing_balance")
+        # BRSA's category lines are components of their parent amount, not extra
+        # flows. Trace only a bounded, known category block, and only
+        # after all three column sums tie to its parent; retain the cells verbatim.
+        categories = {"kurumsal ve ticari krediler", "kurumsal ticari krediler",
+                      "bireysel krediler",
+                      "kredi kartlari", "diger", "corporate and commercial loans",
+                      "retail loans", "consumer loans", "credit cards", "other", "others"}
+        for parent in candidates:
+            if keys[parent] is None or not start <= parent <= end:
+                continue
+            children: list[int] = []
+            for child in range(parent + 1, end + 1):
+                tail = _numeric_tail(lines[child])
+                label = " ".join(lines[child].split()[:-len(tail)]) if tail else lines[child]
+                if len(tail) > 3 or _fold(label) not in categories or len(children) >= 4:
+                    break
+                children.append(child)
+            if not children:
+                continue
+            if _npl_breakdown_ties(lines[parent], [lines[child] for child in children]):
+                context.update({child + 1: keys[parent] for child in children})
+    return rows, context
+
+
+def _equity_table_page(lines: list[str]) -> bool:
+    """Recognize the wide equity matrix, not a TOC or an audit-opinion mention."""
+    text = _fold(" ".join(lines))
+    columns = (("capital" in text and "reserves" in text)
+               or ("sermaye" in text and "yedek" in text))
+    wide = sum(len(_numeric_tail(line)) >= 10 for line in lines)
+    return columns and wide >= 2
 
 
 def _credit_quality_context_mappings(lines: list[str]) -> dict[int, str]:
@@ -402,6 +544,10 @@ def _capture_lane(
         page_lines = _word_lines(doc[page_number - 1])
         context_mappings = (_credit_quality_context_mappings(page_lines)
                             if lane == "credit_quality" else {})
+        npl_rows: set[int] = set()
+        if lane == "npl_movement":
+            npl_rows, context_mappings = _npl_table_rows(page_lines)
+        equity_page = lane != "equity_change" or _equity_table_page(page_lines)
         for order, text in enumerate(page_lines, 1):
             clean = _SPACE_RX.sub(" ", text).strip()
             value_tokens = tuple(_VALUE_RX.findall(clean))
@@ -412,12 +558,28 @@ def _capture_lane(
             is_data = bool(
                 has_numeric_token
                 and len(value_tokens) >= cfg.min_value_tokens
-                and has_letters
-                and len(label.replace(" ", "")) >= 3
+                and ((has_letters and len(label.replace(" ", "")) >= 3)
+                     or (lane == "npl_movement" and order in context_mappings))
                 and len(clean) <= 320
             )
+            if lane in NEAR_FULL_LANES:
+                is_data = (is_data
+                           and len(_numeric_tail(clean)) >= cfg.min_value_tokens
+                           and equity_page
+                           and (lane != "npl_movement" or order in npl_rows))
             mapped = _mapped_key(
                 clean, report, lane, dynamic_mappings) if is_data else None
+            if is_data and mapped is None and lane == "equity_change":
+                # Labels wrap above their cells ("III. Adjusted Balances ..." /
+                # "Of Period (I+II) 1 2 ..."). Use only contiguous non-value lines.
+                prefix: list[str] = []
+                for previous in reversed(page_lines[max(0, order - 4):order - 1]):
+                    if len(_numeric_tail(previous)) >= cfg.min_value_tokens:
+                        break
+                    prefix.insert(0, previous)
+                if prefix:
+                    mapped = _mapped_key(" ".join([*prefix, clean]), report,
+                                         lane, dynamic_mappings)
             if is_data and mapped is None:
                 mapped = context_mappings.get(order)
             captured.append(CapturedLine(

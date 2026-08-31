@@ -405,14 +405,17 @@ def _equity_rows(conn, bank, period, kind):
 def _capital_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_capital"):
         return []
+    has_deductions = any(r[1] == "capital_deductions"
+                         for r in conn.execute("PRAGMA table_info(bank_audit_capital)"))
+    deductions_sql = "capital_deductions" if has_deductions else "NULL"
     return [dict(zip(
         ("period_type", "cet1_capital", "additional_tier1_capital", "tier1_capital",
          "tier2_capital", "total_capital", "total_rwa",
-         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"), r))
+         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio", "capital_deductions"), r))
             for r in conn.execute(
                 "SELECT period_type, cet1_capital, additional_tier1_capital, tier1_capital, "
                 "       tier2_capital, total_capital, total_rwa, "
-                "       cet1_ratio, tier1_ratio, capital_adequacy_ratio "
+                f"       cet1_ratio, tier1_ratio, capital_adequacy_ratio, {deductions_sql} "
                 "FROM bank_audit_capital WHERE bank_ticker=? AND period=? AND kind=?",
                 (bank, period, kind))]
 
@@ -458,17 +461,21 @@ def _stages_rows(conn, bank, period, kind):
 def _npl_movement_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_npl_movement"):
         return []
+    # Read-only audits can open snapshots from before additive migration 0046.
+    has_accrual = any(r[1] == "accrual_movement"
+                      for r in conn.execute("PRAGMA table_info(bank_audit_npl_movement)"))
+    accrual_column = "accrual_movement" if has_accrual else "NULL AS accrual_movement"
     # provision + net_balance were stored but never SELECTed, so the table's own
     # second identity (closing − |provision| = net) was unavailable to the
     # validator — free coverage on 2,097/2,097 rows, left on the floor.
     return [dict(zip(
         ("group_code", "period_type", "opening_balance", "additions",
          "transfers_in", "transfers_out", "collections", "write_offs",
-         "sold", "fx_diff", "closing_balance", "provision", "net_balance"), r))
+         "sold", "fx_diff", "accrual_movement", "closing_balance", "provision", "net_balance"), r))
             for r in conn.execute(
                 "SELECT group_code, period_type, opening_balance, additions, "
                 "       transfers_in, transfers_out, collections, write_offs, "
-                "       sold, fx_diff, closing_balance, provision, net_balance "
+                f"       sold, fx_diff, {accrual_column}, closing_balance, provision, net_balance "
                 "FROM bank_audit_npl_movement WHERE bank_ticker=? AND period=? AND kind=?",
                 (bank, period, kind))]
 

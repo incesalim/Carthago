@@ -104,6 +104,11 @@ def _c(pattern: str) -> re.Pattern:
     return re.compile(pattern, re.IGNORECASE | re.DOTALL)
 
 
+def _without_comparatives(text: str) -> str:
+    """Keep current prose from losing to a more easily matched prior clause."""
+    return re.sub(r"\([^()]*\b(?:19|20)\d{2}\b[^()]*\)", " ", text)
+
+
 # --- Branch patterns -------------------------------------------------------
 # Combined domestic + foreign (fill both). The foreign number must sit directly
 # before "şube" (only "adet"/parens allowed between) so a stray date like
@@ -147,6 +152,11 @@ _BR_EN_DOM_FOR = _c(
 _BR_EN_TR_OS = _c(
     rf"(?P<dom>{_D})\s*{_PAREN}\s*branches?\s+operating\s+in\s+T[üu]rkiye\s+and\s+"
     rf"(?P<for>{_D})\s*{_PAREN}\s*branch(?:es)?\s+(?:in\s+)?overseas")
+_BR_EN_COUNTRY_ABROAD = _c(
+    rf"(?P<dom>{_D})\s+branches\s+dispersed\s+throughout\s+the\s+country\s+and\s+"
+    rf"(?P<for>{_D})\s+branch(?:es)?\s+operating\s+abroad")
+_BR_EN_OPERATING_TR = _c(
+    rf"(?P<n>{_D})\s+branches\s+operating\s+in\s+(?:Turkey|T[üu]rkiye)\b")
 # Domestic-only in English. "domestic"/"local" needn't be immediately followed by
 # "branch" — QNBFB writes "415 domestic (December 31, 2025 – 416) and 1 … branches"
 # — so a lookahead just requires "branch" later in the same sentence.
@@ -173,7 +183,7 @@ _BR_EN_POINTS = _c(
 # header immediately precedes the row. First number = branches, second = staff.
 _NOTE8 = _c(
     rf"(?:Number\s+Employees|Say[ıi]\s+Çalışan\s+say[ıi]s[ıi])\s+"
-    rf"(?:Domestic\s+Branch(?:es)?|Yurt\s*içi\s+şube)\s*\(?\*?\)?\s+"
+    rf"(?:Domestic\s+Branch(?:es)?|Yurt\s*içi\s+şube)\s*(?:\((?:\*|\d+)\))?\s+"
     rf"(?P<dom>{_D})\s+(?P<staff>{_D})")
 
 # --- Personnel patterns ----------------------------------------------------
@@ -212,12 +222,14 @@ class BankProfile:
 
 def _extract_branches(text: str, profile: BankProfile) -> None:
     """Fill branches_{domestic,foreign,total} from the qualitative text."""
+    text = _without_comparatives(text)
     # 1) domestic + foreign together — try each combined pattern in order.
     for pat, dg, fg in (
         (_BR_EN_TOTAL, "dom", "for"),
         (_BR_EN_DOM_FOR, "dom", "for"),
         (_BR_EN_DOM_OVERSEAS, "dom", "for"),     # İşbank activity report
         (_BR_EN_TR_OS, "dom", "for"),
+        (_BR_EN_COUNTRY_ABROAD, "dom", "for"),
         (_BR_TR_AKBNK, "dom", "for"),
         (_BR_TR_COMBINED, "dom", "for"),
     ):
@@ -242,6 +254,8 @@ def _extract_branches(text: str, profile: BankProfile) -> None:
         profile.branches_domestic = _find(_BR_TR_DOMESTIC, text, _BR_LO, _BR_HI)
     if profile.branches_domestic is None:
         profile.branches_domestic = _find(_BR_EN_DOM, text, _BR_LO, _BR_HI)
+    if profile.branches_domestic is None:
+        profile.branches_domestic = _find(_BR_EN_OPERATING_TR, text, _BR_LO, _BR_HI)
 
     # 3) total (explicit words win; bare/subject only if no split found).
     if profile.branches_total is None:
@@ -289,6 +303,13 @@ def _extract_branches(text: str, profile: BankProfile) -> None:
 
 def _extract_personnel(text: str, profile: BankProfile) -> None:
     """Fill personnel from the qualitative text."""
+    text = _without_comparatives(text)
+    # The first domestic-branch table belongs to the parent bank. Its later
+    # footnotes and following tables can describe subsidiary staff instead.
+    staff = _find(_NOTE8, text, _PS_LO, _PS_HI, "staff")
+    if staff is not None:
+        profile.personnel = staff
+        return
     # Split (domestic + foreign staff) → sum. Anchored → low floor.
     m = _PS_TR_SPLIT.search(text)
     if m:
@@ -323,8 +344,8 @@ _ACT_ANCHOR = _c(
     r"|total\s+of\s+[\d.,]+\s+branches"
     r"|number\s+of\s+(?:the\s+)?employees"  # TSKB
     r"|of\s+which\s+are\s+branches"         # Eximbank
-    r"|Domestic\s+Branch(?:es)?\s*\(?\*?\)?\s+\d"   # note-VIII table row (EN)
-    r"|Yurt\s*içi\s+şube\s*\(?\*?\)?\s+\d")         # note-VIII table row (TR)
+    r"|Domestic\s+Branch(?:es)?\s*(?:\((?:\*|\d+)\))?\s+\d"
+    r"|Yurt\s*içi\s+şube\s*(?:\((?:\*|\d+)\))?\s+\d")
 
 
 def _activity_report_block(pdf_path: str, start: int, end: int) -> str:

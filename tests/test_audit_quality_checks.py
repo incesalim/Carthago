@@ -88,10 +88,106 @@ def test_liquidity_clean_passes():
 def test_liquidity_flags_low_lcr_and_bad_leverage():
     c = _conn()
     _ins_liquidity(c, bank_ticker="Z", period="2026Q1", kind="unconsolidated",
-                   period_type="current", leverage_ratio=99.0, lcr_total=30.0, nsfr=120.0)
+                   period_type="current", leverage_ratio=100.0, lcr_total=30.0, nsfr=120.0)
     issues = q._liquidity_bands(c)
     assert any("LCR" in i for i in issues)        # 30 < 50
-    assert any("leverage" in i for i in issues)   # 99 out of band
+    assert any("leverage" in i for i in issues)   # 100 out of band
+
+
+def test_reconciling_startup_capital_and_liquidity_are_not_errors():
+    c = _conn()
+    _ins_capital(c, bank_ticker="TOMK", period="2023Q4", kind="unconsolidated",
+                 period_type="current", total_capital=1090, total_rwa=789.4,
+                 capital_adequacy_ratio=138.08)
+    _ins_liquidity(c, bank_ticker="COLENDI", period="2025Q2", kind="unconsolidated",
+                   period_type="current", leverage_ratio=65.85, lcr_total=2316303)
+    assert q._capital_consistency(c) == []
+    assert q._liquidity_bands(c) == []
+
+
+def test_review_is_exact_value_and_partition_bound(monkeypatch):
+    c = _conn()
+    for period, value in [("2024Q1", 100), ("2024Q2", 100), ("2024Q3", 100),
+                          ("2024Q4", 100), ("2025Q1", 10000)]:
+        _ins_liquidity(c, bank_ticker="X", period=period, kind="unconsolidated",
+                       period_type="current", lcr_total=value)
+    monkeypatch.setattr(q, "_liquidity_reviews", lambda: {
+        ("X", "2025Q1", "unconsolidated", "lcr_total"): 10000,
+    })
+    reviewed = []
+    assert q._liquidity_outliers(c, reviewed=reviewed) == []
+    assert len(reviewed) == 1 and "matches source" in reviewed[0]
+    c.execute("UPDATE bank_audit_liquidity SET lcr_total=10001 WHERE period='2025Q1'")
+    assert len(q._liquidity_outliers(c)) == 1
+    c.execute("UPDATE bank_audit_liquidity SET lcr_total=10000, period='2025Q2' WHERE period='2025Q1'")
+    assert len(q._liquidity_outliers(c)) == 1
+
+
+def test_review_never_bypasses_liquidity_validation(monkeypatch):
+    c = _conn()
+    _ins_liquidity(c, bank_ticker="X", period="2025Q1", kind="unconsolidated",
+                   period_type="current", lcr_total=10)
+    monkeypatch.setattr(q, "_liquidity_reviews", lambda: {
+        ("X", "2025Q1", "unconsolidated", "lcr_total"): 10,
+    })
+    assert q._liquidity_bands(c)
+
+
+def test_pl_reversal_requires_complete_signed_reconciliation():
+    from test_audit_validator import _clean_pl
+    c = _conn()
+    for period in ("2025Q1", "2025Q2"):
+        rows = _clean_pl()
+        for order, row in enumerate(rows):
+            value = row["amount"]
+            if period == "2025Q2":
+                value = {"IX.": -40000, "XIII.": 240000, "XVII.": 240000,
+                         "XIX.": 210000, "XXV.": 210000}.get(row["hierarchy"], value)
+            c.execute("INSERT INTO bank_audit_profit_loss "
+                      "(bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
+                      "VALUES ('X',?,'consolidated',?,?,?,?)",
+                      (period, order, row["hierarchy"], row["item_name"], value))
+    reviewed = []
+    assert q._pl_sign_convention(c, reviewed=reviewed) == []
+    assert len(reviewed) == 1 and "preserve reversals" in reviewed[0]
+    c.execute("UPDATE bank_audit_profit_loss SET amount=-50000 "
+              "WHERE hierarchy='IX.' AND period='2025Q2'")
+    assert len(q._pl_sign_convention(c)) == 1
+    c.execute("DELETE FROM bank_audit_profit_loss WHERE hierarchy='XIII.'")
+    assert len(q._pl_sign_convention(c)) == 1
+
+
+def test_pl_compressed_operating_profit_is_not_a_deduction_flip():
+    from test_audit_validator import _compressed_pl
+    c = _conn()
+    for period in ("2025Q1", "2025Q2"):
+        for order, row in enumerate(_compressed_pl()):
+            value = row["amount"]
+            if period == "2025Q2" and row["hierarchy"] == "XII.":
+                value = -value
+            c.execute("INSERT INTO bank_audit_profit_loss "
+                      "(bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
+                      "VALUES ('X',?,'consolidated',?,?,?,?)",
+                      (period, order, row["hierarchy"], row["item_name"], value))
+    assert q._pl_sign_convention(c) == []
+    # A high CAR without supporting components must still require review.
+    _ins_capital(c, bank_ticker="BAD", period="2023Q4", kind="unconsolidated",
+                 period_type="current", capital_adequacy_ratio=138.08)
+    assert any("BAD" in x for x in q._capital_consistency(c))
+
+
+def test_empty_scan_alerts_resolution_and_clears_baseline(tmp_path, monkeypatch):
+    db = tmp_path / "audit.db"
+    db.touch()
+    sent, saved = [], []
+    monkeypatch.setattr(q.sys, "argv", ["quality", "--db", str(db), "--alert"])
+    monkeypatch.setattr(q, "check", lambda _, **kwargs: [])
+    monkeypatch.setattr(q, "_load_baseline", lambda: {"old warning"})
+    monkeypatch.setattr(q, "_notify", sent.append)
+    monkeypatch.setattr(q, "_save_baseline", saved.append)
+    assert q.main() == 0
+    assert sent == ["✅ 1 audit anomaly(ies) resolved; 0 remain"]
+    assert saved == [set()]
 
 
 def test_checks_skip_when_tables_absent():

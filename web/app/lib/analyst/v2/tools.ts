@@ -669,16 +669,16 @@ async function runReconciliation(
   if (name === "npl_movement_footing") {
     const rows = await ctx.db.all<Record<string, number | string | null>>(
       "SELECT group_code, opening_balance, additions, transfers_in, transfers_out, collections, " +
-        "write_offs, sold, fx_diff, closing_balance FROM bank_audit_npl_movement " +
+        "write_offs, sold, fx_diff, accrual_movement, closing_balance FROM bank_audit_npl_movement " +
         "WHERE bank_ticker = ? AND period = ? AND kind = ? AND period_type = 'current' ORDER BY group_code",
       [bank, period, kind],
     );
     const per = rows.map((r) => {
       const n = (k: string) => (typeof r[k] === "number" ? (r[k] as number) : 0);
-      const computed = n("opening_balance") + n("additions") + n("transfers_in") - n("transfers_out") - n("collections") - n("write_offs") - n("sold") + n("fx_diff");
+      const computed = n("opening_balance") + n("additions") + n("transfers_in") - n("transfers_out") - n("collections") - n("write_offs") - n("sold") + n("fx_diff") + n("accrual_movement");
       return {
         group: r.group_code,
-        formula: "opening + additions + transfers_in − transfers_out − collections − write_offs − sold + fx_diff",
+        formula: "opening + additions + transfers_in − transfers_out − collections − write_offs − sold + fx_diff + accrual_movement",
         computed_closing: computed,
         reported_closing: r.closing_balance,
         components: r,

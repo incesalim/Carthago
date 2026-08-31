@@ -97,7 +97,7 @@ _FOOTNOTE_RX = re.compile(r'\(\s*\d{1,2}\s*\)')
 # "(5.1.14)". A 3-digit dotted group means thousands (a value), never a ref.
 _SECTION_REF_RX = re.compile(
     r'\(\s*\d+\.[IVXivx][0-9IVXivx.]*\s*\)'      # roman part present
-    r'|\(\s*\d+(?:\.\d{1,2}){1,3}\s*\)')          # all groups 1-2 digits
+    r'|\(\s*\d+(?:\.\d{1,2}){1,3}\.?\s*\)')       # all groups 1-2 digits
 # A label that is nothing but a hierarchy marker — the row's text label wrapped
 # onto an adjacent line, leaving "<marker> <values>". Such a row is real data.
 # Numeric groups are capped at 1-2 digits: real BRSA markers are "16.5.4", never
@@ -121,7 +121,8 @@ _DUP_DIGIT_RX = re.compile(r'([.,])(\d)(\d{2})\3(?=\D|$)')
 #       plain value (which never carries a roman letter) can't match either way.
 _ROMAN_FN_RX = re.compile(
     r'\(\s*[IVXivx]+\s*-\s*[A-Za-z0-9][A-Za-z0-9.\s-]*\)'         # (a) parenthesized
-    r'|\b(?:[IVX]+|\d{1,2})\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')   # (b) unparenthesized
+    r'|\b(?:[IVX]+|\d{1,2})\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b'
+    r'|\b[IVX]+-\d{1,3}\b')  # simple unbracketed note: IV-6, IV-12
 # Comma-for-dot hierarchy markers: BURGAN 2025Q3's text layer renders the
 # marker separator as a comma — "I,", "1,1", "1,1,1" — the SAME glyph as the
 # thousands separator. TSKB goes further and renders ONLY the last separator as
@@ -418,7 +419,8 @@ def _triplets_foot(vals: list[float | None], n_cols: int) -> bool:
     return True
 
 
-def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
+def _parse_rows(text: str, n_cols: int, *,
+                keep_small_negatives: bool = False) -> list[tuple[str, list[float | None]]]:
     """For each line that ends in N numeric tokens, return (label, values)."""
     rows: list[tuple[str, list[float | None]]] = []
     for line in text.split('\n'):
@@ -451,6 +453,8 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             return len(ms) > 1 and ms[1].group().lstrip().startswith('(')
         while (nums_m and _FOOTNOTE_RX.fullmatch(nums_m[0].group())
                and not _next_is_paren(nums_m)):
+            if keep_small_negatives and len(nums_m) == n_cols:
+                break  # caller must validate the complete statement candidate
             # The 2026Q2 Milyon switch made a real value routinely 1-2 digits,
             # so a leading "(10)" is now as likely to be -10mn as a dipnot ref.
             # Keep it when the row only foots WITH it: KLNMA's
@@ -1033,6 +1037,70 @@ def _parse_page(pdf_path: str, page_idx_1: int, n_cols: int) -> list[tuple[str, 
     return _parse_rows(_fitz_merge_rows(text, n_cols), n_cols)
 
 
+def _parse_with_chain(text: str, n_cols: int, lane: str) -> list[tuple[str, list[float | None]]]:
+    """Resolve small parenthesized amounts only when the statement proves them.
+
+    A million-TL cash-flow `(58)` can be a real negative amount or a note
+    reference. Keeping it globally would corrupt sparse old P&Ls. Compare the
+    complete candidate with the conservative parse and require all relevant
+    identities to pass before accepting that reading.
+    """
+    from .validator import check_cash_flow, check_oci, check_profit_loss
+    validators = {"cash_flow": check_cash_flow, "oci": check_oci,
+                  "profit_loss": check_profit_loss}
+    validate = validators[lane]
+    merged = _fitz_merge_rows(text, n_cols)
+    original = _parse_rows(merged, n_cols)
+    # Some wrapped section rows print their values immediately ABOVE the
+    # roman marker. Reattach only a standalone, complete value line to an
+    # otherwise value-less roman row; the chain gate below still decides.
+    lines = text.splitlines()
+    for i in range(1, len(lines)):
+        if not re.match(r"^\s*[IVX]+\.\s+\D", lines[i]):
+            continue
+        if _value_matches(_SECTION_REF_RX.sub("", lines[i])):
+            continue
+        cells = lines[i - 1].split()
+        if len(cells) == n_cols and all(_NUM_RX.fullmatch(c) for c in cells):
+            lines[i] += " " + lines[i - 1].strip()
+            lines[i - 1] = ""
+    repaired = _fitz_merge_rows("\n".join(lines), n_cols)
+    candidate = _parse_rows(repaired, n_cols, keep_small_negatives=True)
+    if lane == "profit_loss":
+        # TOMK prints XVII twice (pre-tax, then tax) and XXII twice (the
+        # discontinued equivalents). Canonicalize the duplicated marker only
+        # when its exact tax role and the missing successor identify the typo.
+        # A genuinely compressed template has no duplicate and is unchanged.
+        hierarchies = [_split_label(label)[0].rstrip(".") for label, _ in candidate]
+        corrected = []
+        for label, values in candidate:
+            hierarchy, name, _ = _split_label(label)
+            h = hierarchy.rstrip(".")
+            successor = {"XVII": "XVIII", "XXII": "XXIII"}.get(h)
+            tax_label = "VERGIKARSILIGI" in _norm(name)
+            if (successor and tax_label and hierarchies.count(h) == 2
+                    and successor not in hierarchies):
+                label = re.sub(r"^\s*" + h + r"\.?", successor + ".", label, count=1)
+            corrected.append((label, values))
+        candidate = corrected
+    if candidate == original:
+        return original
+
+    def result(parsed):
+        adapted = []
+        for label, values in parsed:
+            hierarchy, name, _ = _split_label(label)
+            adapted.append({"hierarchy": hierarchy, "item_name": name,
+                            "amount": values[0]})
+        return validate(adapted)
+
+    before, after = result(original), result(candidate)
+    if (after.failed == 0 and after.passed > 0
+            and (before.failed > 0 or after.passed > before.passed)):
+        return candidate
+    return original
+
+
 def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
     """Modal value-column count on a P&L page.
 
@@ -1351,7 +1419,8 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
         # current (col 0) and cumulative prior (col n//2), not the last two.
         if _want('profit_loss'):
             pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
-            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
+            pl_text = _fitz_page_text(pdf_path, loc['pl'] - 1)
+            for order, (label, vals) in enumerate(_parse_with_chain(pl_text, pl_n, 'profit_loss'), 1):
                 h, name, fn = _split_label(label)
                 rep.profit_loss.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
@@ -1426,7 +1495,7 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                             _two += 1
                     if _one >= 5 and _one >= 2 * _two:
                         cf_n = 1
-                cf_parsed = _parse_rows(_fitz_merge_rows(cf_text, cf_n), cf_n) if cf_text else []
+                cf_parsed = _parse_with_chain(cf_text, cf_n, 'cash_flow') if cf_text else []
                 for order, (label, vals) in enumerate(cf_parsed, 1):
                     h, name, fn = _split_label(label)
                     rep.cash_flow.append(StatementRow(

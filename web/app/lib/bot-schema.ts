@@ -121,7 +121,7 @@ bank_audit_credit_quality(bank_ticker, period, kind, section, period_type,
       'cash_ecl' [1] · 'non_cash_ecl' [1] · 'loans_amounts' [0 at 2026Q1]
 
 bank_audit_npl_movement(bank_ticker, period, kind, group_code, period_type,
-    opening_balance, additions, collections, write_offs, sold, fx_diff,
+    opening_balance, additions, collections, write_offs, sold, fx_diff, accrual_movement,
     closing_balance, provision, net_balance)   -- group_code IN ('III','IV','V')
 
 bank_audit_loans_by_sector(bank_ticker, period, kind, sector, period_type,

@@ -349,6 +349,7 @@ CREATE INDEX IF NOT EXISTS idx_bank_lbs_sector
 --   write_offs          write-downs against the balance sheet
 --   sold                NPL portfolio sales
 --   fx_diff             FX revaluation (rare; GARAN-style banks only)
+--   accrual_movement    signed change in NPL interest/profit-share accruals
 --   closing_balance     period-end NPL balance
 --   provision           cumulative loss provision against the group
 --   net_balance         closing_balance − provision (carrying amount)
@@ -367,6 +368,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_npl_movement (
     write_offs         REAL,
     sold               REAL,
     fx_diff            REAL,
+    accrual_movement   REAL,
     closing_balance    REAL,
     provision          REAL,
     net_balance        REAL,
@@ -439,7 +441,8 @@ CREATE TABLE IF NOT EXISTS bank_audit_capital (
     additional_tier1_capital REAL,
     tier1_capital            REAL,
     tier2_capital            REAL,
-    total_capital            REAL,                 -- own funds (Tier 1 + Tier 2)
+    capital_deductions      REAL,                 -- explicit post-Tier1/Tier2 deductions
+    total_capital            REAL,                 -- own funds after deductions
     total_rwa                REAL,                 -- total risk-weighted assets
     cet1_ratio               REAL,                 -- percent
     tier1_ratio              REAL,                 -- percent
@@ -741,6 +744,8 @@ CREATE TABLE IF NOT EXISTS d1_pending_deletes (
 #
 # Format: (table, column_name, column_declaration)
 _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
+    # Migration 0046: TFKB discloses accrual movements separately from FX.
+    ("bank_audit_npl_movement", "accrual_movement", "REAL"),
     # Added 2026-05-14 (commit 6b429d8) alongside the IFRS 9 credit-quality
     # extractor. Without this, old snapshots in R2 crash inside
     # src/audit_reports/loader.py:upsert_report.
@@ -776,6 +781,9 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # bank_audit_coverage leave the full-rebuild set and be pushed per
     # partition. NULL = written before the column existed, i.e. already in D1.
     ("bank_audit_coverage", "derived_at", "TIMESTAMP"),
+    # Added 2026-08-31 (migration 0045): source-disclosed adjustments after
+    # Tier1 + Tier2. Old rows remain NULL until their own partition is repaired.
+    ("bank_audit_capital", "capital_deductions", "REAL"),
 ]
 
 

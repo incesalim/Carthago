@@ -91,7 +91,9 @@ _FIELDS: list[tuple[str, bool, list[str]]] = [
         # "ToplamRiskAğırlıklı" ATBANK) even though the figures keep their
         # spaces — same squish the §4 start anchor already tolerates. [ğg]
         # absorbs the occasional de-accented "Agirlikli".
-        r"^Toplam\s*Risk\s*A[ğg]ırlıklı\s*(?:Tutar|Varlık)",
+        # TOMK 2026Q2 abbreviates the same mandatory denominator to
+        # "Risk ağırlıklı Tutarlar" (without "Toplam").
+        r"^(?:Toplam\s*)?Risk\s*A[ğg]ırlıklı\s*(?:Tutar|Varlık)",
     ]),
     # Ratio labels use \s* between words: pdfplumber sometimes drops the space
     # between words in these rows (EXIM: "Capital AdequacyRatio (%)").
@@ -140,8 +142,8 @@ _NIL = {"-", "—", "–"}
 # "Sermaye Yeterliliği Oranı (%) (2) 17.77" — "(2)" is a note reference, not a
 # value. A real negative amount always carries separators/decimals.
 _FOOTNOTE = re.compile(r"^\(\d\)$")
-# Capital ratios are percentages well under 100; anything outside the band is a
-# parse artefact (e.g. the year "2021." off a wrapped narrative sentence).
+# Most capital ratios are below 100. Larger printed ratios need component
+# corroboration (new banks can hold more capital than risk-weighted assets).
 _RATIO_BAND = (0.0, 100.0)
 
 # TFKB-class text damage: the PDF text layer detaches the leading digit of
@@ -193,6 +195,7 @@ class CapitalRow:
     additional_tier1_capital: float | None = None
     tier1_capital: float | None = None
     tier2_capital: float | None = None
+    capital_deductions: float | None = None
     total_capital: float | None = None
     total_rwa: float | None = None
     cet1_ratio: float | None = None
@@ -370,6 +373,180 @@ def _parse_section(get_lines, start: int, n: int) -> tuple[dict, dict, list]:
     return current, prior, tc_candidates
 
 
+def _repair_displaced_rows(current: dict, prior: dict, lines: list[str]) -> None:
+    """Recover explicitly printed neighbours only when independent totals agree.
+
+    Some filed tables themselves put a figure one row above/below its label.
+    This is not a magnitude heuristic: each replacement must reconcile to the
+    other printed capital components or all three independently printed ratios.
+    Never repair a ratio by calculating a replacement percentage.
+    """
+    rows = [_repair_split_digits(s.strip()) for s in lines]
+
+    def values(line: str, ratio: bool = False) -> list[float | None]:
+        parse = _parse_ratio if ratio else parse_num
+        return [parse(t) for t in _trailing_two_tokens(line)]
+
+    def first(pattern: str) -> list[float | None]:
+        for line in rows:
+            if re.match(pattern, line, re.I) and (v := values(line)):
+                return v
+        return []
+
+    def agrees(vals: dict, total: float | None, rwa: float | None,
+               ratios: list[float | None]) -> bool:
+        amounts = [vals.get("cet1_capital"), vals.get("tier1_capital"), total]
+        return (rwa is not None and rwa > 0 and len(ratios) == 3
+                and all(a is not None and r is not None and r > 0
+                        and abs(a / rwa * 100 - r) <= 0.025
+                        for a, r in zip(amounts, ratios)))
+
+    # EMLAK 2022 / QNB 2022 / ICBCT 2026: the AT1-total row prints nil while
+    # the before-deductions row and a separately printed Tier1 total prove the
+    # nonzero amount. Require explicit deductions and exact composition.
+    before = first(r"^(?:Additional\s*Tier\s*(?:I|1)\s*Capital\s*before\s*Deductions"
+                   r"|İndirimler\s*Öncesi\s*İlave\s*Ana\s*Sermaye)\b")
+    deductions = first(r"^(?:Total\s*Deductions\s*From\s*Additional\s*Tier\s*(?:I|1)\s*Capital"
+                       r"|İlave\s*Ana\s*Sermayeden\s*Yapılan\s*İndirimler\s*Toplamı)\b")
+    for col, vals in enumerate((current, prior)):
+        if col >= len(before) or col >= len(deductions):
+            continue
+        b, d = before[col], deductions[col]
+        cet1, tier1 = vals.get("cet1_capital"), vals.get("tier1_capital")
+        if b is None or d is None or cet1 is None or tier1 is None:
+            continue
+        candidate = b - abs(d)
+        if (vals.get("additional_tier1_capital") in (None, 0) and candidate > 0
+                and abs(cet1 + candidate - tier1) <= max(1, abs(tier1) * 1e-6)):
+            vals["additional_tier1_capital"] = candidate
+
+    for i, line in enumerate(rows):
+        # EMLAK 2025Q1: final capital is on the ÖZKAYNAK heading, RWA is on
+        # Total Capital, and the RWA-labelled row is blank. Ratios are aligned.
+        if (re.match(r"^Özkaynak\b", line, re.I) and i + 2 < len(rows)
+                and re.match(r"^Toplam\s*Özkaynak\b", rows[i + 1], re.I)
+                and re.match(r"^Toplam\s*Risk\s*A[ğg]ırlıklı", rows[i + 2], re.I)
+                and not values(rows[i + 2])):
+            totals, rwas = values(line), values(rows[i + 1])
+            for col, vals in enumerate((current, prior)):
+                if col >= len(totals) or col >= len(rwas):
+                    continue
+                ratios = [vals.get(k) for k in ("cet1_ratio", "tier1_ratio", "capital_adequacy_ratio")]
+                if agrees(vals, totals[col], rwas[col], ratios):
+                    vals["total_capital"], vals["total_rwa"] = totals[col], rwas[col]
+
+        # ISCTR 2025 consolidated: RWA sits on the ratios heading and the
+        # three ratio values each sit one line below their own labels.
+        if (re.match(r"^Total\s*Risk[\s-]*Weighted\s*Assets", line, re.I)
+                and i + 5 < len(rows)
+                and re.match(r"^Capital\s*Adequacy\s*Ratios\b", rows[i + 1], re.I)
+                and re.match(r"^(?:Consolidated\s*)?CET\s*1\s*Capital\s*Ratio", rows[i + 2], re.I)
+                and not values(rows[i + 2])
+                and re.match(r"^(?:Consolidated\s*)?Tier\s*(?:I|1)\s*Capital\s*Ratio", rows[i + 3], re.I)
+                and re.match(r"^(?:Consolidated\s*)?Capital\s*Adequacy\s*Ratio", rows[i + 4], re.I)
+                and re.match(r"^Buffers\b", rows[i + 5], re.I)):
+            totals, rwas = values(line), values(rows[i + 1])
+            rr = [values(rows[i + j], ratio=True) for j in (3, 4, 5)]
+            for col, vals in enumerate((current, prior)):
+                if col >= len(totals) or col >= len(rwas) or any(col >= len(v) for v in rr):
+                    continue
+                ratios = [v[col] for v in rr]
+                if agrees(vals, totals[col], rwas[col], ratios):
+                    vals["total_capital"], vals["total_rwa"] = totals[col], rwas[col]
+                    for key, ratio in zip(("cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"), ratios):
+                        vals[key] = ratio
+
+    # Recover explicitly disclosed post-Tier1/Tier2 deductions. A total
+    # deduction row is preferable to summing details (and avoids double count).
+    # QNB's shifted template puts PRE-DEDUCTION capital on that heading, so
+    # reject it when it equals the independently printed Tier1 + Tier2-before.
+    before_t2 = first(r"^Tier\s*(?:II|2)\s*Capital\s*Before\s*(?:Total\s*)?Deductions\b")
+    t2_index = next((i for i, row in enumerate(rows)
+                     if re.match(r"^(?:Total\s*Tier\s*(?:II|2)\s*Capital"
+                                 r"|Katkı\s*Sermaye\s*Toplamı)\b", row, re.I)), None)
+    if t2_index is not None:
+        block = rows[t2_index + 1:]
+        # Only this capital template, never later instrument tables/footnotes.
+        end = next((i for i, row in enumerate(block)
+                    if re.match(r"^(?:Total\s*Risk|(?:Toplam\s*)?Risk\s*A[ğg]ırlıklı"
+                                r"|Capital\s*Adequacy\s*Ratios)\b", row, re.I)), len(block))
+        block = block[:end]
+        summary = next((values(row) for row in block
+                        if re.match(r"^Deductions\s*from\s*Total\s*(?:Equity|Capital)\b", row, re.I)
+                        and len(values(row)) == 2), [])
+        # Explicit detail rows, including wrapped labels. Transition is itself
+        # a subtotal, so stop before its children instead of counting both.
+        detail_start = re.compile(
+            r"^(?:(?:Deductions\s*from\s*Capital\s*)?Loans\s*(?:granted|Granted)"
+            r"|Net\s*Book\s*Values|Other\s*items\s*to\s*be\s*(?:defined|Defined)"
+            r"|In\s*transition\s*from\s*Total|Items\s*to\s*be\s*Deducted\s*from\s*the\s*Sum"
+            r"|Kanunun\s*(?:50|57)\b|Kurulca\s*belirlenecek\s*diğer\s*hesaplar"
+            r"|Geçiş\s*Sürecinde\s*Ana\s*Sermaye\s*ve\s*Katkı)", re.I)
+        transition = re.compile(r"^(?:In\s*transition|Items\s*to\s*be\s*Deducted|Geçiş\s*Sürecinde)", re.I)
+        detail_values: list[list[float | None]] = []
+        for i, row in enumerate(block):
+            if not detail_start.match(row):
+                continue
+            joined = row
+            for continuation in block[i + 1:i + 7]:
+                if len(values(joined)) == 2 or detail_start.match(continuation):
+                    break
+                joined += " " + continuation
+            v = values(joined)
+            if len(v) == 2:
+                detail_values.append(v)
+            if transition.match(row):
+                break
+        final_candidates = [values(row) for row in block
+                            if re.match(r"^(?:Total\s*Capital\b|Toplam\s*Özkaynak\b|ÖZKAYNAK\b)", row, re.I)
+                            and len(values(row)) == 2]
+        final_candidates.append([current.get("total_capital"), prior.get("total_capital")])
+        for col, vals in enumerate((current, prior)):
+            t1, t2 = vals.get("tier1_capital"), vals.get("tier2_capital")
+            if t1 is None:
+                continue
+            t2_before = before_t2[col] if col < len(before_t2) else None
+            # The only Tier2 recovery candidates are explicitly printed figures.
+            candidates = [v for v in (t2, t2_before) if v is not None]
+            deduction = summary[col] if col < len(summary) else None
+            if deduction is not None and any(abs(t1 + v - deduction) <= 1 for v in candidates):
+                deduction = None  # QNB's displaced pre-deduction capital heading
+            if deduction is None and detail_values:
+                amounts = [v[col] for v in detail_values]
+                if all(v is not None for v in amounts):
+                    deduction = sum(abs(v) for v in amounts)
+            if deduction is None or deduction < 0:
+                continue
+            # Confirm complete coverage of wrapped/blank detail rows against a
+            # separately printed final own-funds figure; never use the residual
+            # itself as a deduction. The 1-unit tolerance is PDF rounding only.
+            match = next(((v, totals[col]) for totals in reversed(final_candidates)
+                          for v in candidates if totals[col] is not None
+                          and abs(t1 + v - deduction - totals[col]) <= 1), None)
+            if match is not None:
+                vals["tier2_capital"], vals["total_capital"] = match
+                vals["capital_deductions"] = deduction
+
+    # Retain source-printed capital ratios above 100 only if their independently
+    # printed numerator/RWA confirms the percentage (never a calculated value).
+    for ratio_field, is_ratio, regexes in _FIELD_RX:
+        if not is_ratio:
+            continue
+        amount_key = {"cet1_ratio": "cet1_capital", "tier1_ratio": "tier1_capital",
+                      "capital_adequacy_ratio": "total_capital"}[ratio_field]
+        for row in rows:
+            if not any(rx.match(row) for rx in regexes):
+                continue
+            ratios = values(row, ratio=True)
+            for col, vals in enumerate((current, prior)):
+                if col >= len(ratios) or ratios[col] is None or ratios[col] < 100:
+                    continue
+                numerator, rwa = vals.get(amount_key), vals.get("total_rwa")
+                if (vals.get(ratio_field) is None and numerator is not None and rwa
+                        and abs(numerator / rwa * 100 - ratios[col]) <= 0.025):
+                    vals[ratio_field] = ratios[col]
+
+
 def extract_from_pdf(pdf_path: str = "") -> CapitalReport:
     rep = CapitalReport(pdf_path=pdf_path)
     if not (pdf_path and _HAS_FITZ):
@@ -441,6 +618,13 @@ def extract_from_pdf(pdf_path: str = "") -> CapitalReport:
         current["total_capital"] = best_cur
         prior["total_capital"] = best_pri
 
+    get_lines, fn, doc = _fitz_lines(pdf_path)
+    try:
+        evidence_lines = [line for i in range(start, min(fn, start + _MAX_SECTION_PAGES))
+                          for line in get_lines(i)]
+    finally:
+        doc.close()
+
     # SKBNK-class row shift: the labelled Tier1 row can carry a neighbouring
     # row's value (usually the AT1 amount). Tier1 = CET1 + AT1 by definition,
     # so a Tier1 below CET1 is always a misread — rebuild from the identity,
@@ -467,6 +651,8 @@ def extract_from_pdf(pdf_path: str = "") -> CapitalReport:
             if abs(cand - target) <= 0.02 * target:
                 vals["tier1_capital"] = cand
 
+    _repair_displaced_rows(current, prior, evidence_lines)
+
     if current:
         rep.rows.append(CapitalRow(period_type="current", **current))
     if any(v is not None for v in prior.values()):
@@ -483,7 +669,7 @@ def extract(pdf_path: str | Path) -> CapitalReport:
 # ---------------------------------------------------------------------------
 _VALUE_COLS = [
     "cet1_capital", "additional_tier1_capital", "tier1_capital", "tier2_capital",
-    "total_capital", "total_rwa", "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio",
+    "capital_deductions", "total_capital", "total_rwa", "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio",
 ]
 
 

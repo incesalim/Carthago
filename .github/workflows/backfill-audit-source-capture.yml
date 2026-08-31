@@ -31,6 +31,10 @@ on:
         description: "Recompute existing manifests too (unchanged rows are not re-stamped)"
         type: boolean
         default: false
+      only_failing:
+        description: "Only existing failed capture checks; no financial re-extraction"
+        type: boolean
+        default: false
       dry_run:
         description: "Build only in the runner's local DB; no D1/R2 writes"
         type: boolean
@@ -80,12 +84,14 @@ jobs:
           KIND: ${{ inputs.kind }}
           LIMIT: ${{ inputs.limit }}
           REFRESH: ${{ inputs.refresh_existing && '--refresh-existing' || '' }}
+          ONLY_FAILING: ${{ inputs.only_failing && '--only-failing' || '' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
           args=(--lanes "$LANES" --banks "$BANKS" --limit "$LIMIT")
           [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
           [ -n "$KIND" ] && args+=(--kind "$KIND")
           [ -n "$REFRESH" ] && args+=("$REFRESH")
+          [ -n "$ONLY_FAILING" ] && args+=("$ONLY_FAILING")
           [ -n "$DRY" ] && args+=("$DRY")
           python scripts/backfill_audit_source_capture.py "${args[@]}"
 

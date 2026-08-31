@@ -64,6 +64,21 @@ def test_every_numeric_column_is_classified(schema):
         f"numeric columns classified as neither money nor non-money: {unclassified}")
 
 
+def test_icbc_abbreviated_amounts_headers_outvote_stale_table_labels():
+    # ICBC 2026Q2 consolidated p4 + pp9-13: correct Milyon TL page headers
+    # coexist with stale BIN TURK LIRASI labels inside the printed tables.
+    pages = ["aksi belirtilmediği müddetçe milyon Türk Lirası cinsinden hazırlanmış olup"]
+    pages += ['(Tutarlar "Milyon TL" olarak ifade edilmiştir.)\nBİN TÜRK LİRASI'] * 5
+    assert U.regex_unit(pages) == "milyon"
+
+
+def test_abbreviated_nominal_amounts_are_not_unit_declarations():
+    pages = ["BİN TÜRK LİRASI\n206 Milyon TL tutarında ertelenmiş vergi geliri"]
+    pages += ["Sermayesi 860 Milyon TL; nominal share amount 860 million TL"] * 5
+    assert U.regex_unit(pages) == "bin"
+    assert U.regex_unit(["Sermayesi 860 Milyon TL"]) is None
+
+
 def test_no_column_is_classified_as_both(schema):
     for t in AUDIT_TABLES:
         both = U.MONEY_COLUMNS.get(t, frozenset()) & U.NON_MONEY_NUMERIC.get(t, frozenset())
@@ -899,14 +914,14 @@ def test_writer_npl_movement_reads_back_scaled(tmp_path):
     conn = _wdb(tmp_path, "npl")
     rep = NplMovementReport(pdf_path="x.pdf", rows=[
         NplGroupRow(group_code="III", period_type="current", opening_balance=10.0,
-                    additions=1.0, collections=-2.0, closing_balance=9.0,
-                    provision=4.0, net_balance=5.0, page=9)])
+                    additions=1.0, collections=-2.0, closing_balance=8.5,
+                    accrual_movement=-0.5, provision=4.0, net_balance=4.5, page=9)])
     upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
     assert conn.execute(
         "SELECT opening_balance, additions, collections, closing_balance, "
-        "provision, net_balance, transfers_in, source_page "
+        "provision, net_balance, transfers_in, accrual_movement, source_page "
         "FROM bank_audit_npl_movement").fetchone() == \
-        (10_000.0, 1_000.0, -2_000.0, 9_000.0, 4_000.0, 5_000.0, None, 9), \
+        (10_000.0, 1_000.0, -2_000.0, 8_500.0, 4_000.0, 4_500.0, None, -500.0, 9), \
         "a negative keeps its sign; an undisclosed leg stays null"
 
 

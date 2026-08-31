@@ -21,6 +21,7 @@ For each group, the rollforward gives:
   write_offs           Loans written off the balance sheet
   sold                 NPL portfolio sales
   fx_diff              FX revaluation (GARAN-style; many banks omit)
+  accrual_movement     Signed movement of NPL interest/profit-share accruals
   closing_balance      End-of-period gross NPL balance
   provision            Cumulative loss provision against the group
   net_balance          closing_balance − provision (balance-sheet carrying amount)
@@ -36,10 +37,13 @@ import re
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
+from statistics import median
 
 
 from .units import UnitContext
-from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_amount
+from .extractor import (
+    _HAS_FITZ, _fitz_page_count, _fitz_page_line_tokens, _fitz_page_text, parse_amount,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +106,7 @@ _ROW_LABELS: list[tuple[str, str]] = [
     # (closing_balance NULL while flows captured). Distinct from the EXIM
     # opening "Balance at the Beginning of the Period" (above).
     ("balance at the end of the period", "closing_balance"),
+    ("balance at the end of period", "closing_balance"),
     ("balances at end of period", "closing_balance"),
     ("end of period balance", "closing_balance"),
     ("dönem sonu bakiyesi", "closing_balance"),
@@ -113,6 +118,8 @@ _ROW_LABELS: list[tuple[str, str]] = [
     # Transfers in
     ("diğer donuk alacak hesaplarından giriş", "transfers_in"),
     ("transfer from other npl categories", "transfers_in"),
+    ("transfers from other npl categories", "transfers_in"),
+    ("diğer donuk alacak hesaplarına giriş", "transfers_in"),
     ("transfers from other categories of loans under non-performing", "transfers_in"),
     ("transfers from other categories of non-performing", "transfers_in"),
     ("transfers from other categories", "transfers_in"),
@@ -122,6 +129,9 @@ _ROW_LABELS: list[tuple[str, str]] = [
     # Transfers out
     ("diğer donuk alacak hesaplarına çıkış", "transfers_out"),
     ("transfer to other npl categories", "transfers_out"),
+    ("transfers to other npl categories", "transfers_out"),
+    ("diğer donuk alacak hesaplarından çıkış", "transfers_out"),
+    ("diğer donuk.alacak hesaplarına çıkış", "transfers_out"),
     ("transfers to other categories of loans under non-performing", "transfers_out"),
     ("transfers to other categories of non-performing", "transfers_out"),
     ("transfers to other categories", "transfers_out"),
@@ -134,9 +144,11 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("collections", "collections"),
     # Write-offs
     ("kayıttan düşülen", "write_offs"),
+    ("aktiften silinen", "write_offs"),
     ("write down / write-offs", "write_offs"),
     ("write down/write-offs", "write_offs"),
     ("write-offs", "write_offs"),
+    ("write-off", "write_offs"),
     ("write offs", "write_offs"),
     # ALBRK folds cure-to-standard and write-off into one outflow row.
     ("transfers to standard loans and write off", "write_offs"),
@@ -144,6 +156,7 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("debt sale", "sold"),
     ("satılan", "sold"),
     ("sold", "sold"),
+    ("dispose of", "sold"),
     # FX revaluation differential. Consolidated reports add a currency-translation
     # flow row to the NPL roll-forward that solo reports omit (the roll-forward
     # then ties exactly — DENIZ cons gIII Kur farkı 416.936 closed the -416.936
@@ -152,15 +165,23 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("foreign currency differences", "fx_diff"),
     ("foreign currency difference", "fx_diff"),
     ("exchange rate differences", "fx_diff"),
+    ("effect of changes in exchange rates", "fx_diff"),
     ("yabancı para çevrim farkları", "fx_diff"),
     ("kur değişiminin etkisi", "fx_diff"),
+    ("kur değişimi etkisi", "fx_diff"),
+    ("kura göre yapılan düzeltmelerden farklar", "fx_diff"),
+    ("donuk alacaklara ilişkin kur farkları", "fx_diff"),
     ("kur farkları", "fx_diff"),
     ("kur farkı", "fx_diff"),
+    ("donuk alacak reeskontları", "accrual_movement"),
     # Provision. BURGAN (English) heads the row "Specific Provision (-)", which
     # doesn't START with "provision" so the generic prefixes missed it (provision
     # column NULL); listed first for longest-match priority.
     ("specific provisions (-)", "provision"),
     ("specific provision (-)", "provision"),
+    ("özel karşılık", "provision"),
+    ("özel kredi karşılığı", "provision"),
+    ("beklenen zarar karşılığı", "provision"),
     ("provisions (-)", "provision"),
     ("provision (-)", "provision"),
     ("karşılık (-)", "provision"),
@@ -285,6 +306,7 @@ class NplGroupRow:
     write_offs: float | None = None
     sold: float | None = None
     fx_diff: float | None = None
+    accrual_movement: float | None = None
     closing_balance: float | None = None
     provision: float | None = None
     net_balance: float | None = None
@@ -359,7 +381,8 @@ def _merge_wrapped_labels(lines: list[str]) -> list[str]:
             # 3-number line (AKBNK).
             if _THREE_NUMS_TAIL.search(nxt) and (
                     re.match(r"^(?:performing\s+)?loans?\b", nxt, re.IGNORECASE)
-                    or _THREE_NUMS_TAIL.match(nxt)):
+                    or _THREE_NUMS_TAIL.match(nxt)
+                    or re.fullmatch(r"\([+-]\)\s+" + _THREE_NUMS_TAIL.pattern, nxt)):
                 out.append(cur_s + " " + nxt)
                 i += 2
                 continue
@@ -497,7 +520,7 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
             seen_additions = True
         # Store outflows as positive magnitudes — ALNTF prints them parenthesised
         # (negative); the roll-forward (and other banks) treat them as positive.
-        if key in _OUTFLOW_KEYS:
+        if key in _OUTFLOW_KEYS or key == "provision":
             n3, n4, n5 = (abs(x) if x is not None else None for x in (n3, n4, n5))
         setattr(cur["III"], key, n3)
         setattr(cur["IV"],  key, n4)
@@ -513,6 +536,89 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
                 break
     _flush()
     return out
+
+
+def _extract_with_sparse_columns(
+    page_idx: int, text: str,
+    line_tokens: list[list[tuple[float, float, str]]],
+) -> list[NplGroupRow]:
+    """Recover printed flow rows with blank cells only after both identities tie.
+
+    ISCTR leaves zero cells empty. Flattened text therefore drops a transfer or
+    sale with only one/two numbers. Three complete balance rows establish the
+    column geometry; existing numbers must align with those columns. Blank cells
+    become zero only if every group's complete movement and net identities tie
+    at source rounding precision. No absent row is synthesized.
+    """
+    original = _extract_from_block(page_idx, text)
+    lines = [" ".join(token for _, _, token in row) for row in line_tokens]
+    # Both views must come from the same token reader; never splice foreign text.
+    if "\n".join(lines) != text:
+        return original
+    headers = [i for i, line in enumerate(lines) if _GROUPS_RX.search(line)]
+    flow_keys = {"additions", "transfers_in", "transfers_out", "collections",
+                 "write_offs", "sold", "fx_diff", "accrual_movement"}
+    stock_keys = {"opening_balance", "closing_balance", "provision", "net_balance"}
+    numeric = re.compile(_NUM_TOKEN)
+    corrected = list(lines)
+    for n, header in enumerate(headers):
+        stop = headers[n + 1] if n + 1 < len(headers) else len(lines)
+        anchors = []
+        for i in range(header + 1, stop):
+            tokens = line_tokens[i]
+            if (_match_row_label(lines[i]) in stock_keys and len(tokens) >= 3
+                    and all(numeric.fullmatch(token[2]) and re.search(r"\d", token[2])
+                            for token in tokens[-3:])):
+                anchors.append(tuple(token[1] for token in tokens[-3:]))
+        if len(anchors) < 3:
+            continue
+        columns = [median(anchor[c] for anchor in anchors) for c in range(3)]
+        if (min(columns[c + 1] - columns[c] for c in range(2)) < 20
+                or any(abs(anchor[c] - columns[c]) > 4
+                       for anchor in anchors for c in range(3))):
+            continue
+        for i in range(header + 1, stop):
+            if _match_row_label(lines[i]) not in flow_keys:
+                continue
+            tokens = line_tokens[i]
+            # A footnote number attached to the label is left of every numeric
+            # column and must never be mistaken for one of the three cells.
+            cells = [(x1, token) for x0, x1, token in tokens
+                     if x0 > columns[0] - (columns[1] - columns[0]) / 2
+                     and numeric.fullmatch(token)]
+            if len(cells) not in (1, 2):
+                continue
+            assigned: dict[int, str] = {}
+            for right, token in cells:
+                column = min(range(3), key=lambda c: abs(right - columns[c]))
+                if abs(right - columns[column]) > 4 or column in assigned:
+                    break
+                assigned[column] = token
+            else:
+                prefix = [token for x0, _, token in tokens
+                          if x0 <= columns[0] - (columns[1] - columns[0]) / 2]
+                corrected[i] = " ".join([*prefix, *(assigned.get(c, "-") for c in range(3))])
+    if corrected == lines:
+        return original
+    candidate = _extract_from_block(page_idx, "\n".join(corrected))
+    if ({(r.group_code, r.period_type) for r in candidate}
+            != {(r.group_code, r.period_type) for r in original}):
+        return original
+    if not candidate:
+        return original
+    for row in candidate:
+        if any(getattr(row, key) is None for key in stock_keys):
+            return original
+        implied = row.opening_balance
+        for key in flow_keys:
+            value = getattr(row, key) or 0.0
+            implied += -abs(value) if key in _OUTFLOW_KEYS else value
+        # At most ten independently rounded source terms; no percentage-based
+        # tolerance that could bless a substantial missing flow on a large bank.
+        if (abs(implied - row.closing_balance) > 5
+                or abs(row.closing_balance - abs(row.provision) - row.net_balance) > 1.5):
+            return original
+    return candidate
 
 
 def extract_from_pdf(
@@ -542,7 +648,8 @@ def extract_from_pdf(
             text = _fitz_page_text(pdf_path, i - 1)
             if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
                 continue
-            rows = _extract_from_block(i, text)
+            rows = _extract_with_sparse_columns(
+                i, text, _fitz_page_line_tokens(pdf_path, i - 1))
             if rows:
                 rep.rows.extend(rows)
                 # The table is rarely repeated — stop once found.
@@ -576,20 +683,20 @@ def upsert(
     rows = [(
         bank_ticker, period, kind, r.group_code, r.period_type, r.page,
         r.opening_balance, r.additions, r.transfers_in, r.transfers_out,
-        r.collections, r.write_offs, r.sold, r.fx_diff,
+        r.collections, r.write_offs, r.sold, r.fx_diff, r.accrual_movement,
         r.closing_balance, r.provision, r.net_balance,
     ) for r in rep.rows]
     # Normalise to canonical `bin` BEFORE the insert. The factor comes
     # from the caller because this function has no PDF to read.
-    rows = unit.scale_rows("bank_audit_npl_movement", ["bank_ticker","period","kind","group_code","period_type","source_page","opening_balance","additions","transfers_in","transfers_out","collections","write_offs","sold","fx_diff","closing_balance","provision","net_balance"], rows)
+    rows = unit.scale_rows("bank_audit_npl_movement", ["bank_ticker","period","kind","group_code","period_type","source_page","opening_balance","additions","transfers_in","transfers_out","collections","write_offs","sold","fx_diff","accrual_movement","closing_balance","provision","net_balance"], rows)
     if rows:
         cur.executemany(
             "INSERT INTO bank_audit_npl_movement "
             "(bank_ticker, period, kind, group_code, period_type, source_page, "
             " opening_balance, additions, transfers_in, transfers_out, "
-            " collections, write_offs, sold, fx_diff, closing_balance, "
+            " collections, write_offs, sold, fx_diff, accrual_movement, closing_balance, "
             " provision, net_balance) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
     if commit:

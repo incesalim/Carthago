@@ -23,7 +23,7 @@ from pathlib import Path
 
 
 from .capital_adequacy import _parse_ratio, _repair_split_digits, _trailing_two_tokens
-from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
 from .units import UnitContext
 
 _SKIP_PAGES = 12
@@ -118,6 +118,8 @@ def _scan(get_lines, scan_start: int, scan_end: int) -> tuple[list, list, list]:
     lcr: list[list[str]] = []
     nsfr: list[list[str]] = []
     lev: list[list[str]] = []
+    hqla: list[str] = []
+    outflows: list[str] = []
     def _add(lst, toks):
         # Skip a row whose current value is nil ("-") — TFKB prints a placeholder
         # "Kaldıraç oranı - -" above the real "15 Kaldıraç oranı 5.53 5.92".
@@ -132,8 +134,33 @@ def _scan(get_lines, scan_start: int, scan_end: int) -> tuple[list, list, list]:
             ln = _repair_split_digits(raw.strip().translate(_TR_LOWER).lower())
             if not ln:
                 continue
+            if re.match(rf"^{_RN}(?:total\s*hqla|total\s*high[\s-]*quality\s*liquid\s*assets"
+                        r"|toplam\s+yklv\s+stoku)\b", ln):
+                hqla = _trailing_two_tokens(ln)
+            elif re.match(rf"^{_RN}(?:total\s*net\s*cash\s*outflows|toplam\s+net\s+nakit\s+çıkışları)\b", ln):
+                outflows = _trailing_two_tokens(ln)
             if _match(_LCR_RX, ln):
-                _add(lcr, _trailing_two_tokens(ln))
+                tokens = _trailing_two_tokens(ln)
+                for col, token in enumerate(tokens):
+                    # A lone separator followed by three digits is ambiguous:
+                    # TOMK 2023Q4 prints "3,768" (grouped integer). Choose that
+                    # interpretation only when separately printed weighted
+                    # HQLA/outflows corroborate its scale. LCR is an average of
+                    # daily ratios, so do not replace it with the component ratio.
+                    if (re.fullmatch(r"\d{1,3}[,.]\d{3}", token)
+                            and col < len(hqla) and col < len(outflows)):
+                        numerator, denominator = parse_num(hqla[col]), parse_num(outflows[col])
+                        decimal = _parse_ratio(token)
+                        grouped = float(token.replace(",", "").replace(".", ""))
+                        if numerator and denominator and denominator > 0 and decimal:
+                            implied = numerator / denominator * 100
+                            if (abs(grouped - implied) <= abs(implied) * 0.05
+                                    and abs(decimal - implied) > abs(implied) * 0.5):
+                                tokens[col] = str(grouped)
+                _add(lcr, tokens)
+                # Never borrow a current table's components for a prior table
+                # whose totals were not disclosed/read.
+                hqla, outflows = [], []
             elif _match(_NSFR_RX, ln):
                 _add(nsfr, _trailing_two_tokens(ln))
             elif _match(_LEV_RX, ln):

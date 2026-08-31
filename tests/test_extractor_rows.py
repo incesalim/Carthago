@@ -350,3 +350,56 @@ def test_nil_elsewhere_does_not_suppress_table():
             "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler\n"
             "Tarım 1.234 567 890\nToplam 1.234 567 890")
     assert _is_nil_declared_note(text) is False
+def test_section_reference_with_trailing_dot_and_simple_roman_note():
+    from src.audit_reports.extractor import _parse_rows
+    rows = _parse_rows(
+        "VII. DİĞER FAALİYET GELİRLERİ (4.6.) 33 33 (3) 16\n"
+        "X. DİĞER KARŞILIK GİDERLERİ (-) IV-6 40 3 (15) 3", 4)
+    assert rows[0][1] == [33, 33, -3, 16]
+    assert rows[1][1] == [40, 3, -15, 3]
+
+
+def test_small_cash_flow_negative_requires_complete_chain():
+    from src.audit_reports.extractor import _parse_with_chain
+    text = (
+        "I. Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit 3.933 5.281\n"
+        "II. Yatırım Faaliyetlerinden Kaynaklanan Net Nakit (1.681) 2.457\n"
+        "III. Finansman Faaliyetlerinden Sağlanan Net Nakit (58) 4.482\n"
+        "IV. Yabancı Para Çevrim Farkları 1.076 1.155\n"
+        "V. Net Artış 3.270 13.375\n"
+        "VI. Dönem Başındaki Nakit 32.642 21.713\n"
+        "VII. Dönem Sonundaki Nakit 35.912 35.088")
+    parsed = _parse_with_chain(text, 2, "cash_flow")
+    assert next(values for label, values in parsed if label.startswith("III."))[0] == -58
+    # A guessed negative that does not close the statement is never admitted.
+    broken = _parse_with_chain(text.replace("3.270 13.375", "3.000 13.375"), 2, "cash_flow")
+    assert not any(label.startswith("III.") for label, _ in broken)
+
+
+def test_cash_flow_values_above_roman_are_recovered_by_chain():
+    from src.audit_reports.extractor import _parse_with_chain
+    text = ("I. Bankacılık Faaliyetlerinden Net Nakit 386 2,336\n"
+            "B. YATIRIM FAALİYETLERİ\n(3,985) (425)\n"
+            "II. Yatırım Faaliyetlerinden Net Nakit\n"
+            "III. Finansman Faaliyetlerinden Net Nakit (21) (2,352)\n"
+            "IV. Yabancı Para Çevrim Farkları 1,310 1,963\n"
+            "V. Net Artış (2,310) 1,522\n"
+            "VI. Dönem Başındaki Nakit 20,330 11,843\n"
+            "VII. Dönem Sonundaki Nakit 18,020 13,365")
+    rows = _parse_with_chain(text, 2, "cash_flow")
+    assert next(values for label, values in rows if label.startswith("II.")) == [-3985, -425]
+
+
+def test_duplicated_tax_roman_requires_source_role_and_full_chain():
+    from test_audit_validator import _clean_pl
+    from src.audit_reports.extractor import _parse_with_chain
+    source = []
+    for row in _clean_pl():
+        hierarchy = "XVII." if row["hierarchy"] == "XVIII." else row["hierarchy"]
+        value = f"{row['amount'] / 1000:g}"
+        source.append(f"{hierarchy} {row['item_name']} {value} {value}")
+    text = "\n".join(source)
+    rows = _parse_with_chain(text, 2, "profit_loss")
+    assert next(v for label, v in rows if label.startswith("XVIII.")) == [30, 30]
+    broken = _parse_with_chain(text.replace("215 215", "500 500"), 2, "profit_loss")
+    assert not any(label.startswith("XVIII.") for label, _ in broken)

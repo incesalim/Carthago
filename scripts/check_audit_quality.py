@@ -24,8 +24,9 @@ Checks (each yields offending (bank, period, kind)):
   5. capital     — bank_audit_capital arithmetic: CET1<=Tier1<=Total Capital and
                     reported CAR must reconcile to Total Capital / RWA. A failure
                     is a parse error (missing label variant / wrong total row).
-  6. liquidity   — bank_audit_liquidity plausibility bands (leverage <30%,
-                    LCR/NSFR sane; a sub-50% LCR is a mis-grabbed value).
+  6. liquidity   — shares the extraction validator's plausibility checks,
+                    plus within-bank outliers. Exact source-reviewed outliers
+                    remain in the report but do not generate error alerts.
   7. structure   — bank_audit_validation partitions with failed internal-sum
                     identities (TL+FC=Total per row, parent=Σchildren,
                     TOTAL=Σromans, assets=liabilities+equity). Written at
@@ -35,10 +36,9 @@ Checks (each yields offending (bank, period, kind)):
                     fingerprints of the dipnot-ref "(6)" being read as the value
                     (the ALBRK -6 bug); a quarter that LOSES its ECL rows while
                     the prior quarter had them is the row-drop variant.
-  9. pl_sign     — P&L deduction romans (II, IX–XII) whose stored sign flips
-                    within a bank/kind series. The chain check accepts either
-                    storage convention by design, so flips are invisible to it;
-                    they break YTD de-cumulation downstream unless abs()'d.
+  9. pl_sign     — template-aware P&L deduction sign changes. Complete signed
+                    statements that reconcile remain observations; incomplete
+                    or inconsistent statements still require investigation.
  10. freeprov    — bank_audit_free_provision (serbest karşılık stock): a plausibility
                     band, a longitudinal cross-check (stated prior == prior-year-end
                     current), and a two-sided reconciliation against the audit
@@ -71,6 +71,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 # vertical check can't drift from the BS one.
 from src.audit_reports.validator import (  # noqa: E402
     _statement_total,
+    check_capital,
+    check_liquidity,
     free_provision_basis_mentions,
 )
 
@@ -252,7 +254,14 @@ def _capital_consistency(conn: sqlite3.Connection) -> list[str]:
         if len(implied) >= 2 and (hi := max(implied)) > 0 and (hi - min(implied)) / hi > 0.08:
             out.append(f"{tag} reported ratios imply inconsistent RWA "
                        f"({min(implied):,.0f}–{hi:,.0f}) — a capital component or ratio mis-parsed")
-        if car is not None and not (5 <= car <= 80):
+        # Use the same reconciliation-aware decision as the extraction gate.
+        # A high CAR on a newly licensed bank is legitimate when Total/RWA
+        # agrees; the old unconditional ceiling kept re-alerting verified data.
+        capital_result = check_capital([{
+            "period_type": "current", "total_capital": tc, "total_rwa": rwa,
+            "capital_adequacy_ratio": car,
+        }])
+        if any(f["check"] == "cap_car_band" for f in capital_result.failures):
             out.append(f"{tag} CAR {car} out of plausible band")
     return out
 
@@ -269,13 +278,12 @@ def _liquidity_bands(conn: sqlite3.Connection) -> list[str]:
         "FROM bank_audit_liquidity WHERE period_type='current'").fetchall()
     for bank, period, kind, lev, lcr, nsfr in rows:
         tag = f"liquidity {bank} {period} {kind}:"
-        if lev is not None and not (0 < lev < 30):
-            out.append(f"{tag} leverage {lev} out of band")
-        for nm, v in (("LCR", lcr), ("NSFR", nsfr)):
-            if v is not None and not (0 < v < 2000):
-                out.append(f"{tag} {nm} {v} out of band")
-        if lcr is not None and lcr < 50:
-            out.append(f"{tag} LCR {lcr}% implausibly low — likely a mis-grabbed value")
+        result = check_liquidity([{
+            "period_type": "current", "leverage_ratio": lev,
+            "lcr_total": lcr, "nsfr": nsfr,
+        }])
+        for failure in result.failures:
+            out.append(f"{tag} {failure['node']} (reported {failure['actual']:g})")
     return out
 
 
@@ -290,11 +298,27 @@ LIQ_OUTLIER_FACTOR = 8.0
 LIQ_MIN_POINTS = 5  # need a stable within-bank baseline
 
 
-def _liquidity_outliers(conn: sqlite3.Connection) -> list[str]:
+def _liquidity_reviews() -> dict[tuple[str, str, str, str], float]:
+    try:
+        data = json.loads((REPO / "data" / "audit_quality_reviews.json").read_text(encoding="utf-8"))
+        return {
+            (row["bank_ticker"], row["period"], row["kind"], row["metric"]): row["source_value"]
+            for row in data["liquidity"]
+            if re.fullmatch(r"[a-f0-9]{64}", row.get("pdf_sha256", ""))
+            and row.get("source_page", 0) > 0 and row.get("source_line")
+        }
+    except (OSError, ValueError, KeyError, TypeError):
+        # Missing/invalid review evidence never silences an anomaly.
+        return {}
+
+
+def _liquidity_outliers(conn: sqlite3.Connection, *,
+                        reviewed: list[str] | None = None) -> list[str]:
     if not _has_table(conn, "bank_audit_liquidity"):
         return []
     import statistics as _st
     out = []
+    verified = _liquidity_reviews()
     metrics = ("leverage_ratio", "lcr_total", "lcr_fc", "nsfr")
     series: dict[tuple, list] = {}
     rows = conn.execute(
@@ -313,8 +337,13 @@ def _liquidity_outliers(conn: sqlite3.Connection) -> list[str]:
         for period, v in pts:
             r = v / med
             if r > LIQ_OUTLIER_FACTOR or r < 1 / LIQ_OUTLIER_FACTOR:
-                out.append(f"liquidity {bank} {period} {kind}: {m} {v:g} is "
-                           f"{r:.2g}x the bank's median {med:g} — likely a mis-grabbed value")
+                detail = (f"liquidity {bank} {period} {kind}: {m} {v:g} is "
+                          f"{r:.2g}x the bank's median {med:g}")
+                if verified.get((bank, period, kind, m)) == v:
+                    if reviewed is not None:
+                        reviewed.append(detail + " — matches source; reviewed outlier")
+                else:
+                    out.append(detail + " — likely a mis-grabbed value")
     return out
 
 
@@ -428,19 +457,19 @@ def _off_balance_consistency(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
-def _pl_sign_convention(conn: sqlite3.Connection) -> list[str]:
-    """P&L deduction romans (II, IX–XII) whose stored SIGN flips within one
-    bank/kind series. The per-partition chain check deliberately accepts either
-    storage convention (positive magnitude vs parenthesised negative), so a
-    convention flip — a layout change, an extraction inconsistency, or a genuine
-    provision recovery — is invisible to it, yet corrupts any consumer that
-    de-cumulates YTD romans across the flip quarter without abs()-normalising.
-    Heuristic + alert-only: the standing flips live in the R2 anomaly baseline;
-    only a NEW flip pings."""
+def _pl_sign_convention(conn: sqlite3.Connection, *,
+                        reviewed: list[str] | None = None) -> list[str]:
+    """Separate reconciled reversals/conventions from unexplained sign changes.
+
+    The signed deduction gate now constrains these blocks independently of the
+    sign-agnostic chain. Require every deduction and anchor in every quarter
+    before treating a flip as an observation; missing evidence still alerts.
+    Blind abs() would turn genuine provision releases back into expenses.
+    """
     if not _has_table(conn, "bank_audit_profit_loss"):
         return []
     from collections import defaultdict
-    from src.audit_reports.validator import _pl_spine
+    from src.audit_reports.validator import _pl_spine, _pl_template, _pl_chain, check_profit_loss
     series: dict[tuple, dict[int, list]] = defaultdict(lambda: defaultdict(list))
     keys = conn.execute(
         "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_profit_loss").fetchall()
@@ -450,19 +479,27 @@ def _pl_sign_convention(conn: sqlite3.Connection) -> list[str]:
             "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY item_order",
             (bank, period, kind))]
         spine = _pl_spine(rows)
-        for o in (2, 9, 10, 11, 12):
+        chain, deductions = _pl_chain(_pl_template(rows, spine))
+        complete = all(target in spine and all(source in spine for source in sources)
+                       for target, sources in chain if any(s in deductions for s in sources))
+        reconciles = complete and check_profit_loss(rows).failed == 0
+        for o in deductions:
             if spine.get(o):  # zeros carry no sign information
-                series[(bank, kind)][o].append((period, spine[o]))
+                series[(bank, kind)][o].append((period, spine[o], reconciles))
     out = []
     for (bank, kind), ords in sorted(series.items()):
         for o, vals in sorted(ords.items()):
-            pos = [p for p, v in vals if v > 0]
-            neg = [p for p, v in vals if v < 0]
+            pos = [p for p, v, _ in vals if v > 0]
+            neg = [p for p, v, _ in vals if v < 0]
             if pos and neg:
                 minority = pos if len(pos) <= len(neg) else neg
-                out.append(f"pl_sign   {bank} {kind}: roman {o} stored sign flips "
-                           f"({len(pos)}+/{len(neg)}−; minority e.g. {', '.join(minority[:3])}) "
-                           f"— de-cumulating consumers must abs()-normalise")
+                detail = (f"pl_sign   {bank} {kind}: roman {o} stored sign flips "
+                          f"({len(pos)}+/{len(neg)}−; minority e.g. {', '.join(minority[:3])}) ")
+                if all(valid for _, _, valid in vals):
+                    if reviewed is not None:
+                        reviewed.append(detail + "— complete signed statements reconcile; preserve reversals")
+                else:
+                    out.append(detail + "— signed statement does not fully reconcile; inspect source and convention")
     return out
 
 
@@ -582,15 +619,15 @@ def _structure(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
-def check(db: Path) -> list[str]:
+def check(db: Path, *, reviewed: list[str] | None = None) -> list[str]:
     conn = sqlite3.connect(str(db))
     try:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
                 + _npl_collapse(conn) + _capital_consistency(conn)
-                + _liquidity_bands(conn) + _liquidity_outliers(conn)
+                + _liquidity_bands(conn) + _liquidity_outliers(conn, reviewed=reviewed)
                 + _off_balance_consistency(conn)
                 + _structure(conn) + _ecl_sanity(conn)
-                + _pl_sign_convention(conn) + _free_provision(conn))
+                + _pl_sign_convention(conn, reviewed=reviewed) + _free_provision(conn))
     finally:
         conn.close()
 
@@ -695,9 +732,14 @@ def main() -> int:
     if not db.exists():
         print(f"[quality] no DB at {db}; skipping")
         return 0
-    anomalies = check(db)
+    reviewed: list[str] = []
+    anomalies = check(db, reviewed=reviewed)
+    for observation in reviewed:
+        print("  [observation]", observation)
     if not anomalies:
         print("[quality] OK — no audit data-quality anomalies")
+        if args.alert:
+            alert_delta([])
         return 0
 
     print(f"[quality] {len(anomalies)} anomaly(ies):")

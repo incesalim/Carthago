@@ -44,6 +44,14 @@ UNIT_RE = re.compile(
     r"(bin|milyon|milyar|thousand|million|billion)s?\s+(?:of\s+)?"
     r"(?:t[uü]rk\s+liras[iı]|turkish\s+lira)", re.I)
 
+# ICBC's consolidated statements say '(Tutarlar "Milyon TL" olarak ifade
+# edilmiştir.)' above stale 'BIN TURK LIRASI' table headings. Abbreviated TL
+# declarations count too, but only in an amounts header: a nominal share value
+# or a sentence about '206 Milyon TL' is not a presentation-unit declaration.
+_ABBREVIATED_UNIT_RE = re.compile(
+    r"\b(?:tutarlar|amounts)\b[^\n]{0,100}?\b"
+    r"(bin|milyon|milyar|thousand|million|billion)s?\s+TL\b", re.I)
+
 _NORM = {
     "bin": "bin", "thousand": "bin",
     "milyon": "milyon", "million": "milyon",
@@ -147,10 +155,11 @@ def regex_unit(pages: list[str]) -> str | None:
 
     per_page: list[str] = []
     for text in pages:
-        for m in UNIT_RE.finditer(text):
-            key = _fold(m.group(1))
-            if key in _NORM:
-                per_page.append(_NORM[key])
+        for pattern in (UNIT_RE, _ABBREVIATED_UNIT_RE):
+            for m in pattern.finditer(text):
+                key = _fold(m.group(1))
+                if key in _NORM:
+                    per_page.append(_NORM[key])
     if not per_page:
         return None
 
@@ -229,11 +238,11 @@ MONEY_COLUMNS: dict[str, frozenset[str]] = {
         "stage2_amount", "stage3_amount", "ecl_amount"}),
     "bank_audit_npl_movement": frozenset({
         "opening_balance", "additions", "transfers_in", "transfers_out",
-        "collections", "write_offs", "sold", "fx_diff", "closing_balance",
+        "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "closing_balance",
         "provision", "net_balance"}),
     "bank_audit_capital": frozenset({
         "cet1_capital", "additional_tier1_capital", "tier1_capital",
-        "tier2_capital", "total_capital", "total_rwa"}),
+        "tier2_capital", "capital_deductions", "total_capital", "total_rwa"}),
     "bank_audit_fx_position": frozenset({
         "on_bs_assets", "on_bs_liab", "net_on_balance", "net_off_balance",
         "off_bs_receivable", "off_bs_payable", "net_position"}),

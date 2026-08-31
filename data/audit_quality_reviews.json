@@ -1,0 +1,160 @@
+{
+  "_README": "Source-reviewed liquidity outliers. Exact partition, metric and source value only; changed values alert again. This does not override data or waive validation. Source page numbers are one-based. TOMK2023Q4 acknowledgment only matches the printed3768, never the old stored3768.83.",
+  "reviewed_on": "2026-08-31",
+  "liquidity": [
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 2316303.0,
+      "source_page": 33,
+      "source_line": "Liquidity Coverage Ratio (%) - - 2316303 5427",
+      "pdf_sha256": "e7d8ad1822ea5e3feab105266365880940fe916b1ae3385a50d3f0e7940292b6",
+      "r2_key": "colendi/COLENDI_2025Q2_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "metric": "lcr_fc",
+      "source_value": 5427.0,
+      "source_page": 33,
+      "source_line": "Liquidity Coverage Ratio (%) - - 2316303 5427",
+      "pdf_sha256": "e7d8ad1822ea5e3feab105266365880940fe916b1ae3385a50d3f0e7940292b6",
+      "r2_key": "colendi/COLENDI_2025Q2_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 17858.73,
+      "source_page": 50,
+      "source_line": "LİKİDİTE KARŞILAMA ORANI (%) 17.858,73 7.234,51",
+      "pdf_sha256": "83e9eeec9b0fadbc68a50bfe860f0baeda2b1eadd26787aa949f02b0d2c41ead",
+      "r2_key": "dunyak/DUNYAK_2023Q4_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "metric": "lcr_fc",
+      "source_value": 7234.51,
+      "source_page": 50,
+      "source_line": "LİKİDİTE KARŞILAMA ORANI (%) 17.858,73 7.234,51",
+      "pdf_sha256": "83e9eeec9b0fadbc68a50bfe860f0baeda2b1eadd26787aa949f02b0d2c41ead",
+      "r2_key": "dunyak/DUNYAK_2023Q4_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "metric": "leverage_ratio",
+      "source_value": 94.84,
+      "source_page": 65,
+      "source_line": "Kaldıraç oranı 94,84 95,84",
+      "pdf_sha256": "238d34eb6148477bd0b9d099dc43b32accc486cbb6838fa51a8c569a68de1e05",
+      "r2_key": "enpara/ENPARA_2024Q4_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "metric": "leverage_ratio",
+      "source_value": 86.09,
+      "source_page": 49,
+      "source_line": "Kaldıraç oranı 86,09 94,10",
+      "pdf_sha256": "29f8ece5ccf532a85172898836c9f940513c4b1dc0ec48b6c2fd4c6418cbb89c",
+      "r2_key": "enpara/ENPARA_2025Q1_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 34221.52,
+      "source_page": 51,
+      "source_line": "23 LİKİDİTE KARŞILAMA ORANI (%) 34.221,52 100,04",
+      "pdf_sha256": "e24f0abd627fc75297fa70d68cd170171227b25695c7bfa3ef50bc45feb60509",
+      "r2_key": "enpara/ENPARA_2025Q2_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 333.37,
+      "source_page": 82,
+      "source_line": "23 LİKİDİTE KARŞILAMA ORANI (%) 333,37 1.656,57",
+      "pdf_sha256": "6e68aea0539b9a028f7161b2977a2792ad2d0734d2bb75802baa302f22959707",
+      "r2_key": "enpara/ENPARA_2025Q4_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 295.56,
+      "source_page": 49,
+      "source_line": "23 LİKİDİTE KARŞILAMA ORANI (%) 295,56 1.393,78",
+      "pdf_sha256": "5f60cbe1de4a47ba60902bf04031eca031efcdcb238b55ab54bcf47dddb5eb37",
+      "r2_key": "enpara/ENPARA_2026Q1_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2026Q2",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 264.74,
+      "source_page": 56,
+      "source_line": "23 LİKİDİTE KARŞILAMA ORANI (%) 264,74 1.229,73",
+      "pdf_sha256": "60730224f4affe8c2e5e4f93d8fcbb1c2d9d76c888cba2d2a20911b5fb2d836b",
+      "r2_key": "enpara/ENPARA_2026Q2_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "metric": "lcr_fc",
+      "source_value": 82.07,
+      "source_page": 45,
+      "source_line": "23 LİKİDİTE KARŞILAMA ORANI (%) 7.808,85 82,07",
+      "pdf_sha256": "29f8ece5ccf532a85172898836c9f940513c4b1dc0ec48b6c2fd4c6418cbb89c",
+      "r2_key": "enpara/ENPARA_2025Q1_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "metric": "lcr_fc",
+      "source_value": 679668.29,
+      "source_page": 34,
+      "source_line": "23 Liquidity Coverage Ratio (%) 482.52 679,668.29",
+      "pdf_sha256": "88252f5d3d4dacf5ecf9227115cf81e89f70315364554afe972dd91501d9dbe3",
+      "r2_key": "hayatk/HAYATK_2023Q3_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "metric": "lcr_fc",
+      "source_value": 4613.39,
+      "source_page": 50,
+      "source_line": "23 LIQUIDITY COVERAGE RATIO (%) 407.78 4,613.39",
+      "pdf_sha256": "c0aa5accf32367960ecaf0b3764e3d97230c2e0098d51d42b2dcdadeb1425924",
+      "r2_key": "hayatk/HAYATK_2023Q4_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "metric": "lcr_total",
+      "source_value": 3768.0,
+      "source_page": 44,
+      "source_line": "3LİKİDİTE KARŞILAMA ORANI (%) - - 3,768 399,37",
+      "pdf_sha256": "8739e9093b72478b044b02ef064d9ffca781b7bd85b2dc0a5827f6b565c838a9",
+      "r2_key": "tomk/TOMK_2023Q4_unconsolidated.pdf"
+    }
+  ]
+}
