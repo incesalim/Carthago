@@ -12,9 +12,12 @@ We locate the pages by header signatures, then parse rows where each line is:
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 # The audit-statement parsers are fitz (PyMuPDF) only. `_fitz_page_text`
@@ -933,13 +936,19 @@ def _fitz_visual_rows(pdf_path: str, page_idx_0: int) -> list[list[tuple[float, 
     return out
 
 
-def _fitz_merge_rows(text: str, n_cols: int) -> str:
+def _fitz_merge_rows(text: str, n_cols: int, *, keep_small_negatives: bool = False) -> str:
     """Some banks (e.g. Akbank 2026Q1) split each row across multiple physical
     lines: label on one line, N values across the next 1–2 lines. Re-join them
     so the standard _parse_rows logic can recognize them as single rows.
 
     Also fixes fitz's no-space output (e.g. "1.1.1Nakit Değerler …" → "1.1.1 Nakit…").
     """
+    def value_count(line: str) -> int:
+        if keep_small_negatives:
+            cleaned = _ROMAN_FN_RX.sub(" ", _SECTION_REF_RX.sub(" ", line))
+            return len(_value_matches(cleaned))
+        return _count_values(line)
+
     # Inject space after hierarchy markers that have no whitespace before the
     # label. The numeric separator may be a COMMA: AKBNK prints off-balance row
     # 1.1 as "1,1Teminat Mektupları" — comma AND glued. Without both allowances
@@ -968,7 +977,7 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
     while i < len(lines):
         ln = lines[i]
         # Already has hierarchy + enough numbers → keep as-is
-        nums_in_line = _count_values(ln)
+        nums_in_line = value_count(ln)
         # Hierarchy marker isolated on its own line — the label wraps around it:
         #   line i-1: 'İTFA EDİLMİŞ MALİYETİ İLE ÖLÇÜLEN FİNANSAL'  (label, part 1)
         #   line i  : 'II.'                                          (bare marker)
@@ -979,12 +988,12 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
         if _BARE_HIER.match(ln):
             pre = ''
             if (out and not HIERARCHY_PAT.match(out[-1]) and not _BARE_HIER.match(out[-1])
-                    and _count_values(out[-1]) < n_cols
+                    and value_count(out[-1]) < n_cols
                     and _HAS_ALPHA.search(out[-1])):
                 pre = out.pop()
             accumulated = ln + ((' ' + pre) if pre else '')
             j = i + 1
-            while (j < len(lines) and _count_values(accumulated) < n_cols
+            while (j < len(lines) and value_count(accumulated) < n_cols
                    and j - i <= 3):
                 if _BARE_HIER.match(lines[j]):
                     break
@@ -1004,7 +1013,7 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
         if HIERARCHY_PAT.match(ln) and nums_in_line < n_cols:
             accumulated = ln
             j = i + 1
-            while j < len(lines) and _count_values(accumulated) < n_cols and j - i <= 3:
+            while j < len(lines) and value_count(accumulated) < n_cols and j - i <= 3:
                 # Stop if we hit a NEW item header — hierarchy + alphabetic label.
                 # Plain value lines (e.g. "228.693.745 272.963.728 501.657.473")
                 # also match HIERARCHY_PAT (the first number looks like a hierarchy
@@ -1128,6 +1137,54 @@ def _parse_bs_with_checks(text: str) -> list[tuple[str, list[float | None]]]:
     return original
 
 
+def _pl_value_line_owned(lines: list[str], index: int, n_cols: int) -> bool:
+    owner = next((j for j in range(index - 2, max(-1, index - 5), -1)
+                  if HIERARCHY_PAT.match(lines[j])), None)
+    return owner is not None and _count_values(" ".join(lines[owner:index - 1])) < n_cols
+
+
+def _pl_candidate_lines(text: str, n_cols: int) -> list[str]:
+    """Source-only repairs for the full P&L chain to accept or reject below."""
+    # A printed ungrouped integer is still one cell (ZIRAATK prior ``2061``).
+    # Keep the shared BS/off-balance tokenizer unchanged: this grouped spelling
+    # is only considered inside the validation-gated P&L candidate.
+    text = re.sub(r"(?<![\w.,])-?\d{4,}(?![\w.,])",
+                  lambda m: f"{int(m.group()):,}", text)
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for i, line in enumerate(lines):
+        # TSKB's negative sign is a separate token: ``- 185 108 -155 187``.
+        # A real nil cell stays nil when the row already has the expected width.
+        # More than one possible join is ambiguous and is not attempted.
+        if HIERARCHY_PAT.match(line) and _count_values(line) == n_cols + 1:
+            joins = list(re.finditer(r"(?<!\S)-\s+(?=\d)", line))
+            if len(joins) == 1:
+                join = joins[0]
+                lines[i] = line[:join.start()] + "-" + line[join.end():]
+
+    for i in range(1, len(lines)):
+        marker = HIERARCHY_PAT.match(lines[i])
+        if (not marker or _count_values(lines[i]) != 0
+                or _count_values(lines[i - 1]) != n_cols
+                or HIERARCHY_PAT.match(lines[i - 1])):
+            continue
+        # ODEA prints the first part of a label and its figures above 1.5.1,
+        # 1.5.2 and XIII. A preceding incomplete row owns its continuation,
+        # however far back it starts within the ordinary merger's 3-line window.
+        if _pl_value_line_owned(lines, i, n_cols):
+            continue
+        previous = lines[i - 1]
+        masked = _ROMAN_FN_RX.sub(lambda m: " " * len(m.group()), previous)
+        masked = _SECTION_REF_RX.sub(lambda m: " " * len(m.group()), masked)
+        values = [m for m in _value_matches(masked) if not _FOOTNOTE_RX.fullmatch(m.group())]
+        if len(values) != n_cols:
+            continue
+        start = values[0].start()
+        lines[i] = (f"{marker.group('h')} {previous[:start]} "
+                    f"{marker.group('rest')} {previous[start:]}")
+        lines[i - 1] = ""
+    return lines
+
+
 def _parse_with_chain(text: str, n_cols: int, lane: str) -> list[tuple[str, list[float | None]]]:
     """Resolve small parenthesized amounts only when the statement proves them.
 
@@ -1145,17 +1202,24 @@ def _parse_with_chain(text: str, n_cols: int, lane: str) -> list[tuple[str, list
     # Some wrapped section rows print their values immediately ABOVE the
     # roman marker. Reattach only a standalone, complete value line to an
     # otherwise value-less roman row; the chain gate below still decides.
-    lines = text.splitlines()
+    lines = _pl_candidate_lines(text, n_cols) if lane == "profit_loss" else text.splitlines()
     for i in range(1, len(lines)):
         if not re.match(r"^\s*[IVX]+\.\s+\D", lines[i]):
             continue
         if _value_matches(_SECTION_REF_RX.sub("", lines[i])):
             continue
+        if lane == "profit_loss" and _pl_value_line_owned(lines, i, n_cols):
+            continue
         cells = lines[i - 1].split()
         if len(cells) == n_cols and all(_NUM_RX.fullmatch(c) for c in cells):
             lines[i] += " " + lines[i - 1].strip()
             lines[i - 1] = ""
-    repaired = _fitz_merge_rows("\n".join(lines), n_cols)
+    # HAYATK's complete last row contains a short negative in the prior column.
+    # Counting it as a note appended the following EPS row and replaced net
+    # profit with digits from the per-share decimals. This reading is only a
+    # candidate: the full P&L chain below must still corroborate it.
+    repaired = _fitz_merge_rows("\n".join(lines), n_cols,
+                                keep_small_negatives=lane == "profit_loss")
     candidate = _parse_rows(repaired, n_cols, keep_small_negatives=True)
     if lane == "profit_loss":
         # TOMK prints XVII twice (pre-tax, then tax) and XXII twice (the
@@ -1169,7 +1233,13 @@ def _parse_with_chain(text: str, n_cols: int, lane: str) -> list[tuple[str, list
             h = hierarchy.rstrip(".")
             successor = {"XVII": "XVIII", "XXII": "XXIII"}.get(h)
             tax_label = "VERGIKARSILIGI" in _norm(name)
-            if (successor and tax_label and hierarchies.count(h) == 2
+            # TSKB prints XIII again for the otherwise absent XIV merger-excess
+            # row. Require that exact role; other duplicated markers stay put.
+            merger_label = ("BIRLESMEISLEMI" in _norm(name)
+                            and "FAZLALIKTUTARI" in _norm(name))
+            if h == "XIII" and merger_label:
+                successor = "XIV"
+            if (successor and (tax_label or merger_label) and hierarchies.count(h) == 2
                     and successor not in hierarchies):
                 label = re.sub(r"^\s*" + h + r"\.?", successor + ".", label, count=1)
             corrected.append((label, values))
@@ -1370,6 +1440,50 @@ def _locate_cash_flow_page(pdf_path: str, start_page_idx_1: int | None) -> int |
     return None
 
 
+_PL_OVERRIDE_PATH = Path(__file__).resolve().parents[2] / "data" / "audit_pl_overrides.json"
+
+
+@lru_cache(maxsize=1)
+def _pl_source_overrides() -> dict:
+    try:
+        return json.loads(_PL_OVERRIDE_PATH.read_text(encoding="utf-8")).get("reports", {})
+    except (OSError, ValueError):
+        return {}
+
+
+def _verified_pl_override(pdf_path: str) -> dict | None:
+    """An image-only transcription applies to one named PDF, hash and page."""
+    from .validator import check_profit_loss
+    path = Path(pdf_path)
+    entry = _pl_source_overrides().get(path.name)
+    if not entry:
+        return None
+    try:
+        if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+            return None
+        page = entry["source_page"]
+        if not isinstance(page, int) or page < 1:
+            return None
+        if entry["page_heading"] not in _norm(_fitz_page_text(pdf_path, page - 1)):
+            return None
+        columns = entry["columns"]
+        if columns != ["current_ytd", "prior_ytd", "current_quarter", "prior_quarter"]:
+            return None
+        rows = entry["rows"]
+        if not rows or any(len(row["values"]) != len(columns) for row in rows):
+            return None
+        for col in range(len(columns)):
+            result = check_profit_loss([
+                {"hierarchy": row["hierarchy"], "item_name": row["item_name"],
+                 "amount": row["values"][col]} for row in rows],
+                [entry["balance_sheet_net"]] if col == 0 else None)
+            if result.failed or not result.passed:
+                return None
+        return entry
+    except (OSError, KeyError, TypeError, ValueError):
+        return None
+
+
 def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
     """Parse one BRSA-format audit report. Returns a BankReport with rows populated.
 
@@ -1467,6 +1581,9 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
         except Exception:
             rep.repricing = None
     loc = _locate_pages(pdf_path)
+    pl_override = _verified_pl_override(pdf_path) if _want('profit_loss') else None
+    if pl_override:
+        loc['pl'] = pl_override['source_page']
     if 'bs_assets' in loc and _want('bs_assets'):
         rows = _parse_bs_with_checks(_fitz_page_text(pdf_path, loc['bs_assets'] - 1))
         for order, (label, vals) in enumerate(rows, 1):
@@ -1520,7 +1637,12 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
         # Interim income statements can carry 4 columns (cumulative + 3-month
         # for current/prior). Detect the structure and take the cumulative
         # current (col 0) and cumulative prior (col n//2), not the last two.
-        if _want('profit_loss'):
+        if _want('profit_loss') and pl_override:
+            rep.profit_loss = [StatementRow(
+                order=row['item_order'], hierarchy=row['hierarchy'], name=row['item_name'],
+                footnote=row['footnote'], cur_amount=row['values'][0], pri_amount=row['values'][1],
+            ) for row in pl_override['rows']]
+        elif _want('profit_loss'):
             pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
             pl_text = _fitz_page_text(pdf_path, loc['pl'] - 1)
             for order, (label, vals) in enumerate(_parse_with_chain(pl_text, pl_n, 'profit_loss'), 1):

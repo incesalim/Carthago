@@ -38,12 +38,21 @@ Milyon TL headers were ignored. Correct unit detection is prepared; coordinated
 financial repair is still pending. A scoped whole-filing dry run is now available before applying that correction.
 Internal evidence: `docs/knowledge/2026-08-31-anomaly-repair/`.
 
-The next source-backed batch repairs double-dash nil cells, displaced BS rows,
+The latest parser batch repairs double-dash nil cells, displaced BS rows,
 OCI page/period selection, and sparse equity signs. Candidate BS repairs require
-a labelled grand total, all statement identities, and preservation of existing
-row ownership. After the capital, NPL and first P&L runs, the quality report is
-at 206 raw findings (from 431); rejected candidates remain untouched. This is
-an interim count, including unresolved source discrepancies and parser work.
+a labelled grand total, all statement identities, and preservation of row ownership.
+After capital, NPL, 16 bank-profile and 15 OCI repairs, the quality report is at
+173 raw findings (from 431). Two accepted P&L partitions were replayed after fixing
+canonical unit conversion in the targeted writer; a remaining HAYATK unconsolidated
+replay awaits the EPS-boundary fix. All seven other rejected P&L candidates now
+pass source probes, including an exact-PDF-bound transcription of FIBA's image-only
+2023Q3 consolidated table. Every transcribed column reconciles; current net income
+also agrees with the independently read balance sheet.
+Single-statement repair now refuses a changed filing denomination, even with force;
+all monetary lanes must change together. TOMK's disclosed legacy impairment basis
+is an observation only while both replacement provision disclosures match the source.
+TAKAS/ZIRAATK/ICBC equity row-label repairs preserve the printed figures. Equity
+production repair is running; unresolved source discrepancies remain visible.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain

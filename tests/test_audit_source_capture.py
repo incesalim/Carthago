@@ -192,6 +192,18 @@ def test_capture_does_not_confuse_numeric_prose_with_sector_rows():
     assert capture.data_rows[0].mapped_key is None
 
 
+def test_sector_capture_distinguishes_percentage_ranges_from_unknown_amount_rows():
+    lines = ["Maddi olmayan duran varlıklar %13 - %33",
+             "Depreciation policy 13% – 33%",
+             "Unknown new sector 13 - 33",
+             "Other unknown sector 13 14 15",
+             "Mixed disclosure 13 14 15%"]
+    capture = _capture_lane(_FakeDoc(lines), [""], "loans_by_sector", (1,), None)
+    assert len(capture.lines) == len(lines)
+    assert [row.line_text for row in capture.data_rows] == lines[2:]
+    assert all(row.mapped_key is None for row in capture.data_rows)
+
+
 def test_npl_capture_bounds_movements_but_keeps_unknown_movement_rows():
     capture = _capture_lane(_FakeDoc([
         "Cash flows 1 2 3",

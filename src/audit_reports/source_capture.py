@@ -567,6 +567,14 @@ def _capture_lane(
                            and len(_numeric_tail(clean)) >= cfg.min_value_tokens
                            and equity_page
                            and (lane != "npl_movement" or order in npl_rows))
+            if lane == "loans_by_sector":
+                tail = _numeric_tail(clean)
+                # A policy-page depreciation range (ING: %13 - %33) is two
+                # percentages joined by a dash, not three loan amount cells.
+                # Preserve the source line and all genuine/unknown money rows.
+                if (len(tail) == 3 and "%" in tail[0] and "%" in tail[2]
+                        and re.fullmatch(r"[-–—]+", tail[1])):
+                    is_data = False
             mapped = _mapped_key(
                 clean, report, lane, dynamic_mappings) if is_data else None
             if is_data and mapped is None and lane == "equity_change":

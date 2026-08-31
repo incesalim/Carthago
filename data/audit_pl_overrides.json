@@ -1,0 +1,792 @@
+{
+  "_README": "Visually transcribed image-only P&L rows. Filename, SHA-256 and one-indexed source page heading must match. Values are in the disclosed source unit; each named column is independently validated. A different PDF receives no override.",
+  "reports": {
+    "FIBA_2023Q3_consolidated.pdf": {
+      "sha256": "56f822de7ad410c01f0f7343efdcfa8337fd4f7702f460d3b1b986ae0c062689",
+      "source_page": 13,
+      "page_heading": "KONSOLIDEKARVEYAZARARTABLOSU",
+      "source_unit": "bin",
+      "columns": [
+        "current_ytd",
+        "prior_ytd",
+        "current_quarter",
+        "prior_quarter"
+      ],
+      "balance_sheet_net": {
+        "source_page": 11,
+        "hierarchy": "16.6.2",
+        "amount_total": 3339500
+      },
+      "rows": [
+        {
+          "item_order": 1,
+          "hierarchy": "I.",
+          "item_name": "FAİZ GELİRLERİ",
+          "footnote": "(5.IV.1)",
+          "values": [
+            7057148,
+            4568386,
+            2906727,
+            1950864
+          ]
+        },
+        {
+          "item_order": 2,
+          "hierarchy": "1.1",
+          "item_name": "Kredilerden Alınan Faizler",
+          "footnote": "(5.IV.1)",
+          "values": [
+            5493284,
+            3972056,
+            2279414,
+            1686149
+          ]
+        },
+        {
+          "item_order": 3,
+          "hierarchy": "1.2",
+          "item_name": "Zorunlu Karşılıklardan Alınan Faizler",
+          "footnote": null,
+          "values": [
+            660,
+            19716,
+            276,
+            0
+          ]
+        },
+        {
+          "item_order": 4,
+          "hierarchy": "1.3",
+          "item_name": "Bankalardan Alınan Faizler",
+          "footnote": "(5.IV.1)",
+          "values": [
+            52971,
+            16352,
+            22853,
+            7946
+          ]
+        },
+        {
+          "item_order": 5,
+          "hierarchy": "1.4",
+          "item_name": "Para Piyasası İşlemlerinden Alınan Faizler",
+          "footnote": null,
+          "values": [
+            428060,
+            62280,
+            191429,
+            25145
+          ]
+        },
+        {
+          "item_order": 6,
+          "hierarchy": "1.5",
+          "item_name": "Menkul Değerlerden Alınan Faizler",
+          "footnote": "(5.IV.1)",
+          "values": [
+            1079614,
+            495464,
+            411230,
+            229646
+          ]
+        },
+        {
+          "item_order": 7,
+          "hierarchy": "1.5.1",
+          "item_name": "Gerçeğe Uygun Değer Farkı Kar Zarara Yansıtılanlar",
+          "footnote": null,
+          "values": [
+            152,
+            131,
+            54,
+            44
+          ]
+        },
+        {
+          "item_order": 8,
+          "hierarchy": "1.5.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılanlar",
+          "footnote": null,
+          "values": [
+            402241,
+            203582,
+            161745,
+            84093
+          ]
+        },
+        {
+          "item_order": 9,
+          "hierarchy": "1.5.3",
+          "item_name": "İtfa Edilmiş Maliyeti ile Ölçülenler",
+          "footnote": null,
+          "values": [
+            677221,
+            291751,
+            249431,
+            145509
+          ]
+        },
+        {
+          "item_order": 10,
+          "hierarchy": "1.6",
+          "item_name": "Finansal Kiralama Gelirleri",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 11,
+          "hierarchy": "1.7",
+          "item_name": "Diğer Faiz Gelirleri",
+          "footnote": null,
+          "values": [
+            2559,
+            2518,
+            1525,
+            1978
+          ]
+        },
+        {
+          "item_order": 12,
+          "hierarchy": "II.",
+          "item_name": "FAİZ GİDERLERİ (-)",
+          "footnote": null,
+          "values": [
+            7138717,
+            3082563,
+            3114214,
+            1148498
+          ]
+        },
+        {
+          "item_order": 13,
+          "hierarchy": "2.1",
+          "item_name": "Mevduata Verilen Faizler",
+          "footnote": "(5.IV.2)",
+          "values": [
+            5891745,
+            2601111,
+            2640670,
+            970970
+          ]
+        },
+        {
+          "item_order": 14,
+          "hierarchy": "2.2",
+          "item_name": "Kullanılan Kredilere Verilen Faizler",
+          "footnote": "(5.IV.2)",
+          "values": [
+            722562,
+            257687,
+            278974,
+            96801
+          ]
+        },
+        {
+          "item_order": 15,
+          "hierarchy": "2.3",
+          "item_name": "Para Piyasası İşlemlerine Verilen Faizler",
+          "footnote": null,
+          "values": [
+            314333,
+            20502,
+            165067,
+            10620
+          ]
+        },
+        {
+          "item_order": 16,
+          "hierarchy": "2.4",
+          "item_name": "İhraç Edilen Menkul Kıymetlere Verilen Faizler",
+          "footnote": "(5.IV.2)",
+          "values": [
+            177990,
+            159933,
+            19153,
+            60297
+          ]
+        },
+        {
+          "item_order": 17,
+          "hierarchy": "2.5",
+          "item_name": "Kiralama Faiz Giderleri",
+          "footnote": null,
+          "values": [
+            26079,
+            15983,
+            9672,
+            5543
+          ]
+        },
+        {
+          "item_order": 18,
+          "hierarchy": "2.6",
+          "item_name": "Diğer Faiz Giderleri",
+          "footnote": null,
+          "values": [
+            6008,
+            27347,
+            678,
+            4267
+          ]
+        },
+        {
+          "item_order": 19,
+          "hierarchy": "III.",
+          "item_name": "NET FAİZ GELİRİ/GİDERİ (I - II)",
+          "footnote": null,
+          "values": [
+            -81569,
+            1485823,
+            -207487,
+            802366
+          ]
+        },
+        {
+          "item_order": 20,
+          "hierarchy": "IV.",
+          "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+          "footnote": null,
+          "values": [
+            2720914,
+            334715,
+            1265739,
+            120427
+          ]
+        },
+        {
+          "item_order": 21,
+          "hierarchy": "4.1",
+          "item_name": "Alınan Ücret ve Komisyonlar",
+          "footnote": null,
+          "values": [
+            2889781,
+            454061,
+            1332424,
+            181063
+          ]
+        },
+        {
+          "item_order": 22,
+          "hierarchy": "4.1.1",
+          "item_name": "Gayri Nakdi Kredilerden",
+          "footnote": null,
+          "values": [
+            9069,
+            13816,
+            2719,
+            2977
+          ]
+        },
+        {
+          "item_order": 23,
+          "hierarchy": "4.1.2",
+          "item_name": "Diğer",
+          "footnote": "(5.IV.12)",
+          "values": [
+            2880712,
+            440245,
+            1329705,
+            178086
+          ]
+        },
+        {
+          "item_order": 24,
+          "hierarchy": "4.2",
+          "item_name": "Verilen Ücret ve Komisyonlar (-)",
+          "footnote": null,
+          "values": [
+            168867,
+            119346,
+            66685,
+            60636
+          ]
+        },
+        {
+          "item_order": 25,
+          "hierarchy": "4.2.1",
+          "item_name": "Gayri Nakdi Kredilere",
+          "footnote": null,
+          "values": [
+            80,
+            65,
+            27,
+            25
+          ]
+        },
+        {
+          "item_order": 26,
+          "hierarchy": "4.2.2",
+          "item_name": "Diğer",
+          "footnote": "(5.IV.12)",
+          "values": [
+            168787,
+            119281,
+            66658,
+            60611
+          ]
+        },
+        {
+          "item_order": 27,
+          "hierarchy": "V.",
+          "item_name": "TEMETTÜ GELİRLERİ",
+          "footnote": "(5.IV.3)",
+          "values": [
+            0,
+            160000,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 28,
+          "hierarchy": "VI.",
+          "item_name": "TİCARİ KAR/ZARAR (Net)",
+          "footnote": "(5.IV.4)",
+          "values": [
+            4035707,
+            2158105,
+            978893,
+            963402
+          ]
+        },
+        {
+          "item_order": 29,
+          "hierarchy": "6.1",
+          "item_name": "Sermaye Piyasası İşlemleri Kârı/Zararı",
+          "footnote": null,
+          "values": [
+            75202,
+            23565,
+            -17113,
+            4174
+          ]
+        },
+        {
+          "item_order": 30,
+          "hierarchy": "6.2",
+          "item_name": "Türev Finansal İşlemlerden Kâr/Zarar",
+          "footnote": null,
+          "values": [
+            -2586842,
+            -1313650,
+            99855,
+            -618547
+          ]
+        },
+        {
+          "item_order": 31,
+          "hierarchy": "6.3",
+          "item_name": "Kambiyo İşlemleri Kârı/Zararı",
+          "footnote": null,
+          "values": [
+            6547347,
+            3448190,
+            896151,
+            1577775
+          ]
+        },
+        {
+          "item_order": 32,
+          "hierarchy": "VII.",
+          "item_name": "DİĞER FAALİYET GELİRLERİ",
+          "footnote": "(5.IV.5)",
+          "values": [
+            1792292,
+            667219,
+            709015,
+            297956
+          ]
+        },
+        {
+          "item_order": 33,
+          "hierarchy": "VIII.",
+          "item_name": "FAALİYET BRÜT KÂRI (III+IV+V+VI+VII)",
+          "footnote": null,
+          "values": [
+            8467344,
+            4805862,
+            2746160,
+            2184151
+          ]
+        },
+        {
+          "item_order": 34,
+          "hierarchy": "IX.",
+          "item_name": "BEKLENEN ZARAR KARŞILIKLARI GİDERLERİ (-)",
+          "footnote": "(5.IV.6)",
+          "values": [
+            623854,
+            490746,
+            176380,
+            177982
+          ]
+        },
+        {
+          "item_order": 35,
+          "hierarchy": "X.",
+          "item_name": "DİĞER KARŞILIK GİDERLERİ (-)",
+          "footnote": "(5.IV.6)",
+          "values": [
+            487812,
+            468661,
+            -14113,
+            434620
+          ]
+        },
+        {
+          "item_order": 36,
+          "hierarchy": "XI.",
+          "item_name": "PERSONEL GİDERLERİ (-)",
+          "footnote": null,
+          "values": [
+            1336947,
+            543318,
+            512431,
+            224750
+          ]
+        },
+        {
+          "item_order": 37,
+          "hierarchy": "XII.",
+          "item_name": "DİĞER FAALİYET GİDERLERİ (-)",
+          "footnote": "(5.IV.7)",
+          "values": [
+            1601181,
+            784173,
+            619157,
+            302447
+          ]
+        },
+        {
+          "item_order": 38,
+          "hierarchy": "XIII.",
+          "item_name": "NET FAALİYET KÂRI/ZARARI (VIII-IX-X-XI-XII)",
+          "footnote": null,
+          "values": [
+            4417550,
+            2518964,
+            1452305,
+            1044352
+          ]
+        },
+        {
+          "item_order": 39,
+          "hierarchy": "XIV.",
+          "item_name": "BİRLEŞME İŞLEMİ SONRASINDA GELİR OLARAK KAYDEDİLEN FAZLALIK TUTARI",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 40,
+          "hierarchy": "XV.",
+          "item_name": "ÖZKAYNAK YÖNTEMİ UYGULANAN ORTAKLIKLARDAN KÂR/ZARAR",
+          "footnote": null,
+          "values": [
+            106890,
+            0,
+            33031,
+            0
+          ]
+        },
+        {
+          "item_order": 41,
+          "hierarchy": "XVI.",
+          "item_name": "NET PARASAL POZİSYON KÂRI/ZARARI",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 42,
+          "hierarchy": "XVII.",
+          "item_name": "SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XIII+...+XVI)",
+          "footnote": "(5.IV.8)",
+          "values": [
+            4524440,
+            2518964,
+            1485336,
+            1044352
+          ]
+        },
+        {
+          "item_order": 43,
+          "hierarchy": "XVIII.",
+          "item_name": "SÜRDÜRÜLEN FAALİYETLER VERGİ KARŞILIĞI (±)",
+          "footnote": "(5.IV.9)",
+          "values": [
+            -1184432,
+            -528740,
+            -447762,
+            -271805
+          ]
+        },
+        {
+          "item_order": 44,
+          "hierarchy": "18.1",
+          "item_name": "Cari Vergi Karşılığı",
+          "footnote": null,
+          "values": [
+            -1664734,
+            -793808,
+            -917975,
+            -484119
+          ]
+        },
+        {
+          "item_order": 45,
+          "hierarchy": "18.2",
+          "item_name": "Ertelenmiş Vergi Gider Etkisi (+)",
+          "footnote": null,
+          "values": [
+            -104008,
+            -191998,
+            451,
+            99
+          ]
+        },
+        {
+          "item_order": 46,
+          "hierarchy": "18.3",
+          "item_name": "Ertelenmiş Vergi Gelir Etkisi (-)",
+          "footnote": null,
+          "values": [
+            584310,
+            457066,
+            469762,
+            212215
+          ]
+        },
+        {
+          "item_order": 47,
+          "hierarchy": "XIX.",
+          "item_name": "SÜRDÜRÜLEN FAALİYETLER DÖNEM NET K/Z (XVII±XVIII)",
+          "footnote": "(5.IV.10)",
+          "values": [
+            3340008,
+            1990224,
+            1037574,
+            772547
+          ]
+        },
+        {
+          "item_order": 48,
+          "hierarchy": "XX.",
+          "item_name": "DURDURULAN FAALİYETLERDEN GELİRLER",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 49,
+          "hierarchy": "20.1",
+          "item_name": "Satış Amaçlı Elde Tutulan Duran Varlık Gelirleri",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 50,
+          "hierarchy": "20.2",
+          "item_name": "İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Karları",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 51,
+          "hierarchy": "20.3",
+          "item_name": "Diğer Durdurulan Faaliyet Gelirleri",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 52,
+          "hierarchy": "XXI.",
+          "item_name": "DURDURULAN FAALİYETLERDEN GİDERLER (-)",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 53,
+          "hierarchy": "21.1",
+          "item_name": "Satış Amaçlı Elde Tutulan Duran Varlık Giderleri",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 54,
+          "hierarchy": "21.2",
+          "item_name": "İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Zararları",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 55,
+          "hierarchy": "21.3",
+          "item_name": "Diğer Durdurulan Faaliyet Giderleri",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 56,
+          "hierarchy": "XXII.",
+          "item_name": "DURDURULAN FAALİYETLER VERGİ ÖNCESİ K/Z (XX-XXI)",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 57,
+          "hierarchy": "XXIII.",
+          "item_name": "DURDURULAN FAALİYETLER VERGİ KARŞILIĞI (±)",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 58,
+          "hierarchy": "23.1",
+          "item_name": "Cari Vergi Karşılığı",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 59,
+          "hierarchy": "23.2",
+          "item_name": "Ertelenmiş Vergi Gider Etkisi (+)",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 60,
+          "hierarchy": "23.3",
+          "item_name": "Ertelenmiş Vergi Gelir Etkisi (-)",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 61,
+          "hierarchy": "XXIV.",
+          "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+          "footnote": null,
+          "values": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "item_order": 62,
+          "hierarchy": "XXV.",
+          "item_name": "DÖNEM NET KARI/ZARARI (XIX+XXIV)",
+          "footnote": "(5.IV.11)",
+          "values": [
+            3340008,
+            1990224,
+            1037574,
+            772547
+          ]
+        },
+        {
+          "item_order": 63,
+          "hierarchy": "25.1",
+          "item_name": "Grubun Kârı / Zararı",
+          "footnote": null,
+          "values": [
+            3339500,
+            1990097,
+            1037351,
+            772482
+          ]
+        },
+        {
+          "item_order": 64,
+          "hierarchy": "25.2",
+          "item_name": "Azınlık Payları Kârı / Zararı (-)",
+          "footnote": null,
+          "values": [
+            508,
+            127,
+            223,
+            65
+          ]
+        }
+      ]
+    }
+  }
+}
