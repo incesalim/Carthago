@@ -30,6 +30,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
@@ -69,6 +71,39 @@ def test_the_schema_carries_the_stamp(tmp_path):
     conn = _db(tmp_path, "schema.db")
     cols = {c[1] for c in conn.execute("PRAGMA table_info(bank_audit_coverage)")}
     assert "derived_at" in cols
+
+
+def test_manual_coverage_refresh_saves_snapshot_only_after_d1(tmp_path, monkeypatch):
+    S = _sync()
+    db = tmp_path / "snapshot-order.db"
+    order = []
+    monkeypatch.setattr(S, "build", lambda conn, use_r2: ([], [], []))
+    monkeypatch.setattr(S, "write", lambda *args: None)
+    monkeypatch.setattr(S.subprocess, "run",
+                        lambda *args, **kwargs: order.append("d1"))
+    from scripts import audit_d1
+    monkeypatch.setattr(audit_d1, "ensure_d1_schema", lambda: order.append("schema"))
+    monkeypatch.setattr(audit_d1, "push_snapshot",
+                        lambda path: order.append(("snapshot", Path(path))))
+    monkeypatch.setattr(sys, "argv", ["sync_audit_expected.py", "--db", str(db),
+                                      "--push", "--save-snapshot", "--no-r2"])
+    assert S.main() == 0
+    assert order == ["schema", "d1", ("snapshot", db)]
+
+
+def test_manual_mutation_workflows_persist_post_coverage_snapshot():
+    for name in ("backfill-audit-source-capture.yml", "reextract-statement.yml",
+                 "purge-partition.yml"):
+        workflow = (REPO / ".github" / "workflows" / name).read_text(encoding="utf-8")
+        assert "sync_audit_expected.py --push --save-snapshot" in workflow
+
+
+def test_dry_run_refuses_every_remote_write_flag(monkeypatch):
+    S = _sync()
+    monkeypatch.setattr(sys, "argv", ["sync_audit_expected.py", "--dry-run",
+                                      "--push", "--save-snapshot"])
+    with pytest.raises(SystemExit):
+        S.main()
 
 
 def test_migrations_replay_and_provide_derived_at():

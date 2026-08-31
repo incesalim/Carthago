@@ -90,7 +90,7 @@ jobs:
         # Full rebuild of the coverage spine, so the purged cell flips back to
         # `missing` + pdf_present. Skipped on a dry run, which changed nothing.
         if: ${{ !inputs.dry_run }}
-        run: python scripts/sync_audit_expected.py --push
+        run: python scripts/sync_audit_expected.py --push --save-snapshot
 
       - name: Alert on failure
         if: failure()

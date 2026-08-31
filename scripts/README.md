@@ -102,7 +102,7 @@ locally → **one** D1 push → snapshot; it stops after discovery when nothing 
 | `build_bank_audit_stages.py` | Consolidate credit-quality rows → `bank_audit_stages`. | `refresh-audit.yml` | pipeline |
 | `check_audit_quality.py` | 10 alert-only anomaly families (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl/pl_sign/free-provision); delta-alerts against the R2 baseline. | `refresh-audit.yml`, `backfill-audit.yml`, `reextract-statement.yml` | pipeline |
 | `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | both audit workflows (bootstrap) | pipeline |
-| `sync_audit_expected.py` | Build `bank_audit_expected` (profile census ∪ R2 PDFs) + `bank_audit_statement_types` + `bank_audit_coverage` (the /admin coverage matrix spine). `--push` = full-rebuild D1 push, no R2 write. | `acquire-audit.yml`, `refresh-audit.yml`; by hand | pipeline |
+| `sync_audit_expected.py` | Build `bank_audit_expected` (profile census ∪ R2 PDFs) + `bank_audit_statement_types` + `bank_audit_coverage` (the /admin coverage matrix spine). `--push` writes D1; mutation workflows also use `--save-snapshot` so refreshed validation/coverage cannot trail D1 in R2. | acquire/refresh/reextract/purge/source-capture workflows; by hand | pipeline |
 | `watch_cross_period.py` | Cross-period unit watch — the only check that can see a reporting-unit change, since every in-filing identity scales out. Alert-only. | `refresh-audit.yml`; `audit-triage.yml` | pipeline |
 
 ## Audit lane — operational (backfills + manual corrections)

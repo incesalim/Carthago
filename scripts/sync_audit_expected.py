@@ -1,5 +1,4 @@
-"""Build the coverage spine for the /admin audit matrix and (optionally) push it
-to D1 — no R2 snapshot, no re-extraction.
+"""Build the coverage spine for the /admin audit matrix and optionally persist it.
 
 Validation is recomputed from the stored data rows with the CURRENT validator code
 first (see `_refresh_validation`), so the spine is always derived from current-code
@@ -33,6 +32,7 @@ checks (balance-sheet cross-footing and credit-quality → stages) roll up toget
 
   python scripts/sync_audit_expected.py --db data/bank_audit.db --dry-run
   python scripts/sync_audit_expected.py --db data/bank_audit.db --push
+  python scripts/sync_audit_expected.py --db data/bank_audit.db --push --save-snapshot
 """
 from __future__ import annotations
 
@@ -490,8 +490,14 @@ def main() -> int:
     ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
     ap.add_argument("--dry-run", action="store_true", help="build + write local DB; print summary, no D1 push")
     ap.add_argument("--push", action="store_true", help="push the three tables to D1 (full rebuild)")
+    ap.add_argument("--save-snapshot", action="store_true",
+                    help="after a successful D1 push, persist refreshed validation/coverage to R2")
     ap.add_argument("--no-r2", action="store_true", help="skip the R2 PDF listing (use has-rows fallback)")
     args = ap.parse_args()
+    if args.dry_run and (args.push or args.save_snapshot):
+        ap.error("--dry-run cannot be combined with --push or --save-snapshot")
+    if args.save_snapshot and not args.push:
+        ap.error("--save-snapshot requires --push")
 
     conn = sqlite3.connect(args.db)
     expected_rows, type_rows, coverage_rows = build(conn, use_r2=not args.no_r2)
@@ -518,6 +524,14 @@ def main() -> int:
             [sys.executable, str(REPO / "scripts" / "push_to_d1.py"), "--db", args.db,
              "--hours", "1", "--only-tables", ",".join([*COVERAGE_TABLES, "bank_audit_validation"])],
             check=True)
+        if args.save_snapshot:
+            from scripts.audit_d1 import push_snapshot
+            # Manual mutation workflows upload their factual changes before
+            # this coverage pass. Revalidation can then move verdict rows, so
+            # persist once more only after D1 accepted those same rows. Without
+            # this, the next workflow pulls older verdicts from R2 and can
+            # reintroduce alerts that production D1 had already cleared.
+            push_snapshot(Path(args.db))
         print("[sync] done")
     else:
         print("[sync] local only — pass --push to write D1")

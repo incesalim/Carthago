@@ -97,7 +97,7 @@ jobs:
 
       - name: Refresh coverage matrix
         if: ${{ !inputs.dry_run }}
-        run: python scripts/sync_audit_expected.py --push
+        run: python scripts/sync_audit_expected.py --push --save-snapshot
 
       - name: Audit data-quality check (alert-only)
         if: ${{ !inputs.dry_run }}
