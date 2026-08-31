@@ -355,6 +355,39 @@ def _mapped_key(
     return None
 
 
+def _credit_quality_context_mappings(lines: list[str]) -> dict[int, str]:
+    """Map date-only NPL closing labels through their table context.
+
+    ALNTF prints ``30 Haziran 2026`` instead of ``Dönem Sonu Bakiyesi``.
+    Matching a date alone would also mark page headings and opening balances;
+    the same III/IV/V header and following provision anchor used by the reader
+    distinguish the actual closing row. Keep the exact three source cells.
+    """
+    from .credit_quality import (
+        _NPL_DATE_BALANCE_ROW,
+        _NPL_HEADER_LINE,
+        _NPL_PROVISION_ROW,
+        _is_fc_only_block,
+    )
+
+    headers = [i for i, line in enumerate(lines)
+               if _NPL_HEADER_LINE.match(line.strip())]
+    if not headers:
+        return {}
+    out: dict[int, str] = {}
+    for i, line in enumerate(lines[:-1]):
+        date = _NPL_DATE_BALANCE_ROW.match(line)
+        provision = _NPL_PROVISION_ROW.match(lines[i + 1])
+        if (date is None or provision is None
+                or not any(header < i for header in headers)
+                or _is_fc_only_block(lines, headers, i)):
+            continue
+        if (len(_VALUE_RX.findall(line[date.end():])) == 3
+                and len(_VALUE_RX.findall(lines[i + 1][provision.end():])) == 3):
+            out[i + 1] = "ending_balance"
+    return out
+
+
 def _capture_lane(
     doc: object,
     texts: list[str],
@@ -366,7 +399,10 @@ def _capture_lane(
     cfg = _CONFIG[lane]
     captured: list[CapturedLine] = []
     for page_number in pages:
-        for order, text in enumerate(_word_lines(doc[page_number - 1]), 1):
+        page_lines = _word_lines(doc[page_number - 1])
+        context_mappings = (_credit_quality_context_mappings(page_lines)
+                            if lane == "credit_quality" else {})
+        for order, text in enumerate(page_lines, 1):
             clean = _SPACE_RX.sub(" ", text).strip()
             value_tokens = tuple(_VALUE_RX.findall(clean))
             has_numeric_token = any(
@@ -382,6 +418,8 @@ def _capture_lane(
             )
             mapped = _mapped_key(
                 clean, report, lane, dynamic_mappings) if is_data else None
+            if is_data and mapped is None:
+                mapped = context_mappings.get(order)
             captured.append(CapturedLine(
                 source_page=page_number,
                 line_order=order,

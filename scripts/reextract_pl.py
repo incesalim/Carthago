@@ -66,6 +66,10 @@ def main() -> int:
         return 1
 
     with sqlite3.connect(str(DB)) as conn:
+        role_query = (
+            "SELECT hierarchy, role FROM bank_audit_pl_roles "
+            "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY hierarchy, role")
+        roles_before = conn.execute(role_query, (b, p, k)).fetchall()
         before = conn.execute(
             "SELECT COUNT(*) FROM bank_audit_profit_loss WHERE bank_ticker=? AND period=? AND kind=?",
             (b, p, k)).fetchone()[0]
@@ -82,6 +86,7 @@ def main() -> int:
                 [(b, p, k, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
                  for r in pl]))
         upsert_pl_roles(conn, b, p, k)
+        roles_changed = roles_before != conn.execute(role_query, (b, p, k)).fetchall()
         conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP, "
                      "source_unit=? "
                      "WHERE bank_ticker=? AND period=? AND kind=?",
@@ -94,9 +99,14 @@ def main() -> int:
         return 0
 
     # One atomic replace, not clear-then-push (see audit_d1.replace_partitions).
+    # Amount corrections usually leave the role map unchanged. Include it only
+    # when its content moved (including recovery from an absent map), so a P&L
+    # repair cannot create a pointless sidecar write.
+    tables = ["bank_audit_profit_loss"]
+    if roles_changed:
+        tables.append("bank_audit_pl_roles")
     print(f"[pl] replacing {b} {p} {k} profit_loss in D1")
-    replace_partitions([(b, p, k)], DB,
-                       ["bank_audit_profit_loss", "bank_audit_pl_roles"])
+    replace_partitions([(b, p, k)], DB, tables)
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
     with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:

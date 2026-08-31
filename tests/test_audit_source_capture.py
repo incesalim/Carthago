@@ -79,6 +79,55 @@ def test_npl_capture_uses_the_production_parsers_full_label_taxonomy():
     ]
 
 
+def test_credit_quality_date_close_has_source_traceability():
+    """ALNTF's closing date is evidence even without a verbal balance label."""
+    capture = _capture_lane(
+        _FakeDoc([
+            "III. Grup IV. Grup V. Grup",
+            "31 Aralık 2025 249 27 397",
+            "Dönem İçinde İntikal (+) 28 51 20",
+            "30 Haziran 2026 40 290 337",
+            "Karşılık (-) 32 196 166",
+            "Bilançodaki Net Bakiyesi 8 94 171",
+        ]),
+        [""], "credit_quality", (1,), None,
+    )
+    mapped = [row for row in capture.data_rows if row.mapped_key]
+    assert [(row.line_text, row.mapped_key) for row in mapped] == [
+        ("30 Haziran 2026 40 290 337", "ending_balance"),
+    ]
+    sqlite_conn = sqlite3.connect(":memory:")
+    init_schema(sqlite_conn)
+    upsert_lane_capture(
+        sqlite_conn, "ALNTF", "2026Q2", "unconsolidated", capture,
+        normalized_count=1,
+    )
+    manifest = load_manifest(
+        sqlite_conn, "ALNTF", "2026Q2", "unconsolidated", "credit_quality")
+    assert check_source_capture(manifest, actual_row_count=1).failed == 0
+
+
+def test_credit_quality_date_mapping_requires_complete_npl_table_context():
+    cases = [
+        # A date in another table is not a traceable NPL closing balance.
+        ["30 Haziran 2026 40 290 337", "Karşılık (-) 32 196 166"],
+        # Neither a page date nor an incomplete balance supplies three groups.
+        ["III. Grup IV. Grup V. Grup", "30 Haziran 2026 40 290",
+         "Karşılık (-) 32 196 166"],
+        # A date-labelled opening balance is not adjacent to the provision.
+        ["III. Grup IV. Grup V. Grup", "31 Aralık 2025 249 27 397",
+         "Dönem İçinde İntikal (+) 28 51 20", "Karşılık (-) 32 196 166"],
+        # The foreign-currency subset cannot attest to the full NPL balance.
+        ["(iii) Yabancı para olarak kullandırılan krediler",
+         "III. Grup IV. Grup V. Grup", "30 Haziran 2026 40 290 337",
+         "Karşılık (-) 32 196 166"],
+    ]
+    for lines in cases:
+        capture = _capture_lane(
+            _FakeDoc(lines), [""], "credit_quality", (1,), None)
+        assert all(row.mapped_key is None for row in capture.data_rows)
+
+
 def test_capture_upsert_is_content_idempotent():
     sqlite_conn = sqlite3.connect(":memory:")
     init_schema(sqlite_conn)

@@ -16,7 +16,7 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
-**Bank-ratio gaps (2026-08-31; code fixed, production recovery pending):**
+**Bank-ratio gaps (2026-08-31; production recovery in progress):**
 ROE gaps in otherwise complete filings came from missing `bank_audit_pl_roles`,
 not missing profit figures. P&L persistence now rebuilds that map immediately
 from the stored statement, and targeted P&L repairs include it in their
@@ -29,7 +29,14 @@ respects the filing unit; semantically identified closing/net rows accept
 small whole amounts. Repairs remain scoped to affected bank/quarter/lane with
 the existing validation gates. Ziraat Dinamik's TTM ROE/NIM remain unavailable
 without a stored 2025Q2 YTD baseline; absence is not a zero.
-
+The first applied repairs restored 40 unconsolidated role maps and 15 banks'
+2026Q2 credit/stage partitions; all unaffected stage records were unchanged.
+Alternatif Bank's date-only NPL closing label also needs a contextual source
+mapping: it is accepted only inside the III/IV/V table with three balance
+cells followed by the matching provision row, excluding FX-only tables. The
+traceability gate remains enabled. That last repair and Akbank's stale equity
+labels are still being validated. Legacy single-P&L repairs also compare role
+content before including the role table in their D1 replacement.
 
 | Table | Source | Range | Latest |
 |---|---|---|---|
