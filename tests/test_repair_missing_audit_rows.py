@@ -24,8 +24,10 @@ def row(part=PART, item=1, amount=42, page=5, stamp="2020-01-01", identifier=1):
 
 
 def create_table(conn, table=TABLE):
-    conn.execute(f"CREATE TABLE {table} (id INTEGER, bank_ticker TEXT, period TEXT, kind TEXT, "
-                 "item_order INTEGER, amount REAL, source_page INTEGER, extracted_at TEXT)")
+    conn.execute(f"CREATE TABLE {table} (id INTEGER, bank_ticker TEXT NOT NULL, "
+                 "period TEXT NOT NULL, kind TEXT NOT NULL, item_order INTEGER NOT NULL, "
+                 "amount REAL, source_page INTEGER, extracted_at TEXT, "
+                 "PRIMARY KEY (bank_ticker,period,kind,item_order))")
     conn.commit()
 
 
@@ -274,3 +276,145 @@ def test_remote_transport_failure_is_never_empty_data(monkeypatch, response):
     monkeypatch.setattr(repair, "_wrangler_json", lambda *args: response)
     with pytest.raises(RuntimeError, match="successful read"):
         repair._remote("SELECT 1")
+
+
+def _install_extra_writer(remote, monkeypatch, calls):
+    def write(sql_path, what):
+        sql = Path(sql_path).read_text(encoding="utf-8")
+        calls.append((what, sql))
+        remote.executescript(sql)
+        remote.commit()
+
+    monkeypatch.setattr(repair, "retry_wrangler", write)
+
+
+def test_remote_extra_mode_deletes_only_extra_primary_key(stores, monkeypatch):
+    path, source, remote, writes, uploads = stores
+    insert(source, [row(stamp="source-old"), row(item=2, amount=None)])
+    insert(remote, [row(stamp="remote-preserve", identifier=999),
+                    row(item=2, amount=None), row(item=3, amount=777)])
+    calls = []
+    _install_extra_writer(remote, monkeypatch, calls)
+    before = path.read_bytes()
+    args = ["--db", str(path), "--tables", TABLE, "--partitions",
+            "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras", "--apply"]
+    assert repair.main(args) == 0
+    assert writes == uploads == []
+    assert path.read_bytes() == before
+    assert len(calls) == 1
+    assert "DELETE FROM bank_audit_capital" in calls[0][1]
+    assert "item_order IS 3" in calls[0][1]
+    assert "amount IS 777" in calls[0][1]
+    assert "INSERT" not in calls[0][1]
+    # Ignored bookkeeping values on canonical facts are not rewritten.
+    assert remote.execute(
+        f"SELECT extracted_at,id FROM {TABLE} WHERE item_order=1"
+    ).fetchone() == ("remote-preserve", 999)
+    assert [r[0] for r in remote.execute(
+        f"SELECT item_order FROM {TABLE} ORDER BY item_order"
+    )] == [1, 2]
+    assert repair.main(args) == 0
+    assert len(calls) == 1
+
+
+def test_remote_extra_dry_run_is_read_only(stores, monkeypatch):
+    path, source, remote, writes, uploads = stores
+    insert(source, [row()])
+    insert(remote, [row(), row(item=2)])
+    calls = []
+    _install_extra_writer(remote, monkeypatch, calls)
+    assert repair.main(["--db", str(path), "--tables", TABLE, "--partitions",
+                        "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras"]) == 0
+    assert calls == writes == uploads == []
+    assert remote.execute(f"SELECT COUNT(*) FROM {TABLE}").fetchone()[0] == 2
+
+
+def test_remote_extra_mode_aborts_on_changed_or_missing_canonical_fact(stores, monkeypatch):
+    path, source, remote, writes, uploads = stores
+    insert(source, [row(), row(item=2)])
+    insert(remote, [row(amount=999), row(item=3)])
+    calls = []
+    _install_extra_writer(remote, monkeypatch, calls)
+    with pytest.raises(ValueError, match="missing or differs"):
+        repair.main(["--db", str(path), "--tables", TABLE, "--partitions",
+                     "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras", "--apply"])
+    assert calls == writes == uploads == []
+
+
+def test_remote_extra_mode_preflights_all_tables_before_delete(stores, monkeypatch):
+    path, source, remote, writes, uploads = stores
+    for conn in (source, remote):
+        create_table(conn, OTHER)
+    insert(source, [row()])
+    insert(remote, [row(), row(item=2)])
+    insert(source, [row()], OTHER)
+    insert(remote, [row(amount=999)], OTHER)
+    calls = []
+    _install_extra_writer(remote, monkeypatch, calls)
+    with pytest.raises(ValueError, match="missing or differs"):
+        repair.main(["--db", str(path), "--tables", f"{TABLE},{OTHER}", "--partitions",
+                     "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras", "--apply"])
+    assert calls == writes == uploads == []
+
+
+def test_remote_extra_mode_postverify_catches_delete_failure(stores, monkeypatch):
+    path, source, remote, _, uploads = stores
+    insert(source, [row()])
+    insert(remote, [row(), row(item=2)])
+    monkeypatch.setattr(repair, "retry_wrangler", lambda *args: None)
+    with pytest.raises(ValueError, match="Incomplete or changing rows"):
+        repair.main(["--db", str(path), "--tables", TABLE, "--partitions",
+                     "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras", "--apply"])
+    assert uploads == []
+
+
+def test_remote_extra_compare_and_delete_refuses_row_changed_after_preflight(stores, monkeypatch):
+    path, source, remote, _, uploads = stores
+    insert(source, [row()])
+    insert(remote, [row(), row(item=2, amount=777)])
+
+    def race(sql_path, what):
+        remote.execute(f"UPDATE {TABLE} SET amount=778 WHERE item_order=2")
+        remote.executescript(Path(sql_path).read_text(encoding="utf-8"))
+        remote.commit()
+
+    monkeypatch.setattr(repair, "retry_wrangler", race)
+    with pytest.raises(ValueError, match="Incomplete or changing rows"):
+        repair.main(["--db", str(path), "--tables", TABLE, "--partitions",
+                     "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras", "--apply"])
+    assert remote.execute(f"SELECT amount FROM {TABLE} WHERE item_order=2").fetchone() == (778.0,)
+    assert uploads == []
+
+
+@pytest.mark.parametrize("args", [
+    ["--remove-remote-extras"],
+    ["--remove-remote-extras", "--partitions", "ALL"],
+    ["--remove-remote-extras", "--partitions", "AKBNK:2026Q2:unconsolidated",
+     "--banks", "AKBNK"],
+])
+def test_remote_extra_mode_requires_only_exact_partition_scope(stores, args):
+    path, _, _, writes, uploads = stores
+    with pytest.raises(SystemExit):
+        repair.main(["--db", str(path), "--tables", TABLE, *args])
+    assert writes == uploads == []
+
+
+def test_remote_extra_mode_refuses_primary_key_on_ignored_metadata(tmp_path, monkeypatch):
+    path = tmp_path / "snapshot.db"
+    source = sqlite3.connect(path)
+    remote = sqlite3.connect(":memory:")
+    ddl = (f"CREATE TABLE {TABLE} (id INTEGER PRIMARY KEY NOT NULL, bank_ticker TEXT NOT NULL, "
+           "period TEXT NOT NULL, kind TEXT NOT NULL, item_order INTEGER, amount REAL)")
+    source.execute(ddl)
+    remote.execute(ddl)
+    source.execute(f"INSERT INTO {TABLE} VALUES (1,'AKBNK','2026Q2','unconsolidated',1,42)")
+    remote.execute(f"INSERT INTO {TABLE} VALUES (1,'AKBNK','2026Q2','unconsolidated',1,42)")
+    remote.execute(f"INSERT INTO {TABLE} VALUES (2,'AKBNK','2026Q2','unconsolidated',2,43)")
+    source.commit()
+    remote.commit()
+    monkeypatch.setattr(repair, "_remote", lambda sql: repair._rows(remote, sql))
+    with pytest.raises(ValueError, match="Primary key does not contain the audit partition"):
+        repair.main(["--db", str(path), "--tables", TABLE, "--partitions",
+                     "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras"])
+    source.close()
+    remote.close()

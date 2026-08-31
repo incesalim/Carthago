@@ -19,6 +19,14 @@ on:
         type: choice
         options: [both, unconsolidated, consolidated]
         default: both
+      partitions:
+        description: "Exact BANK:YYYYQn:kind triples; required for remote-extra removal"
+        type: string
+        default: ""
+      remove_remote_extras:
+        description: "Delete only D1 rows proven extra to the R2 snapshot (exact partitions required)"
+        type: boolean
+        default: false
       dry_run:
         description: "Compare live D1 with the authoritative snapshot without writes"
         type: boolean
@@ -60,16 +68,20 @@ jobs:
           from scripts.audit_d1 import pull_snapshot
           pull_snapshot(guard=False)  # every audit writer shares bddk-audit
           PY
-      - name: Preflight all tables, restore only missing rows, verify no-op replay
+      - name: Preflight all tables, repair proven drift, verify no-op replay
         env:
           TABLES: ${{ inputs.tables }}
           BANKS: ${{ inputs.banks }}
           PERIODS: ${{ inputs.periods }}
           KIND: ${{ inputs.kind }}
+          PARTITIONS: ${{ inputs.partitions }}
+          REMOVE_EXTRAS: ${{ inputs.remove_remote_extras && '--remove-remote-extras' || '' }}
           APPLY: ${{ !inputs.dry_run && '--apply' || '' }}
         run: |
           args=(--tables "$TABLES" --kind "$KIND")
           [ -n "$BANKS" ] && args+=(--banks "$BANKS")
           [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
+          [ -n "$PARTITIONS" ] && args+=(--partitions "$PARTITIONS")
+          [ -n "$REMOVE_EXTRAS" ] && args+=("$REMOVE_EXTRAS")
           [ -n "$APPLY" ] && args+=("$APPLY")
           python scripts/repair_missing_audit_rows.py "${args[@]}"

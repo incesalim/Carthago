@@ -1,16 +1,21 @@
-"""Recover missing D1 audit rows from the current authoritative R2 snapshot.
+"""Repair narrowly proven D1 drift from the authoritative R2 audit snapshot.
 
 Read-only by default; apply only through repair-missing-audit-rows.yml. Grouped
 counts discover whole and partial losses. Every affected partition must be a
 strict factual multiset subset of the snapshot before ANY table is written.
 Equal-count partitions are outside this missing-row repair's scope, not a claim
 that all their values have been audited. No PDF extraction or timestamp updates.
+
+The opt-in remote-extra mode is stricter: it requires exact partition triples,
+proves D1 is a factual multiset superset of the snapshot, and deletes only the
+extra rows by their complete primary keys. Canonical rows are never re-stamped.
 """
 from __future__ import annotations
 
 import argparse
 from collections import Counter
 from dataclasses import dataclass
+import math
 import os
 from pathlib import Path
 import re
@@ -22,7 +27,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.audit_d1 import _wrangler_json, push_snapshot  # noqa: E402
+from scripts.audit_d1 import _wrangler_json, push_snapshot, retry_wrangler  # noqa: E402
 
 # Explicitly partitioned sync tables only. Never a full-rebuild rollup or a
 # SQLite-only source-line table. Adding a new table requires code review.
@@ -53,6 +58,15 @@ class TableRepair:
     columns: tuple[str, ...]
     source: dict[Part, list[dict]]
     missing_rows: int
+
+
+@dataclass
+class ExtraRepair:
+    table: str
+    columns: tuple[str, ...]
+    primary_key: tuple[str, ...]
+    source: dict[Part, list[dict]]
+    extras: dict[Part, list[dict]]
 
 
 def _rows(conn: sqlite3.Connection, sql: str) -> list[dict]:
@@ -126,6 +140,19 @@ def factual_columns(source_schema: list[dict], remote_schema: list[dict]) -> tup
     return tuple(sorted(source - IGNORED_COLUMNS))
 
 
+def primary_key_columns(schema: list[dict]) -> tuple[str, ...]:
+    ordered = sorted((row["pk"], row["name"]) for row in schema if row["pk"])
+    if not ordered or [position for position, _ in ordered] != list(range(1, len(ordered) + 1)):
+        raise ValueError("Table has no complete ordered primary key; nothing written")
+    columns = tuple(name for _, name in ordered)
+    if not set(PART_COLUMNS) <= set(columns):
+        raise ValueError("Primary key does not contain the audit partition; nothing written")
+    info = {row["name"]: row for row in schema}
+    if any(not info[name]["notnull"] for name in columns):
+        raise ValueError("Primary key permits nulls; nothing written")
+    return columns
+
+
 def factual_rows(rows: list[dict], columns: tuple[str, ...]) -> Counter:
     """A multiset, not a set: duplicate multiplicity and null versus zero matter."""
     return Counter(tuple(row[column] for column in columns) for row in rows)
@@ -136,6 +163,24 @@ def missing_rows(source: list[dict], remote: list[dict], columns: tuple[str, ...
     if actual - wanted:
         raise ValueError("D1 has differing or extra facts; snapshot is not a safe superset")
     return sum((wanted - actual).values())
+
+
+def remote_extra_rows(source: list[dict], remote: list[dict],
+                      columns: tuple[str, ...]) -> list[dict]:
+    """Return only remote rows beyond an identical snapshot multiset."""
+    wanted, actual = factual_rows(source, columns), factual_rows(remote, columns)
+    if wanted - actual:
+        raise ValueError("D1 is missing or differs from snapshot facts; refusing deletion")
+    remaining = actual - wanted
+    extras = []
+    for row in remote:
+        fact = tuple(row[column] for column in columns)
+        if remaining[fact]:
+            extras.append(row)
+            remaining[fact] -= 1
+    if any(remaining.values()):
+        raise ValueError("Could not identify every remote-extra row; nothing written")
+    return extras
 
 
 def _counts(read, table: str, scope: str) -> dict[Part, int]:
@@ -231,11 +276,124 @@ def apply_repairs(db: Path, plans: list[TableRepair]) -> None:
             ], check=True)
 
 
+def plan_extra_repairs(conn: sqlite3.Connection, tables: list[str],
+                       parts: list[Part]) -> list[ExtraRepair]:
+    """Preflight every exact partition before permitting any remote deletion."""
+    plans = []
+    local = lambda sql: _rows(conn, sql)  # noqa: E731
+    scope = _part_scope(parts)
+    schemas = {}
+    for table in tables:
+        if table not in ALLOWED_TABLES:
+            raise ValueError(f"Table is not allowlisted: {table}")
+        source_schema = local(f"PRAGMA table_info({table})")
+        remote_schema = _remote(f"PRAGMA table_info({table})")
+        columns = factual_columns(source_schema, remote_schema)
+        schemas[table] = (columns, primary_key_columns(source_schema))
+    for table in tables:
+        columns, primary_key = schemas[table]
+        if not set(primary_key) <= set(columns):
+            raise ValueError(f"{table} primary key includes ignored bookkeeping columns; nothing written")
+        source_counts = _counts(local, table, scope)
+        remote_counts = _counts(_remote, table, scope)
+        absent = [part for part in parts if source_counts.get(part, 0) < 1]
+        if absent:
+            raise ValueError(f"{table} has no authoritative rows for "
+                             f"{','.join('|'.join(p) for p in absent)}; nothing written")
+        source = _partition_rows(local, table, columns, parts, source_counts)
+        remote = _partition_rows(_remote, table, columns, parts, remote_counts)
+        extras_by_part = {}
+        for part in parts:
+            for side, rows in (("snapshot", source[part]), ("D1", remote[part])):
+                keys = [tuple(row[column] for column in primary_key) for row in rows]
+                if len(keys) != len(set(keys)):
+                    raise ValueError(f"{table} {'|'.join(part)} has duplicate {side} primary keys; "
+                                     "nothing written")
+            try:
+                extras = remote_extra_rows(source[part], remote[part], columns)
+            except ValueError as error:
+                raise ValueError(f"{table} {'|'.join(part)}: {error}; nothing written") from error
+            if extras:
+                extras_by_part[part] = extras
+        if extras_by_part:
+            # A row delete must identify one and only one remote row. The factual
+            # comparison above already rejects a changed canonical row; this
+            # catches malformed schemas/responses before SQL is generated.
+            keys = [tuple(row[column] for column in primary_key)
+                    for rows in extras_by_part.values() for row in rows]
+            if len(keys) != len(set(keys)):
+                raise ValueError(f"{table} remote extras have duplicate primary keys; nothing written")
+            plans.append(ExtraRepair(table, columns, primary_key, source, extras_by_part))
+            print(f"{table}: remove {len(keys)} remote-extra rows in "
+                  f"{len(extras_by_part)} exact partitions", flush=True)
+        else:
+            print(f"{table}: exact partitions already match; no remote extras", flush=True)
+    return plans
+
+
+def _sql_literal(value: object) -> str:
+    if value is None:
+        return "NULL"
+    if isinstance(value, str):
+        return _literal(value)
+    if type(value) is int:
+        return str(value)
+    if type(value) is float and math.isfinite(value):
+        return repr(value)
+    raise ValueError(f"Unsupported factual value {value!r}; nothing written")
+
+
+def apply_extra_repairs(plans: list[ExtraRepair]) -> None:
+    statements = ["-- delete only preflight-proven remote-extra audit rows"]
+    for plan in plans:
+        for part in sorted(plan.extras):
+            for row in plan.extras[part]:
+                # Compare-and-delete the entire preflight row. The workflow's
+                # concurrency group prevents sanctioned writer races, but a
+                # manual D1 edit between read and import must still turn this
+                # into a no-op that postverification catches, never a deletion
+                # of facts we did not actually inspect.
+                where = " AND ".join(
+                    f"{column} IS {_sql_literal(row[column])}" for column in plan.columns)
+                statements.append(f"DELETE FROM {plan.table} WHERE {where};")
+    with tempfile.TemporaryDirectory(prefix="extra-audit-rows-") as td:
+        sql_path = Path(td) / "delete_remote_extras.sql"
+        sql_path.write_text("\n".join(statements) + "\n", encoding="utf-8")
+        retry_wrangler(sql_path, "remote-extra audit row cleanup")
+
+
+def verify_extra_repairs(plans: list[ExtraRepair]) -> None:
+    for plan in plans:
+        parts = sorted(plan.source)
+        counts = {part: len(rows) for part, rows in plan.source.items()}
+        actual = _partition_rows(_remote, plan.table, plan.columns, parts, counts)
+        for part, rows in plan.source.items():
+            if factual_rows(rows, plan.columns) != factual_rows(actual[part], plan.columns):
+                raise RuntimeError(f"Post-cleanup facts differ: {plan.table} {'|'.join(part)}")
+
+
 def _tokens(raw: str, pattern: str, name: str) -> list[str]:
     values = sorted(set(v.strip().upper() for v in raw.split(",") if v.strip()))
     if not values or any(re.fullmatch(pattern, v) is None or v == "ALL" for v in values):
         raise ValueError(f"Invalid {name}: supply explicit comma-separated values")
     return values
+
+
+def _parts(raw: str) -> list[Part]:
+    parts = []
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        values = token.upper().split(":")
+        if len(values) != 3:
+            raise ValueError(f"Invalid exact partition: {token!r}")
+        part = (values[0], values[1], values[2].lower())
+        _part(dict(zip(PART_COLUMNS, part)))
+        parts.append(part)
+    if not parts or len(parts) != len(set(parts)):
+        raise ValueError("Supply unique BANK:YYYYQn:kind exact partitions")
+    return sorted(parts)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -245,7 +403,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--banks", default="", help="Optional explicit tickers; blank selects all")
     ap.add_argument("--periods", default="", help="Optional YYYYQn list; blank selects all")
     ap.add_argument("--kind", choices=["both", "consolidated", "unconsolidated"], default="both")
-    ap.add_argument("--apply", action="store_true", help="Actions-only exact missing-partition recovery")
+    ap.add_argument("--partitions", default="",
+                    help="Exact BANK:YYYYQn:kind triples (required for remote-extra deletion)")
+    ap.add_argument("--remove-remote-extras", action="store_true",
+                    help="Delete only D1 rows beyond an identical authoritative multiset")
+    ap.add_argument("--apply", action="store_true", help="Actions-only application of proven repair")
     args = ap.parse_args(argv)
     tables = sorted(set(t.strip() for t in args.tables.split(",") if t.strip()))
     if not tables or set(tables) - set(ALLOWED_TABLES):
@@ -254,6 +416,34 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("Apply through repair-missing-audit-rows.yml, not this machine")
     if not args.db.is_file():
         ap.error("Authoritative audit snapshot does not exist")
+    try:
+        exact_parts = _parts(args.partitions) if args.partitions.strip() else []
+    except ValueError as error:
+        ap.error(str(error))
+    if args.remove_remote_extras:
+        if not exact_parts:
+            ap.error("--remove-remote-extras requires --partitions")
+        if args.banks.strip() or args.periods.strip() or args.kind != "both":
+            ap.error("Remote-extra cleanup is scoped only by --partitions")
+        with sqlite3.connect(args.db.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            plans = plan_extra_repairs(conn, tables, exact_parts)
+        if not plans:
+            print("No remote-extra rows — no D1 or snapshot writes")
+            return 0
+        total = sum(len(rows) for plan in plans for rows in plan.extras.values())
+        print(f"Preflight complete: {total} remote-extra rows across "
+              f"{sum(len(plan.extras) for plan in plans)} exact table partitions; "
+              "all authoritative facts are present")
+        if not args.apply:
+            print("Dry run — no D1 or snapshot writes")
+            return 0
+        apply_extra_repairs(plans)
+        verify_extra_repairs(plans)
+        with sqlite3.connect(args.db.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            if plan_extra_repairs(conn, tables, exact_parts):
+                raise RuntimeError("Second comparison still finds remote-extra rows")
+        print("Verified exact D1 equality and a no-op second comparison; snapshot unchanged")
+        return 0
     filters = []
     if args.banks.strip():
         banks = _tokens(args.banks, r"[A-Z0-9]{2,16}", "banks")
@@ -263,6 +453,8 @@ def main(argv: list[str] | None = None) -> int:
         filters.append("period IN (" + ",".join(map(_literal, periods)) + ")")
     if args.kind != "both":
         filters.append("kind=" + _literal(args.kind))
+    if exact_parts:
+        filters.append(_part_scope(exact_parts))
     scope = " AND ".join(filters) or "1=1"
     with sqlite3.connect(args.db.resolve().as_uri() + "?mode=ro", uri=True) as conn:
         plans = plan_repairs(conn, tables, scope)
