@@ -16,6 +16,19 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
+**Anomaly repair (2026-08-31; source-verified, application pending):** The first
+repair batch covers 51 failed audit-opinion partitions and 36 free-provision
+partitions (18 flagged, plus 18 incorrect adjacent stocks). Opinion extraction
+now finds later signature pages, separates historical Other Matter paragraphs
+from the current verdict, and supports the observed heading variants. One
+image-only signature has an exact-PDF-hash override. Reserve corrections are
+transcribed from each filing's current qualification or liability note with
+source hashes; an unreadable disclosure never implies zero. Targeted repairs
+accept exact bank/quarter/kind triples and apply prior-year roots before their
+dependent comparisons. Production application and the residual anomaly count
+are still pending. Internal evidence: `docs/knowledge/2026-08-31-anomaly-repair/`.
+
+
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain
 financial-statement choices, and repeated or invalid URL controls are handled

@@ -37,7 +37,11 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import hashlib
+import json
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 # --- Opinion modifiers (checked most-severe first) -------------------------
 # Each is a section heading, not stray prose. `Şartlı`/`Olumsuz` are matched
@@ -71,6 +75,7 @@ _CLEAN = re.compile(
     r"|nothing\s+has\s+come\s+to\s+our\s+attention"
     r"|present[s]?\s+fairly,\s+in\s+all\s+material\s+respects"
     r"|In\s+our\s+opinion,\s+the\s+accompanying"
+    r"|ger[çc]e[ğg]e\s+uygun\s+bir\s+bi[çc]imde\s+sunmaktad[ıi]r"
     r"|dikkatimizi\s+çekmemi[sş]tir"
     r"|kanaatine\s+varmam[ıi]za\s+sebep\s+ol",
     re.I,
@@ -97,6 +102,7 @@ _AUDITORS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"Deloitte|DRT\s+Ba[ğg][ıi]ms[ıi]z", re.I), "Deloitte"),
     (re.compile(r"Grant\s+Thornton", re.I), "Grant Thornton"),
     (re.compile(r"BDO\b", re.I), "BDO"),
+    (re.compile(r"Aksis\s+Uluslararas[ıi]\s+Ba[ğg][ıi]ms[ıi]z", re.I), "Aksis"),
 ]
 
 # Where the basis paragraph ends — the next section heading in the report.
@@ -105,7 +111,20 @@ _BASIS_END = re.compile(
     r"(?:Qualified|Adverse|Unqualified)\s+(?:Opinion|Conclusion)"
     r"|\n\s*(?:Key\s+Audit\s+Matters|Emphasis\s+of\s+Matter"
     r"|Responsibilities?\s+of|Management.?s\s+Responsib|Auditor.?s\s+Responsib"
-    r"|Other\s+Matter|Conclusion\b|Sonu[çc]\b|Görü[sş]\b)",
+    r"|Other\s+Matter|Conclusion\b|Sonu[çc]\b|Görü[sş]\b"
+    r"|[ŞS]artl[ıi]\s+(?:Sonu[çc]|Görü[sş])"
+    r"|S[ıi]n[ıi]rl[ıi]\s+Olumlu\s+(?:Sonu[çc]|Görü[sş])"
+    r"|Kilit\s+Denetim\s+Konular[ıi]|Di[ğg]er\s+Husus"
+    r"|Mevzuattan\s+Kaynaklanan|Y[öo]netimin\s+ve)",
+    re.I,
+)
+
+# This section describes other reporting matters, often the PREVIOUS auditor's
+# opinion. It is after the current conclusion and must not change that verdict.
+# ALNTF's clean 2023 reviews mention 2022 qualified opinions in this paragraph.
+_OTHER_MATTER_HEADING = re.compile(
+    r"(?m)^\s*(?:[0-9A-Za-z]{1,3}[.)]\s*)?"
+    r"(?:Other\s+Matters?|Di[ğg]er\s+Husus(?:lar)?)\s*(?:\n|$)",
     re.I,
 )
 
@@ -161,7 +180,8 @@ def _detect_report_kind(text: str, period: str = "") -> str:
 _BASIS_HEADING = re.compile(
     r"Basis\s+(?:for|of)\s+(?:the\s+)?(?:Qualified|Adverse)\s+(?:Opinion|Conclusion)"
     r"|[ŞS]artl[ıi]\s+(?:Görü[sş]ün|Sonucun)\s+Dayana(?:[ğg][ıi]|klar[ıi])"
-    r"|S[ıi]n[ıi]rl[ıi]\s+Olumlu\s+(?:Görü[sş]ün|Sonucun)\s+Dayana(?:[ğg][ıi]|klar[ıi])",
+    # TFKB 2024Q4 consolidated actually prints "Olumlı" in this heading.
+    r"|S[ıi]n[ıi]rl[ıi]\s+Oluml[uıi]\s+(?:Görü[sş]ün|Sonucun)\s+Dayana(?:[ğg][ıi]|klar[ıi])",
     re.I,
 )
 
@@ -207,6 +227,37 @@ def _detect_auditor(text: str) -> str | None:
     return None
 
 
+def _current_opinion_text(text: str) -> str:
+    end = _OTHER_MATTER_HEADING.search(text)
+    return text[:end.start()] if end else text
+
+
+_OVERRIDE_PATH = Path(__file__).resolve().parents[2] / "data" / "audit_opinion_overrides.json"
+
+
+@lru_cache(maxsize=1)
+def _auditor_overrides() -> dict:
+    try:
+        return json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8")).get("reports", {})
+    except (OSError, ValueError):
+        return {}
+
+
+def _verified_auditor_override(pdf_path: str) -> str | None:
+    """A visually read image-only signature applies only to those exact bytes."""
+    path = Path(pdf_path)
+    entry = _auditor_overrides().get(path.name)
+    if not entry:
+        return None
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+    if digest != entry.get("sha256"):
+        return None
+    return entry.get("auditor") or None
+
+
 def classify_opinion(text: str, period: str = "") -> OpinionResult:
     """Classify the auditor's verdict from the front-matter text of a BRSA report.
 
@@ -225,19 +276,20 @@ def classify_opinion(text: str, period: str = "") -> OpinionResult:
     # Severity order: adverse > disclaimer > qualified > clean. `Disclaimer of
     # Opinion` is a heading; the review boilerplate "we do not express an
     # opinion" is NOT a disclaimer and is deliberately not matched here.
-    if _ADVERSE.search(text):
+    verdict_text = _current_opinion_text(text)
+    if _ADVERSE.search(verdict_text):
         res.opinion_type = "adverse"
-    elif _DISCLAIMER.search(text):
+    elif _DISCLAIMER.search(verdict_text):
         res.opinion_type = "disclaimer"
-    elif _QUALIFIED.search(text):
+    elif _QUALIFIED.search(verdict_text):
         res.opinion_type = "qualified"
-    elif _CLEAN.search(text):
+    elif _CLEAN.search(verdict_text):
         res.opinion_type = "clean"
     else:
         res.opinion_type = "unknown"
 
     if res.is_modified:
-        res.basis_text = _extract_basis(text)
+        res.basis_text = _extract_basis(verdict_text)
     return res
 
 
@@ -246,8 +298,12 @@ def extract_opinion_from_pdf(
     period: str = "",
     max_pages: int = 6,
 ) -> OpinionResult:
-    """Read the first `max_pages` pages (where the auditor's report always sits)
-    and classify the opinion. fitz-only, same engine as every other lane."""
+    """Classify the opening pages and, if needed, find the signature through p10.
+
+    Annual reports can sign on pages 7–9. Those extra pages supply only the firm,
+    never verdict text: later financial notes can mention historical opinions.
+    fitz-only, same engine as every other lane.
+    """
     # Lazy import so the pure classifier above stays importable without fitz
     # (the CI unit tests exercise classify_opinion directly).
     from .extractor import _fitz_page_count, _fitz_page_text, _HAS_FITZ
@@ -255,18 +311,27 @@ def extract_opinion_from_pdf(
     if not (pdf_path and _HAS_FITZ):
         return OpinionResult(opinion_type="unknown")
 
-    n = min(max_pages, _fitz_page_count(pdf_path) or 0)
+    page_count = _fitz_page_count(pdf_path) or 0
+    n = min(max_pages, page_count)
     pages = [_fitz_page_text(pdf_path, i) for i in range(n)]
     text = "\n".join(pages)
     res = classify_opinion(text, period=period)
 
     # Best-effort: which page carried the opinion/basis heading.
     if not res.is_empty():
-        anchor = _QUALIFIED if res.is_modified else _CLEAN
+        anchor = {"adverse": _ADVERSE, "disclaimer": _DISCLAIMER,
+                  "qualified": _QUALIFIED}.get(res.opinion_type, _CLEAN)
         for i, pg in enumerate(pages):
             if anchor.search(pg):
                 res.source_page = i
                 break
+        if res.auditor is None:
+            for i in range(n, min(10, page_count)):
+                res.auditor = _detect_auditor(_fitz_page_text(pdf_path, i))
+                if res.auditor:
+                    break
+        if res.auditor is None:
+            res.auditor = _verified_auditor_override(pdf_path)
     return res
 
 

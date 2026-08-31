@@ -15,7 +15,7 @@ from reextract_statement import (  # noqa: E402
     STATEMENT_CHOICES, STATEMENT_TABLE, _is_proven_pass,
     _partition_content, _partition_snapshot, _restore_partition,
     _satisfies_candidate_gate, _upsert, resolve_statement_route,
-    should_pull_snapshot,
+    should_pull_snapshot, parse_partitions,
 )
 from src.audit_reports import registry  # noqa: E402
 from src.audit_reports.free_provision import FreeProvision  # noqa: E402
@@ -25,6 +25,20 @@ from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports.validator import ValidationResult  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
+
+
+def test_exact_targets_do_not_create_bank_period_cross_products():
+    assert parse_partitions("TEB:2024Q4:consolidated,burgan:2022q4:unconsolidated") == {
+        ("TEB", "2024Q4", "consolidated"), ("BURGAN", "2022Q4", "unconsolidated"),
+    }
+    assert parse_partitions("") == set()
+
+
+@pytest.mark.parametrize("value", ["ALL", "TEB:2024Q5:consolidated",
+                                  "TEB:2024Q4:both", "TEB:2024Q4:consolidated,"])
+def test_malformed_exact_target_fails_closed(value):
+    with pytest.raises(ValueError):
+        parse_partitions(value)
 
 
 def test_every_registered_statement_resolves_to_a_reextract_route():

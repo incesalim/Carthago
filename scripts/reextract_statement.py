@@ -23,11 +23,12 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sqlite3
 import sys
 import tempfile
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -347,12 +348,29 @@ def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 
+def parse_partitions(value: str) -> set[tuple[str, str, str]]:
+    """Exact repair targets, avoiding a bank/period cross product."""
+    if not value.strip():
+        return set()
+    result = set()
+    for token in value.split(","):
+        parts = token.strip().split(":")
+        if (len(parts) != 3 or not re.fullmatch(r"[A-Za-z0-9]+", parts[0])
+                or not re.fullmatch(r"\d{4}Q[1-4]", parts[1].upper())
+                or parts[2] not in {"consolidated", "unconsolidated"}):
+            raise ValueError("partitions must be comma-separated BANK:YYYYQn:kind triples")
+        result.add((parts[0].upper(), parts[1].upper(), parts[2]))
+    return result
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--statement", required=True,
                     choices=STATEMENT_CHOICES)
     ap.add_argument("--banks", default="ALL", help="ALL or comma-separated tickers")
     ap.add_argument("--periods", default="", help="comma-separated YYYYQn (optional)")
+    ap.add_argument("--partitions", default="",
+                    help="exact comma-separated BANK:YYYYQn:kind targets; intersects other filters")
     ap.add_argument("--kind", default="", choices=["", "consolidated", "unconsolidated"],
                     help="restrict to one kind (default: both) — used by the single-cell path")
     ap.add_argument("--workers", type=int, default=min(8, (os.cpu_count() or 4)))
@@ -388,6 +406,10 @@ def main() -> int:
     banks = (None if args.banks.strip().upper() == "ALL"
              else {b.strip().upper() for b in args.banks.split(",") if b.strip()})
     periods = {p.strip().upper() for p in args.periods.split(",") if p.strip()} or None
+    try:
+        partitions = parse_partitions(args.partitions)
+    except ValueError as exc:
+        ap.error(str(exc))
 
     if should_pull_snapshot(dry_run=args.dry_run,
                             pull_snapshot_requested=args.pull_snapshot):
@@ -401,6 +423,13 @@ def main() -> int:
         init_schema(_c)
 
     pdfs = list_r2_pdfs()
+    if partitions:
+        available = {(t.upper(), p.upper(), k) for t, p, k, _ in pdfs}
+        missing = partitions - available
+        if missing:
+            ap.error(f"no source PDF for exact target(s): {sorted(missing)}")
+        pdfs = [(t, p, k, key) for t, p, k, key in pdfs
+                if (t.upper(), p.upper(), k) in partitions]
     if banks:
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if t.upper() in banks]
     if periods:
@@ -444,7 +473,7 @@ def main() -> int:
               "keep": 0, "same": 0, "reject": 0, "capture": 0}
     inline = not args.no_inline_validate
     with tempfile.TemporaryDirectory(prefix="bddk_reext_") as td:
-        work = [(t, p, k, key, statement, td) for (t, p, k, key) in pdfs]
+        work = [(t, p, k, key, statement, td) for (t, p, k, key) in sorted(pdfs)]
         # NOTE: no max_tasks_per_child — on Windows it can DEADLOCK the pool at a
         # recycle boundary (hung a fleet run at ~task 400). Single-statement
         # extraction is light (the six deep-scan extractors are skipped), so worker
@@ -453,7 +482,9 @@ def main() -> int:
              ProcessPoolExecutor(max_workers=args.workers) as ex:
             futs = [ex.submit(_worker, w) for w in work]
             done = 0
-            for fut in as_completed(futs):
+            # Parse concurrently, apply chronologically within each bank. Prior
+            # year-end repairs must land before dependent prior-chain checks.
+            for fut in futs:
                 t, p, k, ok, n, secs, err, rep, path, unit = fut.result()
                 done += 1
                 if not ok:

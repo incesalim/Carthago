@@ -1,0 +1,11 @@
+{
+  "_README": "Visually verified auditor signatures on image-only source pages. Only fills a missing auditor; does not change the verdict, basis or opinion source page. Filename AND SHA-256 must match the exact PDF. source_page is zero-indexed.",
+  "reports": {
+    "PASHA_2023Q4_unconsolidated.pdf": {
+      "sha256": "d6c368ad881e09dfc4b95ef9930653c7a4866b5c49af3cd5f65cb8ffd3f961bf",
+      "auditor": "KPMG",
+      "source_page": 4,
+      "source": "R2 pasha/PASHA_2023Q4_unconsolidated.pdf, PDF p5 image-only signature: KPMG Bagimsiz Denetim ve Serbest Muhasebeci Mali Musavirlik A.S.; Alper Guven, SMMM, Sorumlu Denetci; 19 Subat 2024 Istanbul. Visually verified 2026-08-31; R2 ETag 98beb81acfec917a2b02389996f7ee11 matches local source bytes."
+    }
+  }
+}

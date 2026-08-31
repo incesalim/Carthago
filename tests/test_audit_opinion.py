@@ -5,6 +5,10 @@ minimal deps (ruff/pytest + stdlib). The fixtures are trimmed but faithful
 renderings of the auditor's-report front matter across the four report shapes we
 actually see: English/Turkish × audit/review, clean and modified.
 """
+import hashlib
+
+import pytest
+
 from src.audit_reports.audit_opinion import classify_opinion
 
 # --- English, clean --------------------------------------------------------
@@ -230,3 +234,100 @@ def test_period_tiebreaker_when_text_is_ambiguous():
     ambiguous = "Opinion\nThe financial statements present fairly, in all material respects."
     assert classify_opinion(ambiguous, "2024Q4").report_kind == "audit"
     assert classify_opinion(ambiguous, "2025Q1").report_kind == "review"
+
+
+@pytest.mark.parametrize("other", [
+    "Diğer Husus\nÖnceki bağımsız denetçi raporunda şartlı görüş ve şartlı sonuç bildirilmiştir.",
+    "Other Matter\nThe previous auditor expressed a qualified opinion on prior-year statements.",
+])
+def test_clean_current_review_is_not_the_prior_auditors_qualified_opinion(other):
+    # ALNTF 2023Q1-Q3: the qualification in Other Matter belongs to 2022.
+    r = classify_opinion(CLEAN_REVIEW_EN + "\n" + other + "\nKPMG", "2023Q1")
+    assert r.opinion_type == "clean"
+    assert r.basis_text is None
+    assert r.auditor == "KPMG"  # signature can follow the historical paragraph
+
+
+def test_current_qualification_survives_other_matter():
+    r = classify_opinion(QUALIFIED_REVIEW_EN + "\nOther Matter\nPrior report was clean.", "2025Q1")
+    assert r.opinion_type == "qualified"
+    assert r.basis_text and "free provision" in r.basis_text
+
+
+def test_turkish_basis_ends_before_qualified_conclusion():
+    r = classify_opinion(QUALIFIED_REVIEW_TR, "2025Q1")
+    assert r.basis_text and "iptal edilmiştir" in r.basis_text
+    assert "Sınırlı denetimimize" not in r.basis_text
+
+
+def test_turkiye_finans_printed_basis_typo():
+    r = classify_opinion("""
+BAĞIMSIZ DENETÇİ RAPORU
+1) Sınırlı Olumlu Görüş
+Finansal tablolarını denetlemiş bulunuyoruz.
+2)
+Sınırlı Olumlı Görüşün Dayanağı
+Geçmiş dönemlerde ayrılan serbest karşılık tutarının tamamı cari dönemde iptal edilmiştir.
+Kilit Denetim Konuları
+Kredilere ilişkin değer düşüklüğü.
+""", "2024Q4")
+    assert r.opinion_type == "qualified"
+    assert r.basis_text and "tamamı cari dönemde iptal" in r.basis_text
+    assert "Kredilere" not in r.basis_text
+
+
+def test_aksis_is_not_akis_kpmg():
+    r = classify_opinion(CLEAN_AUDIT_TR + "\nAksis Uluslararası Bağımsız Denetim AŞ")
+    assert r.auditor == "Aksis"
+
+
+def test_plain_turkish_opinion_heading_uses_current_fair_presentation_language():
+    # AKBNK 2024Q4 / PASHA 2023Q4 say only "Görüş", not "Olumlu Görüş".
+    text = """
+BAĞIMSIZ DENETÇİ RAPORU
+Görüş
+Görüşümüze göre, ilişikteki finansal tablolar, Bankanın finansal durumunu
+tüm önemli yönleriyle gerçeğe uygun bir biçimde sunmaktadır.
+Diğer Husus
+Önceki denetçi şartlı görüş bildirmiştir.
+"""
+    assert classify_opinion(text, "2024Q4").opinion_type == "clean"
+
+
+def test_signature_after_page_six_does_not_reclassify_the_verdict(monkeypatch):
+    from src.audit_reports import audit_opinion, extractor
+
+    pages = [CLEAN_AUDIT_TR] + ["audit work"] * 7 + [
+        "Prior-year Qualified Opinion\nDRT Bağımsız Denetim", "financial notes",
+    ]
+    read_pages = []
+
+    def read_page(_path, index):
+        read_pages.append(index)
+        return pages[index]
+
+    monkeypatch.setattr(extractor, "_HAS_FITZ", True)
+    monkeypatch.setattr(extractor, "_fitz_page_count", lambda _: len(pages))
+    monkeypatch.setattr(extractor, "_fitz_page_text", read_page)
+    r = audit_opinion.extract_opinion_from_pdf("sample.pdf", "2024Q4")
+    assert r.auditor == "Deloitte"
+    assert r.opinion_type == "clean"
+    assert r.source_page == 0
+    assert read_pages == list(range(9))
+
+
+def test_image_signature_override_requires_exact_source_bytes(monkeypatch, tmp_path):
+    from src.audit_reports import audit_opinion, extractor
+
+    path = tmp_path / "sample.pdf"
+    path.write_bytes(b"verified source")
+    entry = {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "auditor": "KPMG"}
+    monkeypatch.setattr(audit_opinion, "_auditor_overrides", lambda: {path.name: entry})
+    monkeypatch.setattr(extractor, "_HAS_FITZ", True)
+    monkeypatch.setattr(extractor, "_fitz_page_count", lambda _: 1)
+    monkeypatch.setattr(extractor, "_fitz_page_text", lambda *_: CLEAN_AUDIT_TR)
+
+    r = audit_opinion.extract_opinion_from_pdf(str(path), "2024Q4")
+    assert (r.auditor, r.opinion_type, r.basis_text, r.source_page) == ("KPMG", "clean", None, 0)
+    path.write_bytes(b"replacement source")
+    assert audit_opinion.extract_opinion_from_pdf(str(path), "2024Q4").auditor is None
