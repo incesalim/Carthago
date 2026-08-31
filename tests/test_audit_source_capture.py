@@ -358,6 +358,30 @@ def test_equity_wrapped_label_is_traced_to_the_stored_row():
     assert [r.mapped_key for r in capture.data_rows] == ["III.", "17"]
 
 
+def test_equity_standard_citation_matches_current_and_stored_labels():
+    from src.audit_reports.source_capture import stored_mapping_labels
+
+    sqlite_conn = sqlite3.connect(":memory:")
+    init_schema(sqlite_conn)
+    label = "Corrections and Accounting Policy Changes Made According to TAS 8"
+    report = SimpleNamespace(equity_change=SimpleNamespace(rows=[
+        SimpleNamespace(name=label, hierarchy="II.", order=2),
+    ]))
+    source = _FakeDoc([
+        "Paid-in Capital Premium Other Capital Reserves",
+        "II. Corrections and Accounting Policy Changes Made",
+        "According to TAS 8 " + "- " * 16,
+        "Unknown movement 1 2 3 4 5 6 7 8 9 10",
+    ])
+    sqlite_conn.execute("INSERT INTO bank_audit_equity_change "
+                        "(bank_ticker,period,kind,period_type,item_order,hierarchy,item_name) "
+                        "VALUES ('X','2026Q2','consolidated','current',2,'II.',?)", (label,))
+    mappings = stored_mapping_labels(sqlite_conn, "X", "2026Q2", "consolidated")
+    for current, stored in [(report, ()), (None, mappings["equity_change"])]:
+        capture = _capture_lane(source, [""], "equity_change", (1,), current, stored)
+        assert [row.mapped_key for row in capture.data_rows] == ["II.", None]
+
+
 def test_capture_rotated_equity_page_uses_visual_rows():
     import fitz
     from src.audit_reports.source_capture import _word_lines

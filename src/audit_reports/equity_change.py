@@ -656,7 +656,8 @@ def _eq_split(line: str) -> tuple[str | None, str]:
     # A clipped roman marker can turn III into II (ZIRAATK). The adjusted
     # balance's explicit I+II formula is unambiguous, just like the closing
     # formula above; preserve its figures and canonicalise only the marker.
-    if (_EQ_ADJUSTED_FORMULA_RX.search(line[:100])
+    if (re.match(r'^II\.?\s+', line)
+            and _EQ_ADJUSTED_FORMULA_RX.search(line[:100])
             and re.search(r'BAK[Iİ]YE|BALANCE', line[:100], re.I)):
         clean = _mask_label_refs(line)
         hier_m = _LINE_HIER_RX.match(clean)
@@ -836,6 +837,218 @@ def _eq_candidate_score(rows: list["EquityChangeRow"]) -> tuple[int, int, int]:
     return (tier1, n_real, len(rows))
 
 
+def _restore_equity_source_labels(
+    rows: list[EquityChangeRow], recons: list[list[str]],
+) -> list[EquityChangeRow]:
+    """Restore wrapped metadata only when every printed value already matches.
+
+    Some reconstructions retain a row's values but strand its label above it
+    (HALKB/TSKB II, SKBNK III, VAKBN 11.2). The source marker plus the complete
+    14/16-cell vector proves which existing row the text belongs to. This does
+    not insert cells, change figures, or guess metadata for an unknown row.
+    """
+    fields = (
+        'paid_in_capital', 'share_premium', 'share_cancellation_profits',
+        'other_capital_reserves', 'oci_not_reclassified_1',
+        'oci_not_reclassified_2', 'oci_not_reclassified_3',
+        'oci_reclassified_1', 'oci_reclassified_2', 'oci_reclassified_3',
+        'profit_reserves', 'prior_period_profit_loss', 'period_net_profit_loss',
+        'total_equity', 'minority_interest', 'total_equity_incl_minority',
+    )
+    evidence: dict[tuple, set[str]] = {}
+    widths = {16 if row.total_equity_incl_minority is not None else 14 for row in rows}
+    for lines in recons:
+        for index, line in enumerate(lines):
+            prefix: list[str] = []
+            for previous in reversed(lines[max(0, index - 3):index]):
+                if _count_value_tokens(previous) >= 10:
+                    break
+                prefix.insert(0, previous)
+            for source in (line, ' '.join([*prefix, line])):
+                marker, name = _eq_split(source)
+                if not marker or not name:
+                    continue
+                # _eq_split masks standards citations along with value tokens.
+                # Here the value boundary is known, so retain the literal label
+                # (including TAS 8 and a complete I+II formula) from the source.
+                region = _value_region(source)
+                offset = _mask_label_refs(source).find(region) if region else -1
+                source_label = source[:offset].strip() if offset >= 0 else ''
+                label_match = re.match(
+                    r'^(?:[IVX]{1,5}\.|\d{1,2}\.\d{1,2}\.?)\s*(.+)$', source_label)
+                if label_match:
+                    name = label_match[1].strip()
+                for width in widths:
+                    values = _parse_row_tokens(source, width)
+                    if values is not None and len(values) == width and all(
+                            value is not None for value in values):
+                        evidence.setdefault((marker, tuple(values)), set()).add(name)
+
+    restored = list(rows)
+    for index, row in enumerate(rows):
+        if row.name:
+            continue
+        marker = row.hierarchy
+        if not marker and 0 < index < len(rows) - 1:
+            # A markerless 11.2 can have exactly the same values as its parent
+            # XI. Only its two retained sibling markers distinguish the row.
+            previous, following = rows[index - 1].hierarchy, rows[index + 1].hierarchy
+            if previous == '11.1' and following == '11.3':
+                marker = '11.2'
+        if not marker:
+            continue
+        width = 16 if row.total_equity_incl_minority is not None else 14
+        values = tuple(getattr(row, field) for field in fields[:width])
+        names = evidence.get((marker, values), set())
+        # A shorter reconstruction may have retained only part of the label.
+        # Accept a unique full source label; conflicting labels stay untouched.
+        complete = {name for name in names if not any(
+            name != other and name in other for other in names)}
+        if len(complete) == 1:
+            restored[index] = replace(row, hierarchy=marker, name=complete.pop())
+    return restored
+
+
+def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
+    """Require exact source identities before admitting a sparse PDF grid.
+
+    Blank positions stay None. Summing the printed operands can establish the
+    table's alignment, but must never manufacture a zero disclosure in them.
+    Unlike the ordinary parser, this recovery has no rounding allowance.
+    """
+    starts = [i for i, (label, _) in enumerate(rows) if _eq_split(label)[0] == 'I.']
+    if len(starts) != 2:
+        return False
+    for start, end in zip(starts, starts[1:] + [len(rows)]):
+        block = rows[start:end]
+        marked = [(_eq_split(label)[0], values) for label, values in block]
+        by_marker = {marker: values for marker, values in marked if marker}
+        if len(by_marker) != sum(marker is not None for marker, _ in marked):
+            return False
+        closing = [values for (label, values), (marker, _) in zip(block, marked)
+                   if marker is None and _eq_is_closing(label)]
+        if (len(block) < 8 or len(closing) != 1
+                or not {'I.', 'III.', 'IV.', 'XI.'} <= by_marker.keys()
+                or any(value is None for value in closing[0])):
+            return False
+        for marker, values in marked:
+            if len(values) != 16:
+                return False
+            total = values[13]
+            components = sum(value for value in values[:13] if value is not None)
+            if total is None:
+                # A reserve transfer may print only equal, opposite components.
+                # Keep its undisclosed total null; no other missing-total row
+                # has enough evidence to admit through this fallback.
+                if marker != '11.2' or components != 0:
+                    return False
+            elif components != total:
+                return False
+            if values[15] is not None and (total is None
+                    or total + (values[14] or 0) != values[15]):
+                return False
+        for col in range(16):
+            opening = by_marker['I.'][col]
+            adjusted = by_marker['III.'][col]
+            correction = by_marker.get('II.', [None] * 16)[col]
+            if (opening or 0) + (correction or 0) != (adjusted or 0):
+                return False
+            printed_sum = sum(by_marker[marker][col] or 0 for marker in _EQ_ROW_SEQ[2:]
+                              if marker in by_marker)
+            if printed_sum != closing[0][col]:
+                return False
+    return True
+
+
+def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
+                           ) -> tuple[list[str], dict[int, list[float | None]]] | None:
+    """Read sparse 16-column tables using two complete closing rows as anchors.
+
+    ISCTR leaves unused cells physically blank, so a positional token list loses
+    their column positions. Two independently footing closing rows must expose
+    all 16 aligned column edges. Every other printed number must align uniquely
+    with one edge, and both blocks must reconcile in every component column.
+    This fallback neither guesses a missing amount nor fills a blank with zero.
+    """
+    if not _HAS_FITZ:
+        return None
+    try:
+        with _fitz.open(pdf_path) as doc:
+            page = doc[page_idx_0]
+            words = []
+            for word in page.get_text('words'):
+                rect = _fitz.Rect(word[:4]) * page.rotation_matrix
+                words.append((rect.x0, rect.y0, rect.x1, word[4]))
+    except Exception:
+        return None
+    buckets: list[list[tuple[float, float, float, str]]] = []
+    for word in sorted(words, key=lambda value: (value[1], value[0])):
+        if buckets and abs(word[1] - buckets[-1][0][1]) < 1.5:
+            buckets[-1].append(word)
+        else:
+            buckets.append([word])
+    for bucket in buckets:
+        bucket.sort(key=lambda value: value[0])
+    lines = [' '.join(word[3] for word in bucket) for bucket in buckets]
+    anchors = []
+    for line, bucket in zip(lines, buckets):
+        marker, name = _eq_split(line)
+        if marker is not None or not name or not _eq_is_closing(line):
+            continue
+        numeric = [word for word in bucket if _NUM_RX.fullmatch(word[3])]
+        if len(numeric) == 16:
+            values = [parse_num(word[3]) for word in numeric]
+            if (all(value is not None for value in values)
+                    and _row_fit_residual(values, 16) == 0):
+                anchors.append([word[2] for word in numeric])
+    if len(anchors) != 2 or any(abs(a - b) > 1 for a, b in zip(*anchors)):
+        return None
+    edges = anchors[0]
+    if min(b - a for a, b in zip(edges, edges[1:])) < 8:
+        return None
+    grid: dict[int, list[float | None]] = {}
+    source_rows = []
+    inside_block = False
+    for index, (line, bucket) in enumerate(zip(lines, buckets)):
+        marker, name = _eq_split(line)
+        if marker == 'I.':
+            inside_block = True
+        if marker is None and not (name and _eq_is_closing(line)):
+            # Unknown movements can cancel each other in every identity.
+            # Never omit a numeric source row inside an admitted period block.
+            if inside_block and any(_NUM_RX.fullmatch(word[3]) for word in bucket):
+                return None
+            continue
+        prefix = ' '.join(word[3] for word in bucket if word[2] < edges[0] - 2)
+        prefix = re.sub(r'^(?:[IVX]{1,5}\.?(?=\s)|\d{1,2}\.\d{1,2}\.?)\s*',
+                        '', _mask_label_refs(prefix))
+        # A misaligned first-column zero cannot be silently treated as label
+        # text: it would disappear without disturbing any arithmetic identity.
+        # Only known label references and the row marker may contain numbers.
+        if _NUM_RX.search(prefix):
+            return None
+        values: list[float | None] = [None] * 16
+        for word in bucket:
+            if word[2] < edges[0] - 2:
+                continue
+            if not _NUM_RX.fullmatch(word[3]):
+                return None
+            column = min(range(16), key=lambda i: abs(edges[i] - word[2]))
+            value = parse_num(word[3])
+            if (abs(edges[column] - word[2]) > 1 or values[column] is not None
+                    or value is None):
+                return None
+            values[column] = value
+        if any(value is not None for value in values):
+            grid[index] = values
+            source_rows.append((line, values))
+        if marker is None:
+            inside_block = False
+    if not _sparse_grid_closes(source_rows):
+        return None
+    return lines, grid
+
+
 def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                        n_cols: int) -> list[EquityChangeRow]:
     """Parse one equity-change page into EquityChangeRow objects.
@@ -849,7 +1062,9 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         GARAN/AKBNK landscape /Rotate-90 statements that previously only
         pdfplumber's x-clustering could read."""
 
-    def _parse_with(lines: list[str], nc: int) -> list[EquityChangeRow]:
+    def _parse_with(lines: list[str], nc: int,
+                    grid: dict[int, list[float | None]] | None = None
+                    ) -> list[EquityChangeRow]:
         result: list[EquityChangeRow] = []
         order = 0
         last_ri = -1            # index in _EQ_ROW_SEQ of the last main roman seen
@@ -860,7 +1075,9 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         pending_opening = None
         zero_adjustment = False
         opening_candidates = []
-        for line in lines:
+        for line_index, line in enumerate(lines):
+            if grid is not None and line_index not in grid:
+                continue
             line = line.strip()
             if not line:
                 continue
@@ -870,7 +1087,8 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
             date_range_values = (line[years[1].end():]
                                  if marker is None and not name and len(years) >= 2
                                  and years[1].end() <= 60 else None)
-            tokens = _parse_row_tokens(date_range_values or line, nc)
+            tokens = (grid[line_index] if grid is not None
+                      else _parse_row_tokens(date_range_values or line, nc))
             if tokens is None:
                 # ANADOLU prints the closing label on its own line, followed
                 # by a date and the complete values. Keep that label attached
@@ -878,7 +1096,7 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 if marker is None and name and _eq_is_closing(line):
                     stranded = name
                 continue
-            fitted = _try_fit(tokens, nc)
+            fitted = tokens if grid is not None else _try_fit(tokens, nc)
             if fitted is None:
                 continue
             # TAKAS prints its opening values on the date-range line directly
@@ -994,6 +1212,12 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         other = 16 if n_cols == 14 else 14
         candidates += [_parse_with(lines, other) for lines in recons]
 
+    if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
+        sparse = _fitz_sparse_page_grid(pdf_path, page_idx_1 - 1)
+        if sparse is not None:
+            lines, grid = sparse
+            candidates.append(_parse_with(lines, 16, grid))
+
     # Hybrid selection: prefer the reconstruction whose column chain VALIDATES
     # (closing ≈ Σ romans III..XI), falling back to most-rows when none clearly
     # validates — so the parser self-selects the correct engine/template instead
@@ -1038,17 +1262,19 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 split_idx = idx - 1
                 break
     if split_idx is not None:
-        # Order signal, value-based first: in prior-then-current order block1
-        # (prior) CLOSES where block2 (current) OPENS, so the period totals chain
-        # (block1.closing == block2.opening). Robust where the year-text heuristic
-        # can't read the order — ANADOLU prints the period year only in the page
-        # header, never beside the closing row, so _block1_period_for_split
-        # defaulted to 'current' and swapped its prior-first page. Two years of
-        # movement separate block1.closing from block2.opening under the standard
-        # current-then-prior order, so this never false-fires there.
+        # Explicit, distinct block headings take precedence over a coincidental
+        # equality between a closing balance and the next opening balance.
+        # Keep the value-based fallback for pages whose headers are unreadable.
+        header_orders = set()
+        for lines in recons:
+            headings = tuple(kind for line in lines if (kind := _period_header(line)))
+            if len(headings) == 2 and headings[0] != headings[1]:
+                header_orders.add(headings)
         c1 = best[split_idx].total_equity
         o2 = best[split_idx + 1].total_equity if split_idx + 1 < len(best) else None
-        if c1 and o2 is not None and abs(c1 - o2) <= abs(c1) * 1e-4:
+        if len(header_orders) == 1:
+            block1 = next(iter(header_orders))[0]
+        elif c1 and o2 is not None and abs(c1 - o2) <= abs(c1) * 1e-4:
             block1 = 'prior'
         else:
             block1 = _block1_period_for_split(pdf_path, page_idx_1)
@@ -1058,7 +1284,7 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         for r in best[split_idx + 1:]:
             r.period_type = block2
     # Drop spurious positional-inference roman duplicates and renumber.
-    return _dedup_roman_rows(best)
+    return _restore_equity_source_labels(_dedup_roman_rows(best), recons)
 
 
 # ---------------------------------------------------------------------------

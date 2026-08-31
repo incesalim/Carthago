@@ -320,7 +320,9 @@ def _dynamic_mappings(report: object | None, lane: str) -> list[tuple[str, str]]
     if lane == "equity_change":
         rows = getattr(getattr(report, "equity_change", None), "rows", []) or []
         for row in rows:
-            label = _fold(getattr(row, "name", "") or "")
+            # Match the source-side normalization, which excludes numeric
+            # references such as TAS 8 from the label comparison.
+            label = _fold(_VALUE_RX.sub(" ", getattr(row, "name", "") or ""))
             if len(label.replace(" ", "")) >= 4:
                 key = str(getattr(row, "hierarchy", "") or getattr(row, "order", ""))
                 out.append((key, label))
@@ -709,7 +711,7 @@ def stored_mapping_labels(
             "WHERE bank_ticker=? AND period=? AND kind=?",
             (bank_ticker, period, kind),
         ):
-            label = _fold(name or "")
+            label = _fold(_VALUE_RX.sub(" ", name or ""))
             if len(label.replace(" ", "")) >= 4:
                 out["equity_change"].append((str(hierarchy or ""), label))
     if "loans_by_sector" in selected and _has_table(

@@ -27,6 +27,13 @@ def test_max_year_picks_latest_period_end():
     assert _max_year("no years here") is None
 
 
+def test_adjusted_label_does_not_override_an_explicit_fourth_roman():
+    # TSKB 2025Q1 prior block has displaced labels: IV carries the printed
+    # comprehensive-income values beside an adjusted-balance label. The clipped
+    # II -> III repair must not rewrite other explicit source markers.
+    assert EC._eq_split("IV. Adjusted Beginning Balance (I+II) - 1,854,709")[0] == 'IV.'
+
+
 def test_prior_marker_matches_onceki_and_variants():
     for s in ("Önceki Dönem", "ÖNCEKİ DÖNEM", "Öncesi Dönem", "Önce Dönem",
               "Prior Period", "Previous Period"):

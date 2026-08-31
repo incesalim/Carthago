@@ -284,6 +284,110 @@ def _net_off_corroborated(entries: dict[str, dict[str, float | None]]) -> bool:
     return abs(no - (dr - dp)) < 1.0 or abs(no - (dr + dp)) < 1.0
 
 
+def _coordinate_current_block(words: list, cols: list[str]) -> dict[str, dict[str, float]]:
+    """Recover a complete current block whose individual cells have split baselines.
+
+    ICBC 2022 consolidated prints EUR figures 4pt below the other currencies,
+    including a minus sign on its own baseline. Learn the right-aligned currency
+    cells from the intact assets row, and assign each word to its nearest label.
+    Never borrow from a neighbouring labelled row or derive a missing amount.
+    All six rows, currency totals and both balance/derivative identities must
+    corroborate the candidate before it can replace a broken ordinary parse.
+    """
+    lines: list[tuple[float, list]] = []
+    for word in sorted(words, key=lambda w: (w[1], w[0])):
+        if lines and word[1] - lines[-1][0] <= 3:
+            lines[-1][1].append(word)
+        else:
+            lines.append((word[1], [word]))
+    asset = next(((y, ws) for y, ws in lines
+                  if any(rx.match(" ".join(w[4] for w in sorted(ws)))
+                         for rx in _ROW_RX[0][1])), None)
+    if asset is None:
+        return {}
+    _, asset_words = asset
+    anchors = sorted((w for w in asset_words if _NUM_TOKEN.fullmatch(w[4])
+                      and not _FOOTNOTE_RX.fullmatch(w[4])), key=lambda w: w[0])
+    if len(anchors) != len(cols):
+        return {}
+    right_edges = [w[2] for w in anchors]
+    label_edge = min(w[0] for w in anchors) - 10
+    # Rebuild labels independently of the shifted number baselines. Include all
+    # labels, not just summary rows: their cells cannot be stolen by a summary.
+    label_lines: list[tuple[float, list]] = []
+    for word in sorted((w for w in words if w[2] < label_edge
+                        and not _NUM_TOKEN.fullmatch(w[4]) and w[4] not in _NIL),
+                       key=lambda w: (w[1], w[0])):
+        if label_lines and word[1] - label_lines[-1][0] <= 3:
+            label_lines[-1][1].append(word)
+        else:
+            label_lines.append((word[1], [word]))
+    labels: dict[str, float] = {}
+    for y, ws in label_lines:
+        text = " ".join(w[4] for w in sorted(ws))
+        fld = next((f for f, rxs in _ROW_RX if any(rx.match(text) for rx in rxs)), None)
+        if fld == "on_bs_assets" and fld in labels:
+            break  # current block only; the next assets row starts the prior
+        if fld and (labels or fld == "on_bs_assets"):
+            if fld in labels:
+                return {}
+            labels[fld] = y
+    if list(labels) != _FIELDS:
+        return {}
+    candidate = {c: {} for c in cols}
+    for fld, y in labels.items():
+        owned = []
+        for w in words:
+            if w[0] < label_edge or abs(w[1] - y) > 7:
+                continue
+            distances = sorted((abs(w[1] - ly), ly) for ly, _ in label_lines)
+            tied = len(distances) > 1 and distances[1][0] - distances[0][0] < .1
+            if distances[0][1] != y or tied:
+                continue
+            if w[4] in _NIL or _NUM_TOKEN.fullmatch(w[4]):
+                owned.append(w)
+        used = []
+        for i, (ccy, edge) in enumerate(zip(cols, right_edges)):
+            numbers = [w for w in owned if _NUM_TOKEN.fullmatch(w[4])
+                       and abs(w[2] - edge) <= 2]
+            if len(numbers) > 1:
+                return {}
+            left = right_edges[i - 1] + 2 if i else label_edge
+            signs = [w for w in owned if w[4] in _NIL and left < w[0]
+                     and w[2] <= edge + 2]
+            if len(signs) > 1 or (not numbers and len(signs) != 1):
+                return {}
+            if numbers:
+                number = numbers[0]
+                value = parse_num(number[4])
+                if signs:
+                    sign = signs[0]
+                    if value is None or value < 0 or sign[4] != "-":
+                        return {}
+                    # Same-cell prefix or a right-aligned sign above the number.
+                    if not (0 <= number[0] - sign[2] <= 25
+                            or (abs(sign[2] - edge) <= 2 and 0 < number[1] - sign[1] <= 9)):
+                        return {}
+                    value = -value
+                used.extend(numbers)
+            else:
+                value = 0.0  # an explicit source nil, not an undisclosed cell
+            used.extend(signs)
+            if value is None:
+                return {}
+            candidate[ccy][fld] = value
+        if len(used) != len(owned):
+            return {}  # an unassigned sign/amount makes the ownership ambiguous
+    if not _foots(candidate):
+        return {}
+    if not all(_net_off_corroborated({"TOTAL": f}) for f in candidate.values()):
+        return {}
+    if any(abs(sum(candidate[c][f] for c in cols if c != "TOTAL")
+               - candidate["TOTAL"][f]) >= 1 for f in _FIELDS):
+        return {}
+    return candidate
+
+
 def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
     # `pdf` (a pdfplumber handle) is accepted for signature parity with the audit
     # lane but unused — parsing is fitz-only via pdf_path.
@@ -353,6 +457,13 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
                     for code, tok in zip(cols, vals):
                         data.setdefault((period, code), {})[fld] = parse_num(tok)
                     break
+        current = {ccy: f for (pt, ccy), f in data.items() if pt == "current"}
+        if cols and not _foots(current):
+            candidate = _coordinate_current_block(doc[start].get_text("words"), cols)
+            if candidate:
+                for key in [k for k in data if k[0] == "current"]:
+                    del data[key]
+                data.update({("current", ccy): fields for ccy, fields in candidate.items()})
     finally:
         doc.close()
 
@@ -406,9 +517,9 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
         # prints only two of four net-balance columns, so the row is dropped for a
         # column-count mismatch). assets − liab is the figure the table itself would
         # print; we only ever FILL a gap, never overwrite a value that was read.
-        # PRIOR only: a blank current net-balance is the sign of a shifted CURRENT
-        # block (which we don't repair), and deriving it there would silently mask
-        # that break — better to let the completeness validator fail loudly.
+        # PRIOR only: a blank current net-balance signals a broken CURRENT block.
+        # That needs a corroborated source-cell repair above; deriving it here
+        # would mask any layout failure that the repair correctly rejected.
         if ptype == "prior" and fields.get("net_on_balance") is None \
                 and fields.get("on_bs_assets") is not None \
                 and fields.get("on_bs_liab") is not None:

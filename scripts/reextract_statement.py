@@ -22,6 +22,7 @@ sync_audit_expected.py --push afterward to refresh the coverage matrix.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sqlite3
@@ -597,6 +598,14 @@ def main() -> int:
                                       f"S{result.skipped}:{check}")
                         print(f"  [vFAIL] {t:<8} {p} {k:<14} {lane_key} {detail}",
                               flush=True)
+                        diagnostics = {
+                            gate: {"passed": result.passed, "failed": result.failed,
+                                   "skipped": result.skipped, "failures": result.failures}
+                            if result is not None else None
+                            for gate, result in failed_gates
+                        }
+                        print(f"  [CANDIDATE_FAILURES] {t} {p} {k} "
+                              + json.dumps(diagnostics, ensure_ascii=False), flush=True)
                     elif gate_statements:
                         counts["vok"] += 1
                     candidate_rejected = bool(args.require_passing and failed_gates)

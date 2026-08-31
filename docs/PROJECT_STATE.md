@@ -58,7 +58,13 @@ passed next, including HAYATK's EPS-boundary correction. Capital repairs match
 all 460 reviewed fields in D1. ICBC's missing prior gross credit stock is now
 recovered only from all three complete borrower-category disclosures, their
 printed parent total, and matching provision/net anchors. Its coordinated unit
-repair remains pending; unresolved source discrepancies remain visible.
+repair is running after its reviewed preview; Denizbank's paired balance-sheet
+preview also has zero failed checks and changes no other monetary lane. Eight
+wrapped equity-label repairs preserve every financial value. A sparse-grid
+recovery for ISCTR 2026Q1 consolidated uses two complete closing-row anchors,
+exact identities, and retains unprinted cells as null. Historical ICBC FX roots
+2022Q4–2025Q4 are source-verified for chronological repair; unresolved source
+discrepancies remain visible.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain
