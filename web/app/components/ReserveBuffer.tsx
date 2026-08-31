@@ -15,6 +15,7 @@
  * CBRT as required reserves; the net→excl-swaps gap is the swap stock. A zero
  * reference line makes the negative stretch legible.
  */
+import { useText } from "@/i18n/use-text";
 import {
   Area,
   CartesianGrid,
@@ -63,6 +64,7 @@ export default function ReserveBuffer({
   source?: React.ReactNode;
   height?: number;
 }) {
+  const tx = useText();
   const t = useChartTheme();
   const { filtered } = useRangeFilter(data, (r) => r.period);
   // The swap band + the CBRT's-own line take the plum from the categorical ramp
@@ -92,7 +94,7 @@ export default function ReserveBuffer({
   };
 
   return (
-    <ChartCard plain title={title} description={description} source={source}>
+    <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
       <ChartData
         table={wideToTable(
           rows,
@@ -130,7 +132,7 @@ export default function ReserveBuffer({
                 <NearestSeriesTooltip
                   active={p.active}
                   payload={p.payload?.filter((s) => keys.includes(String(s.dataKey)))}
-                  label={p.label}
+                  label={tx(p.label)}
                   coordinate={p.coordinate}
                   formatValue={(v) => fmt(v)}
                 />
@@ -139,7 +141,7 @@ export default function ReserveBuffer({
             {/* Gap 1: gross → net = the BANKS' own FX, held at the CBRT. */}
             <Area
               dataKey="banksBand"
-              name="Banks' required reserves"
+              name={tx("Banks' required reserves")}
               stroke="none"
               fill={t.context}
               fillOpacity={0.35}
@@ -149,7 +151,7 @@ export default function ReserveBuffer({
             {/* Gap 2: net → excl-swaps = the swap stock (borrowed FX). */}
             <Area
               dataKey="swapBand"
-              name="Swapped in"
+              name={tx("Swapped in")}
               stroke="none"
               fill={PLUM}
               fillOpacity={0.3}
@@ -161,7 +163,7 @@ export default function ReserveBuffer({
                 key={k}
                 type="monotone"
                 dataKey={k}
-                name={LABELS[k]}
+                name={tx(LABELS[k])}
                 stroke={ink[k]}
                 strokeWidth={k === "net" ? 2.5 : 1.75}
                 strokeLinecap="round"

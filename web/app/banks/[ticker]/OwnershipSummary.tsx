@@ -4,6 +4,7 @@
  * subsidiaries chip card. The fuller view (radial map, capital breakdown,
  * indirect holders, subsidiaries table) was retired in the redesign.
  */
+import { useText } from "@/i18n/use-text";
 import { holderShortName, isFreeFloatHolder, type KapOwnershipRow } from "@/app/lib/kap";
 import { Card } from "@/app/components/ui/card";
 
@@ -23,6 +24,7 @@ const isAssociate = (rel: string | null): boolean =>
   (rel ?? "").toLocaleUpperCase("tr-TR").includes("İŞTİRAK");
 
 export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) {
+  const tx = useText();
   if (rows.length === 0) return null;
 
   const shareholders = rows.filter(
@@ -42,8 +44,8 @@ export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) 
       {shareholders.length > 0 && (
         <Card className="p-5">
           <div className="mb-4">
-            <div className="text-sm font-bold text-foreground">Shareholders ≥ 5%</div>
-            <div className="text-xs text-muted-foreground">KAP Genel Bilgi Formu</div>
+            <div className="text-sm font-bold text-foreground">{tx("Shareholders ≥ 5%")}</div>
+            <div className="text-xs text-muted-foreground">{tx("KAP Genel Bilgi Formu")}</div>
           </div>
           <div className="space-y-3">
             {shareholders.map((r) => {
@@ -54,12 +56,12 @@ export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) 
                   <div className="flex items-baseline justify-between gap-3">
                     <span
                       className="min-w-0 truncate font-medium text-foreground"
-                      title={r.holder ?? undefined}
+                      title={tx(r.holder ?? undefined)}
                     >
-                      {holderLabel(r.holder)}
+                      {tx(holderLabel(r.holder))}
                     </span>
                     <span className="shrink-0 font-semibold tabular-nums text-foreground">
-                      {fmtPct(r.ratio_pct)}
+                      {tx(fmtPct(r.ratio_pct))}
                     </span>
                   </div>
                   <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
@@ -81,8 +83,8 @@ export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) 
       {subNames.length > 0 && (
         <Card className="p-5">
           <div className="mb-4">
-            <div className="text-sm font-bold text-foreground">Subsidiaries &amp; investments</div>
-            <div className="text-xs text-muted-foreground">KAP Genel Bilgi Formu · §7</div>
+            <div className="text-sm font-bold text-foreground">{tx("Subsidiaries & investments")}</div>
+            <div className="text-xs text-muted-foreground">{tx("KAP Genel Bilgi Formu · §7")}</div>
           </div>
           <div className="flex flex-wrap gap-2">
             {subNames.map((n) => (
@@ -90,7 +92,7 @@ export default function OwnershipSummary({ rows }: { rows: KapOwnershipRow[] }) 
                 key={n}
                 className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-foreground"
               >
-                {n}
+                {tx(n)}
               </span>
             ))}
           </div>

@@ -12,6 +12,7 @@
  *
  * The floating bars are Recharts *range* bars (`dataKey` returning `[lo, hi]`).
  */
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   BarChart,
@@ -54,6 +55,7 @@ export default function StepWaterfall({
   source?: React.ReactNode;
   height?: number;
 }) {
+  const tx = useText();
   const t = useChartTheme();
 
   // Bars in the order the year happened: level → the non-step → the step → level.
@@ -82,7 +84,7 @@ export default function StepWaterfall({
   const hi = Math.max(from, to, afterRest) + 1.2;
 
   return (
-    <ChartCard plain title={title} description={description} source={source}>
+    <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

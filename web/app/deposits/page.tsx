@@ -9,6 +9,8 @@
  * (real-persons 4.0.3 + commercial 4.0.6 + official 4.0.9). Growth: monthly YoY → weekly
  * 52w; the old monthly MoM chart → weekly 4w annualized.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -61,11 +63,15 @@ import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banking Sector — Deposits",
   description: "Deposit trends for Türkiye's banks — TL vs FX, by bank type, and deposit growth from BDDK weekly and monthly bulletins.",
   alternates: { canonical: "/deposits" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const MEVDUAT = "mevduat";
 const TOTAL = "4.0.1";
@@ -147,6 +153,7 @@ function pivotByCode(rows: WeeklyRow[], codes: string[]): Record<string, string 
 }
 
 export default async function DepositsPage() {
+  const tx = await getText();
   // What lands next — derived from the record periods + TCMB's published calendar.
   const ahead = await aheadSlots();
   const all = Object.values(WEEKLY_BANK_TYPES);
@@ -216,8 +223,8 @@ export default async function DepositsPage() {
     fxShare,
     demandShare: dShare,
     ldr: ldrSector,
-  });
-  const readData = await withLlmHeadline("deposits", read);
+  }, tx.locale);
+  const readData = await withLlmHeadline("deposits", read, tx.locale);
 
   // ---- the vitals — every figure computed from the series above -------------
   const recWeek = weekLabel(depSector.at(-1)?.period);
@@ -352,10 +359,7 @@ export default async function DepositsPage() {
       v: repriceQuarter.toFixed(1),
       unit: "%",
       effect: (
-        <>
-          Demand {fmtPct(demandPct)} + ≤1m {fmtPct(m1Pct)} + 1–3m {fmtPct(m13Pct)} of the book.
-          The sector lends long and <b>funds itself inside a quarter</b> — a policy move reaches
-          the deposit cost almost at once. <Go href="/liquidity">/liquidity</Go>
+        <>{tx("Demand ")}{tx(fmtPct(demandPct))} + ≤1m {tx(fmtPct(m1Pct))} + 1–3m {tx(fmtPct(m13Pct))}{tx(" of the book. The sector lends long and ")}<b>{tx("funds itself inside a quarter")}</b>{tx(" — a policy move reaches the deposit cost almost at once. ")}<Go href="/liquidity">{tx("/liquidity")}</Go>
         </>
       ),
     });
@@ -366,15 +370,14 @@ export default async function DepositsPage() {
       v: signedPp(fundingGap, 1).replace("pp", ""),
       unit: "pp",
       effect: (
-        <>
-          Loans grow {fmtPct(loansYoYNow)} against deposits&rsquo; {fmtPct(depYoYNow)} —{" "}
+        <>{tx("Loans grow ")}{tx(fmtPct(loansYoYNow))}{tx(" against deposits’ ")}{tx(fmtPct(depYoYNow))} —{" "}
           <b>
-            {fundingGap > 0
+            {tx(fundingGap > 0
               ? "the loan book is outrunning the base"
-              : "deposits are funding the loan book outright"}
+              : "deposits are funding the loan book outright")}
           </b>
-          {fundingGap > 0 ? ", and the difference is bought in the market." : "."}{" "}
-          <Go href="/credit">/credit</Go>
+          {tx(fundingGap > 0 ? ", and the difference is bought in the market." : ".")}{" "}
+          <Go href="/credit">{tx("/credit")}</Go>
         </>
       ),
     });
@@ -386,11 +389,8 @@ export default async function DepositsPage() {
       unit: "%",
       effect: (
         <>
-          {fmtPct(depYoYNow)} nominal against {fmtPct(cpiImplied)} CPI:{" "}
-          <b>
-            the deposit base is {realNow < 0 ? "shrinking" : "growing"} in real terms
-          </b>{" "}
-          even as it swells in lira. <Go href="/economy">/economy</Go>
+          {tx(fmtPct(depYoYNow))}{tx(" nominal against ")}{tx(fmtPct(cpiImplied))}{tx(" CPI:")}{" "}
+          <b>{tx("the deposit base is ")}{tx(realNow < 0 ? "shrinking" : "growing")}{tx(" in real terms")}</b>{" "}{tx("even as it swells in lira. ")}<Go href="/economy">{tx("/economy")}</Go>
         </>
       ),
     });
@@ -402,17 +402,15 @@ export default async function DepositsPage() {
       unit: "%",
       effect: (
         <>
-          {fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—"} over 52 weeks —{" "}
-          <b>
-            dollarization is{" "}
-            {fxShareDelta != null && Math.abs(fxShareDelta) < 1
+          {tx(fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—")}{tx(" over 52 weeks —")}{" "}
+          <b>{tx("dollarization is")}{" "}
+            {tx(fxShareDelta != null && Math.abs(fxShareDelta) < 1
               ? "flat, not falling"
               : fxShareDelta != null && fxShareDelta < 0
                 ? "receding"
-                : "building"}
-          </b>
-          . The TL leg ({fmtPct(tlYoYNow)}) is carrying the growth.{" "}
-          <Go href="/liquidity">/liquidity</Go>
+                : "building")}
+          </b>{tx(". The TL leg (")}{tx(fmtPct(tlYoYNow))}{tx(") is carrying the growth.")}{" "}
+          <Go href="/liquidity">{tx("/liquidity")}</Go>
         </>
       ),
     });
@@ -425,57 +423,45 @@ export default async function DepositsPage() {
       active: repriceQuarter != null && repriceQuarter > 85,
       body: (
         <>
-          <b className="font-semibold">Repricing cliff</b> — {fmtPct(repriceQuarter)} of deposits
-          mature within three months (demand {fmtPct(demandPct)} + ≤3m{" "}
-          {fmtPct(m1Pct != null && m13Pct != null ? m1Pct + m13Pct : null)}). Funding cost tracks
-          the policy rate with almost no lag.
-        </>
+          <b className="font-semibold">{tx("Repricing cliff")}</b> — {tx(fmtPct(repriceQuarter))}{tx(" of deposits mature within three months (demand ")}{tx(fmtPct(demandPct))} + ≤3m{" "}
+          {tx(fmtPct(m1Pct != null && m13Pct != null ? m1Pct + m13Pct : null))}{tx("). Funding cost tracks the policy rate with almost no lag.")}</>
       ),
       rule: "share(demand + ≤3m) > 85%",
-      clear: <>Maturity ladder — {fmtPct(repriceQuarter)} of the book reprices inside a quarter</>,
+      clear: <>{tx("Maturity ladder — ")}{tx(fmtPct(repriceQuarter))}{tx(" of the book reprices inside a quarter")}</>,
     },
     {
       code: "funding-gap",
       active: fundingGap != null && fundingGap > 3,
       body: (
         <>
-          <b className="font-semibold">Funding gap</b> — loans {fmtPct(loansYoYNow)} vs deposits{" "}
-          {fmtPct(depYoYNow)} y/y: the loan book grows {Math.abs(fundingGap ?? 0).toFixed(1)}pp
-          faster than the base that funds it.
-        </>
+          <b className="font-semibold">{tx("Funding gap")}</b>{tx(" — loans ")}{tx(fmtPct(loansYoYNow))}{tx(" vs deposits")}{" "}
+          {tx(fmtPct(depYoYNow))}{tx(" y/y: the loan book grows ")}{tx(Math.abs(fundingGap ?? 0).toFixed(1))}{tx("pp faster than the base that funds it.")}</>
       ),
       rule: "loans_52w − deposits_52w > 3pp",
-      clear: <>Funding gap — loans {fmtPct(loansYoYNow)} vs deposits {fmtPct(depYoYNow)}</>,
+      clear: <>{tx("Funding gap — loans ")}{tx(fmtPct(loansYoYNow))}{tx(" vs deposits ")}{tx(fmtPct(depYoYNow))}</>,
     },
     {
       code: "real-base",
       active: realNow != null && realNow < 0,
       body: (
         <>
-          <b className="font-semibold">Real base shrinking</b> — deposits {fmtPct(depYoYNow)}{" "}
-          against {fmtPct(cpiImplied)} CPI: the base loses{" "}
-          {realNow != null ? Math.abs(realNow).toFixed(1) : "—"}% of its purchasing power a year
-          while the loan book grows.
-        </>
+          <b className="font-semibold">{tx("Real base shrinking")}</b>{tx(" — deposits ")}{tx(fmtPct(depYoYNow))}{" "}{tx("against ")}{tx(fmtPct(cpiImplied))}{tx(" CPI: the base loses")}{" "}
+          {tx(realNow != null ? Math.abs(realNow).toFixed(1) : "—")}{tx("% of its purchasing power a year while the loan book grows.")}</>
       ),
       rule: "deposits_52w − cpi_yoy < 0",
-      clear: <>Real growth — deposits clear CPI by {realNow != null ? signedPp(realNow, 1) : "—"}</>,
+      clear: <>{tx("Real growth — deposits clear CPI by ")}{tx(realNow != null ? signedPp(realNow, 1) : "—")}</>,
     },
     {
       code: "dollarization",
       active: fxShareDelta != null && fxShareDelta > 1,
       body: (
         <>
-          <b className="font-semibold">Re-dollarization</b> — FX share {fmtPct(fxShareNow)},{" "}
-          {fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—"} over 52 weeks: savers are
-          moving back into hard currency.
-        </>
+          <b className="font-semibold">{tx("Re-dollarization")}</b>{tx(" — FX share ")}{tx(fmtPct(fxShareNow))},{" "}
+          {tx(fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—")}{tx(" over 52 weeks: savers are moving back into hard currency.")}</>
       ),
       rule: "Δ52w(fx_share) > +1pp",
       clear: (
-        <>
-          Dollarization — FX share {fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—"} over 52w
-        </>
+        <>{tx("Dollarization — FX share ")}{tx(fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—")}{tx(" over 52w")}</>
       ),
     },
     {
@@ -483,13 +469,11 @@ export default async function DepositsPage() {
       active: ldrNow != null && ldrNow > LDR_PUBLISHED.line,
       body: (
         <>
-          <b className="font-semibold">Funding stretch</b> — TL+FC loan/deposit {fmtPct(ldrNow)}:
-          lending leans on non-deposit funding. The TL-only book is tested separately, against a
-          tighter line, on <Go href="/liquidity">/liquidity</Go>.
+          <b className="font-semibold">{tx("Funding stretch")}</b>{tx(" — TL+FC loan/deposit ")}{tx(fmtPct(ldrNow))}{tx(": lending leans on non-deposit funding. The TL-only book is tested separately, against a tighter line, on ")}<Go href="/liquidity">{tx("/liquidity")}</Go>.
         </>
       ),
       rule: LDR_PUBLISHED.rule,
-      clear: <>Funding stretch — TL+FC loan/deposit {fmtPct(ldrNow)}, below the line</>,
+      clear: <>{tx("Funding stretch — TL+FC loan/deposit ")}{tx(fmtPct(ldrNow))}{tx(", below the line")}</>,
     },
   ];
   const activeFlags = flags.filter((f) => f.active).length;
@@ -507,7 +491,7 @@ export default async function DepositsPage() {
 
   const standings: StandingsGroup[] = [
     {
-      heading: `Deposit growth, 52w — ${weekLabel(depSector.at(-1)?.period, false)}`,
+      heading: tx("Deposit growth, 52w — {0}", {0: weekLabel(depSector.at(-1)?.period, false)}),
       rows: growthRanked.map((r, i) => ({
         rank: i + 1,
         name: WEEKLY_BANK_TYPE_LABELS[r.bank_type_code] ?? r.bank_type_code,
@@ -517,7 +501,7 @@ export default async function DepositsPage() {
       })),
     },
     {
-      heading: `${LDR_PUBLISHED.label} — monthly`,
+      heading: tx("{0} — monthly", {0: LDR_PUBLISHED.label}),
       rows: ldrRanked.map((r, i) => ({
         rank: i + 1,
         name: BANK_TYPE_LABELS[r.code] ?? r.code,
@@ -530,10 +514,9 @@ export default async function DepositsPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Deposits"
+        title={tx("Deposits")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">W/E {recWeek}</b> · vs {vsWeek}
+          <>{tx("Record ")}<b className="font-normal text-foreground">W/E {tx(recWeek)}</b>{tx(" · vs ")}{tx(vsWeek)}
           </>
         }
         right="every figure computed from source series"
@@ -541,21 +524,20 @@ export default async function DepositsPage() {
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="equal weight · trailing 26 weeks"
+        title={tx("The vitals")}
+        meta={tx("equal weight · trailing 26 weeks")}
         className="mb-2.5 mt-6"
       />
       <Vitals>
         <Vital
-          label="Deposit growth, 52w"
+          label={tx("Deposit growth, 52w")}
           value={depYoYNow != null ? depYoYNow.toFixed(1) : "—"}
           unit="%"
           series={yoySector.slice(-26)}
           decimals={1}
           note={
             fundingGap != null ? (
-              <>
-                loans {fmtPct(loansYoYNow)} —{" "}
+              <>{tx("loans ")}{tx(fmtPct(loansYoYNow))} —{" "}
                 <em
                   className={
                     fundingGap > 0
@@ -563,17 +545,14 @@ export default async function DepositsPage() {
                       : "not-italic font-semibold text-positive"
                   }
                 >
-                  {fundingGap > 0 ? "outrun" : "trail"} deposits by {Math.abs(fundingGap).toFixed(1)}pp
-                </em>{" "}
-                <Link href="/credit" className="font-semibold text-primary">
-                  /credit
-                </Link>
+                  {tx(fundingGap > 0 ? "outrun" : "trail")}{tx(" deposits by ")}{tx(Math.abs(fundingGap).toFixed(1))}{tx("pp")}</em>{" "}
+                <Link href="/credit" className="font-semibold text-primary">{tx("/credit")}</Link>
               </>
             ) : undefined
           }
         />
         <Vital
-          label="4w momentum, ann."
+          label={tx("4w momentum, ann.")}
           value={mom4Now != null ? mom4Now.toFixed(1) : "—"}
           unit="%"
           series={mom4Sector.slice(-26)}
@@ -581,14 +560,14 @@ export default async function DepositsPage() {
           note={
             mom4Now != null && depYoYNow != null ? (
               <>
-                {signedPp(mom4Now - depYoYNow, 1)} vs the 52w pace —{" "}
-                {mom4Now > depYoYNow ? "accelerating" : "cooling"}
+                {tx(signedPp(mom4Now - depYoYNow, 1))}{tx(" vs the 52w pace —")}{" "}
+                {tx(mom4Now > depYoYNow ? "accelerating" : "cooling")}
               </>
             ) : undefined
           }
         />
         <Vital
-          label="TL deposits, 52w"
+          label={tx("TL deposits, 52w")}
           value={tlYoYNow != null ? tlYoYNow.toFixed(1) : "—"}
           unit="%"
           series={tlYoySector.slice(-26)}
@@ -596,31 +575,28 @@ export default async function DepositsPage() {
           note={
             tlYoYNow != null && depYoYNow != null ? (
               <>
-                {signedPp(tlYoYNow - depYoYNow, 1)} vs the total book — the TL leg{" "}
-                {tlYoYNow >= depYoYNow ? "outpaces" : "lags"} the headline
-              </>
+                {tx(signedPp(tlYoYNow - depYoYNow, 1))}{tx(" vs the total book — the TL leg")}{" "}
+                {tx(tlYoYNow >= depYoYNow ? "outpaces" : "lags")}{tx(" the headline")}</>
             ) : undefined
           }
         />
         <Vital
-          label="FX share of deposits"
+          label={tx("FX share of deposits")}
           value={fxShareNow != null ? fxShareNow.toFixed(1) : "—"}
           unit="%"
           series={fxShare.slice(-26)}
           decimals={1}
           note={
             <>
-              {fxShareDelta != null
-                ? `${signedPp(fxShareDelta, 1)} over 52w — ${fxShareDelta < 0 ? "de-dollarizing" : "re-dollarizing"}`
-                : "the dollarization tell"}{" "}
-              <Link href="/liquidity" className="font-semibold text-primary">
-                /liquidity
-              </Link>
+              {tx(fxShareDelta != null
+                ? tx("{0} over 52w — {1}", {0: signedPp(fxShareDelta, 1), 1: fxShareDelta < 0 ? "de-dollarizing" : "re-dollarizing"})
+                : "the dollarization tell")}{" "}
+              <Link href="/liquidity" className="font-semibold text-primary">{tx("/liquidity")}</Link>
             </>
           }
         />
         <Vital
-          label="Demand share"
+          label={tx("Demand share")}
           value={dShareNow != null ? dShareNow.toFixed(1) : "—"}
           unit="%"
           series={dShare.slice(-26)}
@@ -628,26 +604,26 @@ export default async function DepositsPage() {
           note={
             dShareDelta != null ? (
               <>
-                {signedPp(dShareDelta, 1)} over 52w — funding{" "}
-                {dShareDelta >= 0 ? "cheaper, less sticky in rate terms" : "termed out"}
+                {tx(signedPp(dShareDelta, 1))}{tx(" over 52w — funding")}{" "}
+                {tx(dShareDelta >= 0 ? "cheaper, less sticky in rate terms" : "termed out")}
               </>
             ) : undefined
           }
         />
         <Vital
-          label={LDR_PUBLISHED.label}
+          label={tx(LDR_PUBLISHED.label)}
           value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
           unit="%"
           series={ldrSector.slice(-13)}
           decimals={1}
           note={
             <>
-              {ldrNow != null && ldrNow < LDR_PUBLISHED.line
-                ? `below the ${LDR_PUBLISHED.line}% line`
-                : `above the ${LDR_PUBLISHED.line}% line`}{" "}
-              — {LDR_PUBLISHED.basis}. {LDR_PUBLISHED.elsewhere.what} on{" "}
+              {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
+                ? tx("below the {0}% line", {0: LDR_PUBLISHED.line})
+                : tx("above the {0}% line", {0: LDR_PUBLISHED.line}))}{" "}
+              — {tx(LDR_PUBLISHED.basis)}. {tx(LDR_PUBLISHED.elsewhere.what)}{tx(" on")}{" "}
               <Link href={LDR_PUBLISHED.elsewhere.href} className="font-semibold text-primary">
-                {LDR_PUBLISHED.elsewhere.href}
+                {tx(LDR_PUBLISHED.elsewhere.href)}
               </Link>
             </>
           }
@@ -658,8 +634,8 @@ export default async function DepositsPage() {
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
           <SecHead
-            title="Movers"
-            meta={`${vsWeek} → ${weekLabel(depSector.at(-1)?.period, false)}`}
+            title={tx("Movers")}
+            meta={tx(`${vsWeek} → ${weekLabel(depSector.at(-1)?.period, false)}`)}
             className="mb-2.5"
           />
           <Movers
@@ -670,8 +646,8 @@ export default async function DepositsPage() {
         </div>
         <div>
           <SecHead
-            title="The base → the balance sheet"
-            meta="what the funding actually is"
+            title={tx("The base → the balance sheet")}
+            meta={tx("what the funding actually is")}
             className="mb-2.5"
           />
           <Transmission items={transmission} />
@@ -682,8 +658,8 @@ export default async function DepositsPage() {
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <SecHead
-            title="Flags"
-            meta={`rule-based — ${activeFlags} of ${flags.length}`}
+            title={tx("Flags")}
+            meta={tx("rule-based — {0} of {1}", {0: activeFlags, 1: flags.length})}
             className="mb-2.5"
           />
           <Flags
@@ -694,34 +670,32 @@ export default async function DepositsPage() {
         </div>
         <div>
           <SecHead
-            title="Standings"
-            meta={`by ownership group · w/e ${weekLabel(depSector.at(-1)?.period, false)}`}
+            title={tx("Standings")}
+            meta={tx("by ownership group · w/e {0}", {0: weekLabel(depSector.at(-1)?.period, false)})}
             href="/banks"
-            hrefLabel="by bank →"
+            hrefLabel={tx("by bank →")}
             className="mb-2.5"
           />
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
           <Ahead
             items={[
               ahead.mpc && {
                 when: ahead.mpc.when,
                 what: (
-                  <>
-                    TCMB MPC — the rate {fmtPct(repriceQuarter)} of the book reprices to
-                  </>
+                  <>{tx("TCMB MPC — the rate ")}{tx(fmtPct(repriceQuarter))}{tx(" of the book reprices to")}</>
                 ),
               },
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
-                what: <>BRSA {ahead["brsa-filings"].record} filings — deposit cost per bank</>,
+                what: <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — deposit cost per bank")}</>,
                 href: "/actions",
               },
               ahead["inflation-report"] && {
                 when: ahead["inflation-report"].when,
-                what: <>TCMB Inflation Report — the real-return backdrop</>,
+                what: <>{tx("TCMB Inflation Report — the real-return backdrop")}</>,
               },
             ].filter((i) => !!i)}
           />
@@ -735,8 +709,8 @@ export default async function DepositsPage() {
         {/* The base — the sizes the ratios are ratios of. */}
         <div>
           <SecHead
-            title="The base"
-            meta="levels · by ownership group · BDDK weekly bulletin"
+            title={tx("The base")}
+            meta={tx("levels · by ownership group · BDDK weekly bulletin")}
             className="mb-2.5"
           />
           <Levels
@@ -753,24 +727,21 @@ export default async function DepositsPage() {
               data={depByGroupWide}
               series={groupSeries}
               title={
-                levelWow != null && stateWow != null
-                  ? `The book ${levelWow < 0 ? "shrank" : "grew"} ₺${Math.abs(levelWow).toFixed(2)} trn in the week — the state banks ${stateWow < 0 ? "lost" : "added"} ₺${Math.abs(stateWow).toFixed(2)} trn`
-                  : "Total deposits — level by group"
+                tx(levelWow != null && stateWow != null
+                  ? tx("The book {0} ₺{1} trn in the week — the state banks {2} ₺{3} trn", {0: levelWow < 0 ? "shrank" : "grew", 1: Math.abs(levelWow).toFixed(2), 2: stateWow < 0 ? "lost" : "added", 3: Math.abs(stateWow).toFixed(2)})
+                  : "Total deposits — level by group")
               }
-              description="total deposits, ₺ trn, weekly · stacked by ownership group"
+              description={tx("total deposits, ₺ trn, weekly · stacked by ownership group")}
               source={
                 <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
-                  <span>
-                    TOTAL <b className="font-semibold text-foreground">{fmtTrn(levelNow)} trn</b>
+                  <span>{tx("TOTAL ")}<b className="font-semibold text-foreground">{tx(fmtTrn(levelNow))}{tx(" trn")}</b>
                   </span>
-                  <span>
-                    Δ WEEK{" "}
+                  <span>{tx("Δ WEEK")}{" "}
                     <b className="font-semibold text-foreground">
-                      {levelWow != null ? `${levelWow >= 0 ? "+" : "−"}${Math.abs(levelWow).toFixed(2)} trn` : "—"}
+                      {tx(levelWow != null ? tx("{0}{1} trn", {0: levelWow >= 0 ? "+" : "−", 1: Math.abs(levelWow).toFixed(2)}) : "—")}
                     </b>
                   </span>
-                  <span>
-                    STATE <b className="font-semibold text-foreground">{fmtTrn(stateNow)} trn</b>
+                  <span>{tx("STATE ")}<b className="font-semibold text-foreground">{tx(fmtTrn(stateNow))}{tx(" trn")}</b>
                   </span>
                 </div>
               }
@@ -784,10 +755,10 @@ export default async function DepositsPage() {
               data={yoyAll}
               seriesLabels={WEEKLY_BANK_TYPE_LABELS}
               title={
-                seriesFinding(yoySector, { noun: "Deposit growth", decimals: 1 }) ??
-                "Deposit growth 52w (%) — by group"
+                tx(seriesFinding(yoySector, { noun: "Deposit growth", decimals: 1 }, tx.locale) ??
+                "Deposit growth 52w (%) — by group")
               }
-              description="deposit growth 52w, %, weekly · by ownership group"
+              description={tx("deposit growth 52w, %, weekly · by ownership group")}
               source={
                 <ChartFoot
                   data={yoyAll}
@@ -808,11 +779,11 @@ export default async function DepositsPage() {
               data={realVsNominal}
               seriesLabels={REAL_TERMS_LABELS}
               title={
-                realNow != null && realNow < 0
+                tx(realNow != null && realNow < 0
                   ? "In real terms the base is shrinking, not growing"
-                  : "The base is growing ahead of prices"
+                  : "The base is growing ahead of prices")
               }
-              description="deposit growth 52w, %, weekly · nominal vs CPI-deflated"
+              description={tx("deposit growth 52w, %, weekly · nominal vs CPI-deflated")}
               source={
                 <ChartFoot
                   data={realVsNominal}
@@ -832,8 +803,8 @@ export default async function DepositsPage() {
               plain
               data={mom4Sector}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "4w ann." }}
-              title="The four-week pace is a weekly print, annualized — read it as noise, not as a turn"
-              description="deposit growth, 4 weeks annualized, %, weekly · sector"
+              title={tx("The four-week pace is a weekly print, annualized — read it as noise, not as a turn")}
+              description={tx("deposit growth, 4 weeks annualized, %, weekly · sector")}
               source={
                 <ChartFoot
                   data={mom4Sector}
@@ -855,8 +826,8 @@ export default async function DepositsPage() {
         {/* Dollarization — a lone chart keeps the register: mark, then its read. */}
         <div>
           <SecHead
-            title="Dollarization"
-            meta="fx share of the base · the public/private split lives on /liquidity"
+            title={tx("Dollarization")}
+            meta={tx("fx share of the base · the public/private split lives on /liquidity")}
             className="mb-2.5"
           />
           <ChartRow data={fxShare} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(1)}%`}>
@@ -865,7 +836,7 @@ export default async function DepositsPage() {
               data={fxShare}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     fxFlat && fxSharePrior != null && fxSharePrior < -1,
                     "The FX share has stopped falling — flat for a year",
@@ -875,9 +846,9 @@ export default async function DepositsPage() {
                     "The FX share has stopped climbing — flat for a year",
                   ],
                   [fxFlat, "The FX share is flat — a year without a trend"],
-                ) ?? "FX share of total deposits"
+                ) ?? "FX share of total deposits")
               }
-              description="fx deposits ÷ total deposits, %, weekly · sector"
+              description={tx("fx deposits ÷ total deposits, %, weekly · sector")}
               yFormat="pct"
               decimals={1}
               height={300}
@@ -888,8 +859,8 @@ export default async function DepositsPage() {
         {/* Demand vs term — the ladder, finally read out. */}
         <div>
           <SecHead
-            title="Demand vs term"
-            meta="weekly demand share · monthly maturity ladder"
+            title={tx("Demand vs term")}
+            meta={tx("weekly demand share · monthly maturity ladder")}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -898,10 +869,10 @@ export default async function DepositsPage() {
               data={dShare}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand" }}
               title={
-                seriesFinding(dShare, { noun: "Demand share", decimals: 1 }) ??
-                "Demand share of total deposits"
+                tx(seriesFinding(dShare, { noun: "Demand share", decimals: 1 }, tx.locale) ??
+                "Demand share of total deposits")
               }
-              description="demand ÷ total deposits, %, weekly · sector"
+              description={tx("demand ÷ total deposits, %, weekly · sector")}
               source={
                 <ChartFoot
                   data={dShare}
@@ -921,27 +892,23 @@ export default async function DepositsPage() {
               data={mix}
               series={MATURITY_SERIES}
               title={
-                repriceQuarter != null
-                  ? `${repriceQuarter.toFixed(0)}% of the book matures inside three months`
-                  : "Maturity composition — share"
+                tx(repriceQuarter != null
+                  ? tx("{0}% of the book matures inside three months", {0: repriceQuarter.toFixed(0)})
+                  : "Maturity composition — share")
               }
-              description="maturity composition, % of deposits, monthly · sector"
+              description={tx("maturity composition, % of deposits, monthly · sector")}
               source={
                 <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
-                  <span>
-                    REPRICES ≤3M{" "}
-                    <b className="font-semibold text-foreground">{fmtPct(repriceQuarter)}</b>
+                  <span>{tx("REPRICES ≤3M")}{" "}
+                    <b className="font-semibold text-foreground">{tx(fmtPct(repriceQuarter))}</b>
                   </span>
-                  <span>
-                    DEMAND <b className="font-semibold text-foreground">{fmtPct(demandPct)}</b>
+                  <span>{tx("DEMAND ")}<b className="font-semibold text-foreground">{tx(fmtPct(demandPct))}</b>
                   </span>
-                  <span>
-                    OVER 12M{" "}
-                    <b className="font-semibold text-foreground">{fmtPct(pctOf("maturity_over_12m"))}</b>
+                  <span>{tx("OVER 12M")}{" "}
+                    <b className="font-semibold text-foreground">{tx(fmtPct(pctOf("maturity_over_12m")))}</b>
                   </span>
-                  <span>
-                    BOOK{" "}
-                    <b className="font-semibold text-foreground">{fmtTrn(trn(matTotal))} trn</b>
+                  <span>{tx("BOOK")}{" "}
+                    <b className="font-semibold text-foreground">{tx(fmtTrn(trn(matTotal)))}{tx(" trn")}</b>
                   </span>
                 </div>
               }
@@ -955,7 +922,7 @@ export default async function DepositsPage() {
               data={mix}
               series={MATURITY_SERIES}
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     mixGrew === true && mixHeld === true,
                     "The ladder in lira — the book grows, its shape does not",
@@ -966,12 +933,12 @@ export default async function DepositsPage() {
                   ],
                   [
                     mixHeld === false && mixShift != null,
-                    `The ladder in lira — the shape is shifting (${(mixShift ?? 0).toFixed(1)}pp over 12m)`,
+                    tx("The ladder in lira — the shape is shifting ({0}pp over 12m)", {0: (mixShift ?? 0).toFixed(1)}),
                   ],
-                ) ?? "The maturity ladder in lira"
+                ) ?? "The maturity ladder in lira")
               }
-              description="maturity composition, ₺ trn, monthly · sector"
-              source="Source: BDDK monthly bulletin — deposits by maturity"
+              description={tx("maturity composition, ₺ trn, monthly · sector")}
+              source={tx("Source: BDDK monthly bulletin — deposits by maturity")}
               yFormat="trn"
               decimals={1}
               height={280}
@@ -982,8 +949,8 @@ export default async function DepositsPage() {
         {/* Loan-to-deposit. */}
         <div>
           <SecHead
-            title="Loan-to-deposit — TL+FC"
-            meta="published ratio · monthly · by ownership group · TL-only weekly on /liquidity"
+            title={tx("Loan-to-deposit — TL+FC")}
+            meta={tx("published ratio · monthly · by ownership group · TL-only weekly on /liquidity")}
             className="mb-2.5"
           />
           <ChartRow data={ldr} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(0)}%`}>
@@ -992,18 +959,18 @@ export default async function DepositsPage() {
               data={ldr}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     everyOf(ldrGroups, ([, v]) => v.value < 100),
                     "Every deposit-taking group funds its loan book below the 100% line",
                   ],
                   [
                     ldrBreach.length > 0,
-                    `${ldrBreach.join(" and ")} lend more than they take in — above the 100% line`,
+                    tx("{0} lend more than they take in — above the 100% line", {0: ldrBreach.join(" and ")}),
                   ],
-                ) ?? `${LDR_PUBLISHED.label} by group`
+                ) ?? tx("{0} by group", {0: LDR_PUBLISHED.label}))
               }
-              description="published all-currency loans ÷ deposits, %, monthly · by ownership group"
+              description={tx("published all-currency loans ÷ deposits, %, monthly · by ownership group")}
               yFormat="pct"
               decimals={0}
               height={300}

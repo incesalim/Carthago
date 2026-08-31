@@ -5,6 +5,8 @@
  * dashed baseline at the window minimum plus min/max markers give it a range
  * reference, so it shows level AND turn — not just a squiggle.
  */
+import { useChartFormat } from "@/i18n/use-chart-format";
+import { useText } from "@/i18n/use-text";
 import {
   Area,
   AreaChart,
@@ -15,7 +17,6 @@ import {
   YAxis,
 } from "recharts";
 import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
-import { formatters } from "@/app/lib/chart-format";
 
 interface Point {
   period: string;
@@ -41,7 +42,9 @@ export default function Sparkline({
   format = "raw",
   decimals = 2,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
+  const formatters = useChartFormat();
   const tt = tooltipStyles(t);
   const stroke = color ?? t.palette[0];
   const gradId = `spark-${stroke.replace(/[^a-z0-9]/gi, "")}`;
@@ -83,7 +86,7 @@ export default function Sparkline({
             labelStyle={tt.labelStyle}
             itemStyle={tt.itemStyle}
             formatter={(v) => [fmt(Number(v), decimals), ""]}
-            labelFormatter={(l) => String(l)}
+            labelFormatter={(l) => tx(String(l))}
             separator=""
           />
           <Area

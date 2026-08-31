@@ -7,6 +7,7 @@
  * a grid that ranked a different population than the strips above it would be
  * two answers to the same question.
  */
+import { useText } from "@/i18n/use-text";
 import { useMemo, useState } from "react";
 import type { MetricDef } from "@/app/lib/heatmap";
 import type { BoardBank } from "./picks";
@@ -37,6 +38,7 @@ export default function HeatmapView({
   picks,
   frameLabel,
 }: Props) {
+  const tx = useText();
   const [view, setView] = useState<ViewKind>("snapshot");
 
   const inFrame = useMemo(() => new Set(banks.map((b) => b.ticker)), [banks]);
@@ -67,18 +69,17 @@ export default function HeatmapView({
           : "border-transparent text-muted-foreground hover:text-foreground"
       }`}
     >
-      {label}
+      {tx(label)}
     </button>
   );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-        {tab("snapshot", "Snapshot")}
-        {tab("time", "Over time")}
+        {tx(tab("snapshot", "Snapshot"))}
+        {tx(tab("time", "Over time"))}
         <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-          {frameLabel} · {banks.length} banks
-        </span>
+          {tx(frameLabel)} · {tx(banks.length)}{tx(" banks")}</span>
       </div>
 
       {view === "snapshot" ? (

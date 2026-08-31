@@ -16,6 +16,8 @@
  */
 
 import { VERBS, bandsFor, direction } from "./prose";
+import { createText } from "../../i18n/text";
+import { intlLocale } from "../../i18n/config";
 
 export interface SeriesPointLike {
   period: string;
@@ -50,8 +52,8 @@ export function prettyPeriod(p: string): string {
   return p;
 }
 
-const fmtNum = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
+const fmtNum = (v: number, d: number, locale = "en") =>
+  new Intl.NumberFormat(intlLocale(locale), {
     minimumFractionDigits: d,
     maximumFractionDigits: d,
   }).format(v);
@@ -64,7 +66,9 @@ const fmtNum = (v: number, d: number) =>
 export function seriesFinding(
   series: ReadonlyArray<SeriesPointLike>,
   { noun, format = "pct", decimals = 1, window = 12, windowLabel }: FindingOpts,
+  locale = "en",
 ): string | null {
+  const tx = createText(locale);
   const pts = series.filter(
     (r): r is { period: string; value: number } =>
       r.value != null && !Number.isNaN(r.value),
@@ -77,7 +81,7 @@ export function seriesFinding(
 
   const unit = format === "pct" ? "%" : "";
   const deltaUnit = format === "pct" ? "pp" : "";
-  const level = `${fmtNum(last.value, decimals)}${unit}`;
+  const level = `${fmtNum(last.value, decimals, locale)}${unit}`;
 
   // Scale-aware bands, so a 2% series and a 200% series both get an honest
   // "flat" — a level series is banded off its own prior value.
@@ -87,10 +91,16 @@ export function seriesFinding(
 
   const when = prettyPeriod(last.period);
   if (verb === VERBS.level.flat) {
+    if (locale === "tr") return `${tx(noun)} ${tx(when)}: ${level} (${tx(verb)})`;
     return `${noun} ${verb} ${level} in ${when}`;
   }
   const sign = delta > 0 ? "+" : "−";
-  const change = `${sign}${fmtNum(Math.abs(delta), decimals)}${deltaUnit}`;
+  const change = `${sign}${fmtNum(Math.abs(delta), decimals, locale)}${locale === "tr" && deltaUnit ? " yüzde puan" : deltaUnit}`;
   const span = pts.length - 1 >= window ? ` over ${windowLabel ?? `${window}m`}` : "";
+  if (locale === "tr") {
+    const label = windowLabel ? tx(windowLabel) : `${window} ay`;
+    const period = pts.length - 1 >= window ? `; ${label}` : "";
+    return `${tx(noun)} ${tx(when)}: ${level} (${tx(verb)}; ${change}${period})`;
+  }
   return `${noun} ${verb} ${level} in ${when} (${change}${span})`;
 }

@@ -75,7 +75,10 @@ interface HeadlineRow {
 
 /** Swap in the cached LLM headline when it matches this render's facts; else
  *  return the deterministic takeaway unchanged. Never throws. */
-export async function withLlmHeadline(tab: string, takeaway: TabTakeaway): Promise<TabTakeaway> {
+export async function withLlmHeadline(tab: string, takeaway: TabTakeaway, locale = "en"): Promise<TabTakeaway> {
+  // Stored headlines are English and hashed against the English deterministic
+  // read. Turkish uses the same calculations with translated sentence templates.
+  if (locale !== "en") return takeaway;
   let row: HeadlineRow | null = null;
   try {
     const db = await getDB();

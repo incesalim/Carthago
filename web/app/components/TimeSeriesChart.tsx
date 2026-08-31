@@ -11,6 +11,8 @@
  * natural aggregate — but a `hero` prop can single one out as the navy hero
  * over grey context. Narrow plots keep the legend.
  */
+import { useChartFormat } from "@/i18n/use-chart-format";
+import { useText } from "@/i18n/use-text";
 import { useState } from "react";
 import {
   CartesianGrid,
@@ -40,7 +42,7 @@ import {
   Y_AXIS_WIDTH,
 } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
-import { formatters, fmtQuarter, type FormatKind } from "@/app/lib/chart-format";
+import { fmtQuarter, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
 interface Point {
@@ -88,7 +90,9 @@ export default function TimeSeriesChart({
   bare = false,
   plain = false,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
+  const formatters = useChartFormat();
   const fmt = formatters[yFormat];
 
   // Window to the dashboard's global date range. Series are per-label arrays,
@@ -171,7 +175,7 @@ export default function TimeSeriesChart({
     labels
       .map((l) => {
         const lp = lastPoint(data, "period_date", l);
-        return lp ? { name: l, value: fmt(lp.value, decimals) } : null;
+        return lp ? { name: tx(l), value: fmt(lp.value, decimals) } : null;
       })
       .filter((e): e is { name: string; value: string } => e != null),
     valueOnly,
@@ -203,7 +207,7 @@ export default function TimeSeriesChart({
               dataKey="period_date"
               tick={{ fontSize: 11, fill: t.axis }}
               minTickGap={40}
-              tickFormatter={(v) => fmtTick(String(v))}
+              tickFormatter={(v) => tx(fmtTick(String(v)))}
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
@@ -214,7 +218,7 @@ export default function TimeSeriesChart({
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
-            {renderAnnotations(annotations, data, "period_date", t)}
+            {tx(renderAnnotations(annotations, data, "period_date", t))}
             {/* Nearest-series tooltip: one line's point, not every series at the
                 hovered date (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
@@ -223,7 +227,7 @@ export default function TimeSeriesChart({
                 <NearestSeriesTooltip
                   active={p.active}
                   payload={p.payload}
-                  label={p.label}
+                  label={tx(p.label)}
                   coordinate={p.coordinate}
                   formatValue={(v) => fmt(v, decimals)}
                   formatLabel={(l) => fmtLabel(String(l))}
@@ -273,7 +277,7 @@ export default function TimeSeriesChart({
                               borderTop: `2px solid ${it.color ?? "currentColor"}`,
                             }}
                           />
-                          {it.value}
+                          {tx(it.value)}
                         </li>
                       );
                     })}
@@ -286,7 +290,7 @@ export default function TimeSeriesChart({
                 key={label}
                 type="monotone"
                 dataKey={label}
-                name={label}
+                name={tx(label)}
                 stroke={lineColor(label, i)}
                 strokeWidth={
                   heroMode
@@ -338,8 +342,8 @@ export default function TimeSeriesChart({
 
   if (bare) return body;
   return (
-    <ChartCard title={title} description={description} source={source} plain={plain}>
-      {body}
+    <ChartCard title={tx(title)} description={tx(description)} source={tx(source)} plain={plain}>
+      {tx(body)}
     </ChartCard>
   );
 }

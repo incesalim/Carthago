@@ -1,5 +1,6 @@
 "use client";
 
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { ThemeToggle } from "./ui/theme-toggle";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 type NavChild = { href: string; label: string };
 type NavItem = { href: string; label: string; children?: NavChild[] };
@@ -100,10 +102,11 @@ function inSection(pathname: string, href: string) {
 }
 
 function Brand() {
+  const tx = useText();
   return (
     <Link
       href="/"
-      aria-label="Carthago — home"
+      aria-label={tx("Carthago — home")}
       className="flex shrink-0 items-center gap-2 text-foreground"
     >
       {/* The compass has navy elements that sink into the dark sheet, so dark
@@ -128,10 +131,8 @@ function Brand() {
         className="hidden size-7 shrink-0 object-contain dark:block"
       />
       <span className="flex flex-col leading-none">
-        <span className="text-lg font-bold tracking-tight">Carthago</span>
-        <span className="mt-0.5 text-[10px] font-medium text-faint">
-          Turkish banking data
-        </span>
+        <span className="text-lg font-bold tracking-tight">{tx("Carthago")}</span>
+        <span className="mt-0.5 text-[10px] font-medium text-faint">{tx("Turkish banking data")}</span>
       </span>
     </Link>
   );
@@ -144,6 +145,7 @@ function NavLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const tx = useText();
   // Explicit per-group expand overrides; absent groups fall back to "open when
   // the current route is inside the section".
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
@@ -172,7 +174,7 @@ function NavLinks({
               : "border-transparent font-normal text-muted-foreground hover:text-foreground",
           )}
         >
-          {t.label}
+          {tx(t.label)}
         </Link>
       );
     }
@@ -197,11 +199,11 @@ function NavLinks({
                   : "border-transparent font-normal text-muted-foreground hover:text-foreground",
             )}
           >
-            {t.label}
+            {tx(t.label)}
           </Link>
           <button
             type="button"
-            aria-label={`${isOpen ? "Collapse" : "Expand"} ${t.label} section`}
+            aria-label={`${tx(isOpen ? "Collapse" : "Expand")}: ${tx(t.label)}`}
             aria-expanded={isOpen}
             onClick={() => toggleGroup(t.href)}
             className="inline-flex size-6 shrink-0 items-center justify-center text-faint transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -231,7 +233,7 @@ function NavLinks({
                       : "border-transparent font-normal text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {c.label}
+                  {tx(c.label)}
                 </Link>
               );
             })}
@@ -243,7 +245,7 @@ function NavLinks({
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={tx("Primary")}
       className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-2"
     >
       {SECTIONS.map((section, i) => (
@@ -254,10 +256,10 @@ function NavLinks({
           {section.label && (
             // Mono-caps group label — the rail's only ornament.
             <div className="px-3 pb-1.5 font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-faint">
-              {section.label}
+              {tx(section.label)}
             </div>
           )}
-          {section.items.map(renderItem)}
+          {tx(section.items.map(renderItem))}
         </div>
       ))}
     </nav>
@@ -265,6 +267,7 @@ function NavLinks({
 }
 
 export default function Nav() {
+  const tx = useText();
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = React.useState(false);
 
@@ -291,7 +294,8 @@ export default function Nav() {
           <Brand />
         </div>
         <NavLinks pathname={pathname} />
-        <div className="mx-6 border-t border-border px-0 py-3">
+        <div className="mx-6 flex items-center justify-between border-t border-border px-0 py-3">
+          <LanguageSwitcher />
           <ThemeToggle />
         </div>
       </aside>
@@ -300,10 +304,11 @@ export default function Nav() {
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background px-4 py-2.5 lg:hidden">
         <Brand />
         <div className="flex items-center gap-1">
+          <LanguageSwitcher />
           <ThemeToggle />
           <button
             type="button"
-            aria-label="Open navigation menu"
+            aria-label={tx("Open navigation menu")}
             aria-expanded={open}
             onClick={() => setOpen(true)}
             className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -326,7 +331,7 @@ export default function Nav() {
               <Brand />
               <button
                 type="button"
-                aria-label="Close navigation menu"
+                aria-label={tx("Close navigation menu")}
                 onClick={() => setOpen(false)}
                 className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >

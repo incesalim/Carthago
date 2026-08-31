@@ -11,6 +11,8 @@
  * end; transaction figures are quarterly flows. "Active" follows each
  * association's own definition (logged in / transacted within the period).
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import {
   digitalSeries,
@@ -100,13 +102,18 @@ const INTERNET_FILL = { light: "#15AABF", dark: "#2BD4CC" };
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Digital & Mobile Banking",
   description: "Digital, internet and mobile banking adoption in Türkiye — active users and remote vs branch acquisition from TBB data.",
   alternates: { canonical: "/digital" },
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
+
 export default async function DigitalPage() {
+  const tx = await getText();
   const [
     channelUse,
     activeByChannel,
@@ -188,24 +195,22 @@ export default async function DigitalPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Digital Banking"
+        title={tx("Digital Banking")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{monthLabel(qLatest)}</b> quarter-end
-            (TBB/TKBB) · acquisition monthly to {monthLabel(acqLatest)}
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(qLatest))}</b>{tx(" quarter-end (TBB/TKBB) · acquisition monthly to ")}{tx(monthLabel(acqLatest))}
           </>
         }
         right="every figure computed from source series"
       />
 
       <SecHead
-        title="The vitals"
-        meta="adoption · funnel · acquisition · participation"
+        title={tx("The vitals")}
+        meta={tx("adoption · funnel · acquisition · participation")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={6}>
         <Vital
-          label="Active mobile customers"
+          label={tx("Active mobile customers")}
           value={mobNow != null ? mobNow.toFixed(0) : "—"}
           unit="m"
           series={mobileActive.slice(-9)}
@@ -214,8 +219,8 @@ export default async function DigitalPage() {
           note={
             mobYoY != null ? (
               <>
-                {signed(mobYoY, (v) => `${v.toFixed(0)}%`)} y/y · internet at{" "}
-                {intNow != null ? intNow.toFixed(0) : "—"}m
+                {tx(signed(mobYoY, (v) => `${v.toFixed(0)}%`))}{tx(" y/y · internet at")}{" "}
+                {tx(intNow != null ? intNow.toFixed(0) : "—")}m
               </>
             ) : (
               "sector total, quarter-end"
@@ -223,19 +228,19 @@ export default async function DigitalPage() {
           }
         />
         <Vital
-          label="Mobile-only share"
+          label={tx("Mobile-only share")}
           value={moNow != null ? moNow.toFixed(1) : "—"}
           unit="%"
           series={mobileOnlyTbb.slice(-9)}
           decimals={1}
           note={
             moDelta != null
-              ? `${signedPp(moDelta, 1)} y/y — of active digital individuals`
+              ? tx("{0} y/y — of active digital individuals", {0: signedPp(moDelta, 1)})
               : "of active digital individuals"
           }
         />
         <Vital
-          label="Net adds, quarter"
+          label={tx("Net adds, quarter")}
           value={netNow != null ? netNow.toFixed(1) : "—"}
           unit="m"
           series={netAddsMobile.slice(-9)}
@@ -243,36 +248,36 @@ export default async function DigitalPage() {
           decimals={1}
           note={
             netAgo != null
-              ? `mobile registered-base delta — vs ${netAgo.toFixed(1)}m a year ago`
+              ? tx("mobile registered-base delta — vs {0}m a year ago", {0: netAgo.toFixed(1)})
               : "mobile registered-base delta"
           }
         />
         <Vital
-          label="Acquired remotely"
+          label={tx("Acquired remotely")}
           value={remNow != null ? remNow.toFixed(0) : "—"}
           unit="%"
           series={remoteShareTbb.slice(-13)}
           decimals={0}
           note={
             remDelta != null
-              ? `${signedPp(remDelta, 1)} over 12m — share of new individual customers, trailing 3m`
+              ? tx("{0} over 12m — share of new individual customers, trailing 3m", {0: signedPp(remDelta, 1)})
               : "share of new individual customers, trailing 3m"
           }
         />
         <Vital
-          label="Participation share"
+          label={tx("Participation share")}
           value={partNow != null ? partNow.toFixed(1) : "—"}
           unit="%"
           series={tkbbShare.slice(-9)}
           decimals={1}
           note={
             partDelta != null
-              ? `${signedPp(partDelta, 1)} y/y — of all active digital customers (TKBB vs TBB)`
+              ? tx("{0} y/y — of all active digital customers (TKBB vs TBB)", {0: signedPp(partDelta, 1)})
               : "of all active digital customers (TKBB vs TBB)"
           }
         />
         <Vital
-          label="Mobile transfers"
+          label={tx("Mobile transfers")}
           value={volNow != null ? volNow.toFixed(1) : "—"}
           unit="₺trn"
           series={mobileVol.slice(-9)}
@@ -280,7 +285,7 @@ export default async function DigitalPage() {
           decimals={1}
           note={
             volYoY != null
-              ? `+${volYoY.toFixed(0)}% y/y — money-transfer volume per quarter`
+              ? tx("+{0}% y/y — money-transfer volume per quarter", {0: volYoY.toFixed(0)})
               : "money-transfer volume per quarter"
           }
         />
@@ -289,21 +294,21 @@ export default async function DigitalPage() {
       <Depth action={<GlobalRangeSelector />}>
         <Section
           index="01"
-          title="Adoption"
-          description="Active customers by channel. Mobile has all but replaced internet banking — most individuals now bank mobile-only."
+          title={tx("Adoption")}
+          description={tx("Active customers by channel. Mobile has all but replaced internet banking — most individuals now bank mobile-only.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={activeByChannel}
               seriesLabels={CHANNEL_LABELS}
-              title="Active customers — mobile vs internet (millions)"
+              title={tx("Active customers — mobile vs internet (millions)")}
               yFormat="raw"
               decimals={0}
             />
             <StackedArea
               data={pivotWide(channelUse)}
               series={seriesOf(CHANNEL_USE_LABELS)}
-              title="Active individuals by channel usage (% of total)"
+              title={tx("Active individuals by channel usage (% of total)")}
               decimals={1}
               percentStack
               colorKeys
@@ -313,18 +318,18 @@ export default async function DigitalPage() {
 
         <Section
           index="02"
-          title="Digital customer base"
-          description="The registered base and how it grows, plus the demand funnel feeding it. The base is TBB's quarter-end stock (registered and logged in at least once); net adds are its quarter-over-quarter change. Base counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and net adds, not the absolute level. Application counts are mobile only (internet is now under 1% of applications)."
+          title={tx("Digital customer base")}
+          description={tx("The registered base and how it grows, plus the demand funnel feeding it. The base is TBB's quarter-end stock (registered and logged in at least once); net adds are its quarter-over-quarter change. Base counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and net adds, not the absolute level. Application counts are mobile only (internet is now under 1% of applications).")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={registeredByChannel}
               seriesLabels={CHANNEL_LABELS}
-              title="Registered customer base by channel (millions)"
+              title={tx("Registered customer base by channel (millions)")}
               yFormat="raw"
               decimals={0}
             />
-            <ChartCard title="Net new registered customers per quarter (millions)">
+            <ChartCard title={tx("Net new registered customers per quarter (millions)")}>
               <BopFlowChart
                 data={pivotWide(netAdds, "x")}
                 bars={[
@@ -346,7 +351,7 @@ export default async function DigitalPage() {
             <StackedArea
               data={pivotWide(applications)}
               series={seriesOf(APPLICATION_LABELS)}
-              title="Product applications via mobile per quarter (millions)"
+              title={tx("Product applications via mobile per quarter (millions)")}
               decimals={1}
               height={320}
               colorKeys
@@ -356,21 +361,21 @@ export default async function DigitalPage() {
 
         <Section
           index="03"
-          title="Customer acquisition — digital vs branch"
-          description="From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. Each point is a trailing 3-month sum (the month plus the prior two), smoothing the monthly noise while keeping monthly cadence; the first two months (May–Jun 2021) have no full window. The remote-ID regulation began May 2021 and definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024."
+          title={tx("Customer acquisition — digital vs branch")}
+          description={tx("From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. Each point is a trailing 3-month sum (the month plus the prior two), smoothing the monthly noise while keeping monthly cadence; the first two months (May–Jun 2021) have no full window. The remote-ID regulation began May 2021 and definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={acq.byChannel}
               seriesLabels={ACQ_CHANNEL_LABELS}
-              title="New individual customers, trailing 3 months (thousands)"
+              title={tx("New individual customers, trailing 3 months (thousands)")}
               yFormat="raw"
               decimals={0}
             />
             <StackedArea
               data={pivotWide(acq.byChannel)}
               series={seriesOf(ACQ_CHANNEL_LABELS)}
-              title="Share of new customers by channel (%)"
+              title={tx("Share of new customers by channel (%)")}
               decimals={0}
               percentStack
               colorKeys
@@ -386,7 +391,7 @@ export default async function DigitalPage() {
             <StackedArea
               data={pivotWide(acq.byMethod)}
               series={seriesOf(ACQ_METHOD_LABELS)}
-              title="New individual customers by acquisition method (thousands, trailing 3 months)"
+              title={tx("New individual customers by acquisition method (thousands, trailing 3 months)")}
               decimals={0}
               height={320}
               colorKeys
@@ -396,21 +401,21 @@ export default async function DigitalPage() {
 
         <Section
           index="04"
-          title="Transactions"
-          description="Quarterly money-transfer and bill-payment activity. Mobile dominates both value and volume."
+          title={tx("Transactions")}
+          description={tx("Quarterly money-transfer and bill-payment activity. Mobile dominates both value and volume.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <StackedArea
               data={pivotWide(transferVolume)}
               series={seriesOf(CHANNEL_LABELS)}
-              title="Money-transfer volume per quarter (₺ trillion)"
+              title={tx("Money-transfer volume per quarter (₺ trillion)")}
               decimals={1}
               colorKeys
             />
             <StackedArea
               data={pivotWide(transferCount)}
               series={seriesOf(CHANNEL_LABELS)}
-              title="Money-transfer count per quarter (millions)"
+              title={tx("Money-transfer count per quarter (millions)")}
               decimals={0}
               colorKeys
             />
@@ -425,7 +430,7 @@ export default async function DigitalPage() {
             <TrendChart
               data={billCount}
               seriesLabels={CHANNEL_LABELS}
-              title="Bill-payment count per quarter (millions)"
+              title={tx("Bill-payment count per quarter (millions)")}
               yFormat="raw"
               decimals={0}
               height={320}
@@ -435,21 +440,21 @@ export default async function DigitalPage() {
 
         <Section
           index="05"
-          title="Participation banks — digital adoption"
-          description="The participation-bank side of digital banking, from TKBB's Veri Peteği (quarterly since 2020). Counts are per-association: a customer of both a deposit bank and a participation bank appears in both TBB's and TKBB's figures, and each association applies its own “active” definition — read the shares as trends, not an exact census. TKBB reports all customer types combined (individual + corporate); the comparisons use TBB's matching all-customer basis."
+          title={tx("Participation banks — digital adoption")}
+          description={tx("The participation-bank side of digital banking, from TKBB's Veri Peteği (quarterly since 2020). Counts are per-association: a customer of both a deposit bank and a participation bank appears in both TBB's and TKBB's figures, and each association applies its own “active” definition — read the shares as trends, not an exact census. TKBB reports all customer types combined (individual + corporate); the comparisons use TBB's matching all-customer basis.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={tkbbActive}
               seriesLabels={{ participation: "Active digital customers" }}
-              title="Active digital customers — participation banks (millions)"
+              title={tx("Active digital customers — participation banks (millions)")}
               yFormat="raw"
               decimals={1}
             />
             <TrendChart
               data={tkbbShare}
               seriesLabels={{ share: "Participation share" }}
-              title="Participation banks' share of active digital customers (%)"
+              title={tx("Participation banks' share of active digital customers (%)")}
               yFormat="raw"
               decimals={1}
             />
@@ -458,14 +463,14 @@ export default async function DigitalPage() {
             <TrendChart
               data={mobileShareCmp}
               seriesLabels={COMPARISON_LABELS}
-              title="Mobile-only share of active digital customers (%)"
+              title={tx("Mobile-only share of active digital customers (%)")}
               yFormat="raw"
               decimals={1}
             />
             <StackedArea
               data={pivotWide(tkbbVolume)}
               series={seriesOf(CHANNEL_LABELS)}
-              title="Participation banks' digital transaction volume (₺ trillion / quarter)"
+              title={tx("Participation banks' digital transaction volume (₺ trillion / quarter)")}
               decimals={1}
               colorKeys
             />
@@ -474,21 +479,21 @@ export default async function DigitalPage() {
 
         <Section
           index="06"
-          title="Participation banks — customer acquisition"
-          description="From TKBB's monthly “Uzaktan Müşteri Edinim” dashboard: participation-bank customers acquired remotely vs at a branch, as trailing 3-month sums. The public source exposes only a rolling 12-month window, which we accumulate — history builds forward from mid-2025. TKBB counts all customer types; the TBB comparison line is individuals only, so the levels aren't strictly comparable — the trend and the gap are the signal."
+          title={tx("Participation banks — customer acquisition")}
+          description={tx("From TKBB's monthly “Uzaktan Müşteri Edinim” dashboard: participation-bank customers acquired remotely vs at a branch, as trailing 3-month sums. The public source exposes only a rolling 12-month window, which we accumulate — history builds forward from mid-2025. TKBB counts all customer types; the TBB comparison line is individuals only, so the levels aren't strictly comparable — the trend and the gap are the signal.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={tkbbAcq}
               seriesLabels={TKBB_ACQ_LABELS}
-              title="New participation-bank customers, trailing 3 months (thousands)"
+              title={tx("New participation-bank customers, trailing 3 months (thousands)")}
               yFormat="raw"
               decimals={0}
             />
             <TrendChart
               data={remoteShareCmp}
               seriesLabels={COMPARISON_LABELS}
-              title="Acquired remotely — share of new customers (%)"
+              title={tx("Acquired remotely — share of new customers (%)")}
               yFormat="raw"
               decimals={0}
             />
@@ -497,14 +502,14 @@ export default async function DigitalPage() {
 
         <Section
           index="07"
-          title="Who banks digitally"
-          description="Demographics of active individual digital customers (internet + mobile combined)."
+          title={tx("Who banks digitally")}
+          description={tx("Demographics of active individual digital customers (internet + mobile combined).")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <StackedArea
               data={pivotWide(gender)}
               series={seriesOf(GENDER_LABELS)}
-              title="Active individuals by gender (% of total)"
+              title={tx("Active individuals by gender (% of total)")}
               decimals={1}
               percentStack
               colorKeys
@@ -512,7 +517,7 @@ export default async function DigitalPage() {
             <StackedArea
               data={pivotWide(age)}
               series={seriesOf(AGE_LABELS)}
-              title="Active individuals by age group (millions)"
+              title={tx("Active individuals by age group (millions)")}
               decimals={1}
               colorKeys
             />
@@ -520,12 +525,7 @@ export default async function DigitalPage() {
         </Section>
       </Depth>
 
-      <Colophon>
-        Compiled, not written — every figure computed from TBB &amp; TKBB source
-        series (quarterly digital statistics · monthly acquisition reports); each
-        association applies its own definitions. No forecasts. Analytical
-        information, not investment advice.
-      </Colophon>
+      <Colophon>{tx("Compiled, not written — every figure computed from TBB & TKBB source series (quarterly digital statistics · monthly acquisition reports); each association applies its own definitions. No forecasts. Analytical information, not investment advice.")}</Colophon>
     </main>
   );
 }

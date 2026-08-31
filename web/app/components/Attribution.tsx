@@ -22,7 +22,8 @@ export interface AttributionRow {
   value: number;
   /** Optional right-hand context (level, own growth …). */
   meta?: React.ReactNode;
-}
+}import { useText } from "@/i18n/use-text";
+
 
 export default function Attribution({
   rows,
@@ -46,8 +47,9 @@ export default function Attribution({
   totalMeta?: React.ReactNode;
   emptyNote?: string;
 }) {
+  const tx = useText();
   if (rows.length === 0) {
-    return <p className="py-6 text-[12px] text-faint">{emptyNote}</p>;
+    return <p className="py-6 text-[12px] text-faint">{tx(emptyNote)}</p>;
   }
 
   const sorted = [...rows].sort((a, b) => b.value - a.value);
@@ -67,7 +69,7 @@ export default function Attribution({
 
         return (
           <div key={r.key} className={`${GRID} items-center border-b border-hair py-2`}>
-            <span className="text-[12px] font-semibold text-foreground">{r.label}</span>
+            <span className="text-[12px] font-semibold text-foreground">{tx(r.label)}</span>
 
             <span className="relative block h-[17px]">
               <span
@@ -82,7 +84,7 @@ export default function Attribution({
                     style={{ width: `${nestWidth}%` }}
                   >
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] font-semibold text-white dark:text-background">
-                      {nest.label} {fmtValue(nest.value)}
+                      {tx(nest.label)} {tx(fmtValue(nest.value))}
                     </span>
                   </span>
                 )}
@@ -94,11 +96,11 @@ export default function Attribution({
                 negative ? "text-negative" : "text-foreground"
               }`}
             >
-              {fmtValue(r.value)}
+              {tx(fmtValue(r.value))}
             </span>
 
             <span className="hidden text-right font-mono text-[9.5px] text-faint sm:block">
-              {r.meta}
+              {tx(r.meta)}
             </span>
           </div>
         );
@@ -107,14 +109,14 @@ export default function Attribution({
       {/* The reconciliation. Printed, because it is the argument. */}
       <div className={`${GRID} pt-2.5`}>
         <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
-          {totalLabel}
+          {tx(totalLabel)}
         </span>
-        <span className="text-[10px] leading-snug text-faint">{reconciliation}</span>
+        <span className="text-[10px] leading-snug text-faint">{tx(reconciliation)}</span>
         <span className="text-right font-mono text-[12.5px] font-semibold text-foreground">
-          {fmtValue(sum)}
+          {tx(fmtValue(sum))}
         </span>
         <span className="hidden text-right font-mono text-[9.5px] text-faint sm:block">
-          {totalMeta}
+          {tx(totalMeta)}
         </span>
       </div>
     </div>

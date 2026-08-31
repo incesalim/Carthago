@@ -11,6 +11,7 @@
  * segments fall from the zero baseline, mirroring the source charts. Pass
  * `grouped` to render side-by-side bars instead (Şekil 10).
  */
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   CartesianGrid,
@@ -83,6 +84,7 @@ export default function BopFlowChart({
   unit = "",
   height = 320,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const isLight = t.mode === "light";
@@ -126,19 +128,19 @@ export default function BopFlowChart({
               flex: "none",
             }}
           />
-          <span style={{ color: t.axis }}>{name}</span>
+          <span style={{ color: t.axis }}>{tx(name)}</span>
           <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-            {nf(v, decimals)}
-            {unit}
+            {tx(nf(v, decimals))}
+            {tx(unit)}
           </span>
         </div>
       );
     };
     return (
       <div style={{ ...tt.contentStyle, minWidth: 200, lineHeight: 1.7 }}>
-        <div style={tt.labelStyle}>{String(label)}</div>
-        {bars.map((s, i) => item(s.key, s.label, fillOf(s, i)))}
-        {line && item(line.key, line.label, lineColor, true)}
+        <div style={tt.labelStyle}>{tx(String(label))}</div>
+        {tx(bars.map((s, i) => item(s.key, s.label, fillOf(s, i))))}
+        {tx(line && item(line.key, line.label, lineColor, true))}
       </div>
     );
   };
@@ -224,7 +226,7 @@ export default function BopFlowChart({
                           background: fillOf(s, i),
                         }}
                       />
-                      {s.label}
+                      {tx(s.label)}
                     </li>
                   ))}
                   {line && (
@@ -236,7 +238,7 @@ export default function BopFlowChart({
                           borderTop: `2px ${line.dotted ? "dotted" : "solid"} ${lineColor}`,
                         }}
                       />
-                      {line.label}
+                      {tx(line.label)}
                     </li>
                   )}
                 </ul>
@@ -247,7 +249,7 @@ export default function BopFlowChart({
                 key={s.key}
                 yAxisId="left"
                 dataKey={s.key}
-                name={s.label}
+                name={tx(s.label)}
                 stackId={grouped ? undefined : "bop"}
                 fill={fillOf(s, i)}
                 isAnimationActive={false}
@@ -257,7 +259,7 @@ export default function BopFlowChart({
               <Line
                 yAxisId={line.rightAxis ? "right" : "left"}
                 dataKey={line.key}
-                name={line.label}
+                name={tx(line.label)}
                 stroke={lineColor}
                 strokeWidth={2}
                 strokeDasharray={line.dotted ? "2 3" : undefined}

@@ -9,6 +9,9 @@
  * so daily sums would undercount — but appear in the largest-funds table.
  * Investor counts double-count people holding several funds.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -54,11 +57,15 @@ import CopyTableButton from "@/app/components/CopyTableButton";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Investment Funds (TEFAS)",
   description: "Turkish mutual and investment funds from TEFAS — assets under management, flows and allocation by fund type.",
   alternates: { canonical: "/funds" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat("en-US", {
@@ -94,13 +101,14 @@ function stackShare(rows: StackPoint[], key: string, keys: readonly string[]): P
 }
 
 function TopFundsTable({ rows, label }: { rows: TopFundRow[]; label: string }) {
+  const tx = useText();
   if (rows.length === 0) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-foreground">
-          {label}{" "}
-          <span className="font-normal text-muted-foreground">({rows[0].date})</span>
+          {tx(label)}{" "}
+          <span className="font-normal text-muted-foreground">({tx(rows[0].date)})</span>
         </h3>
         <CopyTableButton />
       </div>
@@ -108,30 +116,30 @@ function TopFundsTable({ rows, label }: { rows: TopFundRow[]; label: string }) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">#</TableHead>
-            <TableHead className="w-16">Code</TableHead>
-            <TableHead>Fund</TableHead>
-            <TableHead>Manager</TableHead>
-            <TableHead className="text-right">AUM (₺ bn)</TableHead>
-            <TableHead className="text-right">Investors</TableHead>
+            <TableHead className="w-16">{tx("Code")}</TableHead>
+            <TableHead>{tx("Fund")}</TableHead>
+            <TableHead>{tx("Manager")}</TableHead>
+            <TableHead className="text-right">{tx("AUM (₺ bn)")}</TableHead>
+            <TableHead className="text-right">{tx("Investors")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((r) => (
             <TableRow key={r.fon_kodu}>
-              <TableCell className="text-muted-foreground">{r.rank}</TableCell>
-              <TableCell className="font-medium">{r.fon_kodu}</TableCell>
+              <TableCell className="text-muted-foreground">{tx(r.rank)}</TableCell>
+              <TableCell className="font-medium">{tx(r.fon_kodu)}</TableCell>
               <TableCell
                 className="max-w-[28rem] truncate text-muted-foreground"
-                title={r.fon_unvan ?? ""}
+                title={tx(r.fon_unvan ?? "")}
               >
-                {r.fon_unvan}
+                {tx(r.fon_unvan)}
               </TableCell>
-              <TableCell className="whitespace-nowrap">{r.manager}</TableCell>
+              <TableCell className="whitespace-nowrap">{tx(r.manager)}</TableCell>
               <TableCell className="text-right tabular-nums">
-                {r.aum_bn == null ? "—" : nf1.format(r.aum_bn)}
+                {tx(r.aum_bn == null ? "—" : nf1.format(r.aum_bn))}
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {r.investor_count == null ? "—" : nf0.format(r.investor_count)}
+                {tx(r.investor_count == null ? "—" : nf0.format(r.investor_count))}
               </TableCell>
             </TableRow>
           ))}
@@ -142,6 +150,7 @@ function TopFundsTable({ rows, label }: { rows: TopFundRow[]; label: string }) {
 }
 
 export default async function FundsPage() {
+  const tx = await getText();
   const monthly = await monthlyByType();
   const [categories, allocation, aumIndex, top] = await Promise.all([
     categoryStack("YAT"),
@@ -206,24 +215,22 @@ export default async function FundsPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Funds"
+        title={tx("Funds")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{monthLabel(aumTotals.at(-1)?.period)}</b> · vs{" "}
-            {monthLabel(aumTotals.at(-2)?.period, false)} · TEFAS daily, month-end sampled
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(aumTotals.at(-1)?.period))}</b>{tx(" · vs")}{" "}
+            {tx(monthLabel(aumTotals.at(-2)?.period, false))}{tx(" · TEFAS daily, month-end sampled")}</>
         }
         right="every figure computed from source series"
       />
 
       <SecHead
-        title="The vitals"
-        meta="month-end sample · YAT + EMK + BYF · GYF/GSYF excluded"
+        title={tx("The vitals")}
+        meta={tx("month-end sample · YAT + EMK + BYF · GYF/GSYF excluded")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={6}>
         <Vital
-          label="Total AUM"
+          label={tx("Total AUM")}
           value={aumNow != null ? aumNow.toFixed(2) : "—"}
           unit="₺trn"
           series={aumTotals.slice(-13)}
@@ -232,9 +239,8 @@ export default async function FundsPage() {
           note={
             aumYoY != null ? (
               <>
-                {signed(aumYoY, (v) => `${v.toFixed(0)}%`)} y/y nominal — the deposit-substitution
-                channel{" "}
-                <Link href="/deposits" className="font-semibold text-primary">/deposits</Link>
+                {tx(signed(aumYoY, (v) => `${v.toFixed(0)}%`))}{tx(" y/y nominal — the deposit-substitution channel")}{" "}
+                <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
               </>
             ) : (
               "mutual + pension + ETF"
@@ -242,7 +248,7 @@ export default async function FundsPage() {
           }
         />
         <Vital
-          label="Real AUM, y/y"
+          label={tx("Real AUM, y/y")}
           value={realYoY != null ? `${realYoY >= 0 ? "+" : ""}${realYoY.toFixed(1)}` : "—"}
           unit="%"
           series={realIdx.slice(-13)}
@@ -250,36 +256,36 @@ export default async function FundsPage() {
           decimals={0}
           note={
             realYoY != null
-              ? `CPI-deflated — ${realYoY >= 0 ? "growing" : "shrinking"} in real terms`
+              ? tx("CPI-deflated — {0} in real terms", {0: realYoY >= 0 ? "growing" : "shrinking"})
               : "CPI-deflated 12-month change"
           }
         />
         <Vital
-          label="Money-market share"
+          label={tx("Money-market share")}
           value={mmNow != null ? mmNow.toFixed(1) : "—"}
           unit="%"
           series={mmShare.slice(-13)}
           decimals={1}
           note={
             mmDelta != null
-              ? `${signedPp(mmDelta, 1)} over 12m — of mutual-fund AUM`
+              ? tx("{0} over 12m — of mutual-fund AUM", {0: signedPp(mmDelta, 1)})
               : "of mutual-fund (YAT) AUM"
           }
         />
         <Vital
-          label="Deposit-like holdings"
+          label={tx("Deposit-like holdings")}
           value={depNow != null ? depNow.toFixed(1) : "—"}
           unit="%"
           series={depositLike.slice(-13)}
           decimals={1}
           note={
             depDelta != null
-              ? `${signedPp(depDelta, 1)} over 12m — deposits, repo & money market in YAT portfolios`
+              ? tx("{0} over 12m — deposits, repo & money market in YAT portfolios", {0: signedPp(depDelta, 1)})
               : "deposits, repo & money market in YAT portfolios"
           }
         />
         <Vital
-          label="Investor accounts"
+          label={tx("Investor accounts")}
           value={invNow != null ? invNow.toFixed(1) : "—"}
           unit="m"
           series={investorTotals.slice(-13)}
@@ -287,19 +293,19 @@ export default async function FundsPage() {
           decimals={1}
           note={
             invYoY != null
-              ? `${invYoY >= 0 ? "+" : ""}${invYoY.toFixed(1)}% y/y — counted once per fund held`
+              ? tx("{0}{1}% y/y — counted once per fund held", {0: invYoY >= 0 ? "+" : "", 1: invYoY.toFixed(1)})
               : "counted once per fund held"
           }
         />
         <Vital
-          label="Funds priced"
+          label={tx("Funds priced")}
           value={fundNow != null ? nf0.format(fundNow) : "—"}
           series={fundTotals.slice(-13)}
           format="raw"
           decimals={0}
           note={
             fundDelta != null
-              ? `${fundDelta >= 0 ? "+" : "−"}${nf0.format(Math.abs(fundDelta))} funds over 12m`
+              ? tx("{0}{1} funds over 12m", {0: fundDelta >= 0 ? "+" : "−", 1: nf0.format(Math.abs(fundDelta))})
               : "priced at month-end"
           }
         />
@@ -308,21 +314,21 @@ export default async function FundsPage() {
       <Depth action={<GlobalRangeSelector />}>
         <Section
           index="01"
-          title="Fund market size"
-          description="Month-end AUM. Real-estate (GYF) and venture-capital (GSYF) funds are excluded from trends — they aren't priced daily."
+          title={tx("Fund market size")}
+          description={tx("Month-end AUM. Real-estate (GYF) and venture-capital (GSYF) funds are excluded from trends — they aren't priced daily.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <StackedArea
               data={aumStack(monthly)}
               series={typeSeries}
-              title="Assets under management by fund type (₺ trillion)"
+              title={tx("Assets under management by fund type (₺ trillion)")}
               yFormat="raw"
               decimals={2}
             />
             <TrendChart
               data={aumIndex}
               seriesLabels={AUM_INDEX_LABELS}
-              title="Total AUM, nominal vs CPI-deflated (index = 100 at start)"
+              title={tx("Total AUM, nominal vs CPI-deflated (index = 100 at start)")}
               yFormat="raw"
               decimals={0}
             />
@@ -331,21 +337,21 @@ export default async function FundsPage() {
 
         <Section
           index="02"
-          title="Where mutual-fund money went"
-          description="Mutual-fund (YAT) AUM by fund category, from fund names. Money-market and hedge (serbest) funds absorbed the deposit migration of recent years."
+          title={tx("Where mutual-fund money went")}
+          description={tx("Mutual-fund (YAT) AUM by fund category, from fund names. Money-market and hedge (serbest) funds absorbed the deposit migration of recent years.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <StackedArea
               data={categories}
               series={[...CATEGORY_SERIES]}
-              title="Mutual-fund AUM by category (₺ trillion)"
+              title={tx("Mutual-fund AUM by category (₺ trillion)")}
               yFormat="raw"
               decimals={2}
             />
             <StackedArea
               data={categories}
               series={[...CATEGORY_SERIES]}
-              title="Mutual-fund AUM by category (% of total)"
+              title={tx("Mutual-fund AUM by category (% of total)")}
               percentStack
               decimals={1}
             />
@@ -354,8 +360,8 @@ export default async function FundsPage() {
 
         <Section
           index="03"
-          title="What mutual funds hold"
-          description="AUM-weighted portfolio allocation of mutual funds (YAT), rolled up from TEFAS's ~55 instrument fields. Deposits, repo and money-market instruments dominate."
+          title={tx("What mutual funds hold")}
+          description={tx("AUM-weighted portfolio allocation of mutual funds (YAT), rolled up from TEFAS's ~55 instrument fields. Deposits, repo and money-market instruments dominate.")}
         >
           <ChartRow
             data={allocationLong}
@@ -367,7 +373,7 @@ export default async function FundsPage() {
             <StackedArea
               data={allocation}
               series={[...ALLOCATION_SERIES]}
-              title="Mutual-fund portfolio allocation (% of covered AUM)"
+              title={tx("Mutual-fund portfolio allocation (% of covered AUM)")}
               percentStack
               decimals={1}
               height={360}
@@ -377,21 +383,21 @@ export default async function FundsPage() {
 
         <Section
           index="04"
-          title="Investors"
-          description="Investor accounts per fund type (people holding several funds are counted once per fund) and the number of priced funds."
+          title={tx("Investors")}
+          description={tx("Investor accounts per fund type (people holding several funds are counted once per fund) and the number of priced funds.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={investorTrend}
               seriesLabels={TYPE_LABELS}
-              title="Investor accounts (millions)"
+              title={tx("Investor accounts (millions)")}
               yFormat="raw"
               decimals={1}
             />
             <TrendChart
               data={fundCountTrend}
               seriesLabels={TYPE_LABELS}
-              title="Funds priced at month-end (count)"
+              title={tx("Funds priced at month-end (count)")}
               yFormat="raw"
               decimals={0}
             />
@@ -400,31 +406,27 @@ export default async function FundsPage() {
 
         <Section
           index="05"
-          title="Largest funds"
-          description="Top funds by AUM on the latest trading day."
+          title={tx("Largest funds")}
+          description={tx("Top funds by AUM on the latest trading day.")}
         >
           <div className="space-y-6">
             <TopFundsTable
               rows={top.filter((r) => r.fon_tipi === "YAT")}
-              label="Mutual funds (YAT)"
+              label={tx("Mutual funds (YAT)")}
             />
             <TopFundsTable
               rows={top.filter((r) => r.fon_tipi === "EMK")}
-              label="Pension funds (EMK)"
+              label={tx("Pension funds (EMK)")}
             />
             <TopFundsTable
               rows={top.filter((r) => r.fon_tipi === "BYF")}
-              label="ETFs (BYF)"
+              label={tx("ETFs (BYF)")}
             />
           </div>
         </Section>
       </Depth>
 
-      <Colophon>
-        Compiled, not written — every figure computed from TEFAS daily fund data,
-        month-end sampled · CPI deflator: TÜİK via EVDS · GYF/GSYF excluded from
-        trends. No forecasts. Analytical information, not investment advice.
-      </Colophon>
+      <Colophon>{tx("Compiled, not written — every figure computed from TEFAS daily fund data, month-end sampled · CPI deflator: TÜİK via EVDS · GYF/GSYF excluded from trends. No forecasts. Analytical information, not investment advice.")}</Colophon>
     </main>
   );
 }

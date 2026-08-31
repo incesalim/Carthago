@@ -7,6 +7,7 @@
  * it is why analyst identity on these transcripts cannot be keyed on, and the
  * only honest place to surface it is next to the call it affects.
  */
+import { useText } from "@/i18n/use-text";
 import Link from "next/link";
 import type { CallSummary } from "@/app/lib/transcripts";
 import { Card } from "@/app/components/ui/card";
@@ -38,13 +39,14 @@ export default function CallTranscripts({
   ticker: string;
   holdsCalls: boolean;
 }) {
+  const tx = useText();
   if (calls.length === 0) {
     return (
       <Card className="p-5">
         <div className="text-xs italic text-muted-foreground">
-          {holdsCalls
+          {tx(holdsCalls
             ? "No transcripts cached yet."
-            : "This bank does not hold an English earnings call."}
+            : "This bank does not hold an English earnings call.")}
         </div>
       </Card>
     );
@@ -62,23 +64,20 @@ export default function CallTranscripts({
                   href={`/banks/${ticker}/calls/${c.period}`}
                   className="text-xs font-bold text-primary hover:underline"
                 >
-                  {fmtPeriod(c.period)} earnings call
-                </Link>
+                  {tx(fmtPeriod(c.period))}{tx(" earnings call")}</Link>
                 <div className="flex items-baseline gap-3 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {date && <span className="tabular-nums">{date}</span>}
+                  {date && <span className="tabular-nums">{tx(date)}</span>}
                   {c.word_count != null && (
-                    <span className="tabular-nums">{nf(c.word_count, 0)} words</span>
+                    <span className="tabular-nums">{tx(nf(c.word_count, 0))}{tx(" words")}</span>
                   )}
                   {c.turn_count != null && (
-                    <span className="tabular-nums">{nf(c.turn_count, 0)} turns</span>
+                    <span className="tabular-nums">{tx(nf(c.turn_count, 0))}{tx(" turns")}</span>
                   )}
                 </div>
               </div>
               {c.indiscernible_count != null && c.indiscernible_count > 0 && (
                 <div className="mt-0.5 text-[10px] text-muted-foreground">
-                  {nf(c.indiscernible_count, 0)} unresolved speaker marker
-                  {c.indiscernible_count === 1 ? "" : "s"} in this transcript
-                </div>
+                  {tx(nf(c.indiscernible_count, 0))}{tx(" unresolved speaker marker")}{tx(c.indiscernible_count === 1 ? "" : "s")}{tx(" in this transcript")}</div>
               )}
             </li>
           );

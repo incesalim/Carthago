@@ -1,5 +1,6 @@
 "use client";
 
+import { useText } from "@/i18n/use-text";
 import { clearConsent, writeConsent } from "@/app/lib/consent";
 import { useConsent, useHydrated } from "@/app/lib/use-consent";
 
@@ -13,6 +14,7 @@ import { useConsent, useHydrated } from "@/app/lib/use-consent";
  * state for a frame.
  */
 export default function ConsentControl() {
+  const tx = useText();
   const consent = useConsent();
   const hydrated = useHydrated();
 
@@ -27,39 +29,29 @@ export default function ConsentControl() {
 
   return (
     <div className="mt-1 rounded-md border border-border bg-muted/40 px-4 py-3.5">
-      <p className="text-[13px] font-medium text-foreground">{state}</p>
+      <p className="text-[13px] font-medium text-foreground">{tx(state)}</p>
       <div className="mt-2.5 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => writeConsent("denied")}
           disabled={consent === "denied"}
           className="min-h-11 rounded-md border border-border px-4 text-[12.5px] font-medium text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-45"
-        >
-          Turn off
-        </button>
+        >{tx("Turn off")}</button>
         <button
           type="button"
           onClick={() => writeConsent("granted")}
           disabled={consent === "granted"}
           className="min-h-11 rounded-md border border-primary bg-primary px-4 text-[12.5px] font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-45"
-        >
-          Turn on
-        </button>
+        >{tx("Turn on")}</button>
         {hydrated && consent != null && (
           <button
             type="button"
             onClick={() => clearConsent()}
             className="min-h-11 px-2 text-[12.5px] font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            Ask me again
-          </button>
+          >{tx("Ask me again")}</button>
         )}
       </div>
-      <p className="mt-2 text-[12px] leading-snug text-muted-foreground">
-        Turning it off does not delete what Google already received; it stops the tag from
-        loading from now on. To remove data already collected, use the contact address
-        below.
-      </p>
+      <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{tx("Turning it off does not delete what Google already received; it stops the tag from loading from now on. To remove data already collected, use the contact address below.")}</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@
  * the signed stacked bar chart. All datasets are computed server-side and
  * passed in; this component only owns the two pill rows.
  */
+import { useText } from "@/i18n/use-text";
 import { useState } from "react";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import NimComponentsChart, {
@@ -26,6 +27,7 @@ interface Props {
 type ViewKind = "annual" | "monthly";
 
 export default function NimComponentsSection({ datasets, dataThrough }: Props) {
+  const tx = useText();
   const [groupKey, setGroupKey] = useState(DEFAULT_NIM_GROUP);
   const [view, setView] = useState<ViewKind>("annual");
 
@@ -57,28 +59,28 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
       }`}
     >
-      {label}
+      {tx(label)}
     </button>
   );
 
   return (
     <ChartCard
-      title={`NIM components — ${group.label} (% of avg total assets, annualized)`}
+      title={tx("NIM components — {0} (% of avg total assets, annualized)", {0: group.label})}
       description={
-        view === "annual"
-          ? `Full-year interest income/expense over 13-month average assets; the trailing bar annualizes ${dataThrough ?? "the current year"} YTD — actuals, not a forecast.`
-          : "Trailing-12-month interest income/expense over 13-month average total assets."
+        tx(view === "annual"
+          ? tx("Full-year interest income/expense over 13-month average assets; the trailing bar annualizes {0} YTD — actuals, not a forecast.", {0: dataThrough ?? "the current year"})
+          : "Trailing-12-month interest income/expense over 13-month average total assets.")
       }
       action={
         <div className="flex flex-wrap items-center justify-end gap-2">
           <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
-            {NIM_GROUPS.map((g) =>
+            {tx(NIM_GROUPS.map((g) =>
               pill(g.key === groupKey, g.label, () => setGroupKey(g.key)),
-            )}
+            ))}
           </div>
           <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
-            {pill(view === "annual", "Annual", () => setView("annual"))}
-            {pill(view === "monthly", "Monthly TTM", () => setView("monthly"))}
+            {tx(pill(view === "annual", "Annual", () => setView("annual")))}
+            {tx(pill(view === "monthly", "Monthly TTM", () => setView("monthly")))}
           </div>
         </div>
       }
@@ -86,9 +88,7 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
       {data && data.length > 0 ? (
         <NimComponentsChart data={data} series={series} mode={view} />
       ) : (
-        <div className="flex h-[380px] items-center justify-center text-sm text-muted-foreground">
-          No data for this group.
-        </div>
+        <div className="flex h-[380px] items-center justify-center text-sm text-muted-foreground">{tx("No data for this group.")}</div>
       )}
     </ChartCard>
   );

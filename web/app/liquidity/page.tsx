@@ -19,6 +19,8 @@
  * and weekly reserve-flow attribution (BBVA-proprietary estimates), and the FCI
  * composite (Bloomberg inputs).
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -72,11 +74,15 @@ import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banks — Liquidity & Funding",
   description: "Liquidity and funding of Türkiye's banks: loan-to-deposit, LCR, FX liquidity and the deposit base from BDDK and BRSA data.",
   alternates: { canonical: "/liquidity" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 // Long-form rows → TrendChart points (structurally identical; keeps types tidy).
 function toTrend(rows: (TimeSeriesRow | WeeklyRow)[]): { period: string; bank_type_code: string; value: number }[] {
@@ -138,6 +144,7 @@ function lastYearWindow<T extends { period: string }>(s: T[]): T[] {
 }
 
 export default async function LiquidityPage() {
+  const tx = await getText();
   // What lands next — derived from the record periods + TCMB's published calendar.
   const ahead = await aheadSlots();
 
@@ -250,7 +257,7 @@ export default async function LiquidityPage() {
     dollarization: toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"),
     netCbrtFunding: netFunding,
     lcr: liqRatios.filter((r) => r.bank_type_code === "LCR"),
-  });
+  }, tx.locale);
 
   // ---- the buffer, decomposed ---------------------------------------------
   // The page already DERIVES net reserves and the swap-excluded net; it has
@@ -311,10 +318,10 @@ export default async function LiquidityPage() {
     curr: s.at(-1)?.value ?? null,
   });
   const moverRows: MoverRow[] = [
-    { label: `${LDR_WEEKLY_TL.label} — public`, ...wk(tlLdrPub), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down" },
+    { label: tx("{0} — public", {0: LDR_WEEKLY_TL.label}), ...wk(tlLdrPub), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down" },
     {
-      label: `${LDR_WEEKLY_TL.label} — private`,
-      note: privNow != null ? `${(100 - privNow).toFixed(1)}pp from the 100% line` : undefined,
+      label: tx("{0} — private", {0: LDR_WEEKLY_TL.label}),
+      note: privNow != null ? tx("{0}pp from the 100% line", {0: (100 - privNow).toFixed(1)}) : undefined,
       ...wk(tlLdrPriv), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down",
     },
     { label: "FC share of deposits", note: "the dollarization tell", ...wk(dollSector), good: "down" },
@@ -342,18 +349,16 @@ export default async function LiquidityPage() {
       v: ((netNow / grossNow) * 100).toFixed(0),
       unit: "%",
       effect: (
-        <>
-          Gross reserves are <b>{fmtBn(grossNow)}</b>, net <b>{fmtBn(netNow)}</b>. The difference —{" "}
-          <b>{fmtBn(banksFx)}</b> —{" "}
+        <>{tx("Gross reserves are ")}<b>{tx(fmtBn(grossNow))}</b>{tx(", net ")}<b>{tx(fmtBn(netNow))}</b>{tx(". The difference —")}{" "}
+          <b>{tx(fmtBn(banksFx))}</b> —{" "}
           {banksFx > 0 ? (
-            <>
-              is the banks&rsquo; own FX, held at the CBRT as required reserves.{" "}
-              <b>It is not the central bank&rsquo;s money.</b>
+            <>{tx("is the banks’ own FX, held at the CBRT as required reserves.")}{" "}
+              <b>{tx("It is not the central bank’s money.")}</b>
             </>
           ) : (
             // gross − net ≡ the banks' FX at the CBRT, so this is normally positive.
             // If it inverts, the sentence above becomes nonsense — say what it is.
-            <>is negative: net reserves exceed gross, which the identity does not allow.</>
+            <>{tx("is negative: net reserves exceed gross, which the identity does not allow.")}</>
           )}
         </>
       ),
@@ -366,9 +371,8 @@ export default async function LiquidityPage() {
       unit: "bn",
       effect: (
         <>
-          {fmtPct(swapPctNet, 0)} of the net buffer is swapped in. Strip the swaps and the
-          CBRT&rsquo;s own net reserves are <b>{fmtBn(ownNow)}</b> —{" "}
-          <b>{fmtPct(ownPctGross, 0)} of the headline</b>.
+          {tx(fmtPct(swapPctNet, 0))}{tx(" of the net buffer is swapped in. Strip the swaps and the CBRT’s own net reserves are ")}<b>{tx(fmtBn(ownNow))}</b> —{" "}
+          <b>{tx(fmtPct(ownPctGross, 0))}{tx(" of the headline")}</b>.
         </>
       ),
     });
@@ -379,11 +383,8 @@ export default async function LiquidityPage() {
       v: `$${hhTotal.toFixed(0)}`,
       unit: "bn",
       effect: (
-        <>
-          Residents hold <b>{fmtBn(hhNow.cash)}</b> in FX cash and <b>{fmtBn(hhNow.gold)}</b> in
-          gold — <b>{hhVsNir?.toFixed(1)}× the CBRT&rsquo;s net reserves</b> on the same date; the
-          gold alone is {goldVsNir?.toFixed(1)}×. Dollarization is not just a deposit line.{" "}
-          <Link href="/deposits" className="font-semibold text-primary">/deposits</Link>
+        <>{tx("Residents hold ")}<b>{tx(fmtBn(hhNow.cash))}</b>{tx(" in FX cash and ")}<b>{tx(fmtBn(hhNow.gold))}</b>{tx(" in gold — ")}<b>{tx(hhVsNir?.toFixed(1))}{tx("× the CBRT’s net reserves")}</b>{tx(" on the same date; the gold alone is ")}{tx(goldVsNir?.toFixed(1))}{tx("×. Dollarization is not just a deposit line.")}{" "}
+          <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
         </>
       ),
     });
@@ -396,15 +397,12 @@ export default async function LiquidityPage() {
       effect: (
         <>
           {fundNow < 0 ? (
-            <>
-              The system is <b>short of lira</b> and funds the gap at the CBRT — the channel a rate
-              decision travels down. How fast it arrives is the maturity ladder&rsquo;s question,
-              not this one.{" "}
+            <>{tx("The system is ")}<b>{tx("short of lira")}</b>{tx(" and funds the gap at the CBRT — the channel a rate decision travels down. How fast it arrives is the maturity ladder’s question, not this one.")}{" "}
             </>
           ) : (
-            <>The system holds <b>excess lira</b> and places it back with the CBRT. </>
+            <>{tx("The system holds ")}<b>{tx("excess lira")}</b>{tx(" and places it back with the CBRT. ")}</>
           )}
-          <Link href="/deposits" className="font-semibold text-primary">/deposits</Link>
+          <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
         </>
       ),
     });
@@ -421,15 +419,13 @@ export default async function LiquidityPage() {
       effect: (
         <>
           {reerMove === VERBS.noun.flat ? (
-            <>The real exchange rate is flat over 12 months — the lira carry is unchanged.</>
+            <>{tx("The real exchange rate is flat over 12 months — the lira carry is unchanged.")}</>
           ) : (
-            <>
-              Real {reerMove} of <b>{Math.abs(reerD).toFixed(1)}</b> over 12 months{" "}
-              {reerD > 0 ? "is what makes holding lira pay" : "works against the lira carry"} — TL
-              deposits run at <b>{fmtPct(tl13w, 0)} annualized</b>.
+            <>{tx("Real ")}{tx(reerMove)}{tx(" of ")}<b>{tx(Math.abs(reerD).toFixed(1))}</b>{tx(" over 12 months")}{" "}
+              {tx(reerD > 0 ? "is what makes holding lira pay" : "works against the lira carry")}{tx(" — TL deposits run at ")}<b>{tx(fmtPct(tl13w, 0))}{tx(" annualized")}</b>.
             </>
           )}{" "}
-          <Link href="/economy" className="font-semibold text-primary">/economy</Link>
+          <Link href="/economy" className="font-semibold text-primary">{tx("/economy")}</Link>
         </>
       ),
     });
@@ -442,92 +438,80 @@ export default async function LiquidityPage() {
       active: ownPctGross != null && ownPctGross < 40,
       body: (
         <>
-          <b className="font-semibold">Thin own-buffer</b> — the CBRT&rsquo;s own net reserves are{" "}
-          {fmtBn(ownNow)}, {fmtPct(ownPctGross, 0)} of the {fmtBn(grossNow)} headline. The rest is
-          the banks&rsquo; required reserves and swapped-in FX.
-        </>
+          <b className="font-semibold">{tx("Thin own-buffer")}</b>{tx(" — the CBRT’s own net reserves are")}{" "}
+          {tx(fmtBn(ownNow))}, {tx(fmtPct(ownPctGross, 0))}{tx(" of the ")}{tx(fmtBn(grossNow))}{tx(" headline. The rest is the banks’ required reserves and swapped-in FX.")}</>
       ),
       rule: "net_excl_swaps / gross < 40%",
-      clear: <>Own buffer — {fmtPct(ownPctGross, 0)} of gross is the CBRT&rsquo;s own FX</>,
+      clear: <>{tx("Own buffer — ")}{tx(fmtPct(ownPctGross, 0))}{tx(" of gross is the CBRT’s own FX")}</>,
     },
     {
       code: "swap-dependence",
       active: swapPctNet != null && swapPctNet > 25,
       body: (
         <>
-          <b className="font-semibold">Swap dependence</b> — {fmtBn(swapStock)} of the{" "}
-          {fmtBn(netNow)} net buffer is borrowed ({fmtPct(swapPctNet, 0)}). A swap is a liability
-          with a date on it.
-        </>
+          <b className="font-semibold">{tx("Swap dependence")}</b> — {tx(fmtBn(swapStock))}{tx(" of the")}{" "}
+          {tx(fmtBn(netNow))}{tx(" net buffer is borrowed (")}{tx(fmtPct(swapPctNet, 0))}{tx("). A swap is a liability with a date on it.")}</>
       ),
       rule: "swaps / nir > 25%",
-      clear: <>Swaps — {fmtPct(swapPctNet, 0)} of the net buffer</>,
+      clear: <>{tx("Swaps — ")}{tx(fmtPct(swapPctNet, 0))}{tx(" of the net buffer")}</>,
     },
     {
       code: "tl-deficit",
       active: fundNow != null && fundNow < 0,
       body: (
         <>
-          <b className="font-semibold">TL deficit</b> — net CBRT funding is{" "}
-          <b>₺{fundNow?.toFixed(0)}bn</b>: the system is short of lira and funds the gap at the
-          policy rate.
-        </>
+          <b className="font-semibold">{tx("TL deficit")}</b>{tx(" — net CBRT funding is")}{" "}
+          <b>₺{tx(fundNow?.toFixed(0))}{tx("bn")}</b>{tx(": the system is short of lira and funds the gap at the policy rate.")}</>
       ),
       rule: "net_cbrt_funding < 0",
-      clear: <>TL liquidity — net CBRT funding ₺{fundNow?.toFixed(0)}bn, in surplus</>,
+      clear: <>{tx("TL liquidity — net CBRT funding ₺")}{tx(fundNow?.toFixed(0))}{tx("bn, in surplus")}</>,
     },
     {
       code: "private-ldr",
       active: privNow != null && privNow > LDR_WEEKLY_TL.line,
       body: (
         <>
-          <b className="font-semibold">Private LDR at the line</b> — private TL loan/deposit{" "}
-          {fmtPct(privNow)}, within {privNow != null ? (100 - privNow).toFixed(1) : "—"}pp of 100%.
-          New lending has to be funded, not recycled. This is the TL book alone; the published
-          TL+FC sector ratio, judged against 100%, is on{" "}
-          <Link href="/deposits" className="font-semibold text-primary">/deposits</Link>.
+          <b className="font-semibold">{tx("Private LDR at the line")}</b>{tx(" — private TL loan/deposit")}{" "}
+          {tx(fmtPct(privNow))}{tx(", within ")}{tx(privNow != null ? (100 - privNow).toFixed(1) : "—")}{tx("pp of 100%. New lending has to be funded, not recycled. This is the TL book alone; the published TL+FC sector ratio, judged against 100%, is on")}{" "}
+          <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>.
         </>
       ),
       rule: LDR_WEEKLY_TL.rule,
-      clear: <>Private TL loan/deposit — {fmtPct(privNow)}, clear of the line</>,
+      clear: <>{tx("Private TL loan/deposit — ")}{tx(fmtPct(privNow))}{tx(", clear of the line")}</>,
     },
     {
       code: "lcr-floor",
       active: lcrNow != null && lcrNow < 100,
       body: (
         <>
-          <b className="font-semibold">LCR below the floor</b> — {fmtPct(lcrNow, 0)} against the
-          100% regulatory minimum (audited {auditQ}).
+          <b className="font-semibold">{tx("LCR below the floor")}</b> — {tx(fmtPct(lcrNow, 0))}{tx(" against the 100% regulatory minimum (audited ")}{tx(auditQ)}).
         </>
       ),
       rule: "lcr < 100%",
-      clear: <>LCR — {fmtPct(lcrNow, 0)}, clear of the floor</>,
+      clear: <>{tx("LCR — ")}{tx(fmtPct(lcrNow, 0))}{tx(", clear of the floor")}</>,
     },
     {
       code: "nsfr-floor",
       active: nsfrNow != null && nsfrNow < 100,
       body: (
         <>
-          <b className="font-semibold">NSFR below the floor</b> — {fmtPct(nsfrNow, 0)} against the
-          100% regulatory minimum (audited {auditQ}).
+          <b className="font-semibold">{tx("NSFR below the floor")}</b> — {tx(fmtPct(nsfrNow, 0))}{tx(" against the 100% regulatory minimum (audited ")}{tx(auditQ)}).
         </>
       ),
       rule: "nsfr < 100%",
-      clear: <>NSFR — {fmtPct(nsfrNow, 0)}, clear of the floor</>,
+      clear: <>{tx("NSFR — ")}{tx(fmtPct(nsfrNow, 0))}{tx(", clear of the floor")}</>,
     },
     {
       code: "re-dollarization",
       active: dollYoY != null && dollYoY > 1,
       body: (
         <>
-          <b className="font-semibold">Re-dollarization</b> — FC share {fmtPct(dollNow)},{" "}
-          {dollYoY != null ? signedPp(dollYoY, 2) : "—"} y/y: savers are moving back into hard
-          currency.
-        </>
+          <b className="font-semibold">{tx("Re-dollarization")}</b>{tx(" — FC share ")}{tx(fmtPct(dollNow))},{" "}
+          {tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}{tx(" y/y: savers are moving back into hard currency.")}</>
       ),
       rule: "Δ52w(fc_share) > +1pp",
       clear: (
-        <>Dollarization — FC share {dollYoY != null ? signedPp(dollYoY, 2) : "—"} over 52w</>
+        <>{tx("Dollarization — FC share ")}{tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}{tx(" over 52w")}</>
       ),
     },
   ];
@@ -547,25 +531,22 @@ export default async function LiquidityPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Liquidity"
+        title={tx("Liquidity")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">W/E {recWeek}</b> · {auditQ} filings +
-            weekly
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">W/E {tx(recWeek)}</b> · {tx(auditQ)}{tx(" filings + weekly")}</>
         }
         right="every figure computed from source series"
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="weekly bulletin + evds + audited §4"
+        title={tx("The vitals")}
+        meta={tx("weekly bulletin + evds + audited §4")}
         className="mb-2.5 mt-6"
       />
       <Vitals>
         <Vital
-          label="LCR"
+          label={tx("LCR")}
           value={lcrNow != null ? lcrNow.toFixed(0) : "—"}
           unit="%"
           series={lcrS.slice(-13)}
@@ -578,15 +559,14 @@ export default async function LiquidityPage() {
                     lcrFloor >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
                   }
                 >
-                  {signedPp(lcrFloor, 0)}
-                </b>{" "}
-                vs the 100% floor · audited {auditQ}
+                  {tx(signedPp(lcrFloor, 0))}
+                </b>{" "}{tx("vs the 100% floor · audited ")}{tx(auditQ)}
               </>
             ) : undefined
           }
         />
         <Vital
-          label="NSFR"
+          label={tx("NSFR")}
           value={nsfrNow != null ? nsfrNow.toFixed(0) : "—"}
           unit="%"
           series={nsfrS.slice(-13)}
@@ -599,15 +579,14 @@ export default async function LiquidityPage() {
                     nsfrFloor >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
                   }
                 >
-                  {signedPp(nsfrFloor, 0)}
-                </b>{" "}
-                vs the 100% floor · audited {auditQ}
+                  {tx(signedPp(nsfrFloor, 0))}
+                </b>{" "}{tx("vs the 100% floor · audited ")}{tx(auditQ)}
               </>
             ) : undefined
           }
         />
         <Vital
-          label={`${LDR_WEEKLY_TL.label} — public`}
+          label={tx("{0} — public", {0: LDR_WEEKLY_TL.label})}
           value={pubNow != null ? pubNow.toFixed(1) : "—"}
           unit="%"
           series={lastYearWindow(tlLdrPub)}
@@ -615,30 +594,27 @@ export default async function LiquidityPage() {
           note={
             pubPrivGap != null ? (
               <>
-                {pubPrivGap >= 0
-                  ? `${pubPrivGap.toFixed(1)}pp above`
-                  : `${Math.abs(pubPrivGap).toFixed(1)}pp below`}{" "}
-                private
-              </>
+                {tx(pubPrivGap >= 0
+                  ? tx("{0}pp above", {0: pubPrivGap.toFixed(1)})
+                  : tx("{0}pp below", {0: Math.abs(pubPrivGap).toFixed(1)}))}{" "}{tx("private")}</>
             ) : undefined
           }
         />
         <Vital
-          label={`${LDR_WEEKLY_TL.label} — private`}
+          label={tx("{0} — private", {0: LDR_WEEKLY_TL.label})}
           value={privNow != null ? privNow.toFixed(1) : "—"}
           unit="%"
           series={lastYearWindow(tlLdrPriv)}
           decimals={1}
           note={
             privRange ? (
-              <>
-                52w range {privRange.min.toFixed(0)}–{privRange.max.toFixed(0)}%
+              <>{tx("52w range ")}{tx(privRange.min.toFixed(0))}–{tx(privRange.max.toFixed(0))}%
               </>
             ) : undefined
           }
         />
         <Vital
-          label="FC share of deposits"
+          label={tx("FC share of deposits")}
           value={dollNow != null ? dollNow.toFixed(1) : "—"}
           unit="%"
           series={lastYearWindow(dollSector)}
@@ -651,18 +627,16 @@ export default async function LiquidityPage() {
                     dollYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
                   }
                 >
-                  {signedPp(dollYoY, 1)}
+                  {tx(signedPp(dollYoY, 1))}
                 </b>{" "}
                 y/y{" "}
-                <Link href="/deposits" className="font-semibold text-primary">
-                  /deposits
-                </Link>
+                <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
               </>
             ) : undefined
           }
         />
         <Vital
-          label="Net CBRT funding"
+          label={tx("Net CBRT funding")}
           value={fundNow != null ? fundNow.toFixed(0) : "—"}
           unit="₺bn"
           series={lastYearWindow(netFundingBn)}
@@ -670,7 +644,7 @@ export default async function LiquidityPage() {
           decimals={0}
           note={
             fundNow != null ? (
-              <>{fundNow >= 0 ? "+ excess" : "− lack"} of TL liquidity in the system</>
+              <>{tx(fundNow >= 0 ? "+ excess" : "− lack")}{tx(" of TL liquidity in the system")}</>
             ) : undefined
           }
         />
@@ -683,8 +657,8 @@ export default async function LiquidityPage() {
               (one row per ownership group per week), so its .at(-2) is the same
               week's other group, not last week. */}
           <SecHead
-            title="Movers"
-            meta={`the weekly record · ${weekLabel(tlLdrPriv.at(-2)?.period)} → ${weekLabel(tlLdrPriv.at(-1)?.period)}`}
+            title={tx("Movers")}
+            meta={tx("the weekly record · {0} → {1}", {0: weekLabel(tlLdrPriv.at(-2)?.period), 1: weekLabel(tlLdrPriv.at(-1)?.period)})}
             className="mb-2.5"
           />
           <Movers
@@ -695,8 +669,8 @@ export default async function LiquidityPage() {
         </div>
         <div>
           <SecHead
-            title="The buffer → the system"
-            meta="whose money is it · computed"
+            title={tx("The buffer → the system")}
+            meta={tx("whose money is it · computed")}
             className="mb-2.5"
           />
           <Transmission items={transmission} />
@@ -707,8 +681,8 @@ export default async function LiquidityPage() {
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <SecHead
-            title="Flags"
-            meta={`rule-based — ${activeFlags} of ${flags.length}`}
+            title={tx("Flags")}
+            meta={tx("rule-based — {0} of {1}", {0: activeFlags, 1: flags.length})}
             className="mb-2.5"
           />
           <Flags
@@ -719,38 +693,33 @@ export default async function LiquidityPage() {
         </div>
         <div>
           <SecHead
-            title="The two systems"
-            meta={`public vs private · w/e ${recWeek}`}
+            title={tx("The two systems")}
+            meta={tx("public vs private · w/e {0}", {0: recWeek})}
             className="mb-2.5"
           />
           <Compare a="Public" b="Private" rows={compareRows} />
-          <p className="mt-2 text-[10.5px] leading-snug text-faint">
-            BBVA&rsquo;s cut, which this page follows: public = state banks; private = private +
-            foreign.
-          </p>
+          <p className="mt-2 text-[10.5px] leading-snug text-faint">{tx("BBVA’s cut, which this page follows: public = state banks; private = private + foreign.")}</p>
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
           <Ahead
             items={[
-              { when: "THU", what: <>TCMB analytical balance sheet — the reserve buffer</> },
+              { when: "THU", what: <>{tx("TCMB analytical balance sheet — the reserve buffer")}</> },
               ahead.mpc && {
                 when: ahead.mpc.when,
                 what: (
-                  <>
-                    TCMB MPC — the rate the{" "}
-                    {fundNow != null ? `₺${Math.abs(fundNow).toFixed(0)}bn` : ""} deficit is funded at
-                  </>
+                  <>{tx("TCMB MPC — the rate the")}{" "}
+                    {tx(fundNow != null ? `₺${Math.abs(fundNow).toFixed(0)}bn` : "")}{tx(" deficit is funded at")}</>
                 ),
               },
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
-                what: <>BRSA {ahead["brsa-filings"].record} filings — LCR, NSFR, leverage</>,
+                what: <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — LCR, NSFR, leverage")}</>,
                 href: "/actions",
               },
               ahead.fsr && {
                 when: ahead.fsr.when,
-                what: <>TCMB Financial Stability Report — funding &amp; liquidity risks</>,
+                what: <>{tx("TCMB Financial Stability Report — funding & liquidity risks")}</>,
               },
             ].filter((i) => !!i)}
           />
@@ -759,13 +728,13 @@ export default async function LiquidityPage() {
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
       <Depth action={<GlobalRangeSelector />}>
-        <Takeaway data={await withLlmHeadline("liquidity", read)} variant="desk" />
+        <Takeaway data={await withLlmHeadline("liquidity", read, tx.locale)} variant="desk" />
 
         {/* The buffer — the page's own arithmetic, finally read out. */}
         <div>
           <SecHead
-            title="The buffer"
-            meta="whose fx is it · derived from the tcmb analytical balance sheet"
+            title={tx("The buffer")}
+            meta={tx("whose fx is it · derived from the tcmb analytical balance sheet")}
             className="mb-2.5"
           />
           <Levels
@@ -780,28 +749,23 @@ export default async function LiquidityPage() {
             <ReserveBuffer
               data={buffer}
               title={
-                weeksOwnNegative > 0 && ownNow != null
-                  ? `The central bank's own net FX was below zero for ${weeksOwnNegative} of the last ${buffer.length} weeks — and is ${fmtBn(ownNow)} today`
-                  : "Gross → net → net excluding swaps"
+                tx(weeksOwnNegative > 0 && ownNow != null
+                  ? tx("The central bank's own net FX was below zero for {0} of the last {1} weeks — and is {2} today", {0: weeksOwnNegative, 1: buffer.length, 2: fmtBn(ownNow)})
+                  : "Gross → net → net excluding swaps")
               }
-              description="gross → net → net excl. swaps, USD bn, weekly · the gaps are the banks' required reserves and the swap stock"
+              description={tx("gross → net → net excl. swaps, USD bn, weekly · the gaps are the banks' required reserves and the swap stock")}
               source={
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>
-                    GROSS <b className="font-semibold text-foreground">{fmtBn(grossNow)}</b>
+                  <span>{tx("GROSS ")}<b className="font-semibold text-foreground">{tx(fmtBn(grossNow))}</b>
                   </span>
-                  <span>
-                    CBRT&rsquo;S OWN{" "}
+                  <span>{tx("CBRT’S OWN")}{" "}
                     <b className="font-semibold text-foreground">
-                      {fmtBn(ownNow)} ({fmtPct(ownPctGross, 0)} of gross)
-                    </b>
+                      {tx(fmtBn(ownNow))} ({tx(fmtPct(ownPctGross, 0))}{tx(" of gross)")}</b>
                   </span>
-                  <span>
-                    SWAPPED <b className="font-semibold text-foreground">{fmtBn(swapStock)}</b>
+                  <span>{tx("SWAPPED ")}<b className="font-semibold text-foreground">{tx(fmtBn(swapStock))}</b>
                   </span>
-                  <span>
-                    BANKS&rsquo; REQ. RES.{" "}
-                    <b className="font-semibold text-foreground">{fmtBn(banksFx)}</b>
+                  <span>{tx("BANKS’ REQ. RES.")}{" "}
+                    <b className="font-semibold text-foreground">{tx(fmtBn(banksFx))}</b>
                   </span>
                 </div>
               }
@@ -818,27 +782,23 @@ export default async function LiquidityPage() {
                 "CBRT net reserves": hh.map((r) => ({ period_date: r.period, value: r.nir })),
               }}
               title={
-                hhVsNir != null && hhVsNir > 1
+                tx(hhVsNir != null && hhVsNir > 1
                   ? "Households hold more FX and gold than the central bank holds net reserves"
-                  : "Residents' FC savings vs the CBRT's net reserves"
+                  : "Residents' FC savings vs the CBRT's net reserves")
               }
-              description="residents' fc savings vs cbrt net reserves, USD bn, monthly · paired on the same date"
+              description={tx("residents' fc savings vs cbrt net reserves, USD bn, monthly · paired on the same date")}
               source={
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>
-                    RESIDENTS <b className="font-semibold text-foreground">{fmtBn(hhTotal)}</b>
+                  <span>{tx("RESIDENTS ")}<b className="font-semibold text-foreground">{tx(fmtBn(hhTotal))}</b>
                   </span>
-                  <span>
-                    GOLD <b className="font-semibold text-foreground">{fmtBn(hhNow?.gold ?? null)}</b>
+                  <span>{tx("GOLD ")}<b className="font-semibold text-foreground">{tx(fmtBn(hhNow?.gold ?? null))}</b>
                   </span>
-                  <span>
-                    CBRT NET, SAME DATE{" "}
-                    <b className="font-semibold text-foreground">{fmtBn(hhNow?.nir ?? null)}</b>
+                  <span>{tx("CBRT NET, SAME DATE")}{" "}
+                    <b className="font-semibold text-foreground">{tx(fmtBn(hhNow?.nir ?? null))}</b>
                   </span>
-                  <span>
-                    RATIO{" "}
+                  <span>{tx("RATIO")}{" "}
                     <b className="font-semibold text-foreground">
-                      {hhVsNir != null ? `${hhVsNir.toFixed(1)}×` : "—"}
+                      {tx(hhVsNir != null ? `${hhVsNir.toFixed(1)}×` : "—")}
                     </b>
                   </span>
                 </div>
@@ -853,8 +813,8 @@ export default async function LiquidityPage() {
         {/* TL funding */}
         <div>
           <SecHead
-            title="TL funding"
-            meta="TL-only loan-to-deposit · weekly · the published TL+FC ratio and the maturity ladder live on /deposits"
+            title={tx("TL funding")}
+            meta={tx("TL-only loan-to-deposit · weekly · the published TL+FC ratio and the maturity ladder live on /deposits")}
             className="mb-2.5"
           />
           <ChartRow data={toTrend(tlLtd)} labels={LIQ_OWNERSHIP_LABELS} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(0)}%`}>
@@ -863,11 +823,11 @@ export default async function LiquidityPage() {
               data={toTrend(tlLtd)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
               title={
-                pubPrivGap != null && pubPrivGap < 0
+                tx(pubPrivGap != null && pubPrivGap < 0
                   ? "The private banks lend out nearly every lira they take in; the state banks do not"
-                  : "TL loan / deposit — public vs private"
+                  : "TL loan / deposit — public vs private")
               }
-              description="tl loans ÷ tl deposits, %, weekly · public vs private · TL+FC published ratio on /deposits"
+              description={tx("tl loans ÷ tl deposits, %, weekly · public vs private · TL+FC published ratio on /deposits")}
               yFormat="pct"
               decimals={0}
               height={300}
@@ -880,11 +840,11 @@ export default async function LiquidityPage() {
               data={tlDepGrowth}
               seriesLabels={{ YOY: "52w", W13: "13w ann." }}
               title={
-                tl13w != null && tlYoY != null && tl13w - tlYoY > 5
-                  ? `TL deposits are running at a ${tl13w.toFixed(0)}% annualized pace — well above the ${tlYoY.toFixed(0)}% yearly rate`
-                  : "TL deposit growth — sector"
+                tx(tl13w != null && tlYoY != null && tl13w - tlYoY > 5
+                  ? tx("TL deposits are running at a {0}% annualized pace — well above the {1}% yearly rate", {0: tl13w.toFixed(0), 1: tlYoY.toFixed(0)})
+                  : "TL deposit growth — sector")
               }
-              description="tl deposit growth, %, weekly · 52w vs 13w annualized · sector"
+              description={tx("tl deposit growth, %, weekly · 52w vs 13w annualized · sector")}
               source={
                 <ChartFoot
                   data={tlDepGrowth}
@@ -906,18 +866,18 @@ export default async function LiquidityPage() {
               data={toTrend(tlGrowthOwn)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     ownSpread != null && ownSpread < 5,
                     "Both systems are pulling lira in at much the same pace",
                   ],
                   [
                     ownSpread != null,
-                    `The two systems are pulling lira in at different speeds — ${(ownSpread ?? 0).toFixed(0)}pp apart`,
+                    tx("The two systems are pulling lira in at different speeds — {0}pp apart", {0: (ownSpread ?? 0).toFixed(0)}),
                   ],
-                ) ?? "TL deposit growth — public vs private"
+                ) ?? "TL deposit growth — public vs private")
               }
-              description="tl deposit growth, 13w annualized, %, weekly · public vs private"
+              description={tx("tl deposit growth, 13w annualized, %, weekly · public vs private")}
               source={
                 <ChartFoot
                   data={toTrend(tlGrowthOwn)}
@@ -940,8 +900,8 @@ export default async function LiquidityPage() {
         {/* FC & dollarization */}
         <div>
           <SecHead
-            title="FC &amp; dollarization"
-            meta="fc funding pressure · households' appetite for hard currency"
+            title={tx("FC & dollarization")}
+            meta={tx("fc funding pressure · households' appetite for hard currency")}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -950,11 +910,11 @@ export default async function LiquidityPage() {
               data={toTrend(fcLtd)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
               title={
-                fcPub != null && fcPriv != null && fcPub > fcPriv
+                tx(fcPub != null && fcPriv != null && fcPub > fcPriv
                   ? "In foreign currency the roles reverse — the state banks are the stretched ones"
-                  : "FC loan / deposit — public vs private"
+                  : "FC loan / deposit — public vs private")
               }
-              description="fc loans ÷ fc deposits, %, weekly · public vs private"
+              description={tx("fc loans ÷ fc deposits, %, weekly · public vs private")}
               source={
                 <ChartFoot
                   data={toTrend(fcLtd)}
@@ -975,12 +935,9 @@ export default async function LiquidityPage() {
               data={toTrend(dollarization)}
               seriesLabels={LIQ_DOLLARIZATION_LABELS}
               title={
-                seriesFinding(
-                  toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"),
-                  { noun: "Deposit dollarization", decimals: 1 },
-                ) ?? "Deposit dollarization — FC share of deposits"
+                tx(seriesFinding(toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"), { noun: "Deposit dollarization", decimals: 1 }, tx.locale) ?? "Deposit dollarization — FC share of deposits")
               }
-              description="fc share of total deposits, %, weekly · sector / public / private"
+              description={tx("fc share of total deposits, %, weekly · sector / public / private")}
               source={
                 <ChartFoot
                   data={toTrend(dollarization)}
@@ -1002,8 +959,8 @@ export default async function LiquidityPage() {
         {/* CBRT TL liquidity */}
         <div>
           <SecHead
-            title="CBRT liquidity"
-            meta="the system's tl stance · + excess / − lack · daily"
+            title={tx("CBRT liquidity")}
+            meta={tx("the system's tl stance · + excess / − lack · daily")}
             className="mb-2.5"
           />
           <ChartRow data={netFunding} deltaPeriods={252} deltaLabel="52w" fmt={(v) => `₺${(v / 1000).toFixed(0)}bn`}>
@@ -1012,11 +969,11 @@ export default async function LiquidityPage() {
               data={netFunding}
               seriesLabels={{ NETFUND: "Net funding" }}
               title={
-                fundNow != null && fundNow < 0
+                tx(fundNow != null && fundNow < 0
                   ? "The system is short of lira — it funds the gap at the CBRT"
-                  : "Net CBRT funding"
+                  : "Net CBRT funding")
               }
-              description="net cbrt funding, ₺ bn, daily · zero = neutral"
+              description={tx("net cbrt funding, ₺ bn, daily · zero = neutral")}
               yFormat="bn"
               decimals={0}
               height={300}
@@ -1028,8 +985,8 @@ export default async function LiquidityPage() {
         {/* Regulatory + the macro backdrop */}
         <div>
           <SecHead
-            title="Regulatory liquidity"
-            meta={`audited §4 · ${auditQ} · asset-weighted across reporting banks`}
+            title={tx("Regulatory liquidity")}
+            meta={tx("audited §4 · {0} · asset-weighted across reporting banks", {0: auditQ})}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -1038,11 +995,11 @@ export default async function LiquidityPage() {
               data={liqRatios}
               seriesLabels={AUDIT_LIQUIDITY_LABELS}
               title={
-                lcrNow != null && nsfrNow != null && lcrNow > 100 && nsfrNow > 100
+                tx(lcrNow != null && nsfrNow != null && lcrNow > 100 && nsfrNow > 100
                   ? "LCR and NSFR clear their floors with room to spare"
-                  : "LCR / NSFR / leverage — sector"
+                  : "LCR / NSFR / leverage — sector")
               }
-              description="lcr / nsfr / leverage, %, quarterly · 100% regulatory floor"
+              description={tx("lcr / nsfr / leverage, %, quarterly · 100% regulatory floor")}
               source={
                 <ChartFoot
                   data={liqRatios}
@@ -1062,29 +1019,27 @@ export default async function LiquidityPage() {
               plain
               series={reerSeries}
               title={
-                reerNow != null && reer12 != null && reerNow > reer12
+                tx(reerNow != null && reer12 != null && reerNow > reer12
                   ? "Real appreciation is what makes holding lira pay"
-                  : "Real effective exchange rate"
+                  : "Real effective exchange rate")
               }
-              description="real effective exchange rate, cpi based, 2003 = 100, monthly"
+              description={tx("real effective exchange rate, cpi based, 2003 = 100, monthly")}
               source={
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>
-                    LATEST{" "}
+                  <span>{tx("LATEST")}{" "}
                     <b className="font-semibold text-foreground">
-                      {reerNow != null ? reerNow.toFixed(1) : "—"}
+                      {tx(reerNow != null ? reerNow.toFixed(1) : "—")}
                     </b>
                   </span>
                   <span>
                     Δ 12M{" "}
                     <b className="font-semibold text-foreground">
-                      {reerNow != null && reer12 != null
+                      {tx(reerNow != null && reer12 != null
                         ? signedPp(reerNow - reer12, 1).replace("pp", "")
-                        : "—"}
+                        : "—")}
                     </b>
                   </span>
-                  <span>
-                    BASIS <b className="font-semibold text-foreground">2003 = 100</b>
+                  <span>{tx("BASIS ")}<b className="font-semibold text-foreground">2003 = 100</b>
                   </span>
                 </div>
               }

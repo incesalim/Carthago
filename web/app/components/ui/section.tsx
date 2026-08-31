@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 
@@ -26,6 +27,7 @@ export function Section({
   className,
   contentClassName = "space-y-4",
 }: SectionProps) {
+  const tx = useText();
   return (
     <section className={cn("space-y-4", className)}>
       {(title || actions) && (
@@ -34,17 +36,17 @@ export function Section({
             <div className="flex items-baseline gap-2.5">
               {index && (
                 <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-faint">
-                  {index}
+                  {tx(index)}
                 </span>
               )}
               {title && (
                 <h2 className="font-serif text-xl font-semibold tracking-tight text-foreground">
-                  {title}
+                  {tx(title)}
                 </h2>
               )}
             </div>
             {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-xs text-muted-foreground">{tx(description)}</p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}

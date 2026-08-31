@@ -19,6 +19,7 @@ CAUGHT = {
         'title="Gearing keeps climbing — the state banks lean hardest"',
         'title="The margin rebuilt as deposits repriced down"',
         'title={"Every deposit-taking group funds its book below the line"}',
+        'title={tx("Every deposit-taking group funds its book below the line")}',
     ],
     "R3": [
         'description: "32 banks\' audited BRSA financials, BDDK aggregates",',
@@ -30,6 +31,9 @@ CAUGHT = {
 IGNORED = [
     'description="tl loans ÷ tl deposits, %, weekly · public vs private"',
     'title="Capital adequacy — by group"',
+    'title={tx("Capital adequacy — by group")}',
+    'title={tx("Capital adequacy rose to {0}", {0: car})}',
+    'tx("+{0}pp over the 100% minimum", {0: buffer})',  # numbered text slot, not JSX
     'title="Largest funds"',  # a topic label, not a claim
     'title={seriesFinding(s, { noun: "Loan growth" }) ?? "Loan growth YoY (%)"}',
     "title={claim(everyOf(g, (x) => x < 100), 'Every group is below the line') ?? 'Loan / deposit'}",

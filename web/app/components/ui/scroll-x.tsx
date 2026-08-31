@@ -1,5 +1,6 @@
 "use client";
 
+import { useText } from "@/i18n/use-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/app/lib/cn";
 
@@ -38,6 +39,7 @@ export function ScrollX({
   className?: string;
   innerClassName?: string;
 }) {
+  const tx = useText();
   const ref = useRef<HTMLDivElement>(null);
   const [{ start, end }, setEdges] = useState({ start: true, end: true });
 
@@ -73,7 +75,7 @@ export function ScrollX({
       <div
         ref={ref}
         role="region"
-        aria-label={label}
+        aria-label={tx(label)}
         tabIndex={0}
         className={cn(
           "overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",

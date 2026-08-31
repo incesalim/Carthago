@@ -6,6 +6,7 @@
  * "Net NIM" line overlay. Mirrors the Garanti BBVA Research chart style —
  * in annual mode each sizeable segment carries its value label.
  */
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   CartesianGrid,
@@ -150,6 +151,7 @@ export default function NimComponentsChart({
   mode,
   height = 380,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const isLight = t.mode === "light";
@@ -196,9 +198,9 @@ export default function NimComponentsChart({
             flex: "none",
           }}
         />
-        <span style={{ color: t.axis }}>{s.label}</span>
+        <span style={{ color: t.axis }}>{tx(s.label)}</span>
         <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-          {nf(row[s.key], 2)}%
+          {tx(nf(row[s.key], 2))}%
         </span>
       </div>
     );
@@ -213,21 +215,21 @@ export default function NimComponentsChart({
           borderTop: `1px solid ${t.tooltipBorder}`,
         }}
       >
-        <span>{text}</span>
+        <span>{tx(text)}</span>
         <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-          {nf(value, 2)}%
+          {tx(nf(value, 2))}%
         </span>
       </div>
     );
 
     return (
       <div style={{ ...tt.contentStyle, minWidth: 230, lineHeight: 1.7 }}>
-        <div style={tt.labelStyle}>{String(label)}</div>
-        {incomeSeries.map(line)}
-        {subtotal("Interest income", sum(incomeSeries))}
+        <div style={tt.labelStyle}>{tx(String(label))}</div>
+        {tx(incomeSeries.map(line))}
+        {tx(subtotal("Interest income", sum(incomeSeries)))}
         <div style={{ height: 6 }} />
-        {expenseSeries.map(line)}
-        {subtotal("Interest expense", sum(expenseSeries))}
+        {tx(expenseSeries.map(line))}
+        {tx(subtotal("Interest expense", sum(expenseSeries)))}
         <div
           style={{
             display: "flex",
@@ -238,9 +240,9 @@ export default function NimComponentsChart({
             borderTop: `2px solid ${t.tooltipBorder}`,
           }}
         >
-          <span>Net NIM</span>
+          <span>{tx("Net NIM")}</span>
           <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-            {nf(row.net, 2)}%
+            {tx(nf(row.net, 2))}%
           </span>
         </div>
       </div>
@@ -314,7 +316,7 @@ export default function NimComponentsChart({
                         background: fills[s.key],
                       }}
                     />
-                    {s.label}
+                    {tx(s.label)}
                   </li>
                 ))}
                 <li
@@ -331,9 +333,7 @@ export default function NimComponentsChart({
                       width: 14,
                       borderTop: `2px solid ${netColor}`,
                     }}
-                  />
-                  Net NIM
-                </li>
+                  />{tx("Net NIM")}</li>
               </ul>
             )}
           />
@@ -341,7 +341,7 @@ export default function NimComponentsChart({
             <Bar
               key={s.key}
               dataKey={s.key}
-              name={s.label}
+              name={tx(s.label)}
               stackId="nim"
               fill={fills[s.key]}
               isAnimationActive={false}
@@ -369,7 +369,7 @@ export default function NimComponentsChart({
           />
           <Line
             dataKey="net"
-            name="Net NIM"
+            name={tx("Net NIM")}
             stroke={netColor}
             strokeWidth={2.25}
             dot={

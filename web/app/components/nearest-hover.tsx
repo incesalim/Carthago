@@ -14,6 +14,7 @@
  * `createElement`, `<NearestActiveDot>` as a chart child), so the chart-context
  * hooks (`useYAxisScale`, …) are valid inside them.
  */
+import { useText } from "@/i18n/use-text";
 import {
   useActiveTooltipCoordinate,
   useActiveTooltipLabel,
@@ -39,6 +40,7 @@ export function NearestSeriesTooltip({
   formatValue: (value: number) => string;
   formatLabel?: (label: string | number) => string;
 }) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const yScale = useYAxisScale();
@@ -60,7 +62,7 @@ export function NearestSeriesTooltip({
     label == null ? "" : formatLabel ? formatLabel(label) : String(label);
   return (
     <div style={tt.contentStyle}>
-      <div style={tt.labelStyle}>{heading}</div>
+      <div style={tt.labelStyle}>{tx(heading)}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span
           style={{
@@ -71,9 +73,9 @@ export function NearestSeriesTooltip({
             background: best.color,
           }}
         />
-        <span>{best.name}</span>
+        <span>{tx(best.name)}</span>
         <span style={{ marginLeft: 12, fontWeight: 600 }}>
-          {typeof best.value === "number" ? formatValue(best.value) : "—"}
+          {tx(typeof best.value === "number" ? formatValue(best.value) : "—")}
         </span>
       </div>
     </div>

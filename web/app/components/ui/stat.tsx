@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 import { Card } from "./card";
@@ -32,12 +33,13 @@ export function Stat({
   children,
   className,
 }: StatProps) {
+  const tx = useText();
   return (
     <Card className={cn("p-5 transition-colors hover:border-primary/40", className)}>
       <div className="flex items-center justify-between gap-2">
         {/* Sentence-case sans — mono-caps is reserved for eyebrows/kickers/indices. */}
         <span className="text-[12.5px] font-medium text-muted-foreground">
-          {label}
+          {tx(label)}
         </span>
         {badge}
       </div>
@@ -47,10 +49,10 @@ export function Stat({
           toneText[tone],
         )}
       >
-        {value}
+        {tx(value)}
       </div>
       {hint != null && hint !== "" && (
-        <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{tx(hint)}</div>
       )}
       {children && <div className="mt-3 -mx-1">{children}</div>}
     </Card>

@@ -23,10 +23,12 @@
  * visually clipped but present for a screen reader. Both carry
  * `data-chart-no-export` so neither lands in the PNG screenshot.
  */
+import { useText } from "@/i18n/use-text";
 import { chartSummary, srTableIsUseful, type ChartTable } from "@/app/lib/chart-csv";
 
 export function ChartData({ table }: { table: ChartTable }) {
-  const summary = chartSummary(table);
+  const tx = useText();
+  const summary = chartSummary(table, tx.locale);
   const withTable = srTableIsUseful(table);
 
   return (
@@ -36,15 +38,15 @@ export function ChartData({ table }: { table: ChartTable }) {
       </span>
       {summary && (
         <div className="sr-only" data-chart-no-export="">
-          <p>{summary}</p>
+          <p>{tx(summary)}</p>
           {withTable && (
             <table>
-              <caption>{table.columns.join(", ")}</caption>
+              <caption>{table.columns.map((column) => tx(column)).join(", ")}</caption>
               <thead>
                 <tr>
                   {table.columns.map((c, i) => (
                     <th key={`${c}-${i}`} scope="col">
-                      {c}
+                      {tx(c)}
                     </th>
                   ))}
                 </tr>
@@ -58,10 +60,10 @@ export function ChartData({ table }: { table: ChartTable }) {
                       // belongs to.
                       c === 0 ? (
                         <th key={c} scope="row">
-                          {cell ?? ""}
+                          {tx(cell ?? "")}
                         </th>
                       ) : (
-                        <td key={c}>{cell ?? ""}</td>
+                        <td key={c}>{tx(cell ?? "")}</td>
                       ),
                     )}
                   </tr>

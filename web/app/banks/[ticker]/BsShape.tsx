@@ -10,6 +10,7 @@
  * Server component (no interactivity) — Desk idiom: hairlines, no boxes, mono
  * figures, and every proportion drawn rather than described.
  */
+import { useText } from "@/i18n/use-text";
 import { SecHead } from "@/app/components/desk";
 import { cn } from "@/app/lib/cn";
 import type { CompRow } from "@/app/lib/bank-financials";
@@ -17,6 +18,7 @@ import type { CompRow } from "@/app/lib/bank-financials";
 const PF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, signDisplay: "exceptZero" });
 
 function RealCell({ real }: { real: number | null }) {
+  const tx = useText();
   if (real == null) {
     return <span className="font-mono text-[11px] text-faint">--</span>;
   }
@@ -27,19 +29,20 @@ function RealCell({ real }: { real: number | null }) {
         real > 3 ? "text-positive" : real < -3 ? "text-negative" : "text-warning",
       )}
     >
-      {PF.format(real)}%
+      {tx(PF.format(real))}%
     </span>
   );
 }
 
 /** The trailing figure — whatever the lens asks for, so the control is never inert. */
 function LensCell({ r, lens }: { r: CompRow; lens: Lens }) {
+  const tx = useText();
   if (lens === "abs") {
     return (
       <span className="font-mono text-[11.5px] tabular-nums text-muted-foreground">
-        {r.value >= 1e6
+        {tx(r.value >= 1e6
           ? `₺${(r.value / 1e6).toFixed(r.value / 1e6 >= 100 ? 0 : 1)}bn`
-          : `₺${(r.value / 1e3).toFixed(0)}mn`}
+          : `₺${(r.value / 1e3).toFixed(0)}mn`)}
       </span>
     );
   }
@@ -47,7 +50,7 @@ function LensCell({ r, lens }: { r: CompRow; lens: Lens }) {
   if (lens === "size") {
     return (
       <span className="font-mono text-[11.5px] tabular-nums text-faint">
-        {r.share.toFixed(1)}%
+        {tx(r.share.toFixed(1))}%
       </span>
     );
   }
@@ -64,12 +67,13 @@ const LENS_HEAD: Record<Lens, string> = {
 export type Lens = "abs" | "yoy" | "real" | "size";
 
 function Column({ title, rows, lens }: { title: string; rows: CompRow[]; lens: Lens }) {
+  const tx = useText();
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between">
-        <h3 className="font-mono text-[9px] uppercase tracking-[0.07em] text-faint">{title}</h3>
+        <h3 className="font-mono text-[9px] uppercase tracking-[0.07em] text-faint">{tx(title)}</h3>
         <span className="font-mono text-[9px] uppercase tracking-[0.07em] text-faint">
-          {LENS_HEAD[lens]}
+          {tx(LENS_HEAD[lens])}
         </span>
       </div>
       <div className="border-t-2 border-foreground">
@@ -83,10 +87,10 @@ function Column({ title, rows, lens }: { title: string; rows: CompRow[]; lens: L
                 "truncate text-[12px]",
                 r.sub ? "pl-3 text-muted-foreground" : "text-foreground",
               )}
-              title={r.label}
+              title={tx(r.label)}
             >
-              {r.sub && <span className="mr-1 text-faint">of which</span>}
-              {r.label}
+              {r.sub && <span className="mr-1 text-faint">{tx("of which")}</span>}
+              {tx(r.label)}
             </div>
             <div className="relative h-2.5 rounded-[1px] bg-muted">
               <span
@@ -98,7 +102,7 @@ function Column({ title, rows, lens }: { title: string; rows: CompRow[]; lens: L
               />
             </div>
             <span className="w-12 text-right font-mono text-[12px] font-semibold tabular-nums text-foreground">
-              {r.share.toFixed(1)}%
+              {tx(r.share.toFixed(1))}%
             </span>
             <span className="w-16 text-right">
               <LensCell r={r} lens={lens} />
@@ -130,19 +134,20 @@ export default function BsShape({
   /** How the CPI was matched — printed under the columns (automation honesty). */
   footnote: string;
 }) {
+  const tx = useText();
   if (assets.length === 0 && funding.length === 0) return null;
   return (
     <section className="mb-7">
-      <SecHead title="The shape" meta={meta} className="mb-2" />
+      <SecHead title={tx("The shape")} meta={tx(meta)} className="mb-2" />
       {lead && (
-        <p className="mb-3.5 max-w-[92ch] text-[12.5px] leading-relaxed text-foreground">{lead}</p>
+        <p className="mb-3.5 max-w-[92ch] text-[12.5px] leading-relaxed text-foreground">{tx(lead)}</p>
       )}
       <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2">
-        <Column title="Assets — what it owns" rows={assets} lens={lens} />
-        <Column title="Funding — what pays for it" rows={funding} lens={lens} />
+        <Column title={tx("Assets — what it owns")} rows={assets} lens={lens} />
+        <Column title={tx("Funding — what pays for it")} rows={funding} lens={lens} />
       </div>
       <p className="mt-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.04em] text-faint">
-        {footnote}
+        {tx(footnote)}
       </p>
     </section>
   );

@@ -10,6 +10,9 @@
  * "The Desk" (web/DESIGN.md): a computed brief (record line + vitals band)
  * above the full report, which is carried over intact under <Depth>.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getBudgetData, type TableRow as BudgetRow } from "@/app/lib/budget";
@@ -54,11 +57,15 @@ import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkey Central Government Budget",
   description: "Türkiye's central-government budget — revenues, expenditures, balance and primary balance.",
   alternates: { canonical: "/economy/budget" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const ORANGE = { light: "#e8833a", dark: "#f0a35e" };
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
@@ -79,6 +86,7 @@ const sp = (pts: { period_date: string; value: number }[] | undefined) =>
   (pts ?? []).map((p) => ({ period: p.period_date, value: p.value }));
 
 export default async function BudgetPage() {
+  const tx = await getText();
   const [d, ahead] = await Promise.all([getBudgetData(), aheadSlots()]);
 
   // ---- the brief's computed vitals ------------------------------------------
@@ -152,7 +160,7 @@ export default async function BudgetPage() {
     taxRealYoY: taxReal,
     expRealYoY: expReal,
     interestShare: intShareS,
-  });
+  }, tx.locale);
 
   // ---- movers: REAL growth, not nominal ------------------------------------
   // A nominal Movers table here would say every line grew every month at a ~30%
@@ -182,47 +190,29 @@ export default async function BudgetPage() {
       k: "Budget balance, 12m",
       v: d.balancePctGdpNow != null ? `${d.balancePctGdpNow.toFixed(1)}%` : "—",
       effect: (
-        <>
-          Of GDP. The deficit is funded by issuance the banks buy, so the fiscal
-          stance sets how much government paper the sector carries — and how much of
-          its balance sheet is not lending.
-        </>
+        <>{tx("Of GDP. The deficit is funded by issuance the banks buy, so the fiscal stance sets how much government paper the sector carries — and how much of its balance sheet is not lending.")}</>
       ),
     },
     {
       k: "Interest / tax revenue",
       v: d.interestShareNow != null ? `${d.interestShareNow.toFixed(1)}%` : "—",
       effect: (
-        <>
-          Debt service as a claim on the tax take. It is also the sector&rsquo;s
-          interest income on government paper — the same flow, seen from the other
-          side of the balance sheet.
-        </>
+        <>{tx("Debt service as a claim on the tax take. It is also the sector’s interest income on government paper — the same flow, seen from the other side of the balance sheet.")}</>
       ),
     },
     {
       k: "Tax revenue, real y/y",
       v: d.taxRealYoYNow != null ? `${d.taxRealYoYNow.toFixed(1)}%` : "—",
       effect: (
-        <>
-          CPI-deflated. Consumption taxes (VAT, ÖTV) move with the same household
-          demand that drives{" "}
-          <Link href="/credit" className="font-semibold text-primary">
-            retail credit
-          </Link>
-          , so real tax intake is a demand signal as well as a fiscal one.
-        </>
+        <>{tx("CPI-deflated. Consumption taxes (VAT, ÖTV) move with the same household demand that drives")}{" "}
+          <Link href="/credit" className="font-semibold text-primary">{tx("retail credit")}</Link>{tx(", so real tax intake is a demand signal as well as a fiscal one.")}</>
       ),
     },
     {
       k: "Primary balance, 12m",
       v: d.primaryPctGdpNow != null ? `${d.primaryPctGdpNow.toFixed(1)}%` : "—",
       effect: (
-        <>
-          Of GDP, before interest. This is the number that says whether the debt path
-          is stabilising on policy or on the rate cycle — the part of the budget the
-          government still controls.
-        </>
+        <>{tx("Of GDP, before interest. This is the number that says whether the debt path is stabilising on policy or on the rate cycle — the part of the budget the government still controls.")}</>
       ),
     },
   ];
@@ -237,18 +227,14 @@ export default async function BudgetPage() {
       rule: "budget_balance_12m / gdp < −3%",
       body: (
         <>
-          <b className="font-semibold">The deficit is past the 3% reference value.</b>{" "}
-          The 12-month central-government balance is{" "}
-          {d.balancePctGdpNow?.toFixed(1)}% of GDP, with the primary balance at{" "}
-          {d.primaryPctGdpNow?.toFixed(1)}%.
+          <b className="font-semibold">{tx("The deficit is past the 3% reference value.")}</b>{" "}{tx("The 12-month central-government balance is")}{" "}
+          {tx(d.balancePctGdpNow?.toFixed(1))}{tx("% of GDP, with the primary balance at")}{" "}
+          {tx(d.primaryPctGdpNow?.toFixed(1))}%.
         </>
       ),
       clear: (
-        <>
-          The 12-month balance is{" "}
-          {d.balancePctGdpNow != null ? `${d.balancePctGdpNow.toFixed(1)}%` : "—"} of GDP
-          — inside the 3% reference value.
-        </>
+        <>{tx("The 12-month balance is")}{" "}
+          {tx(d.balancePctGdpNow != null ? `${d.balancePctGdpNow.toFixed(1)}%` : "—")}{tx(" of GDP — inside the 3% reference value.")}</>
       ),
     },
     {
@@ -257,16 +243,11 @@ export default async function BudgetPage() {
       rule: "tax_revenue_yoy_real < 0",
       body: (
         <>
-          <b className="font-semibold">Tax revenue is shrinking in real terms.</b>{" "}
-          {taxRealNow?.toFixed(1)}% y/y once CPI is taken out — the nominal line grows
-          and the purchasing power behind it does not.
-        </>
+          <b className="font-semibold">{tx("Tax revenue is shrinking in real terms.")}</b>{" "}
+          {tx(taxRealNow?.toFixed(1))}{tx("% y/y once CPI is taken out — the nominal line grows and the purchasing power behind it does not.")}</>
       ),
       clear: (
-        <>
-          Real tax revenue is {taxRealNow != null ? `${taxRealNow.toFixed(1)}%` : "—"} y/y
-          — at or above zero in CPI-deflated terms.
-        </>
+        <>{tx("Real tax revenue is ")}{tx(taxRealNow != null ? `${taxRealNow.toFixed(1)}%` : "—")}{tx(" y/y — at or above zero in CPI-deflated terms.")}</>
       ),
     },
     {
@@ -275,17 +256,11 @@ export default async function BudgetPage() {
       rule: "primary_expenditure_yoy_real > tax_revenue_yoy_real",
       body: (
         <>
-          <b className="font-semibold">Real spending outpaces real revenue.</b> Primary
-          expenditure at {expRealNow?.toFixed(1)}% against tax revenue at{" "}
-          {taxRealNow?.toFixed(1)}%, both CPI-deflated — the gap the primary balance
-          absorbs.
-        </>
+          <b className="font-semibold">{tx("Real spending outpaces real revenue.")}</b>{tx(" Primary expenditure at ")}{tx(expRealNow?.toFixed(1))}{tx("% against tax revenue at")}{" "}
+          {tx(taxRealNow?.toFixed(1))}{tx("%, both CPI-deflated — the gap the primary balance absorbs.")}</>
       ),
       clear: (
-        <>
-          Real primary spending ({expRealNow != null ? `${expRealNow.toFixed(1)}%` : "—"})
-          is at or below real tax growth (
-          {taxRealNow != null ? `${taxRealNow.toFixed(1)}%` : "—"}).
+        <>{tx("Real primary spending (")}{tx(expRealNow != null ? `${expRealNow.toFixed(1)}%` : "—")}{tx(") is at or below real tax growth (")}{tx(taxRealNow != null ? `${taxRealNow.toFixed(1)}%` : "—")}).
         </>
       ),
     },
@@ -295,49 +270,40 @@ export default async function BudgetPage() {
       rule: "interest_expenditure_12m / tax_revenue_12m > 25%",
       body: (
         <>
-          <b className="font-semibold">Debt service takes more than a quarter of taxes.</b>{" "}
-          Interest absorbs {d.interestShareNow?.toFixed(1)}% of the 12-month tax take
-          before any spending decision is made.
-        </>
+          <b className="font-semibold">{tx("Debt service takes more than a quarter of taxes.")}</b>{" "}{tx("Interest absorbs ")}{tx(d.interestShareNow?.toFixed(1))}{tx("% of the 12-month tax take before any spending decision is made.")}</>
       ),
       clear: (
-        <>
-          Interest takes{" "}
-          {d.interestShareNow != null ? `${d.interestShareNow.toFixed(1)}%` : "—"} of tax
-          revenue — inside the 25% line.
-        </>
+        <>{tx("Interest takes")}{" "}
+          {tx(d.interestShareNow != null ? `${d.interestShareNow.toFixed(1)}%` : "—")}{tx(" of tax revenue — inside the 25% line.")}</>
       ),
     },
   ];
 
   const aheadItems = [
-    { when: "~15th", what: <>Treasury monthly budget realisations</> },
-    { when: "monthly", what: <>Treasury domestic-debt auction calendar — the funding side</> },
-    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision — the cost of the debt stock</>, href: "/rates" }] : []),
+    { when: "~15th", what: <>{tx("Treasury monthly budget realisations")}</> },
+    { when: "monthly", what: <>{tx("Treasury domestic-debt auction calendar — the funding side")}</> },
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision — the cost of the debt stock")}</>, href: "/rates" }] : []),
   ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Central Government Budget"
+        title={tx("Central Government Budget")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{monthLabel(recP ?? d.latestPeriod)}</b>{" "}
-            · vs {monthLabel(prevP, false)} · 12m rolling sums
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(recP ?? d.latestPeriod))}</b>{" "}{tx("· vs ")}{tx(monthLabel(prevP, false))}{tx(" · 12m rolling sums")}</>
         }
         right="every figure computed from source series"
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="treasury central-govt · trailing-12-month sums, ₺bn"
+        title={tx("The vitals")}
+        meta={tx("treasury central-govt · trailing-12-month sums, ₺bn")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={5}>
         <Vital
-          label="Budget balance · monthly"
+          label={tx("Budget balance · monthly")}
           value={nSigned(balNow)}
           unit="₺bn"
           series={balMonthly.slice(-13)}
@@ -345,13 +311,11 @@ export default async function BudgetPage() {
           decimals={0}
           note={
             <>
-              {monthLabel(recP, false)} alone · {nSigned(balMonthAgo)}₺bn in the same month a year
-              earlier
-            </>
+              {tx(monthLabel(recP, false))}{tx(" alone · ")}{tx(nSigned(balMonthAgo))}{tx("₺bn in the same month a year earlier")}</>
           }
         />
         <Vital
-          label="Budget balance · 12m"
+          label={tx("Budget balance · 12m")}
           value={nSigned(d.balance12m)}
           unit="₺bn"
           series={balRoll.slice(-13)}
@@ -361,9 +325,8 @@ export default async function BudgetPage() {
             balYoY != null ? (
               <>
                 <b className={balYoY >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                  {sTL(balYoY)}
-                </b>{" "}
-                vs a year earlier ({bnTL(bal12mAgo)})
+                  {tx(sTL(balYoY))}
+                </b>{" "}{tx("vs a year earlier (")}{tx(bnTL(bal12mAgo))})
               </>
             ) : (
               "revenues − expenditure, trailing 12m"
@@ -371,21 +334,19 @@ export default async function BudgetPage() {
           }
         />
         <Vital
-          label="Primary balance · 12m"
+          label={tx("Primary balance · 12m")}
           value={nSigned(d.primary12m)}
           unit="₺bn"
           series={primRoll.slice(-13)}
           format="raw"
           decimals={0}
           note={
-            <>
-              ex-interest
-              {int12 != null && <> · the {bnTL(int12)} interest bill sits between the two</>}
+            <>{tx("ex-interest")}{int12 != null && <>{tx(" · the ")}{tx(bnTL(int12))}{tx(" interest bill sits between the two")}</>}
               {primYoY != null && (
                 <>
                   {" · "}
                   <b className={primYoY >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                    {sTL(primYoY)}
+                    {tx(sTL(primYoY))}
                   </b>{" "}
                   y/y
                 </>
@@ -394,18 +355,17 @@ export default async function BudgetPage() {
           }
         />
         <Vital
-          label="Revenues, y/y · 12m"
+          label={tx("Revenues, y/y · 12m")}
           value={revYoY != null ? `${revYoY >= 0 ? "+" : "−"}${Math.abs(revYoY).toFixed(0)}` : "—"}
           unit="%"
           note={
             expYoY != null && gap != null ? (
-              <>
-                expenditure {expYoY >= 0 ? "+" : "−"}
-                {Math.abs(expYoY).toFixed(0)}% ·{" "}
+              <>{tx("expenditure ")}{tx(expYoY >= 0 ? "+" : "−")}
+                {tx(Math.abs(expYoY).toFixed(0))}% ·{" "}
                 <b className={gap >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                  {signedPp(gap, 1)}
+                  {tx(signedPp(gap, 1))}
                 </b>{" "}
-                {gap >= 0 ? "revenue outruns spending" : "spending outruns revenue"}
+                {tx(gap >= 0 ? "revenue outruns spending" : "spending outruns revenue")}
               </>
             ) : (
               "12m sum vs the 12m sum a year earlier"
@@ -413,24 +373,21 @@ export default async function BudgetPage() {
           }
         />
         <Vital
-          label="Interest burden"
+          label={tx("Interest burden")}
           value={intShare != null ? intShare.toFixed(1) : "—"}
           unit="%"
           note={
             <>
-              {bnTL(int12)} of interest on {bnTL(rev12)} of revenue
-              {intShareD != null && (
+              {tx(bnTL(int12))}{tx(" of interest on ")}{tx(bnTL(rev12))}{tx(" of revenue")}{intShareD != null && (
                 <>
                   {" · "}
                   <b className={intShareD <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                    {signedPp(intShareD, 1)}
+                    {tx(signedPp(intShareD, 1))}
                   </b>{" "}
                   y/y
                 </>
               )}{" "}
-              <Link href="/economy" className="font-semibold text-primary">
-                /economy
-              </Link>
+              <Link href="/economy" className="font-semibold text-primary">{tx("/economy")}</Link>
             </>
           }
         />
@@ -445,14 +402,14 @@ export default async function BudgetPage() {
       <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
         <div>
           <SecHead
-            title="Real growth by line"
-            meta="cpi-deflated y/y · nominal growth is mostly the deflator"
+            title={tx("Real growth by line")}
+            meta={tx("cpi-deflated y/y · nominal growth is mostly the deflator")}
             className="mb-2.5"
           />
           <Movers from="Prior month" to={d.asOfLabel} rows={movers} />
         </div>
         <div>
-          <SecHead title="Transmission" meta="the fiscal stance → the banks · computed" className="mb-2.5" />
+          <SecHead title={tx("Transmission")} meta={tx("the fiscal stance → the banks · computed")} className="mb-2.5" />
           <Transmission items={transmission} />
         </div>
       </div>
@@ -460,7 +417,7 @@ export default async function BudgetPage() {
       {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
         <div>
-          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
             flags={flagList}
             showCleared
@@ -468,7 +425,7 @@ export default async function BudgetPage() {
           />
         </div>
         <div>
-          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
           <Ahead items={aheadItems} />
         </div>
       </div>
@@ -476,46 +433,46 @@ export default async function BudgetPage() {
       <Depth action={<GlobalRangeSelector />}>
         {/* ── NEW: the real twin ───────────────────────────────────────── */}
         <Section
-          title="Nominal vs Real"
+          title={tx("Nominal vs Real")}
           description={
-            d.taxRealYoYNow != null
-              ? `Tax revenue grows ${d.taxRealYoYNow.toFixed(1)}% in real terms once CPI is taken out. Every figure elsewhere on this page is nominal lira, and at the current price level a nominal line is largely a chart of the deflator — so the same series is shown both ways here.`
-              : "Budget lines in nominal lira and deflated by CPI."
+            tx(d.taxRealYoYNow != null
+              ? tx("Tax revenue grows {0}% in real terms once CPI is taken out. Every figure elsewhere on this page is nominal lira, and at the current price level a nominal line is largely a chart of the deflator — so the same series is shown both ways here.", {0: d.taxRealYoYNow.toFixed(1)})
+              : "Budget lines in nominal lira and deflated by CPI.")
           }
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TimeSeriesChart
               series={d.taxNominalVsReal}
               title={
-                seriesFinding(toPts(d.taxNominalVsReal["Real (CPI-deflated)"]), {
+                tx(seriesFinding(toPts(d.taxNominalVsReal["Real (CPI-deflated)"]), {
                   noun: "Real tax revenue growth",
                   decimals: 1,
-                }) ?? "Tax Revenue Growth — Nominal vs Real (y/y %)"
+                }, tx.locale) ?? "Tax Revenue Growth — Nominal vs Real (y/y %)")
               }
-              description="The same series twice: nominal y/y, and deflated by the CPI index at both ends of the comparison. The gap between the lines is the price level."
+              description={tx("The same series twice: nominal y/y, and deflated by the CPI index at both ends of the comparison. The gap between the lines is the price level.")}
               yFormat="pct"
               decimals={1}
               hero="Real (CPI-deflated)"
             />
             <TimeSeriesChart
               series={d.real}
-              title="Revenue & Spending, CPI-deflated (y/y %)"
-              description="Tax revenue, primary expenditure and interest, all in real terms — what the money actually bought, year on year."
+              title={tx("Revenue & Spending, CPI-deflated (y/y %)")}
+              description={tx("Tax revenue, primary expenditure and interest, all in real terms — what the money actually bought, year on year.")}
               yFormat="pct"
               decimals={1}
             />
             <TimeSeriesChart
               series={d.pctGdp}
-              title="Central-Government Balances (12m, % of GDP)"
-              description="The 12-month balance over trailing-4Q nominal GDP. Both sides are lira, so the price level cancels — this is the ratio that is comparable across years."
+              title={tx("Central-Government Balances (12m, % of GDP)")}
+              description={tx("The 12-month balance over trailing-4Q nominal GDP. Both sides are lira, so the price level cancels — this is the ratio that is comparable across years.")}
               yFormat="pct"
               decimals={1}
               hero="Budget balance"
             />
             <TimeSeriesChart
               series={{ "Interest / tax revenue": d.interestShare }}
-              title="Interest Expenditure as % of Tax Revenue (12m)"
-              description="What debt service claims out of the tax take before any policy choice is made."
+              title={tx("Interest Expenditure as % of Tax Revenue (12m)")}
+              description={tx("What debt service claims out of the tax take before any policy choice is made.")}
               yFormat="pct"
               decimals={1}
             />
@@ -524,21 +481,21 @@ export default async function BudgetPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat
-            label="Budget balance · 12-month"
+            label={tx("Budget balance · 12-month")}
             value={bnTL(d.balance12m)}
-            hint={`annualised · ${d.asOfLabel}`}
+            hint={tx("annualised · {0}", {0: d.asOfLabel})}
             tone={d.balance12m != null && d.balance12m < 0 ? "negative" : "positive"}
           />
           <Stat
-            label="Primary balance · 12-month"
+            label={tx("Primary balance · 12-month")}
             value={bnTL(d.primary12m)}
-            hint={`annualised · ${d.asOfLabel}`}
+            hint={tx("annualised · {0}", {0: d.asOfLabel})}
             tone={d.primary12m != null && d.primary12m < 0 ? "negative" : "positive"}
           />
           <Stat
-            label="Tax revenue · 12-month"
+            label={tx("Tax revenue · 12-month")}
             value={bnTL(d.tax12m)}
-            hint={`annualised · ${d.asOfLabel}`}
+            hint={tx("annualised · {0}", {0: d.asOfLabel})}
           />
         </div>
 
@@ -546,27 +503,23 @@ export default async function BudgetPage() {
             balance stays in surplus" — the two directions are in d.s1 below; the
             causal attribution to tax intake is not, so it is gone. */}
         <Section
-          title="Budget Balance"
+          title={tx("Budget Balance")}
           description={
-            d.balance12m != null && d.primary12m != null
-              ? `Annualised (trailing-12-month) central-government balance. The headline balance is ${
-                  d.balance12m < 0 ? "in deficit" : "in surplus"
-                }${balMove ? ` and ${balMove}` : ""}; the primary balance is ${
-                  d.primary12m >= 0 ? "in surplus" : "in deficit"
-                }.`
-              : "Annualised (trailing-12-month) central-government balance."
+            tx(d.balance12m != null && d.primary12m != null
+              ? tx("Annualised (trailing-12-month) central-government balance. The headline balance is {0}{1}; the primary balance is {2}.", {0: d.balance12m < 0 ? "in deficit" : "in surplus", 1: balMove ? tx(" and {0}", {0: balMove}) : "", 2: d.primary12m >= 0 ? "in surplus" : "in deficit"})
+              : "Annualised (trailing-12-month) central-government balance.")
           }
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TimeSeriesChart
               series={d.s1}
-              title="Şekil 1 · Budget & Primary Balance (12m rolling, ₺ bn)"
+              title={tx("Şekil 1 · Budget & Primary Balance (12m rolling, ₺ bn)")}
               yFormat="raw"
               decimals={0}
             />
             <TimeSeriesChart
               series={d.s5}
-              title="Şekil 5 · Monthly Budget Balance (₺ bn)"
+              title={tx("Şekil 5 · Monthly Budget Balance (₺ bn)")}
               yFormat="raw"
               decimals={0}
             />
@@ -574,17 +527,17 @@ export default async function BudgetPage() {
         </Section>
 
         <Section
-          title="Revenues"
-          description={`Tax-revenue growth has slipped below headline inflation. Tax lines compared ${d.barLabels.now} vs ${d.barLabels.prev}.`}
+          title={tx("Revenues")}
+          description={tx("Tax-revenue growth has slipped below headline inflation. Tax lines compared {0} vs {1}.", {0: d.barLabels.now, 1: d.barLabels.prev})}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TimeSeriesChart
               series={d.s4}
-              title="Şekil 4 · Revenue Growth (y/y %, 3-month moving average)"
+              title={tx("Şekil 4 · Revenue Growth (y/y %, 3-month moving average)")}
               yFormat="pct"
               decimals={0}
             />
-            <ChartCard title={`Şekil 3 · Tax Revenues by Type (₺ bn, ${d.barLabels.now} vs ${d.barLabels.prev})`}>
+            <ChartCard title={tx("Şekil 3 · Tax Revenues by Type (₺ bn, {0} vs {1})", {0: d.barLabels.now, 1: d.barLabels.prev})}>
               <BopFlowChart
                 data={d.s3}
                 grouped
@@ -599,10 +552,10 @@ export default async function BudgetPage() {
         </Section>
 
         <Section
-          title="Expenditures"
-          description={`Current transfers and personnel dominate spending. Expenditure lines compared ${d.barLabels.now} vs ${d.barLabels.prev}.`}
+          title={tx("Expenditures")}
+          description={tx("Current transfers and personnel dominate spending. Expenditure lines compared {0} vs {1}.", {0: d.barLabels.now, 1: d.barLabels.prev})}
         >
-          <ChartCard title={`Şekil 2 · Expenditures by Type (₺ bn, ${d.barLabels.now} vs ${d.barLabels.prev})`}>
+          <ChartCard title={tx("Şekil 2 · Expenditures by Type (₺ bn, {0} vs {1})", {0: d.barLabels.now, 1: d.barLabels.prev})}>
             <BopFlowChart
               data={d.s2}
               grouped
@@ -617,49 +570,41 @@ export default async function BudgetPage() {
         </Section>
 
         <Section
-          title="Summary"
-          description={`Monthly and trailing-12-month figures, ₺ million — ${d.asOfLabel} vs. one year earlier.`}
+          title={tx("Summary")}
+          description={tx("Monthly and trailing-12-month figures, ₺ million — {0} vs. one year earlier.", {0: d.asOfLabel})}
         >
           <BudgetTable rows={d.table} now={d.barLabels.now} prev={d.barLabels.prev} />
-          <p className="text-xs text-muted-foreground">
-            Source: TÜİK / Treasury (Hazine ve Maliye Bakanlığı) central-government
-            budget via EVDS.{" "}
-            <Link href="/economy/balance-of-payments" className="text-primary hover:underline">
-              Balance of Payments →
-            </Link>
+          <p className="text-xs text-muted-foreground">{tx("Source: TÜİK / Treasury (Hazine ve Maliye Bakanlığı) central-government budget via EVDS.")}{" "}
+            <Link href="/economy/balance-of-payments" className="text-primary hover:underline">{tx("Balance of Payments →")}</Link>
           </p>
         </Section>
       </Depth>
 
-      <Colophon>
-        Compiled, not written — every figure computed from the Treasury (Hazine ve Maliye
-        Bakanlığı) central-government budget series via TCMB EVDS. Balance = revenues −
-        expenditure; primary balance = revenues − primary expenditure; 12-month figures are
-        trailing rolling sums. No forecasts. Analytical information, not investment advice.
-      </Colophon>
+      <Colophon>{tx("Compiled, not written — every figure computed from the Treasury (Hazine ve Maliye Bakanlığı) central-government budget series via TCMB EVDS. Balance = revenues − expenditure; primary balance = revenues − primary expenditure; 12-month figures are trailing rolling sums. No forecasts. Analytical information, not investment advice.")}</Colophon>
     </main>
   );
 }
 
 function BudgetTable({ rows, now, prev }: { rows: BudgetRow[]; now: string; prev: string }) {
+  const tx = useText();
   return (
     <Table wrapperClassName="rounded-[10px] border border-border bg-card">
       <TableHeader>
         <TableRow className="bg-muted/50">
           <TableHead />
           <TableHead className="text-right" colSpan={2}>
-            {now}
+            {tx(now)}
           </TableHead>
           <TableHead className="text-right" colSpan={2}>
-            {prev}
+            {tx(prev)}
           </TableHead>
         </TableRow>
         <TableRow>
-          <TableHead>₺ million</TableHead>
-          <TableHead className="text-right">Monthly</TableHead>
-          <TableHead className="text-right">12-month</TableHead>
-          <TableHead className="text-right">Monthly</TableHead>
-          <TableHead className="text-right">12-month</TableHead>
+          <TableHead>{tx("₺ million")}</TableHead>
+          <TableHead className="text-right">{tx("Monthly")}</TableHead>
+          <TableHead className="text-right">{tx("12-month")}</TableHead>
+          <TableHead className="text-right">{tx("Monthly")}</TableHead>
+          <TableHead className="text-right">{tx("12-month")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -668,11 +613,11 @@ function BudgetTable({ rows, now, prev }: { rows: BudgetRow[]; now: string; prev
           return (
             <TableRow key={r.label} className={strong ? "bg-accent/30 font-semibold" : undefined}>
               <TableCell className={`py-1.5 ${r.indent ? "pl-6 text-muted-foreground" : ""}`}>
-                {r.label}
+                {tx(r.label)}
               </TableCell>
               {r.cells.map((v, i) => (
                 <TableCellNum key={i} tone={toneFor(v)} className="py-1.5">
-                  {v == null ? "—" : nf(v, 0)}
+                  {tx(v == null ? "—" : nf(v, 0))}
                 </TableCellNum>
               ))}
             </TableRow>

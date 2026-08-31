@@ -10,6 +10,7 @@
  * stopped) are drawn off-scale and stated in the foot rather than squashing the
  * comb into a third of the width.
  */
+import { useText } from "@/i18n/use-text";
 import type { DecisionLagRow } from "@/app/lib/regulation";
 
 const W = 620;
@@ -18,6 +19,7 @@ const PAD = { l: 4, r: 54, t: 10, b: 20 };
 const LATE_DAYS = 365;
 
 export default function DecisionLag({ rows, from }: { rows: DecisionLagRow[]; from: string }) {
+  const tx = useText();
   const inScale = rows.filter((r) => r.decidedAt >= from);
   if (inScale.length === 0) return null;
 
@@ -51,7 +53,7 @@ export default function DecisionLag({ rows, from }: { rows: DecisionLagRow[]; fr
       viewBox={`0 0 ${W} ${H}`}
       className="mt-2.5 block h-[200px] w-full overflow-visible"
       role="img"
-      aria-label={`Each of ${inScale.length} BDDK board decisions drawn from the date it was taken to the date it was published; most converge on a single batch around ${batchLabel}.`}
+      aria-label={tx("Each of {0} BDDK board decisions drawn from the date it was taken to the date it was published; most converge on a single batch around {1}.", {0: inScale.length, 1: batchLabel})}
     >
       {inScale.map((r, i) => {
         const y = PAD.t + band * i + band / 2;
@@ -74,15 +76,13 @@ export default function DecisionLag({ rows, from }: { rows: DecisionLagRow[]; fr
       })}
 
       <text x={W - PAD.r + 5} y={PAD.t + 8} className="font-mono text-[10px] font-semibold fill-warning">
-        {batchLabel}
+        {tx(batchLabel)}
       </text>
-      <text x={W - PAD.r + 5} y={PAD.t + 19} className="font-mono text-[8px] fill-faint">
-        the batch
-      </text>
+      <text x={W - PAD.r + 5} y={PAD.t + 19} className="font-mono text-[8px] fill-faint">{tx("the batch")}</text>
 
       {ticks.map((t) => (
         <text key={t.at} x={x(new Date(t.at).toISOString())} y={H - 5} className="font-mono text-[8px] fill-faint" textAnchor="middle">
-          {t.label}
+          {tx(t.label)}
         </text>
       ))}
     </svg>

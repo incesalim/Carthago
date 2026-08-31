@@ -5,6 +5,7 @@
  * joined-cell grid of tone-coloured drivers that link to the tab proving each.
  * Server component — computed live from D1, so it always matches the charts.
  */
+import { useText } from "@/i18n/use-text";
 import Link from "next/link";
 import type { TabTakeaway } from "@/app/lib/insights";
 
@@ -37,6 +38,7 @@ export default function Takeaway({
    */
   variant?: "card" | "desk";
 }) {
+  const tx = useText();
   if (!data.items.length) return null;
 
   if (variant === "desk") {
@@ -44,16 +46,14 @@ export default function Takeaway({
       <section>
         <div className="flex flex-wrap items-baseline gap-x-3">
           <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-            {title} — computed from the series on this page
-          </span>
+            {tx(title)}{tx(" — computed from the series on this page")}</span>
           {data.asOf && (
             <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-              {data.asOf} · no forecast
-            </span>
+              {tx(data.asOf)}{tx(" · no forecast")}</span>
           )}
         </div>
         <p className="mt-1.5 max-w-[70ch] text-[17px] font-semibold leading-[1.45] tracking-tight text-foreground">
-          {data.headline}
+          {tx(data.headline)}
         </p>
         <div className="mt-3 grid grid-cols-1 gap-x-7 sm:grid-cols-2 lg:grid-cols-3">
           {data.items.map((it, i) => (
@@ -65,9 +65,9 @@ export default function Takeaway({
                 className={`mr-1.5 text-[9px] leading-none ${TONE_TEXT[it.tone] ?? TONE_TEXT.neutral}`}
                 aria-hidden
               >
-                {TONE_GLYPH[it.tone] ?? TONE_GLYPH.neutral}
+                {tx(TONE_GLYPH[it.tone] ?? TONE_GLYPH.neutral)}
               </span>
-              {it.text}
+              {tx(it.text)}
               {it.href && (
                 <Link href={it.href} className="whitespace-nowrap font-semibold text-primary">
                   {" "}
@@ -92,19 +92,17 @@ export default function Takeaway({
         <div className="mb-4 flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2.5">
             <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-primary">
-              {title}
+              {tx(title)}
             </span>
             <span className="size-1 rounded-full bg-border" aria-hidden />
-            <span className="font-mono text-[10px] tracking-[0.04em] text-faint">
-              Carthago analysis
-            </span>
+            <span className="font-mono text-[10px] tracking-[0.04em] text-faint">{tx("Carthago analysis")}</span>
           </span>
           {data.asOf && (
-            <span className="font-mono text-[11px] text-faint">{data.asOf} · computed</span>
+            <span className="font-mono text-[11px] text-faint">{tx(data.asOf)}{tx(" · computed")}</span>
           )}
         </div>
         <p className="mb-5 max-w-3xl font-serif text-[21px] font-medium leading-[1.42] tracking-tight text-foreground">
-          {data.headline}
+          {tx(data.headline)}
         </p>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-[9px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
           {data.items.map((it, i) => (
@@ -118,9 +116,9 @@ export default function Takeaway({
                 className={`mr-2 text-[10px] leading-none ${TONE_TEXT[it.tone] ?? TONE_TEXT.neutral}`}
                 aria-hidden
               >
-                {TONE_GLYPH[it.tone] ?? TONE_GLYPH.neutral}
+                {tx(TONE_GLYPH[it.tone] ?? TONE_GLYPH.neutral)}
               </span>
-              {it.text}
+              {tx(it.text)}
               {it.href && (
                 <Link href={it.href} className="whitespace-nowrap font-semibold text-primary">
                   {" "}

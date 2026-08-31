@@ -9,6 +9,7 @@
  * the whole banking system — so it is drawn as two bars on one scale rather than
  * a ratio line, which would hide both magnitudes.
  */
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   BarChart,
@@ -51,13 +52,14 @@ export default function EngineBars({
   source?: React.ReactNode;
   height?: number;
 }) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const { filtered } = useRangeFilter(data, (r) => r.period);
-  const fmt = (v: number) => `₺${v.toFixed(2)} trn`;
+  const fmt = (v: number) => tx("₺{0} trn", {0: v.toFixed(2)});
 
   return (
-    <ChartCard plain title={title} description={description} source={source}>
+    <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
       <ChartData
         table={wideToTable(filtered, { key: "period", label: "Month" }, [
           { key: "worth", label: "Free deposits, priced" },
@@ -101,14 +103,14 @@ export default function EngineBars({
             />
             <Bar
               dataKey="worth"
-              name="The free deposits, priced at the paid rate"
+              name={tx("The free deposits, priced at the paid rate")}
               fill={t.hero}
               fillOpacity={0.9}
               isAnimationActive={false}
             />
             <Bar
               dataKey="profit"
-              name="Sector net profit"
+              name={tx("Sector net profit")}
               fill={t.palette[3]}
               fillOpacity={0.9}
               isAnimationActive={false}

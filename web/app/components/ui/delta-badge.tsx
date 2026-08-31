@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { Badge } from "./badge";
 
@@ -34,6 +35,7 @@ export function DeltaBadge({
   decimals = 2,
   goodDirection = "up",
 }: DeltaBadgeProps) {
+  const tx = useText();
   if (curr == null || prev == null) return null;
   const d = curr - prev;
   // Treat sub-precision moves as flat so rounding noise doesn't show a colour.
@@ -48,9 +50,9 @@ export function DeltaBadge({
   }
 
   return (
-    <Badge variant={variant} title="Change vs previous period">
-      <span aria-hidden="true">{arrow}</span>
-      {magnitude(Math.abs(d), format, decimals)}
+    <Badge variant={variant} title={tx("Change vs previous period")}>
+      <span aria-hidden="true">{tx(arrow)}</span>
+      {tx(magnitude(Math.abs(d), format, decimals))}
     </Badge>
   );
 }

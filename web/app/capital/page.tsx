@@ -11,6 +11,8 @@
  * ranking, equity & leverage and risk density — carried over, restyled, not
  * removed.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -75,11 +77,15 @@ import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banks — Capital Adequacy (CAR)",
   description: "Capital adequacy of Türkiye's banking sector: CAR/SYR, Tier 1 and leverage by bank and ownership group, from BRSA data.",
   alternates: { canonical: "/capital" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 /** Route link styled for use inside a computed note. */
 const Go = ({ href, children }: { href: string; children: ReactNode }) => (
@@ -95,6 +101,7 @@ function quarterLabel(p: string | null | undefined): string {
 }
 
 export default async function CapitalPage() {
+  const tx = await getText();
   // What lands next — derived from the record periods + TCMB's published calendar.
   const ahead = await aheadSlots();
   const sector = [BANK_TYPES.SECTOR];
@@ -141,7 +148,7 @@ export default async function CapitalPage() {
   const drift = post?.perYear ?? split?.total ?? null;
   const qtrsToFloor = quartersToFloor(carNow, drift, CAR_TARGET);
   const driftBasis = breakPeriod
-    ? `post-step · ${post?.months ?? 0}m since ${monthLabel(breakPeriod, false)}`
+    ? tx("post-step · {0}m since {1}", {0: post?.months ?? 0, 1: monthLabel(breakPeriod, false)})
     : "12-month drift";
 
   const eqG = equityYoYSec.at(-1)?.value ?? null;
@@ -190,7 +197,7 @@ export default async function CapitalPage() {
     equityYoY: equityYoYSec,
     leverage: levSector,
     assetsYoY: assetsYoYSec,
-  });
+  }, tx.locale);
 
   // ---- what the buffer is made of -----------------------------------------
   // All three components are positive and sum to total capital by construction,
@@ -264,20 +271,13 @@ export default async function CapitalPage() {
       v: step.delta.toFixed(2),
       unit: "pp",
       effect: (
-        <>
-          Capital adequacy moved <b>{step.delta.toFixed(2)}pp in a single month</b> — against a
-          typical monthly move of {step.typical.toFixed(2)}pp
-          {together ? (
-            <>
-              , and <b>every ownership group {sw.verb} together</b>
+        <>{tx("Capital adequacy moved ")}<b>{tx(step.delta.toFixed(2))}{tx("pp in a single month")}</b>{tx(" — against a typical monthly move of ")}{tx(step.typical.toFixed(2))}{tx("pp")}{together ? (
+            <>{tx(", and ")}<b>{tx("every ownership group ")}{tx(sw.verb)}{tx(" together")}</b>
             </>
           ) : (
-            <>
-              , though <b>the groups did not all move with it</b>
+            <>{tx(", though ")}<b>{tx("the groups did not all move with it")}</b>
             </>
-          )}
-          . This is a <b>step</b>, not a trend.
-        </>
+          )}{tx(". This is a ")}<b>{tx("step")}</b>{tx(", not a trend.")}</>
       ),
     });
     transmission.push({
@@ -285,11 +285,8 @@ export default async function CapitalPage() {
       v: signedPp(split.rest, 2).replace("pp", ""),
       unit: "pp",
       effect: (
-        <>
-          The 12-month change is {signedPp(split.total, 2)} = the step ({signedPp(split.step, 2)})
-          plus everything else (<b>{signedPp(split.rest, 2)}</b>). Strip the step and the sector{" "}
-          <b>{split.rest >= 0 ? "added" : "lost"} capital</b> over the rest of the year.
-        </>
+        <>{tx("The 12-month change is ")}{tx(signedPp(split.total, 2))}{tx(" = the step (")}{tx(signedPp(split.step, 2))}{tx(") plus everything else (")}<b>{tx(signedPp(split.rest, 2))}</b>{tx("). Strip the step and the sector")}{" "}
+          <b>{tx(split.rest >= 0 ? "added" : "lost")}{tx(" capital")}</b>{tx(" over the rest of the year.")}</>
       ),
     });
   }
@@ -297,23 +294,16 @@ export default async function CapitalPage() {
     transmission.push({
       k: "The buffer",
       v: auditBuffer.toFixed(2),
-      unit: `pp · audited ${auditQ}`,
+      unit: tx("pp · audited {0}", {0: auditQ}),
       effect: (
-        <>
-          Over BDDK&rsquo;s {CAR_TARGET}% target ratio (the statutory floor is {CAR_LEGAL_MIN}%). The
-          AT1 + Tier-2 stack is <b>{hybrids.toFixed(2)}pp</b> —{" "}
+        <>{tx("Over BDDK’s ")}{tx(CAR_TARGET)}{tx("% target ratio (the statutory floor is ")}{tx(CAR_LEGAL_MIN)}{tx("%). The AT1 + Tier-2 stack is ")}<b>{tx(hybrids.toFixed(2))}{tx("pp")}</b> —{" "}
           {hybrids > auditBuffer ? (
             <>
-              <b>larger than the buffer itself</b>. Strip the instruments and total capital falls to{" "}
-              {fmtPct(stackNow?.cet1, 2)} — still clear of the {CET1_TARGET}% conservation-buffer
-              level, but the target is met with instruments rather than equity.
-            </>
+              <b>{tx("larger than the buffer itself")}</b>{tx(". Strip the instruments and total capital falls to")}{" "}
+              {tx(fmtPct(stackNow?.cet1, 2))}{tx(" — still clear of the ")}{tx(CET1_TARGET)}{tx("% conservation-buffer level, but the target is met with instruments rather than equity.")}</>
           ) : (
-            <>the cushion is more common equity than instruments.</>
-          )}{" "}
-          Both figures are audited — the monthly bulletin&rsquo;s CAR ({fmtPct(carNow, 2)}) is a
-          different basis.
-        </>
+            <>{tx("the cushion is more common equity than instruments.")}</>
+          )}{" "}{tx("Both figures are audited — the monthly bulletin’s CAR (")}{tx(fmtPct(carNow, 2))}{tx(") is a different basis.")}</>
       ),
     });
   }
@@ -323,11 +313,8 @@ export default async function CapitalPage() {
       v: `${drift >= 0 ? "+" : "−"}${Math.abs(drift).toFixed(2)}`,
       unit: "pp/yr",
       effect: (
-        <>
-          Measured <b>{driftBasis}</b>. At this pace the buffer reaches the floor in{" "}
-          <b>~{Math.round(qtrsToFloor)} quarters</b> — a sizing device, <b>not a forecast</b>, and
-          not the 12-month average a step would poison.
-        </>
+        <>{tx("Measured ")}<b>{tx(driftBasis)}</b>{tx(". At this pace the buffer reaches the floor in")}{" "}
+          <b>~{tx(Math.round(qtrsToFloor))}{tx(" quarters")}</b>{tx(" — a sizing device, ")}<b>{tx("not a forecast")}</b>{tx(", and not the 12-month average a step would poison.")}</>
       ),
     });
   }
@@ -337,20 +324,14 @@ export default async function CapitalPage() {
       v: "—",
       effect: (
         <>
-          <b>We cannot source the step.</b>{" "}
+          <b>{tx("We cannot source the step.")}</b>{" "}
           {rwaHeld ? (
-            <>
-              RWA density barely moved ({fmtPct(rwaNow)}), so it arrived through the{" "}
-              <b>capital</b> numerator rather than the risk mix
-            </>
+            <>{tx("RWA density barely moved (")}{tx(fmtPct(rwaNow))}{tx("), so it arrived through the")}{" "}
+              <b>{tx("capital")}</b>{tx(" numerator rather than the risk mix")}</>
           ) : (
-            <>
-              RWA density {rwaStepMove} {signedPp(rwaStepDelta ?? 0, 1)} through the same month, so
-              the <b>risk mix</b> moved with it
-            </>
-          )}{" "}
-          — but no rule in our window explains it. The page says so rather than guessing.{" "}
-          <Go href="/regulation">/regulation</Go>
+            <>{tx("RWA density ")}{tx(rwaStepMove)} {tx(signedPp(rwaStepDelta ?? 0, 1))}{tx(" through the same month, so the ")}<b>{tx("risk mix")}</b>{tx(" moved with it")}</>
+          )}{" "}{tx("— but no rule in our window explains it. The page says so rather than guessing.")}{" "}
+          <Go href="/regulation">{tx("/regulation")}</Go>
         </>
       ),
     });
@@ -363,49 +344,37 @@ export default async function CapitalPage() {
       active: !!step?.isBreak,
       body: (
         <>
-          <b className="font-semibold">Structural break</b> — CAR moved{" "}
-          {step ? step.delta.toFixed(2) : "—"}pp in one month ({monthLabel(step?.period ?? null)}),
-          against a typical {step ? step.typical.toFixed(2) : "—"}pp. A 12-month “drift” that spans
-          it is a step in disguise.
-        </>
+          <b className="font-semibold">{tx("Structural break")}</b>{tx(" — CAR moved")}{" "}
+          {tx(step ? step.delta.toFixed(2) : "—")}{tx("pp in one month (")}{tx(monthLabel(step?.period ?? null))}{tx("), against a typical ")}{tx(step ? step.typical.toFixed(2) : "—")}{tx("pp. A 12-month “drift” that spans it is a step in disguise.")}</>
       ),
       rule: "|Δ1m| > 3 × mean(|Δ1m|, 13m)",
-      clear: <>Trend — the largest monthly move is within 3× the typical one</>,
+      clear: <>{tx("Trend — the largest monthly move is within 3× the typical one")}</>,
     },
     {
       code: "hybrid-buffer",
       active: hybrids != null && auditBuffer != null && hybrids > auditBuffer,
       body: (
         <>
-          <b className="font-semibold">Hybrid-funded buffer</b> — AT1 + Tier-2 ={" "}
-          {hybrids?.toFixed(2)}pp of RWA against a {auditBuffer?.toFixed(2)}pp buffer over the{" "}
-          {CAR_TARGET}% target (both audited {auditQ}). Strip them and total capital is{" "}
-          {fmtPct(stackNow?.cet1, 2)} — the target is met with instruments, not equity.
-        </>
+          <b className="font-semibold">{tx("Hybrid-funded buffer")}</b>{tx(" — AT1 + Tier-2 =")}{" "}
+          {tx(hybrids?.toFixed(2))}{tx("pp of RWA against a ")}{tx(auditBuffer?.toFixed(2))}{tx("pp buffer over the")}{" "}
+          {tx(CAR_TARGET)}{tx("% target (both audited ")}{tx(auditQ)}{tx("). Strip them and total capital is")}{" "}
+          {tx(fmtPct(stackNow?.cet1, 2))}{tx(" — the target is met with instruments, not equity.")}</>
       ),
       rule: `at1 + tier2 > car_audited − ${CAR_TARGET}`,
-      clear: <>Buffer — more common equity than instruments</>,
+      clear: <>{tx("Buffer — more common equity than instruments")}</>,
     },
     {
       code: "thin-cet1",
       active: thinCet1 > 0,
       body: (
         <>
-          <b className="font-semibold">Into the conservation buffer</b> — {thinCet1} of{" "}
-          {byBankCap.rows.length} banks hold CET1 below {CET1_TARGET}% ({CET1_MIN}% minimum +
-          2.5pp conservation buffer). That is <b>not a breach</b>: the {CET1_MIN}% minimum is the
-          hard floor, and a bank inside the buffer faces restrictions on distributions, not
-          sanction. Systemic banks owe a D-SIB buffer on top — we do not hold BDDK&rsquo;s
-          designations, so this is a floor, not the full test.
-        </>
+          <b className="font-semibold">{tx("Into the conservation buffer")}</b> — {tx(thinCet1)}{tx(" of")}{" "}
+          {tx(byBankCap.rows.length)}{tx(" banks hold CET1 below ")}{tx(CET1_TARGET)}% ({tx(CET1_MIN)}{tx("% minimum + 2.5pp conservation buffer). That is ")}<b>{tx("not a breach")}</b>{tx(": the ")}{tx(CET1_MIN)}{tx("% minimum is the hard floor, and a bank inside the buffer faces restrictions on distributions, not sanction. Systemic banks owe a D-SIB buffer on top — we do not hold BDDK’s designations, so this is a floor, not the full test.")}</>
       ),
       rule: `count(cet1 < ${CET1_TARGET}%) > 0`,
       clear: (
-        <>
-          Common equity — every bank holds CET1 above {CET1_TARGET}%, buffer intact;{" "}
-          {cet1BelowTarget} sit below {CAR_TARGET}% on CET1 alone, which AT1 and Tier-2 are there
-          to meet
-        </>
+        <>{tx("Common equity — every bank holds CET1 above ")}{tx(CET1_TARGET)}{tx("%, buffer intact;")}{" "}
+          {tx(cet1BelowTarget)}{tx(" sit below ")}{tx(CAR_TARGET)}{tx("% on CET1 alone, which AT1 and Tier-2 are there to meet")}</>
       ),
     },
     {
@@ -413,18 +382,15 @@ export default async function CapitalPage() {
       active: genGap != null && genGap < 0,
       body: (
         <>
-          <b className="font-semibold">Capital generation gap</b> — equity {fmtPct(eqG)} vs assets{" "}
-          {fmtPct(asG)} y/y: the balance sheet is outgrowing the capital that carries it.
-        </>
+          <b className="font-semibold">{tx("Capital generation gap")}</b>{tx(" — equity ")}{tx(fmtPct(eqG))}{tx(" vs assets")}{" "}
+          {tx(fmtPct(asG))}{tx(" y/y: the balance sheet is outgrowing the capital that carries it.")}</>
       ),
       rule: "equity_yoy − assets_yoy < 0",
       clear:
         genGap != null ? (
-          <>
-            Capital generation — equity {fmtPct(eqG)} y/y, {signedPp(genGap, 1)} vs assets
-          </>
+          <>{tx("Capital generation — equity ")}{tx(fmtPct(eqG))} y/y, {tx(signedPp(genGap, 1))}{tx(" vs assets")}</>
         ) : (
-          <>Capital generation — equity or asset growth not published this month</>
+          <>{tx("Capital generation — equity or asset growth not published this month")}</>
         ),
     },
     {
@@ -432,12 +398,11 @@ export default async function CapitalPage() {
       active: buffer != null && buffer < 2,
       body: (
         <>
-          <b className="font-semibold">Thin buffer</b> — {buffer?.toFixed(2)}pp over BDDK&rsquo;s{" "}
-          {CAR_TARGET}% target ratio.
-        </>
+          <b className="font-semibold">{tx("Thin buffer")}</b> — {tx(buffer?.toFixed(2))}{tx("pp over BDDK’s")}{" "}
+          {tx(CAR_TARGET)}{tx("% target ratio.")}</>
       ),
       rule: `car − ${CAR_TARGET} < 2pp`,
-      clear: <>Buffer — {buffer?.toFixed(2)}pp over the {CAR_TARGET}% target ratio</>,
+      clear: <>{tx("Buffer — ")}{tx(buffer?.toFixed(2))}{tx("pp over the ")}{tx(CAR_TARGET)}{tx("% target ratio")}</>,
     },
   ];
   const activeFlags = flags.filter((f) => f.active).length;
@@ -446,7 +411,7 @@ export default async function CapitalPage() {
   const withCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.car != null);
   const standings: StandingsGroup[] = [
     {
-      heading: `Thinnest common equity — CET1 · ${auditQ}`,
+      heading: tx("Thinnest common equity — CET1 · {0}", {0: auditQ}),
       rows: [...withCet1]
         .sort((a, b) => (a.cet1 as number) - (b.cet1 as number))
         .slice(0, 3)
@@ -476,10 +441,9 @@ export default async function CapitalPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Capital"
+        title={tx("Capital")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{recMonth}</b> · vs {vsMonth}
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(recMonth)}</b>{tx(" · vs ")}{tx(vsMonth)}
           </>
         }
         right="every figure computed from source series"
@@ -487,20 +451,19 @@ export default async function CapitalPage() {
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="sector aggregate · monthly + audited quarterly"
+        title={tx("The vitals")}
+        meta={tx("sector aggregate · monthly + audited quarterly")}
         className="mb-2.5 mt-6"
       />
       <Vitals>
         <Vital
-          label="Capital adequacy"
+          label={tx("Capital adequacy")}
           value={carNow != null ? carNow.toFixed(1) : "—"}
           unit="%"
           series={carSector.slice(-13)}
           decimals={1}
           note={
-            <>
-              buffer{" "}
+            <>{tx("buffer")}{" "}
               <b
                 className={
                   buffer != null && buffer >= 2
@@ -508,42 +471,39 @@ export default async function CapitalPage() {
                     : "font-semibold text-negative"
                 }
               >
-                {buffer != null ? signedPp(buffer, 1) : "—"}
-              </b>{" "}
-              over the 12% min
-              {drift != null && <> · drifting {signedPp(drift, 1)}/yr</>}
+                {tx(buffer != null ? signedPp(buffer, 1) : "—")}
+              </b>{" "}{tx("over the 12% min")}{drift != null && <>{tx(" · drifting ")}{tx(signedPp(drift, 1))}{tx("/yr")}</>}
             </>
           }
         />
         <Vital
-          label="Tier-1 (audited)"
+          label={tx("Tier-1 (audited)")}
           value={t1Now != null ? t1Now.toFixed(1) : "—"}
           unit="%"
           series={t1Series.slice(-8)}
           decimals={1}
           note={
             <>
-              {t1Delta4q != null ? `${signedPp(t1Delta4q, 1)} over 4 audited qtrs` : `audited ${auditQ}`}
+              {tx(t1Delta4q != null ? tx("{0} over 4 audited qtrs", {0: signedPp(t1Delta4q, 1)}) : tx("audited {0}", {0: auditQ}))}
             </>
           }
         />
         <Vital
-          label="CET1 (audited)"
+          label={tx("CET1 (audited)")}
           value={cet1Now != null ? cet1Now.toFixed(1) : "—"}
           unit="%"
           series={cet1Series.slice(-8)}
           decimals={1}
-          note={<>audited {auditQ} · Σ capital ÷ Σ RWA</>}
+          note={<>{tx("audited ")}{tx(auditQ)}{tx(" · Σ capital ÷ Σ RWA")}</>}
         />
         <Vital
-          label="Equity growth, y/y"
+          label={tx("Equity growth, y/y")}
           value={eqG != null ? eqG.toFixed(1) : "—"}
           unit="%"
           series={equityYoYSec.slice(-13)}
           decimals={1}
           note={
-            <>
-              vs assets{" "}
+            <>{tx("vs assets")}{" "}
               <b
                 className={
                   genGap != null && genGap >= 0
@@ -551,34 +511,33 @@ export default async function CapitalPage() {
                     : "font-semibold text-negative"
                 }
               >
-                {genGap != null ? signedPp(genGap, 1) : "—"}
-              </b>{" "}
-              generation gap <Go href="/profitability">/profitability</Go>
+                {tx(genGap != null ? signedPp(genGap, 1) : "—")}
+              </b>{" "}{tx("generation gap ")}<Go href="/profitability">{tx("/profitability")}</Go>
             </>
           }
         />
         <Vital
-          label="RWA density"
+          label={tx("RWA density")}
           value={rwaNow != null ? rwaNow.toFixed(1) : "—"}
           unit="%"
           series={rwaSector.slice(-13)}
           decimals={1}
-          note={<>{rwaDrift != null ? `${signedPp(rwaDrift, 1)} over 12m` : "—"} · RWA net / gross</>}
+          note={<>{tx(rwaDrift != null ? tx("{0} over 12m", {0: signedPp(rwaDrift, 1)}) : "—")}{tx(" · RWA net / gross")}</>}
         />
         <Vital
-          label="Liabilities / equity"
+          label={tx("Liabilities / equity")}
           value={levNow != null ? levNow.toFixed(0) : "—"}
           unit="%"
           series={levSector.slice(-13)}
           decimals={0}
-          note={<>≈ {levX != null ? `${levX.toFixed(1)}×` : "—"} assets / equity</>}
+          note={<>≈ {tx(levX != null ? `${levX.toFixed(1)}×` : "—")}{tx(" assets / equity")}</>}
         />
       </Vitals>
 
       {/* ── Movers | The step → the ratio ──────────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
-          <SecHead title="Movers" meta={`${vsMonth} → ${monthLabel(carSector.at(-1)?.period, false)} · monthly`} className="mb-2.5" />
+          <SecHead title={tx("Movers")} meta={tx("{0} → {1} · monthly", {0: vsMonth, 1: monthLabel(carSector.at(-1)?.period, false)})} className="mb-2.5" />
           <Movers
             from={vsMonth.toUpperCase()}
             to={monthLabel(carSector.at(-1)?.period, false).toUpperCase()}
@@ -587,8 +546,8 @@ export default async function CapitalPage() {
         </div>
         <div>
           <SecHead
-            title={step?.isBreak ? "The step → the ratio" : "The ratio → the balance sheet"}
-            meta="what actually happened · computed"
+            title={tx(step?.isBreak ? "The step → the ratio" : "The ratio → the balance sheet")}
+            meta={tx("what actually happened · computed")}
             className="mb-2.5"
           />
           <Transmission items={transmission} />
@@ -599,8 +558,8 @@ export default async function CapitalPage() {
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <SecHead
-            title="Flags"
-            meta={`rule-based — ${activeFlags} of ${flags.length}`}
+            title={tx("Flags")}
+            meta={tx("rule-based — {0} of {1}", {0: activeFlags, 1: flags.length})}
             className="mb-2.5"
           />
           <Flags
@@ -610,37 +569,33 @@ export default async function CapitalPage() {
           />
         </div>
         <div>
-          <SecHead title="Standings" meta={`audited ${auditQ}`} href="/banks" hrefLabel="by bank →" className="mb-2.5" />
+          <SecHead title={tx("Standings")} meta={tx("audited {0}", {0: auditQ})} href="/banks" hrefLabel={tx("by bank →")} className="mb-2.5" />
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
           <Ahead
             items={[
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: (
-                  <>
-                    BRSA {ahead["brsa-filings"].record} filings — CET1, Tier-1 and RWA per bank
-                  </>
+                  <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — CET1, Tier-1 and RWA per bank")}</>
                 ),
                 href: "/actions",
               },
               ahead.mpc && {
                 when: ahead.mpc.when,
-                what: <>TCMB MPC — the rate that prices the AT1 stack</>,
+                what: <>{tx("TCMB MPC — the rate that prices the AT1 stack")}</>,
               },
               ahead.fsr && {
                 when: ahead.fsr.when,
-                what: <>TCMB Financial Stability Report — the systemic read</>,
+                what: <>{tx("TCMB Financial Stability Report — the systemic read")}</>,
               },
               step?.isBreak && {
                 when: "OPEN",
                 what: (
-                  <>
-                    The {monthLabel(step?.period ?? null, false)} step is{" "}
-                    <b className="font-semibold">unattributed</b> — no rule in our window
-                  </>
+                  <>{tx("The ")}{tx(monthLabel(step?.period ?? null, false))}{tx(" step is")}{" "}
+                    <b className="font-semibold">{tx("unattributed")}</b>{tx(" — no rule in our window")}</>
                 ),
                 href: "/regulation",
               },
@@ -651,16 +606,16 @@ export default async function CapitalPage() {
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
       <Depth action={<GlobalRangeSelector />}>
-        <Takeaway data={await withLlmHeadline("capital", read)} variant="desk" />
+        <Takeaway data={await withLlmHeadline("capital", read, tx.locale)} variant="desk" />
 
         {/* The step — what the page had been calling an "easing". */}
         <div>
           <SecHead
-            title={step?.isBreak ? "The step" : "Capital adequacy"}
+            title={tx(step?.isBreak ? "The step" : "Capital adequacy")}
             meta={
-              step?.isBreak
-                ? `${monthLabel(step.period)} · every group · BDDK monthly bulletin`
-                : "by ownership group · BDDK monthly bulletin"
+              tx(step?.isBreak
+                ? tx("{0} · every group · BDDK monthly bulletin", {0: monthLabel(step.period)})
+                : "by ownership group · BDDK monthly bulletin")
             }
             className="mb-2.5"
           />
@@ -686,20 +641,20 @@ export default async function CapitalPage() {
               data={carAll}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     step?.isBreak && together && !!sw,
-                    `Every ownership group ${sw?.verb} together in ${monthLabel(step?.period ?? null, false)}`,
+                    tx("Every ownership group {0} together in {1}", {0: sw?.verb, 1: monthLabel(step?.period ?? null, false)}),
                   ],
                   [
                     step?.isBreak && !!sw,
-                    `Capital adequacy ${sw?.verb} ${signedPp(step?.delta ?? 0, 1)} in ${monthLabel(step?.period ?? null, false)} — but not every group moved with it`,
+                    tx("Capital adequacy {0} {1} in {2} — but not every group moved with it", {0: sw?.verb, 1: signedPp(step?.delta ?? 0, 1), 2: monthLabel(step?.period ?? null, false)}),
                   ],
                 ) ??
-                seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }) ??
-                "Capital adequacy — by group"
+                seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }, tx.locale) ??
+                "Capital adequacy — by group")
               }
-              description="capital adequacy (syr), %, monthly · by group · regulatory minimum 12%"
+              description={tx("capital adequacy (syr), %, monthly · by group · target ratio 12%")}
               source={
                 <ChartFoot data={carAll} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
               }
@@ -720,28 +675,23 @@ export default async function CapitalPage() {
                 to={split.to}
                 step={split.step}
                 rest={split.rest}
-                stepLabel={`The ${monthLabel(step.period, false)} step`}
-                title={`The year's ${split.total < 0 ? "decline" : "gain"} is the step — the rest of the year ${
-                  split.rest >= 0 ? "added" : "lost"
-                } capital`}
-                description="12-month change in CAR, pp · the one-off isolated from everything else"
+                stepLabel={tx("The {0} step", {0: monthLabel(step.period, false)})}
+                title={tx("The year's {0} is the step — the rest of the year {1} capital", {0: split.total < 0 ? "decline" : "gain", 1: split.rest >= 0 ? "added" : "lost"})}
+                description={tx("12-month change in CAR, pp · the one-off isolated from everything else")}
                 source={
                   <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
                     <span>
-                      12M <b className="font-semibold text-foreground">{signedPp(split.total, 2)}</b>
+                      12M <b className="font-semibold text-foreground">{tx(signedPp(split.total, 2))}</b>
                     </span>
-                    <span>
-                      THE STEP{" "}
-                      <b className="font-semibold text-foreground">{signedPp(split.step, 2)}</b>
+                    <span>{tx("THE STEP")}{" "}
+                      <b className="font-semibold text-foreground">{tx(signedPp(split.step, 2))}</b>
                     </span>
-                    <span>
-                      EX-STEP{" "}
-                      <b className="font-semibold text-foreground">{signedPp(split.rest, 2)}</b>
+                    <span>{tx("EX-STEP")}{" "}
+                      <b className="font-semibold text-foreground">{tx(signedPp(split.rest, 2))}</b>
                     </span>
-                    <span>
-                      SIZED ON{" "}
+                    <span>{tx("SIZED ON")}{" "}
                       <b className="font-semibold text-foreground">
-                        {drift != null ? `${drift.toFixed(2)}pp/yr · ${driftBasis}` : "—"}
+                        {tx(drift != null ? `${drift.toFixed(2)}pp/yr · ${driftBasis}` : "—")}
                       </b>
                     </span>
                   </div>
@@ -752,7 +702,7 @@ export default async function CapitalPage() {
               <BarByBank
                 data={carByBank}
                 labels={BANK_TYPE_LABELS}
-                title={`CAR by group · ${carByBank[0]?.period ?? ""}`}
+                title={tx("CAR by group · {0}", {0: carByBank[0]?.period ?? ""})}
                 format="pct"
                 decimals={1}
               />
@@ -760,32 +710,22 @@ export default async function CapitalPage() {
           </div>
           {step?.isBreak && (
             <p className="mt-4 max-w-[96ch] text-[12px] leading-relaxed text-muted-foreground">
-              <b className="font-semibold text-foreground">Not attributed.</b> The step is in the
-              data, not in the explanation: no rule in our regulation window covers it, and RWA
-              density{" "}
+              <b className="font-semibold text-foreground">{tx("Not attributed.")}</b>{tx(" The step is in the data, not in the explanation: no rule in our regulation window covers it, and RWA density")}{" "}
               {rwaHeld ? (
-                <>
-                  barely moved ({fmtPct(rwaNow)}), so it arrived through the capital numerator
-                  rather than the risk mix
-                </>
+                <>{tx("barely moved (")}{tx(fmtPct(rwaNow))}{tx("), so it arrived through the capital numerator rather than the risk mix")}</>
               ) : (
                 <>
-                  {rwaStepMove} {signedPp(rwaStepDelta ?? 0, 1)} in the same month, so the risk mix
-                  moved with it
-                </>
-              )}
-              . The buffer is therefore sized against the{" "}
-              <b className="font-semibold text-foreground">{driftBasis}</b> slope — extrapolating a
-              step would be arithmetic dressed as a forecast.
-            </p>
+                  {tx(rwaStepMove)} {tx(signedPp(rwaStepDelta ?? 0, 1))}{tx(" in the same month, so the risk mix moved with it")}</>
+              )}{tx(". The buffer is therefore sized against the")}{" "}
+              <b className="font-semibold text-foreground">{tx(driftBasis)}</b>{tx(" slope — extrapolating a step would be arithmetic dressed as a forecast.")}</p>
           )}
         </div>
 
         {/* What the buffer is made of — a stack IS the right mark here. */}
         <div>
           <SecHead
-            title="What the buffer is made of"
-            meta={`audited §4 · Σ component ÷ Σ RWA · ${auditQ}`}
+            title={tx("What the buffer is made of")}
+            meta={tx("audited §4 · Σ component ÷ Σ RWA · {0}", {0: auditQ})}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -802,27 +742,22 @@ export default async function CapitalPage() {
                 // hybrid-buffer flag above tests the same claim on the audited basis.
                 // Against the bulletin's CAR (a different basis — 16.34 vs 16.07) the
                 // title said composition was fine while the flag said it was not.
-                hybrids != null && auditBuffer != null && hybrids > auditBuffer
+                tx(hybrids != null && auditBuffer != null && hybrids > auditBuffer
                   ? "The cushion over the minimum is instruments, not common equity"
-                  : "Capital composition — CET1, AT1 and Tier-2"
+                  : "Capital composition — CET1, AT1 and Tier-2")
               }
-              description="capital stack, % of RWA, audited quarterly · sums to total capital"
+              description={tx("capital stack, % of RWA, audited quarterly · sums to total capital")}
               source={
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>
-                    CET1 <b className="font-semibold text-foreground">{fmtPct(stackNow?.cet1, 2)}</b>
+                  <span>{tx("CET1 ")}<b className="font-semibold text-foreground">{tx(fmtPct(stackNow?.cet1, 2))}</b>
                   </span>
-                  <span>
-                    AT1 <b className="font-semibold text-foreground">{fmtPct(stackNow?.at1, 2)}</b>
+                  <span>{tx("AT1 ")}<b className="font-semibold text-foreground">{tx(fmtPct(stackNow?.at1, 2))}</b>
                   </span>
-                  <span>
-                    TIER-2 <b className="font-semibold text-foreground">{fmtPct(stackNow?.t2, 2)}</b>
+                  <span>{tx("TIER-2 ")}<b className="font-semibold text-foreground">{tx(fmtPct(stackNow?.t2, 2))}</b>
                   </span>
-                  <span>
-                    CET1 SHARE{" "}
+                  <span>{tx("CET1 SHARE")}{" "}
                     <b className="font-semibold text-foreground">
-                      {fmtPct(cet1Share, 0)} of capital
-                    </b>
+                      {tx(fmtPct(cet1Share, 0))}{tx(" of capital")}</b>
                   </span>
                 </div>
               }
@@ -835,8 +770,8 @@ export default async function CapitalPage() {
                 plain
                 data={capRatios}
                 seriesLabels={AUDIT_CAPITAL_LABELS}
-                title="CET1 / Tier-1 / total capital — the three ratios the filings print"
-                description="audited quarterly, % of RWA · sector · Σ component ÷ Σ RWA"
+                title={tx("CET1 / Tier-1 / total capital — the three ratios the filings print")}
+                description={tx("audited quarterly, % of RWA · sector · Σ component ÷ Σ RWA")}
                 yFormat="pct"
                 decimals={1}
                 height={280}
@@ -851,8 +786,8 @@ export default async function CapitalPage() {
         {/* Equity & leverage — the generation side. */}
         <div>
           <SecHead
-            title="Equity &amp; leverage"
-            meta="the generation side · level, growth, gearing"
+            title={tx("Equity & leverage")}
+            meta={tx("the generation side · level, growth, gearing")}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -861,13 +796,13 @@ export default async function CapitalPage() {
               data={equityYoYSec}
               seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity y/y" }}
               title={
-                genGap == null
+                tx(genGap == null
                   ? "Equity growth — sector"
                   : genGap >= 0
                     ? "Equity compounds faster than the balance sheet — generation is not the constraint"
-                    : "The balance sheet is outgrowing its equity"
+                    : "The balance sheet is outgrowing its equity")
               }
-              description="equity growth y/y, %, monthly · sector"
+              description={tx("equity growth y/y, %, monthly · sector")}
               source={
                 <ChartFoot
                   data={equityYoYSec}
@@ -888,18 +823,18 @@ export default async function CapitalPage() {
               // Both halves were typed: a direction AND a ranking, next to the very
               // series that decides them. `lev` is this chart's own data prop.
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     levTrend != null && levTrend !== VERBS.trend.flat && levTopLabel != null,
-                    `Gearing keeps ${levTrend} — the ${levTopLabel} banks lean hardest`,
+                    tx("Gearing keeps {0} — the {1} banks lean hardest", {0: levTrend, 1: levTopLabel}),
                   ],
                   [
                     levTopLabel != null,
-                    `Gearing is flat — the ${levTopLabel} banks lean hardest`,
+                    tx("Gearing is flat — the {0} banks lean hardest", {0: levTopLabel}),
                   ],
-                ) ?? "Liabilities ÷ equity — by group"
+                ) ?? "Liabilities ÷ equity — by group")
               }
-              description="liabilities ÷ equity, %, monthly · by ownership group"
+              description={tx("liabilities ÷ equity, %, monthly · by ownership group")}
               source={
                 <ChartFoot data={lev} labels={BANK_TYPE_LABELS} decimals={0} deltaPeriods={12} />
               }
@@ -913,9 +848,9 @@ export default async function CapitalPage() {
               plain
               data={equity}
               seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
-              title="Total equity — the level the ratios are struck on"
-              description="sector equity, ₺ trn, monthly"
-              source="Source: BDDK monthly bulletin"
+              title={tx("Total equity — the level the ratios are struck on")}
+              description={tx("sector equity, ₺ trn, monthly")}
+              source={tx("Source: BDDK monthly bulletin")}
               yFormat="trn"
               decimals={2}
               height={260}
@@ -926,8 +861,8 @@ export default async function CapitalPage() {
         {/* Risk density — the denominator. */}
         <div>
           <SecHead
-            title="Risk density"
-            meta="what the RWA denominator is made of"
+            title={tx("Risk density")}
+            meta={tx("what the RWA denominator is made of")}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -936,18 +871,18 @@ export default async function CapitalPage() {
               data={rwa}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                firstClaim(
+                tx(firstClaim(
                   [
                     step?.isBreak && rwaHeld && !!sw,
-                    `Risk density barely moved through the step — the ${sw?.noun} came from capital, not the risk mix`,
+                    tx("Risk density barely moved through the step — the {0} came from capital, not the risk mix", {0: sw?.noun}),
                   ],
                   [
                     step?.isBreak && !rwaHeld && rwaStepDelta != null,
-                    `Risk density ${rwaStepMove} ${signedPp(rwaStepDelta ?? 0, 1)} through the step — the risk mix moved with it`,
+                    tx("Risk density {0} {1} through the step — the risk mix moved with it", {0: rwaStepMove, 1: signedPp(rwaStepDelta ?? 0, 1)}),
                   ],
-                ) ?? "RWA net / gross — by group"
+                ) ?? "RWA net / gross — by group")
               }
-              description="rwa net ÷ gross, %, monthly · lower = more low-weight exposure"
+              description={tx("rwa net ÷ gross, %, monthly · lower = more low-weight exposure")}
               source={
                 <ChartFoot data={rwa} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
               }
@@ -962,12 +897,12 @@ export default async function CapitalPage() {
               // "a foreign-bank story" — true when written, and never re-checked.
               // Phrased so it reads for whichever group actually leads.
               title={
-                claim(
+                tx(claim(
                   derivTopLabel != null,
-                  `The derivative book is concentrated in the ${derivTopLabel} banks`,
-                ) ?? "Off-balance-sheet derivatives ÷ assets — by group"
+                  tx("The derivative book is concentrated in the {0} banks", {0: derivTopLabel}),
+                ) ?? "Off-balance-sheet derivatives ÷ assets — by group")
               }
-              description="off-balance-sheet derivatives ÷ total assets, %, monthly · by group"
+              description={tx("off-balance-sheet derivatives ÷ total assets, %, monthly · by group")}
               source={
                 <ChartFoot
                   data={offBsDeriv}

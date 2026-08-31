@@ -1,5 +1,6 @@
 "use client";
 
+import { useText } from "@/i18n/use-text";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 // Order: Sector, then the deposit-ownership trio State / Domestic / Foreign,
@@ -18,6 +19,7 @@ const OPTIONS = [
 ];
 
 export default function BankTypeFilter({ active }: { active: string }) {
+  const tx = useText();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -49,7 +51,7 @@ export default function BankTypeFilter({ active }: { active: string }) {
               : "border-transparent text-faint hover:text-foreground"
           }`}
         >
-          {o.label}
+          {tx(o.label)}
         </button>
       ))}
     </div>

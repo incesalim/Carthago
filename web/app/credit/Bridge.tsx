@@ -11,6 +11,7 @@
  * Deduction bars are floating (they hang between the two levels they connect),
  * so the legs reconcile the endpoints visually as well as arithmetically.
  */
+import { useText } from "@/i18n/use-text";
 import type { CreditBridge } from "@/app/lib/credit";
 
 const fmtPct = (v: number, d = 1) => `${v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}%`;
@@ -18,8 +19,9 @@ const fmtPp = (v: number, d = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixe
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** 'YYYY-MM-DD' → 'at 26 Jun' */
-function weekOf(period: string): string {
+function weekOf(period: string, locale: string): string {
   const m = /^\d{4}-(\d{2})-(\d{2})/.exec(period);
+  if (locale === "tr" && m) return `${m[2]} ${MONTHS[Number(m[1]) - 1]}`;
   return m ? `at ${m[2]} ${MONTHS[Number(m[1]) - 1]}` : "";
 }
 
@@ -28,6 +30,7 @@ type Step =
   | { kind: "cut"; label: string; sub?: string; value: number };
 
 export default function Bridge({ bridge }: { bridge: CreditBridge }) {
+  const tx = useText();
   const { nominalAtReal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi, asOfReal, lagged } =
     bridge;
   if (
@@ -35,10 +38,7 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
     currencyPp == null || inflationPp == null
   ) {
     return (
-      <p className="py-6 text-[12px] text-faint">
-        The bridge needs a nominal print, an FX-adjusted print and a CPI month. One is
-        not yet published.
-      </p>
+      <p className="py-6 text-[12px] text-faint">{tx("The bridge needs a nominal print, an FX-adjusted print and a CPI month. One is not yet published.")}</p>
     );
   }
 
@@ -52,12 +52,12 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
     {
       kind: "level",
       label: "Nominal 52w",
-      sub: lagged && asOfReal ? weekOf(asOfReal) : undefined,
+      sub: lagged && asOfReal ? weekOf(asOfReal, tx.locale) : undefined,
       value: nominalAtReal,
     },
     { kind: "cut", label: "Lira", sub: "depreciation", value: -currencyPp },
     { kind: "level", label: "FX-adjusted", value: fxAdj, hero: true },
-    { kind: "cut", label: "Inflation", sub: cpi != null ? `CPI ${cpi.toFixed(1)}%` : undefined, value: -inflationPp },
+    { kind: "cut", label: "Inflation", sub: cpi != null ? tx("CPI {0}%", {0: cpi.toFixed(1)}) : undefined, value: -inflationPp },
     { kind: "level", label: "Real, const. FX", value: realFxAdj, hero: true },
   ];
 
@@ -103,11 +103,11 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
       viewBox={`0 0 ${W} ${H}`}
       className="w-full"
       role="img"
-      aria-label={`Nominal loan growth of ${fmtPct(nominalAtReal)} bridges down to ${fmtPct(
+      aria-label={tx("Nominal loan growth of {0} bridges down to {1} once lira depreciation ({2}) and inflation ({3}) are removed.", {0: fmtPct(nominalAtReal), 1: fmtPct(
         realFxAdj,
-      )} once lira depreciation (${fmtPp(-currencyPp)}) and inflation (${fmtPp(
+      ), 2: fmtPp(-currencyPp), 3: fmtPp(
         -inflationPp,
-      )}) are removed.`}
+      )})}
     >
       {/* the zero rule — the only baseline the reader needs */}
       <line
@@ -172,7 +172,7 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
                 s.kind === "cut" || s.value < 0 ? "fill-negative" : "fill-foreground"
               }`}
             >
-              {s.kind === "cut" ? fmtPp(s.value) : fmtPct(s.value)}
+              {tx(s.kind === "cut" ? fmtPp(s.value) : fmtPct(s.value))}
             </text>
 
             <text
@@ -181,7 +181,7 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
               textAnchor="middle"
               className="fill-muted-foreground text-[8.5px] uppercase tracking-[0.05em]"
             >
-              {s.label}
+              {tx(s.label)}
             </text>
             {s.sub && (
               <text
@@ -190,7 +190,7 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
                 textAnchor="middle"
                 className="fill-faint font-mono text-[8px]"
               >
-                {s.sub}
+                {tx(s.sub)}
               </text>
             )}
           </g>

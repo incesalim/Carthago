@@ -16,6 +16,7 @@
  * site where the rule appears in the regulator's own words, and every citation
  * in the brief above lands here.
  */
+import { useText } from "@/i18n/use-text";
 import { useEffect, useState } from "react";
 import { sourceLabel, type NewsItem } from "@/app/lib/news";
 import type { InstrumentKind } from "@/app/lib/regulation";
@@ -88,6 +89,7 @@ function splitRow(line: string): string[] {
 }
 
 function MarkdownTable({ block }: { block: string }) {
+  const tx = useText();
   const lines = block.split("\n");
   const header = splitRow(lines[0]);
   const rows = lines.slice(2).map(splitRow);
@@ -103,7 +105,7 @@ function MarkdownTable({ block }: { block: string }) {
                   i === 0 ? "text-left" : "pl-2 text-right"
                 }`}
               >
-                {h}
+                {tx(h)}
               </th>
             ))}
           </tr>
@@ -118,7 +120,7 @@ function MarkdownTable({ block }: { block: string }) {
                     ci === 0 ? "text-left" : "pl-2 text-right font-mono font-semibold tabular-nums"
                   }`}
                 >
-                  {c}
+                  {tx(c)}
                 </td>
               ))}
             </tr>
@@ -130,6 +132,7 @@ function MarkdownTable({ block }: { block: string }) {
 }
 
 function BodyContent({ text }: { text: string }) {
+  const tx = useText();
   const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
   return (
     <div className="space-y-3 text-sm leading-relaxed text-foreground">
@@ -139,11 +142,11 @@ function BodyContent({ text }: { text: string }) {
         ) : isListBlock(b) ? (
           <ul key={i} className="list-disc space-y-1 pl-5">
             {b.split("\n").map((l, j) => (
-              <li key={j}>{l.trim().replace(/^-\s+/, "")}</li>
+              <li key={j}>{tx(l.trim().replace(/^-\s+/, ""))}</li>
             ))}
           </ul>
         ) : (
-          <p key={i}>{b}</p>
+          <p key={i}>{tx(b)}</p>
         ),
       )}
     </div>
@@ -151,6 +154,7 @@ function BodyContent({ text }: { text: string }) {
 }
 
 function Drawer({ row, onClose }: { row: ArchiveRow | null; onClose: () => void }) {
+  const tx = useText();
   useEffect(() => {
     if (!row) return;
     const onKey = (e: KeyboardEvent) => {
@@ -180,7 +184,7 @@ function Drawer({ row, onClose }: { row: ArchiveRow | null; onClose: () => void 
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={row?.item.title ?? "Instrument"}
+        aria-label={tx(row?.item.title ?? "Instrument")}
         className={`fixed top-0 right-0 z-40 flex h-full w-full max-w-xl flex-col border-l border-border bg-card transition-transform duration-200 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
@@ -190,18 +194,18 @@ function Drawer({ row, onClose }: { row: ArchiveRow | null; onClose: () => void 
             <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
               <div>
                 <div className="font-mono text-[9px] tracking-[0.07em] uppercase text-faint">
-                  {sourceLabel(row.item.source)} · decided {shortDate(row.decidedAt)}
-                  {row.lagDays != null && row.lagDays > 0 && ` · published ${row.lagDays}d later`}
-                  {row.decisionNo != null && ` · #${row.decisionNo}`}
+                  {tx(sourceLabel(row.item.source))}{tx(" · decided ")}{tx(shortDate(row.decidedAt))}
+                  {tx(row.lagDays != null && row.lagDays > 0 && tx(" · published {0}d later", {0: row.lagDays}))}
+                  {tx(row.decisionNo != null && ` · #${row.decisionNo}`)}
                 </div>
                 <h2 className="mt-1 text-[15px] leading-snug font-semibold text-foreground">
-                  {row.item.title}
+                  {tx(row.item.title)}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={tx("Close")}
                 className="shrink-0 p-1 text-muted-foreground transition hover:text-foreground"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -212,17 +216,14 @@ function Drawer({ row, onClose }: { row: ArchiveRow | null; onClose: () => void 
 
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {body ? (
-                <BodyContent text={body} />
+                <BodyContent text={tx(body)} />
               ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No text cached for this instrument — open the original below.
-                </p>
+                <p className="text-sm text-muted-foreground italic">{tx("No text cached for this instrument — open the original below.")}</p>
               )}
             </div>
 
             <footer className="border-t border-border px-6 py-3">
-              <a href={row.item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary">
-                Open the original at {sourceLabel(row.item.source)} ↗
+              <a href={row.item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary">{tx("Open the original at ")}{tx(sourceLabel(row.item.source))} ↗
               </a>
             </footer>
           </>
@@ -235,6 +236,7 @@ function Drawer({ row, onClose }: { row: ArchiveRow | null; onClose: () => void 
 // ── the table ───────────────────────────────────────────────────────────────
 
 export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: number }) {
+  const tx = useText();
   const [tab, setTab] = useState<TabKey>("instruments");
   const [open, setOpen] = useState<ArchiveRow | null>(null);
 
@@ -243,10 +245,9 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
   return (
     <section>
       <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="text-[13.5px] font-bold text-foreground">The archive</h3>
+        <h3 className="text-[13.5px] font-bold text-foreground">{tx("The archive")}</h3>
         <span className="ml-auto font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
-          {held.toLocaleString()} releases · dated by the day the decision was taken
-        </span>
+          {tx(held.toLocaleString())}{tx(" releases · dated by the day the decision was taken")}</span>
       </div>
 
       {/* Mono-caps with an ink underline — blue is a verb, and a filter navigates nowhere. */}
@@ -262,7 +263,7 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
                 : "border-transparent text-faint hover:text-foreground"
             }`}
           >
-            {t.label}
+            {tx(t.label)}
           </button>
         ))}
       </div>
@@ -277,7 +278,7 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
                   i === 0 ? "text-left" : "pl-2 text-right"
                 }`}
               >
-                {h}
+                {tx(h)}
               </th>
             ))}
           </tr>
@@ -290,49 +291,42 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
               className="cursor-pointer transition hover:bg-muted"
             >
               <td className={`border-b border-hair py-1.5 ${r.kind === "other" ? "opacity-55" : ""}`}>
-                <span className="text-[12.5px] leading-snug font-medium text-foreground">{r.item.title}</span>
+                <span className="text-[12.5px] leading-snug font-medium text-foreground">{tx(r.item.title)}</span>
                 {r.kind === "other" && (
-                  <span className="ml-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-                    no rule change
-                  </span>
+                  <span className="ml-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">{tx("no rule change")}</span>
                 )}
                 {r.decidedIsFallback && r.kind === "board" && (
-                  <span className="ml-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-                    date published, not decided
-                  </span>
+                  <span className="ml-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">{tx("date published, not decided")}</span>
                 )}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] whitespace-nowrap tabular-nums text-muted-foreground">
-                {shortDate(r.decidedAt)}
+                {tx(shortDate(r.decidedAt))}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] whitespace-nowrap tabular-nums text-faint">
-                {shortDate(r.item.published_at)}
+                {tx(shortDate(r.item.published_at))}
               </td>
               <td
                 className={`border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] font-semibold whitespace-nowrap tabular-nums ${
                   (r.lagDays ?? 0) > 365 ? "text-negative" : "text-muted-foreground"
                 }`}
               >
-                {r.lagDays == null ? "—" : `${r.lagDays}d`}
+                {tx(r.lagDays == null ? "—" : `${r.lagDays}d`)}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] font-semibold text-foreground">
-                {KIND_LABEL[r.kind]}
+                {tx(KIND_LABEL[r.kind])}
               </td>
             </tr>
           ))}
           {shown.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-3 text-[12px] text-muted-foreground italic">
-                Nothing of this kind in the window.
-              </td>
+              <td colSpan={5} className="py-3 text-[12px] text-muted-foreground italic">{tx("Nothing of this kind in the window.")}</td>
             </tr>
           )}
         </tbody>
       </table>
 
       <p className="mt-2 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-        {shown.length} shown · open any row to read the regulator&apos;s own words
-      </p>
+        {tx(shown.length)}{tx(" shown · open any row to read the regulator's own words")}</p>
 
       <Drawer row={open} onClose={() => setOpen(null)} />
     </section>

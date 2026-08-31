@@ -11,6 +11,8 @@
  * periods down a column would make the medians meaningless. A bank that has not
  * filed the record quarter shows "—" and an amber period instead.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { bankSummaries } from "@/app/lib/audit";
@@ -26,12 +28,16 @@ import Register, { type RegisterRow } from "./Register";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banks — Financials & Profiles",
   description:
     "Per-bank financials for every bank in Türkiye: balance sheet, income statement, capital, asset quality and profitability from audited BRSA reports.",
   alternates: { canonical: "/banks" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 // 10006 State · 10005 Private·Domestic · 10007 Private·Foreign ·
 // 10003 Participation · 10004 Dev & Inv.
@@ -48,6 +54,7 @@ function quarterLabel(p: string | null | undefined): string {
 const trn = (v: number) => `₺${(v / 1e9).toFixed(1)}`;
 
 export default async function BanksPage() {
+  const tx = await getText();
   const [summaries, period] = await Promise.all([bankSummaries(), latestCommonPeriod()]);
   const panel = await heatmapPanel();
 
@@ -113,86 +120,77 @@ export default async function BanksPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Banks"
+        title={tx("Banks")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{quarterLabel(through)}</b> ·{" "}
-            {rows.length} banks · audited BRSA quarterly filings
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(quarterLabel(through))}</b> ·{" "}
+            {tx(rows.length)}{tx(" banks · audited BRSA quarterly filings")}</>
         }
         right="every figure computed from source series"
       />
 
       <SecHead
-        title="The vitals"
-        meta="coverage · recency · size · depth"
+        title={tx("The vitals")}
+        meta={tx("coverage · recency · size · depth")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={6}>
         <Vital
-          label="Banks covered"
+          label={tx("Banks covered")}
           value={String(rows.length)}
           note={
             <>
-              {groups.length} ownership groups — head to head at{" "}
-              <Link href="/cross-bank" className="font-semibold text-primary">
-                /cross-bank
-              </Link>
+              {tx(groups.length)}{tx(" ownership groups — head to head at")}{" "}
+              <Link href="/cross-bank" className="font-semibold text-primary">{tx("/cross-bank")}</Link>
             </>
           }
         />
         <Vital
-          label="Latest audited quarter"
+          label={tx("Latest audited quarter")}
           value={quarterLabel(through)}
           note={
             late.length > 0 ? (
               <>
-                {filed.length} of {rows.length} have filed it ·{" "}
+                {tx(filed.length)}{tx(" of ")}{tx(rows.length)}{tx(" have filed it ·")}{" "}
                 <b className="font-semibold text-warning">
-                  {late.map((r) => r.name).join(", ")}
-                </b>{" "}
-                still on {late[0].latest}
+                  {tx(late.map((r) => r.name).join(", "))}
+                </b>{" "}{tx("still on ")}{tx(late[0].latest)}
               </>
             ) : (
-              `all ${rows.length} banks have filed it`
+              tx("all {0} banks have filed it", {0: rows.length})
             )
           }
         />
         <Vital
-          label="Combined assets"
+          label={tx("Combined assets")}
           value={combined > 0 ? trn(combined) : "—"}
           unit="trn"
           note={
             largest ? (
-              <>
-                largest: <b className="font-semibold text-foreground">{largest.name}</b>{" "}
-                {trn(largest.assets)} trn
-              </>
+              <>{tx("largest: ")}<b className="font-semibold text-foreground">{tx(largest.name)}</b>{" "}
+                {tx(trn(largest.assets))}{tx(" trn")}</>
             ) : (
               "sum of the latest balance sheets"
             )
           }
         />
         <Vital
-          label="Top-5 asset share"
+          label={tx("Top-5 asset share")}
           value={top5Share != null ? top5Share.toFixed(1) : "—"}
           unit="%"
-          note={`held by ${lenders.slice(0, 5).map((r) => r.ticker).join(" · ")}`}
+          note={tx("held by {0}", {0: lenders.slice(0, 5).map((r) => r.ticker).join(" · ")})}
         />
         <Vital
-          label="Bank-quarters archived"
+          label={tx("Bank-quarters archived")}
           value={quarters.toLocaleString("en-US")}
-          note={`${fullRun} banks carry the full ${maxPeriods}-quarter run`}
+          note={tx("{0} banks carry the full {1}-quarter run", {0: fullRun, 1: maxPeriods})}
         />
         <Vital
-          label="Under three years"
+          label={tx("Under three years")}
           value={String(young.length)}
           note={
             young.length > 0 ? (
-              <>
-                youngest: <b className="font-semibold text-foreground">{young[0].name}</b> —{" "}
-                {young[0].periods} quarters filed
-              </>
+              <>{tx("youngest: ")}<b className="font-semibold text-foreground">{tx(young[0].name)}</b> —{" "}
+                {tx(young[0].periods)}{tx(" quarters filed")}</>
             ) : (
               "every bank carries three years or more"
             )
@@ -202,47 +200,40 @@ export default async function BanksPage() {
 
       {/* ---- the read ---- */}
       {largest && (
-        <p className="mt-4 max-w-[82ch] border-l-2 border-foreground pl-3 text-[13.5px] leading-relaxed text-foreground">
-          The five largest banks hold{" "}
-          <span className="font-mono tabular-nums">{top5Share?.toFixed(1)}%</span> of the{" "}
-          <span className="font-mono tabular-nums">{trn(combined)} trn</span> on file, and{" "}
-          <b className="font-semibold">{largest.name}</b> alone holds{" "}
+        <p className="mt-4 max-w-[82ch] border-l-2 border-foreground pl-3 text-[13.5px] leading-relaxed text-foreground">{tx("The five largest banks hold")}{" "}
+          <span className="font-mono tabular-nums">{tx(top5Share?.toFixed(1))}%</span>{tx(" of the")}{" "}
+          <span className="font-mono tabular-nums">{tx(trn(combined))}{tx(" trn")}</span>{tx(" on file, and")}{" "}
+          <b className="font-semibold">{tx(largest.name)}</b>{tx(" alone holds")}{" "}
           <span className="font-mono tabular-nums">
-            {((largest.assets / combined) * 100).toFixed(1)}%
+            {tx(((largest.assets / combined) * 100).toFixed(1))}%
           </span>
           .{" "}
           {late.length === 1 ? (
             <>
-              <b className="font-semibold">{late[0].name}</b> is the only bank yet to file{" "}
-              {quarterLabel(through)} — it is still on {late[0].latest}.{" "}
+              <b className="font-semibold">{tx(late[0].name)}</b>{tx(" is the only bank yet to file")}{" "}
+              {tx(quarterLabel(through))}{tx(" — it is still on ")}{tx(late[0].latest)}.{" "}
             </>
           ) : late.length > 1 ? (
             <>
-              <span className="font-mono tabular-nums">{late.length}</span> banks have not filed{" "}
-              {quarterLabel(through)} yet.{" "}
+              <span className="font-mono tabular-nums">{tx(late.length)}</span>{tx(" banks have not filed")}{" "}
+              {tx(quarterLabel(through))}{tx(" yet.")}{" "}
             </>
           ) : null}
           {young.length > 0 && (
             <>
-              <span className="font-mono tabular-nums">{young.length}</span> banks carry under three
-              years of audited history, the youngest being{" "}
-              <b className="font-semibold">{young[0].name}</b> at{" "}
-              <span className="font-mono tabular-nums">{young[0].periods}</span> quarters.
-            </>
+              <span className="font-mono tabular-nums">{tx(young.length)}</span>{tx(" banks carry under three years of audited history, the youngest being")}{" "}
+              <b className="font-semibold">{tx(young[0].name)}</b>{tx(" at")}{" "}
+              <span className="font-mono tabular-nums">{tx(young[0].periods)}</span>{tx(" quarters.")}</>
           )}
         </p>
       )}
 
-      <Depth meta="the directory, as a register">
+      <Depth meta={tx("the directory, as a register")}>
         <Register rows={rows} groups={groups} latest={through} maxPeriods={maxPeriods} />
 
         <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-hair pt-3">
-          <Link href="/actions" className="text-[12.5px] font-semibold text-primary">
-            Bank actions (KAP filings, classified) →
-          </Link>
-          <Link href="/regulation" className="text-[12.5px] font-semibold text-primary">
-            TCMB &amp; BDDK regulation →
-          </Link>
+          <Link href="/actions" className="text-[12.5px] font-semibold text-primary">{tx("Bank actions (KAP filings, classified) →")}</Link>
+          <Link href="/regulation" className="text-[12.5px] font-semibold text-primary">{tx("TCMB & BDDK regulation →")}</Link>
         </div>
       </Depth>
 

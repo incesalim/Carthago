@@ -1,3 +1,4 @@
+import { createText } from "../../i18n/text";
 /**
  * The per-bank brief — pure, deterministic, no LLM.
  *
@@ -165,7 +166,8 @@ export function bandOf(rank: number, n: number): string {
   return "bottom quartile";
 }
 
-export const ordinal = (n: number): string => {
+export const ordinal = (n: number, locale = "en"): string => {
+  if (locale === "tr") return `${n}.`;
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
@@ -218,7 +220,9 @@ export function engineGate(
      *  lender). */
     peerExcluded?: boolean;
   },
+  locale = "en",
 ): EngineGate {
+  const tx = createText(locale);
   const latest = rows[rows.length - 1];
   const filings = rows.length;
   const first = rows[0]?.period ?? null;
@@ -253,8 +257,8 @@ export function engineGate(
       firstPeriod: first,
       fundingNote: null,
       reason: opts?.peerExcluded
-        ? `${audited} audited quarter${audited === 1 ? " is" : "s are"} on file, but this institution is deliberately excluded from the peer ratio panel — market infrastructure, not a lender — so yield, funding cost, spread, cost of risk and ROE are not computed for it. The statements themselves are under Financials.`
-        : `${audited} audited quarter${audited === 1 ? " is" : "s are"} on file, but the ratio panel holds no rows for this bank, so yield, funding cost, spread, cost of risk and ROE were not computed. The statements themselves are under Financials.`,
+        ? tx("{0} audited quarter{1} on file, but this institution is deliberately excluded from the peer ratio panel — market infrastructure, not a lender — so yield, funding cost, spread, cost of risk and ROE are not computed for it. The statements themselves are under Financials.", {0: audited, 1: audited === 1 ? " is" : "s are"})
+        : tx("{0} audited quarter{1} on file, but the ratio panel holds no rows for this bank, so yield, funding cost, spread, cost of risk and ROE were not computed. The statements themselves are under Financials.", {0: audited, 1: audited === 1 ? " is" : "s are"}),
     };
   }
   return {
@@ -264,7 +268,7 @@ export function engineGate(
     fundingNote: null,
     reason:
       filings < 5
-        ? `Trailing-twelve-month figures need four quarters of income statement over five quarter-ends of average balances. This bank has filed ${filings} quarter${filings === 1 ? "" : "s"}${first ? ` (first: ${first})` : ""}, so yield, funding cost, spread, cost of risk and ROE cannot be formed without inventing a denominator.`
+        ? tx("Trailing-twelve-month figures need four quarters of income statement over five quarter-ends of average balances. This bank has filed {0} quarter{1}{2}, so yield, funding cost, spread, cost of risk and ROE cannot be formed without inventing a denominator.", {0: filings, 1: filings === 1 ? "" : "s", 2: first ? tx(" (first: {0})", {0: first}) : ""})
         : "The trailing-twelve-month figures did not resolve for this bank — the income statement or the average balances are missing from the filings we hold.",
   };
 }
@@ -307,7 +311,8 @@ const pp = (v: number, d = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d
  * capital base (Colendi: −21pp q/q, buffer still 28.7pp) is doing the opposite of
  * running out of capital, and gets a note instead — the level qualifies the move.
  */
-export function bankFlags(d: FlagInput): BriefFlag[] {
+export function bankFlags(d: FlagInput, locale = "en"): BriefFlag[] {
+  const tx = createText(locale);
   const out: BriefFlag[] = [];
   const buffer = d.car != null ? d.car - CAR_TARGET : null;
 
@@ -317,9 +322,9 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       kind: "flag",
       title: "Capital step-down",
       detail:
-        `CAR fell ${Math.abs(d.carQoq).toFixed(1)}pp in a quarter to ${d.car.toFixed(1)}% — a ${buffer.toFixed(1)}pp buffer over the ${CAR_TARGET}% target ratio` +
-        `${d.carRank ? `, ${ordinal(d.carRank.rank)} of ${d.carRank.n}` : ""}` +
-        `${d.assetsQoqPct != null ? `, while the balance sheet grew ${d.assetsQoqPct.toFixed(1)}% q/q` : ""}.`,
+        tx("CAR fell {0}pp in a quarter to {1}% — a {2}pp buffer over the {3}% target ratio", {0: Math.abs(d.carQoq).toFixed(1), 1: d.car.toFixed(1), 2: buffer.toFixed(1), 3: CAR_TARGET}) +
+        `${d.carRank ? tx(", {0} of {1}", {0: ordinal(d.carRank.rank, tx.locale), 1: d.carRank.n}) : ""}` +
+        `${d.assetsQoqPct != null ? tx(", while the balance sheet grew {0}% q/q", {0: d.assetsQoqPct.toFixed(1)}) : ""}.`,
       rule: `Δcar_qoq < −1pp AND buffer < 8pp`,
     });
   } else if (d.car != null && d.carQoq != null && buffer != null && d.carQoq < -5 && buffer >= 8) {
@@ -328,8 +333,8 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       kind: "note",
       title: "Capital normalising",
       detail:
-        `CAR fell ${Math.abs(d.carQoq).toFixed(1)}pp to ${d.car.toFixed(1)}% as the book grew` +
-        `${d.assetsQoqPct != null ? ` ${d.assetsQoqPct.toFixed(1)}% q/q` : ""}, but ${buffer.toFixed(1)}pp of buffer remains. Capital being deployed, not depleted.`,
+        tx("CAR fell {0}pp to {1}% as the book grew", {0: Math.abs(d.carQoq).toFixed(1), 1: d.car.toFixed(1)}) +
+        tx("{0}, but {1}pp of buffer remains. Capital being deployed, not depleted.", {0: d.assetsQoqPct != null ? tx(" {0}% q/q", {0: d.assetsQoqPct.toFixed(1)}) : "", 1: buffer.toFixed(1)}),
       rule: `Δcar_qoq < −5pp AND buffer ≥ 8pp → note, not flag`,
     });
   }
@@ -346,7 +351,7 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       id: "real-roe",
       kind: "flag",
       title: "Real returns",
-      detail: `ROE ${d.roe!.toFixed(1)}% against ${d.cpi12m!.toFixed(1)}% 12-month-average CPI: equity compounds a ${Math.abs(realRoePct).toFixed(1)}pp real loss.`,
+      detail: tx("ROE {0}% against {1}% 12-month-average CPI: equity compounds a {2}pp real loss.", {0: d.roe!.toFixed(1), 1: d.cpi12m!.toFixed(1), 2: Math.abs(realRoePct).toFixed(1)}),
       rule: `(1 + roe) / (1 + cpi_12m_avg) − 1 < 0`,
     });
   }
@@ -363,8 +368,8 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       kind: "flag",
       title: "NPL drift",
       detail:
-        `${d.nplRises} consecutive quarterly rises, to ${d.npl.toFixed(2)}%.${vsMed}` +
-        `${d.stage2Share != null ? ` Stage-2 — the pre-NPL watchlist — sits at ${d.stage2Share.toFixed(1)}% of the book.` : ""}`,
+        tx("{0} consecutive quarterly rises, to {1}%.{2}", {0: d.nplRises, 1: d.npl.toFixed(2), 2: vsMed}) +
+        `${d.stage2Share != null ? tx(" Stage-2 — the pre-NPL watchlist — sits at {0}% of the book.", {0: d.stage2Share.toFixed(1)}) : ""}`,
       rule: `consecutive_rise(npl) ≥ 4q`,
     });
   }
@@ -380,10 +385,10 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       kind: "flag",
       title: "Below break-even",
       detail:
-        `Cost / income ${d.costIncome.toFixed(1)}% — the bank spends ₺${(d.costIncome / 100).toFixed(2)} for every ₺1 of income. ` +
+        tx("Cost / income {0}% — the bank spends ₺{1} for every ₺1 of income. ", {0: d.costIncome.toFixed(1), 1: (d.costIncome / 100).toFixed(2)}) +
         (buildOut
-          ? `Normal ${d.filings} quarters into a build-out; the test is the trend.`
-          : `${d.filings} quarters in, this is not a build-out cost base — the franchise is not covering itself.`),
+          ? tx("Normal {0} quarters into a build-out; the test is the trend.", {0: d.filings})
+          : tx("{0} quarters in, this is not a build-out cost base — the franchise is not covering itself.", {0: d.filings})),
       rule: `cost_income > 100% · build-out = filings ≤ ${BUILD_OUT_QUARTERS}q`,
     });
   }
@@ -394,7 +399,7 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       id: "liquidity",
       kind: "ok",
       title: "Liquidity clear",
-      detail: `LCR ${d.lcr!.toFixed(0)}%${d.ldr != null ? ` and TL+FC loan/deposit ${d.ldr.toFixed(0)}%` : ""} — funding is not a constraint this quarter.`,
+      detail: tx("LCR {0}%{1} — funding is not a constraint this quarter.", {0: d.lcr!.toFixed(0), 1: d.ldr != null ? tx(" and TL+FC loan/deposit {0}%", {0: d.ldr.toFixed(0)}) : ""}),
       rule: `lcr < 120 OR ldr > 100 → would fire; neither did`,
     });
   }
@@ -424,40 +429,42 @@ export function peerRead(
   key: MetricKey,
   s: PeerStat,
   ctx: { buffer?: number | null; realRoe?: number | null; filings?: number | null },
+  locale = "en",
 ): string {
+  const tx = createText(locale);
   const gap = Math.abs(s.value - s.median);
-  const place = `${ordinal(s.rank)} of ${s.n}`;
+  const place = tx("{0} of {1}", {0: ordinal(s.rank, tx.locale), 1: s.n});
 
   switch (key) {
     case "car": {
       const b = ctx.buffer;
-      if (b != null && b < 4) return `${place}. One of the field's thinnest buffers — ${b.toFixed(1)}pp over the ${CAR_TARGET}% target ratio.`;
-      if (b != null && b > 20) return `${place}. ${b.toFixed(1)}pp of headroom — capital raised well ahead of the book.`;
-      return `${place} — ${bandOf(s.rank, s.n)}${b != null ? `, ${b.toFixed(1)}pp over the target` : ""}.`;
+      if (b != null && b < 4) return tx("{0}. One of the field's thinnest buffers — {1}pp over the {2}% target ratio.", {0: place, 1: b.toFixed(1), 2: CAR_TARGET});
+      if (b != null && b > 20) return tx("{0}. {1}pp of headroom — capital raised well ahead of the book.", {0: place, 1: b.toFixed(1)});
+      return `${place} — ${bandOf(s.rank, s.n)}${b != null ? tx(", {0}pp over the target", {0: b.toFixed(1)}) : ""}.`;
     }
     case "npl_ratio":
       return s.value < s.median
-        ? `Cleaner than the median — ${gap.toFixed(2)}pp below it. The worst book in the field runs ${s.max.toFixed(1)}%.`
-        : `${gap.toFixed(2)}pp above the median. The worst book in the field runs ${s.max.toFixed(1)}%.`;
+        ? tx("Cleaner than the median — {0}pp below it. The worst book in the field runs {1}%.", {0: gap.toFixed(2), 1: s.max.toFixed(1)})
+        : tx("{0}pp above the median. The worst book in the field runs {1}%.", {0: gap.toFixed(2), 1: s.max.toFixed(1)});
     case "roe": {
       const r = ctx.realRoe;
       return (
-        `${place} — ${gap.toFixed(1)}pp ${s.value < s.median ? "under" : "over"} the median` +
-        (r != null ? ` and ${Math.abs(r).toFixed(1)}pp ${r < 0 ? "under" : "over"} inflation.` : ".")
+        tx("{0} — {1}pp {2} the median", {0: place, 1: gap.toFixed(1), 2: s.value < s.median ? "under" : "over"}) +
+        (r != null ? tx(" and {0}pp {1} inflation.", {0: Math.abs(r).toFixed(1), 1: r < 0 ? "under" : "over"}) : ".")
       );
     }
     case "nim":
-      return `${place}. ${gap.toFixed(2)}pp ${s.value < s.median ? "under" : "over"} the median margin.`;
+      return tx("{0}. {1}pp {2} the median margin.", {0: place, 1: gap.toFixed(2), 2: s.value < s.median ? "under" : "over"});
     case "cost_income":
       if (s.value > 100) {
         // Only a YOUNG bank is in a build-out. See BUILD_OUT_QUARTERS.
         return ctx.filings != null && ctx.filings > BUILD_OUT_QUARTERS
-          ? `${place}. Costs exceed income — ${ctx.filings} quarters in, the franchise is not covering itself.`
-          : `${place}. Costs exceed income — the build-out has not reached break-even.`;
+          ? tx("{0}. Costs exceed income — {1} quarters in, the franchise is not covering itself.", {0: place, 1: ctx.filings})
+          : tx("{0}. Costs exceed income — the build-out has not reached break-even.", {0: place});
       }
       if (s.rank <= Math.ceil(s.n * 0.25))
-        return `${place} — top quartile. ${gap.toFixed(1)}pp better than the median: scale is earning its keep.`;
-      return `${place} — ${bandOf(s.rank, s.n)}, ${gap.toFixed(1)}pp ${s.value < s.median ? "better" : "worse"} than the median.`;
+        return tx("{0} — top quartile. {1}pp better than the median: scale is earning its keep.", {0: place, 1: gap.toFixed(1)});
+      return tx("{0} — {1}, {2}pp {3} than the median.", {0: place, 1: bandOf(s.rank, s.n), 2: gap.toFixed(1), 3: s.value < s.median ? "better" : "worse"});
     default:
       return place;
   }

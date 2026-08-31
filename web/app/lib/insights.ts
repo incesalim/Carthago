@@ -1,20 +1,4 @@
-/**
- * Deterministic insight engine (SERVER-safe, pure). Turns the series a page
- * already fetches into ranked plain-language takeaways — no LLM, recomputed live
- * from D1 each render, so it can never drift from the charts. Each tab's
- * takeaway is framed by its rationale.json guiding question (the "perspective"
- * layer, gated by the spine rather than piled on).
- *
- * Tone rules are conservative: a metric only reads positive/warn when its
- * move/level clears a threshold; otherwise neutral. All thresholds are explicit.
- *
- * Every DIRECTIONAL word comes from `direction()` + the closed `VERBS` vocabulary
- * (lib/prose.ts) rather than being typed into the template. That is what lets
- * prose-regression.test.ts feed these builders sign-inverted fixtures and assert
- * that no falling word survives a rising series — the gate can only be decisive
- * if the vocabulary is enumerable.
- */
-
+import { createText } from "../../i18n/text";
 import { VERBS, direction } from "./prose";
 import { seriesFinding } from "./chart-findings";
 
@@ -87,7 +71,8 @@ export function overviewInsights(d: {
   car: SeriesPoint[];
   ldr: SeriesPoint[];
   roe: SeriesPoint[];
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.npl) ?? asOf(d.assetsYoY);
   const items: Insight[] = [];
 
@@ -96,7 +81,7 @@ export function overviewInsights(d: {
   const ly = last(d.loansYoY);
   const dy = last(d.depositsYoY);
   items.push({
-    text: `Balance sheet ${ay != null && ay >= 0 ? "expanding" : "contracting"} — assets ${pct(ay)} y/y, loans ${pct(ly)}, deposits ${pct(dy)}.`,
+    text: tx("Balance sheet {0} — assets {1} y/y, loans {2}, deposits {3}.", {0: ay != null && ay >= 0 ? "expanding" : "contracting", 1: pct(ay), 2: pct(ly), 3: pct(dy)}),
     tone: "neutral",
     href: "/credit",
   });
@@ -105,7 +90,7 @@ export function overviewInsights(d: {
   const npl = last(d.npl);
   const nplD = deltaPp(d.npl);
   items.push({
-    text: `NPL ratio ${pct(npl, 2)}${nplD != null ? ` (${ppStr(nplD)} m/m, ${nplD > 0.03 ? "creeping up" : nplD < -0.03 ? "easing" : "broadly stable"})` : ""}.`,
+    text: tx("NPL ratio {0}{1}.", {0: pct(npl, 2), 1: nplD != null ? tx(" ({0} m/m, {1})", {0: ppStr(nplD), 1: nplD > 0.03 ? "creeping up" : nplD < -0.03 ? "easing" : "broadly stable"}) : ""}),
     tone: nplD != null && nplD > 0.03 ? "warn" : nplD != null && nplD < -0.03 ? "positive" : "neutral",
     href: "/asset-quality",
   });
@@ -115,7 +100,7 @@ export function overviewInsights(d: {
   const carD = deltaPp(d.car);
   const buffer = car != null ? car - CAR_TARGET : null;
   items.push({
-    text: `Capital adequacy ${pct(car)}${buffer != null ? ` — ${buffer.toFixed(1)}pp above the ${CAR_TARGET}% target ratio` : ""}${carD != null ? ` (${ppStr(carD)} m/m)` : ""}.`,
+    text: tx("Capital adequacy {0}{1}{2}.", {0: pct(car), 1: buffer != null ? tx(" — {0}pp above the {1}% target ratio", {0: buffer.toFixed(1), 1: CAR_TARGET}) : "", 2: carD != null ? tx(" ({0} m/m)", {0: ppStr(carD)}) : ""}),
     tone: buffer != null && buffer < 2 ? "warn" : buffer != null && buffer >= 4 ? "positive" : "neutral",
     href: "/capital",
   });
@@ -124,7 +109,7 @@ export function overviewInsights(d: {
   const roe = last(d.roe);
   const roeD = deltaPp(d.roe);
   items.push({
-    text: `ROE ${pct(roe)} (annualized)${roeD != null ? `, ${roeD >= 0 ? "up" : "down"} ${Math.abs(roeD).toFixed(1)}pp m/m` : ""}.`,
+    text: tx("ROE {0} (annualized){1}.", {0: pct(roe), 1: roeD != null ? tx(", {0} {1}pp m/m", {0: roeD >= 0 ? "up" : "down", 1: Math.abs(roeD).toFixed(1)}) : ""}),
     tone: "neutral",
     href: "/profitability",
   });
@@ -135,7 +120,7 @@ export function overviewInsights(d: {
     // TL+FC, because that is what the published ratio measures. The link goes to
     // /liquidity, where the TL-only book is read — a different, hotter number, so
     // the sentence has to say which one it is quoting. See lib/ldr.ts.
-    text: `Loan-to-deposit (TL+FC) ${pct(ldr)} — funding ${ldr != null && ldr > 110 ? "stretched" : "comfortable"}.`,
+    text: tx("Loan-to-deposit (TL+FC) {0} — funding {1}.", {0: pct(ldr), 1: ldr != null && ldr > 110 ? "stretched" : "comfortable"}),
     tone: ldr != null && ldr > 120 ? "warn" : "neutral",
     href: "/liquidity",
   });
@@ -143,8 +128,8 @@ export function overviewInsights(d: {
   const grow = ay != null && ay >= 0 ? "growing" : "shrinking";
   const earn = roe != null && roe >= 0 ? "profitable" : "loss-making";
   const headline =
-    `As of ${period ?? "—"}: the sector is ${grow} (assets ${pct(ay)} y/y) and ${earn} (ROE ${pct(roe)}), ` +
-    `with NPL at ${pct(npl, 2)} and capital ${buffer != null && buffer >= 4 ? "comfortably above" : "above"} the minimum at ${pct(car)}.`;
+    tx("As of {0}: the sector is {1} (assets {2} y/y) and {3} (ROE {4}), ", {0: period ?? "—", 1: grow, 2: pct(ay), 3: earn, 4: pct(roe)}) +
+    tx("with NPL at {0} and capital {1} the minimum at {2}.", {0: pct(npl, 2), 1: buffer != null && buffer >= 4 ? "comfortably above" : "above", 2: pct(car)});
 
   return { asOf: period, headline, items };
 }
@@ -177,7 +162,8 @@ export function creditInsights(d: {
     currencyPp: number | null;
     inflationPp: number | null;
   } | null;
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.yoy);
   const items: Insight[] = [];
 
@@ -192,28 +178,28 @@ export function creditInsights(d: {
   if (real != null && y != null) {
     items.push({
       text:
-        `Nominal credit grows ${pct(y)} y/y — but strip the lira and the price level and the book ` +
-        `${real < 0 ? "shrank" : "grew"} ${pct(Math.abs(real))} in real, constant-FX terms.`,
+        tx("Nominal credit grows {0} y/y — but strip the lira and the price level and the book ", {0: pct(y)}) +
+        tx("{0} {1} in real, constant-FX terms.", {0: real < 0 ? "shrank" : "grew", 1: pct(Math.abs(real))}),
       tone: real < 0 ? "warn" : "neutral",
     });
     if (b?.currencyPp != null && b?.inflationPp != null) {
       items.push({
         text:
-          `Of that ${pct(y)} print, ${ppStr(b.currencyPp)} is lira depreciation revaluing the FX book ` +
-          `and ${ppStr(b.inflationPp)} is inflation. What remains is real volume.`,
+          tx("Of that {0} print, {1} is lira depreciation revaluing the FX book ", {0: pct(y), 1: ppStr(b.currencyPp)}) +
+          tx("and {0} is inflation. What remains is real volume.", {0: ppStr(b.inflationPp)}),
         tone: "neutral",
       });
     }
   } else if (y != null) {
     items.push({
-      text: `Loan growth ${pct(y)} y/y (nominal)${m4 != null ? `; the 4-week pace (${pct(m4)}) says the trend is ${pace}` : ""}.`,
+      text: tx("Loan growth {0} y/y (nominal){1}.", {0: pct(y), 1: m4 != null ? tx("; the 4-week pace ({0}) says the trend is {1}", {0: pct(m4), 1: pace}) : ""}),
       tone: "neutral",
     });
   }
 
   if (real != null && y != null && m4 != null) {
     items.push({
-      text: `The 4-week pace (${pct(m4)}) says the NOMINAL trend is ${pace} — on a book that is not growing in real terms.`,
+      text: tx("The 4-week pace ({0}) says the NOMINAL trend is {1} — on a book that is not growing in real terms.", {0: pct(m4), 1: pace}),
       tone: "neutral",
     });
   }
@@ -222,7 +208,7 @@ export function creditInsights(d: {
   const pr = last(d.yoyPrivate);
   if (st != null && pr != null) {
     items.push({
-      text: `${st >= pr ? "State" : "Private"} banks lead the lending cycle — ${pct(Math.max(st, pr))} vs ${pct(Math.min(st, pr))} y/y (${ppStr(Math.abs(st - pr))} gap).`,
+      text: tx("{0} banks lead the lending cycle — {1} vs {2} y/y ({3} gap).", {0: st >= pr ? "State" : "Private", 1: pct(Math.max(st, pr)), 2: pct(Math.min(st, pr)), 3: ppStr(Math.abs(st - pr))}),
       tone: "neutral",
     });
   }
@@ -231,7 +217,7 @@ export function creditInsights(d: {
   const fxD = deltaPp(d.fxShare);
   if (fx != null) {
     items.push({
-      text: `FX loans are ${fxD != null && fxD < -0.3 ? "losing" : fxD != null && fxD > 0.3 ? "gaining" : "holding"} share of the book — ${pct(fx)} of total${fxD != null ? ` (${ppStr(fxD)})` : ""}.`,
+      text: tx("FX loans are {0} share of the book — {1} of total{2}.", {0: fxD != null && fxD < -0.3 ? "losing" : fxD != null && fxD > 0.3 ? "gaining" : "holding", 1: pct(fx), 2: fxD != null ? ` (${ppStr(fxD)})` : ""}),
       tone: "neutral",
     });
   }
@@ -241,7 +227,7 @@ export function creditInsights(d: {
   if (cards != null && sme != null) {
     const tilt = cards > sme + 5 ? "consumer-led (cards)" : sme > cards + 5 ? "SME-led" : "broad-based";
     items.push({
-      text: `The mix is ${tilt}: retail cards ${pct(cards)} vs SME ${pct(sme)} y/y.`,
+      text: tx("The mix is {0}: retail cards {1} vs SME {2} y/y.", {0: tilt, 1: pct(cards), 2: pct(sme)}),
       tone: cards > sme + 15 ? "warn" : "neutral",
       href: "/asset-quality",
     });
@@ -249,11 +235,11 @@ export function creditInsights(d: {
 
   const headline =
     real != null && y != null
-      ? `The ${pct(y)} loan-growth print is mostly lira and inflation: in real, constant-FX terms the book ` +
-        `${real < 0 ? `shrank ${pct(Math.abs(real))}` : `grew ${pct(real)}`}` +
-        `${st != null && pr != null ? `, with ${st >= pr ? "state" : "private"} banks leading the cycle` : ""}.`
-      : `Credit is growing ${pct(y)} y/y and ${pace ?? "—"}, led by ${st != null && pr != null && st >= pr ? "state" : "private"} banks; ` +
-        `FX share of the book ${fx != null ? `at ${pct(fx)}` : "—"}.`;
+      ? tx("The {0} loan-growth print is mostly lira and inflation: in real, constant-FX terms the book ", {0: pct(y)}) +
+        `${real < 0 ? tx("shrank {0}", {0: pct(Math.abs(real))}) : tx("grew {0}", {0: pct(real)})}` +
+        `${st != null && pr != null ? tx(", with {0} banks leading the cycle", {0: st >= pr ? "state" : "private"}) : ""}.`
+      : tx("Credit is growing {0} y/y and {1}, led by {2} banks; ", {0: pct(y), 1: pace ?? "—", 2: st != null && pr != null && st >= pr ? "state" : "private"}) +
+        tx("FX share of the book {0}.", {0: fx != null ? tx("at {0}", {0: pct(fx)}) : "—"});
 
   return { asOf: period, headline, items };
 }
@@ -265,7 +251,8 @@ export function depositsInsights(d: {
   fxShare: SeriesPoint[]; // dollarization
   demandShare: SeriesPoint[];
   ldr: SeriesPoint[]; // sector, monthly
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.yoy);
   const items: Insight[] = [];
 
@@ -278,7 +265,7 @@ export function depositsInsights(d: {
       // falling — one word doing two jobs, which makes the direction unreadable
       // (and the regime-flip gate unable to tell a bug from a coincidence).
       // A gap narrows; a rate eases.
-      text: `Deposits growing ${pct(dy)} y/y${gap != null ? ` — ${gap >= 0 ? "ahead of" : "behind"} loans by ${Math.abs(gap).toFixed(1)}pp, so the funding gap is ${gap >= 0 ? "narrowing" : "widening"}` : ""}.`,
+      text: tx("Deposits growing {0} y/y{1}.", {0: pct(dy), 1: gap != null ? tx(" — {0} loans by {1}pp, so the funding gap is {2}", {0: gap >= 0 ? "ahead of" : "behind", 1: Math.abs(gap).toFixed(1), 2: gap >= 0 ? "narrowing" : "widening"}) : ""}),
       tone: gap != null && gap < -5 ? "warn" : gap != null && gap > 0 ? "positive" : "neutral",
     });
   }
@@ -287,7 +274,7 @@ export function depositsInsights(d: {
   const fxD = deltaOver(d.fxShare, 52);
   if (fx != null) {
     items.push({
-      text: `Dollarization ${fxD != null ? (fxD < -0.5 ? "unwinding" : fxD > 0.5 ? "rebuilding" : "flat") : ""} — FX deposits ${pct(fx)} of total${fxD != null ? ` (${ppStr(fxD)} y/y)` : ""}.`,
+      text: tx("Dollarization {0} — FX deposits {1} of total{2}.", {0: fxD != null ? (fxD < -0.5 ? "unwinding" : fxD > 0.5 ? "rebuilding" : "flat") : "", 1: pct(fx), 2: fxD != null ? tx(" ({0} y/y)", {0: ppStr(fxD)}) : ""}),
       tone: fxD != null && fxD < -0.5 ? "positive" : fxD != null && fxD > 1 ? "warn" : "neutral",
     });
   }
@@ -296,7 +283,7 @@ export function depositsInsights(d: {
   const dsD = deltaOver(d.demandShare, 52);
   if (ds != null) {
     items.push({
-      text: `Demand deposits — the cheapest funding — are ${pct(ds)} of the base${dsD != null ? ` (${ppStr(dsD)} y/y)` : ""}.`,
+      text: tx("Demand deposits — the cheapest funding — are {0} of the base{1}.", {0: pct(ds), 1: dsD != null ? tx(" ({0} y/y)", {0: ppStr(dsD)}) : ""}),
       tone: dsD != null && dsD < -1 ? "warn" : "neutral",
     });
   }
@@ -304,16 +291,16 @@ export function depositsInsights(d: {
   const l = last(d.ldr);
   if (l != null) {
     items.push({
-      text: `Loan-to-deposit (TL+FC, published) at ${pct(l)} — ${l > 110 ? "stretched; growth leans on non-deposit funding" : l > 95 ? "fully lent" : "comfortable"}.`,
+      text: tx("Loan-to-deposit (TL+FC, published) at {0} — {1}.", {0: pct(l), 1: l > 110 ? "stretched; growth leans on non-deposit funding" : l > 95 ? "fully lent" : "comfortable"}),
       tone: l > 110 ? "warn" : "neutral",
       href: "/liquidity",
     });
   }
 
   const headline =
-    `Deposits are growing ${pct(dy)} y/y${ly != null && dy != null ? ` (loans ${pct(ly)})` : ""}, ` +
-    `FX share ${fx != null ? `at ${pct(fx)}` : "—"}${fxD != null ? (fxD < -0.5 ? " and unwinding" : fxD > 0.5 ? " and rebuilding" : "") : ""}, ` +
-    `and the published TL+FC loan-to-deposit ratio sits at ${pct(l)}.`;
+    tx("Deposits are growing {0} y/y{1}, ", {0: pct(dy), 1: ly != null && dy != null ? tx(" (loans {0})", {0: pct(ly)}) : ""}) +
+    tx("FX share {0}{1}, ", {0: fx != null ? tx("at {0}", {0: pct(fx)}) : "—", 1: fxD != null ? (fxD < -0.5 ? " and unwinding" : fxD > 0.5 ? " and rebuilding" : "") : ""}) +
+    tx("and the published TL+FC loan-to-deposit ratio sits at {0}.", {0: pct(l)});
 
   return { asOf: period, headline, items };
 }
@@ -339,7 +326,8 @@ export function assetQualityInsights(d: {
   /** The latest audited NPL roll-forward year. */
   roll?: { additions: number; exits: number; net: number; collectionShare: number; year: string } | null;
   formationMultiple?: number | null;
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.npl);
   const items: Insight[] = [];
 
@@ -352,14 +340,14 @@ export function assetQualityInsights(d: {
   if (L) {
     items.push({
       text:
-        `The ratio prints Stage 3 — ${pct(L.stage3Share)} of the book. Loans the banks themselves ` +
-        `classify as deteriorated are ${pct(L.problemShare)}, ${L.multipleOfPrinted.toFixed(1)}× as much (${L.period}).`,
+        tx("The ratio prints Stage 3 — {0} of the book. Loans the banks themselves ", {0: pct(L.stage3Share)}) +
+        tx("classify as deteriorated are {0}, {1}× as much ({2}).", {0: pct(L.problemShare), 1: L.multipleOfPrinted.toFixed(1), 2: L.period}),
       tone: L.multipleOfPrinted >= 3 ? "warn" : "neutral",
     });
     items.push({
       text:
-        `The Stage-2 watchlist is ${pct(L.stage2Share)} of loans at ${pct(L.cov2)} cover, against ` +
-        `Stage 3 at ${pct(L.cov3)} — lower cover is expected on a book that is not impaired, but it is where the next NPLs come from.`,
+        tx("The Stage-2 watchlist is {0} of loans at {1} cover, against ", {0: pct(L.stage2Share), 1: pct(L.cov2)}) +
+        tx("Stage 3 at {0} — lower cover is expected on a book that is not impaired, but it is where the next NPLs come from.", {0: pct(L.cov3)}),
       tone: L.cov2 < L.cov3 / 5 ? "warn" : "neutral",
     });
   }
@@ -370,9 +358,9 @@ export function assetQualityInsights(d: {
     const r = d.roll;
     items.push({
       text:
-        `NPL formation ran ${d.formationMultiple.toFixed(1)}× the prior year in ${r.year} ` +
-        `(net +₺${Math.round(r.net)}bn), and exits are ${r.collectionShare.toFixed(0)}% collections — ` +
-        `not write-offs or sales. The book is genuinely deteriorating; the ratio is not being managed down.`,
+        tx("NPL formation ran {0}× the prior year in {1} ", {0: d.formationMultiple.toFixed(1), 1: r.year}) +
+        tx("(net +₺{0}bn), and exits are {1}% collections — ", {0: Math.round(r.net), 1: r.collectionShare.toFixed(0)}) +
+        tx("not write-offs or sales. The book is genuinely deteriorating; the ratio is not being managed down."),
       tone: r.net > 0 && d.formationMultiple >= 1.5 ? "warn" : "neutral",
     });
   }
@@ -382,11 +370,9 @@ export function assetQualityInsights(d: {
     // "is growing X% y/y" would have read "growing −8.0%" on a shrinking stock.
     const gw = direction(g, VERBS.size, { flat: 1, sharp: Number.POSITIVE_INFINITY });
     items.push({
-      text: `${
-        gw === VERBS.size.flat
+      text: tx("{0} — the ratio is a slow summary of a fast-moving stock.", {0: gw === VERBS.size.flat
           ? "The NPL stock is flat y/y"
-          : `The NPL stock ${gw} ${pct(Math.abs(g))} y/y`
-      } — the ratio is a slow summary of a fast-moving stock.`,
+          : tx("The NPL stock {0} {1} y/y", {0: gw, 1: pct(Math.abs(g))})}),
       tone: g > 60 ? "warn" : "neutral",
     });
   }
@@ -397,9 +383,7 @@ export function assetQualityInsights(d: {
     // inside it, "rising"; beyond it, "climbing".
     const move = direction(nD, VERBS.trend, { flat: 0.03, sharp: 0.1 });
     items.push({
-      text: `The published NPL ratio is ${pct(n, 2)}${nD != null ? ` (${ppStr(nD)} m/m)` : ""}${
-        move ? ` — ${move}` : ""
-      }.`,
+      text: tx("The published NPL ratio is {0}{1}{2}.", {0: pct(n, 2), 1: nD != null ? tx(" ({0} m/m)", {0: ppStr(nD)}) : "", 2: move ? ` — ${move}` : ""}),
       tone: nD != null && nD > 0.05 ? "warn" : "neutral",
     });
   }
@@ -408,7 +392,7 @@ export function assetQualityInsights(d: {
   const cD = deltaPp(d.coverage);
   if (c != null) {
     items.push({
-      text: `Provision coverage ${pct(c)} of gross NPL${cD != null ? ` (${ppStr(cD)} m/m)` : ""}${cD != null && cD < -0.3 ? " — slipping as the book seasons" : ""}.`,
+      text: tx("Provision coverage {0} of gross NPL{1}{2}.", {0: pct(c), 1: cD != null ? tx(" ({0} m/m)", {0: ppStr(cD)}) : "", 2: cD != null && cD < -0.3 ? " — slipping as the book seasons" : ""}),
       tone: cD != null && cD < -0.3 ? "warn" : "neutral",
     });
   }
@@ -421,21 +405,21 @@ export function assetQualityInsights(d: {
         ? { name: "retail cards", v: cards }
         : { name: "SME", v: sme as number };
     items.push({
-      text: `Stress is concentrated in ${worst.name} (${pct(worst.v, 2)} NPL)${cards != null && sme != null ? ` — vs ${pct(Math.min(cards, sme), 2)} for ${cards >= sme ? "SME" : "retail cards"}` : ""}.`,
+      text: tx("Stress is concentrated in {0} ({1} NPL){2}.", {0: worst.name, 1: pct(worst.v, 2), 2: cards != null && sme != null ? tx(" — vs {0} for {1}", {0: pct(Math.min(cards, sme), 2), 1: cards >= sme ? "SME" : "retail cards"}) : ""}),
       tone: n != null && worst.v > 2 * n ? "warn" : "neutral",
       href: "/credit",
     });
   }
 
   const headline = L
-    ? `The ${pct(n, 2)} NPL ratio is the tip: loans classified as deteriorated are ${pct(L.problemShare)}, ` +
-      `${L.multipleOfPrinted.toFixed(1)}× what the headline prints, and ${pct(L.stage2Share)} of the book sits on a ` +
-      `watchlist carrying ${pct(L.cov2)} cover` +
+    ? tx("The {0} NPL ratio is the tip: loans classified as deteriorated are {1}, ", {0: pct(n, 2), 1: pct(L.problemShare)}) +
+      tx("{0}× what the headline prints, and {1} of the book sits on a ", {0: L.multipleOfPrinted.toFixed(1), 1: pct(L.stage2Share)}) +
+      tx("watchlist carrying {0} cover", {0: pct(L.cov2)}) +
       (d.roll && d.formationMultiple
-        ? ` — with formation running ${d.formationMultiple.toFixed(1)}× and exits that are collections, not write-offs.`
+        ? tx(" — with formation running {0}× and exits that are collections, not write-offs.", {0: d.formationMultiple.toFixed(1)})
         : ".")
-    : `Headline NPLs at ${pct(n, 2)} with coverage at ${pct(c)}${cD != null && cD < -0.3 ? " and slipping" : ""}; ` +
-      `the audited staging ladder — where the next NPLs come from — is not yet available.`;
+    : tx("Headline NPLs at {0} with coverage at {1}{2}; ", {0: pct(n, 2), 1: pct(c), 2: cD != null && cD < -0.3 ? " and slipping" : ""}) +
+      tx("the audited staging ladder — where the next NPLs come from — is not yet available.");
 
   return { asOf: period, headline, items };
 }
@@ -448,7 +432,8 @@ export function capitalInsights(d: {
   leverage: SeriesPoint[]; // liabilities / equity, sector
   /** Sector asset growth y/y — the cycle equity has to keep pace WITH. */
   assetsYoY?: SeriesPoint[];
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.car);
   const items: Insight[] = [];
 
@@ -457,7 +442,7 @@ export function capitalInsights(d: {
   const buffer = car != null ? car - CAR_TARGET : null;
   if (car != null && buffer != null) {
     items.push({
-      text: `CAR ${pct(car)} — a ${buffer.toFixed(1)}pp buffer over the ${CAR_TARGET}% target ratio${carD != null ? ` (${ppStr(carD)} m/m)` : ""}.`,
+      text: tx("CAR {0} — a {1}pp buffer over the {2}% target ratio{3}.", {0: pct(car), 1: buffer.toFixed(1), 2: CAR_TARGET, 3: carD != null ? tx(" ({0} m/m)", {0: ppStr(carD)}) : ""}),
       tone: buffer < 2 ? "warn" : buffer >= 4 ? "positive" : "neutral",
     });
   }
@@ -465,7 +450,7 @@ export function capitalInsights(d: {
   const cet1 = last(d.cet1);
   if (cet1 != null) {
     items.push({
-      text: `CET1 — the loss-absorbing core — at ${pct(cet1)} (audited quarterly); the CAR-to-CET1 spread is AT1/Tier-2 reliance.`,
+      text: tx("CET1 — the loss-absorbing core — at {0} (audited quarterly); the CAR-to-CET1 spread is AT1/Tier-2 reliance.", {0: pct(cet1)}),
       tone: "neutral",
     });
   }
@@ -481,10 +466,8 @@ export function capitalInsights(d: {
     items.push({
       text:
         bs == null
-          ? `Equity is compounding ${pct(eq)} y/y — the generation side of the ratio.`
-          : `Equity is compounding ${pct(eq)} y/y — capital generation ${
-              eq >= bs ? "keeps pace with" : "trails"
-            } the ${pct(bs)} nominal balance-sheet cycle.`,
+          ? tx("Equity is compounding {0} y/y — the generation side of the ratio.", {0: pct(eq)})
+          : tx("Equity is compounding {0} y/y — capital generation {1} the {2} nominal balance-sheet cycle.", {0: pct(eq), 1: eq >= bs ? "keeps pace with" : "trails", 2: pct(bs)}),
       tone: bs != null && eq < bs ? "warn" : "neutral",
       href: "/profitability",
     });
@@ -494,14 +477,14 @@ export function capitalInsights(d: {
   const levD = deltaPp(d.leverage);
   if (lev != null) {
     items.push({
-      text: `Gearing at ${(lev / 100).toFixed(1)}× equity${levD != null && levD > 10 ? " and rising" : ""}.`,
+      text: tx("Gearing at {0}× equity{1}.", {0: (lev / 100).toFixed(1), 1: levD != null && levD > 10 ? " and rising" : ""}),
       tone: "neutral",
     });
   }
 
   const headline =
-    `The sector holds a ${buffer != null ? buffer.toFixed(1) : "—"}pp buffer over the ${CAR_TARGET}% target ratio (CAR ${pct(car)}` +
-    `${cet1 != null ? `, CET1 ${pct(cet1)}` : ""}); the question is whether ${pct(eq)} equity growth keeps funding the balance sheet.`;
+    tx("The sector holds a {0}pp buffer over the {1}% target ratio (CAR {2}", {0: buffer != null ? buffer.toFixed(1) : "—", 1: CAR_TARGET, 2: pct(car)}) +
+    tx("{0}); the question is whether {1} equity growth keeps funding the balance sheet.", {0: cet1 != null ? tx(", CET1 {0}", {0: pct(cet1)}) : "", 1: pct(eq)});
 
   return { asOf: period, headline, items };
 }
@@ -513,7 +496,8 @@ export function profitabilityInsights(d: {
   nim: SeriesPoint[];
   opex: SeriesPoint[]; // OPEX / avg assets
   cpi: SeriesPoint[]; // CPI YoY 12m avg (may be empty)
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.roe);
   const items: Insight[] = [];
 
@@ -522,7 +506,7 @@ export function profitabilityInsights(d: {
   const real = roe != null && cpi != null ? roe - cpi : null;
   if (roe != null) {
     items.push({
-      text: `ROE ${pct(roe)} nominal${real != null ? ` — ${real >= 0 ? "+" : ""}${real.toFixed(1)}pp vs 12m-avg CPI, so ${real > 5 ? "solidly positive" : real > 0 ? "barely positive" : "negative"} in real terms` : ""}.`,
+      text: tx("ROE {0} nominal{1}.", {0: pct(roe), 1: real != null ? tx(" — {0}{1}pp vs 12m-avg CPI, so {2} in real terms", {0: real >= 0 ? "+" : "", 1: real.toFixed(1), 2: real > 5 ? "solidly positive" : real > 0 ? "barely positive" : "negative"}) : ""}),
       tone: real != null && real < 0 ? "warn" : real != null && real > 5 ? "positive" : "neutral",
     });
   }
@@ -531,7 +515,7 @@ export function profitabilityInsights(d: {
   const nimD = deltaPp(d.nim);
   if (nim != null) {
     items.push({
-      text: `NIM ${pct(nim, 2)}${nimD != null ? ` (${ppStr(nimD)} m/m — margins ${nimD > 0.05 ? "widening as funding reprices down" : nimD < -0.05 ? "compressing" : "flat"})` : ""}.`,
+      text: tx("NIM {0}{1}.", {0: pct(nim, 2), 1: nimD != null ? tx(" ({0} m/m — margins {1})", {0: ppStr(nimD), 1: nimD > 0.05 ? "widening as funding reprices down" : nimD < -0.05 ? "compressing" : "flat"}) : ""}),
       tone: nimD != null && nimD > 0.05 ? "positive" : nimD != null && nimD < -0.05 ? "warn" : "neutral",
       href: "/rates",
     });
@@ -539,22 +523,22 @@ export function profitabilityInsights(d: {
 
   const roa = last(d.roa);
   if (roa != null) {
-    items.push({ text: `ROA ${pct(roa, 2)} — the leverage-free read on the same earnings.`, tone: "neutral" });
+    items.push({ text: tx("ROA {0} — the leverage-free read on the same earnings.", {0: pct(roa, 2)}), tone: "neutral" });
   }
 
   const opex = last(d.opex);
   const opexD = deltaPp(d.opex);
   if (opex != null) {
     items.push({
-      text: `Operating cost ${pct(opex, 2)} of assets${opexD != null ? ` (${opexD <= 0 ? "improving" : "deteriorating"} ${ppStr(opexD)} m/m)` : ""} — inflation passes through wages with a lag.`,
+      text: tx("Operating cost {0} of assets{1} — inflation passes through wages with a lag.", {0: pct(opex, 2), 1: opexD != null ? tx(" ({0} {1} m/m)", {0: opexD <= 0 ? "improving" : "deteriorating", 1: ppStr(opexD)}) : ""}),
       tone: opexD != null && opexD > 0.05 ? "warn" : "neutral",
     });
   }
 
   const headline =
-    `The sector earns ${pct(roe)} on equity — ${real != null ? (real > 5 ? "comfortably above" : real > 0 ? "roughly at" : "below") : "vs"} inflation` +
-    `${real != null ? ` (${real >= 0 ? "+" : ""}${real.toFixed(1)}pp real)` : ""} — ` +
-    `with NIM at ${pct(nim, 2)}${nimD != null && nimD > 0.05 ? " and widening" : nimD != null && nimD < -0.05 ? " and compressing" : ""}.`;
+    tx("The sector earns {0} on equity — {1} inflation", {0: pct(roe), 1: real != null ? (real > 5 ? "comfortably above" : real > 0 ? "roughly at" : "below") : "vs"}) +
+    `${real != null ? tx(" ({0}{1}pp real)", {0: real >= 0 ? "+" : "", 1: real.toFixed(1)}) : ""} — ` +
+    tx("with NIM at {0}{1}.", {0: pct(nim, 2), 1: nimD != null && nimD > 0.05 ? " and widening" : nimD != null && nimD < -0.05 ? " and compressing" : ""});
 
   return { asOf: period, headline, items };
 }
@@ -566,7 +550,8 @@ export function liquidityInsights(d: {
   dollarization: SeriesPoint[]; // sector FC share of deposits
   netCbrtFunding: SeriesPoint[]; // million TL; + = excess per page convention
   lcr: SeriesPoint[]; // audited quarterly sector LCR (may lag)
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.tlLdrPublic) ?? asOf(d.dollarization);
   const items: Insight[] = [];
 
@@ -575,7 +560,7 @@ export function liquidityInsights(d: {
   if (pub != null && priv != null) {
     const worst = Math.max(pub, priv);
     items.push({
-      text: `TL loan-to-deposit: public ${pct(pub, 0)} vs private ${pct(priv, 0)} — ${worst > 100 ? "the TL book is more than fully lent" : "the TL book is fully funded by deposits"}.`,
+      text: tx("TL loan-to-deposit: public {0} vs private {1} — {2}.", {0: pct(pub, 0), 1: pct(priv, 0), 2: worst > 100 ? "the TL book is more than fully lent" : "the TL book is fully funded by deposits"}),
       tone: worst > 110 ? "warn" : "neutral",
     });
   }
@@ -584,7 +569,7 @@ export function liquidityInsights(d: {
   const dollD = deltaOver(d.dollarization, 52);
   if (doll != null) {
     items.push({
-      text: `FC deposits ${pct(doll)} of the base${dollD != null ? ` (${ppStr(dollD)} y/y)` : ""} — dollarization is the system's structural funding risk.`,
+      text: tx("FC deposits {0} of the base{1} — dollarization is the system's structural funding risk.", {0: pct(doll), 1: dollD != null ? tx(" ({0} y/y)", {0: ppStr(dollD)}) : ""}),
       tone: dollD != null && dollD > 1 ? "warn" : dollD != null && dollD < -1 ? "positive" : "neutral",
       href: "/deposits",
     });
@@ -593,7 +578,7 @@ export function liquidityInsights(d: {
   const lcr = last(d.lcr);
   if (lcr != null) {
     items.push({
-      text: `LCR ${pct(lcr, 0)} (audited quarterly) — ${lcr >= 150 ? "a wide" : lcr >= 110 ? "an adequate" : "a thin"} cushion over the 100% floor.`,
+      text: tx("LCR {0} (audited quarterly) — {1} cushion over the 100% floor.", {0: pct(lcr, 0), 1: lcr >= 150 ? "a wide" : lcr >= 110 ? "an adequate" : "a thin"}),
       tone: lcr < 110 ? "warn" : lcr >= 150 ? "positive" : "neutral",
     });
   }
@@ -601,15 +586,15 @@ export function liquidityInsights(d: {
   const fund = last(d.netCbrtFunding);
   if (fund != null) {
     items.push({
-      text: `Net CBRT funding ₺${Math.abs(fund / 1000).toFixed(0)}bn ${fund >= 0 ? "surplus — the system parks TL at the central bank" : "shortfall — the system leans on CBRT for TL"}.`,
+      text: tx("Net CBRT funding ₺{0}bn {1}.", {0: Math.abs(fund / 1000).toFixed(0), 1: fund >= 0 ? "surplus — the system parks TL at the central bank" : "shortfall — the system leans on CBRT for TL"}),
       tone: "neutral",
       href: "/rates",
     });
   }
 
   const headline =
-    `Funding is ${pub != null && priv != null && Math.max(pub, priv) > 110 ? "tight" : "manageable"}: TL loan-to-deposit ${pct(priv, 0)} (private) / ${pct(pub, 0)} (public), ` +
-    `FC deposits ${pct(doll)} of the base${lcr != null ? `, and LCR at ${pct(lcr, 0)}` : ""}.`;
+    tx("Funding is {0}: TL loan-to-deposit {1} (private) / {2} (public), ", {0: pub != null && priv != null && Math.max(pub, priv) > 110 ? "tight" : "manageable", 1: pct(priv, 0), 2: pct(pub, 0)}) +
+    tx("FC deposits {0} of the base{1}.", {0: pct(doll), 1: lcr != null ? tx(", and LCR at {0}", {0: pct(lcr, 0)}) : ""});
 
   return { asOf: period, headline, items };
 }
@@ -618,14 +603,15 @@ export function liquidityInsights(d: {
 export function marketRiskInsights(d: {
   nop: SeriesPoint[]; // FX net open position / capital, %
   gap1y: SeriesPoint[]; // cumulative ≤1y repricing gap / assets, %
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.nop) ?? asOf(d.gap1y);
   const items: Insight[] = [];
 
   const nop = last(d.nop);
   if (nop != null) {
     items.push({
-      text: `FX net open position ${nop >= 0 ? "+" : ""}${nop.toFixed(1)}% of capital — ${Math.abs(nop) < 5 ? "small and well inside the ±20% limit; direct FX risk is hedged" : "a live currency exposure"} (net ${nop >= 0 ? "long" : "short"}).`,
+      text: tx("FX net open position {0}{1}% of capital — {2} (net {3}).", {0: nop >= 0 ? "+" : "", 1: nop.toFixed(1), 2: Math.abs(nop) < 5 ? "small and well inside the ±20% limit; direct FX risk is hedged" : "a live currency exposure", 3: nop >= 0 ? "long" : "short"}),
       tone: Math.abs(nop) > 10 ? "warn" : "neutral",
     });
   }
@@ -635,16 +621,16 @@ export function marketRiskInsights(d: {
     items.push({
       text:
         gap < 0
-          ? `The ≤1y repricing gap is ${gap.toFixed(1)}% of assets — liabilities reprice first, so falling rates lift NII; the exposure is an easing-cycle stall.`
-          : `The ≤1y repricing gap is +${gap.toFixed(1)}% of assets — assets reprice first, so NII compresses as rates fall.`,
+          ? tx("The ≤1y repricing gap is {0}% of assets — liabilities reprice first, so falling rates lift NII; the exposure is an easing-cycle stall.", {0: gap.toFixed(1)})
+          : tx("The ≤1y repricing gap is +{0}% of assets — assets reprice first, so NII compresses as rates fall.", {0: gap.toFixed(1)}),
       tone: "neutral",
       href: "/rates",
     });
   }
 
   const headline =
-    `Direct FX risk is ${nop != null && Math.abs(nop) < 5 ? "small" : "material"} (NOP ${nop != null ? `${nop >= 0 ? "+" : ""}${nop.toFixed(1)}%` : "—"} of capital); ` +
-    `the real sensitivity is rates — ${gap != null && gap < 0 ? "a negative repricing gap gears earnings to the easing cycle continuing" : "an asset-sensitive book"}.`;
+    tx("Direct FX risk is {0} (NOP {1} of capital); ", {0: nop != null && Math.abs(nop) < 5 ? "small" : "material", 1: nop != null ? `${nop >= 0 ? "+" : ""}${nop.toFixed(1)}%` : "—"}) +
+    tx("the real sensitivity is rates — {0}.", {0: gap != null && gap < 0 ? "a negative repricing gap gears earnings to the easing cycle continuing" : "an asset-sensitive book"});
 
   return { asOf: period, headline, items };
 }
@@ -676,12 +662,15 @@ const levelRead = (
   decimals = 1,
   window = 12,
   windowLabel?: string,
+  locale = "en",
 ): string | null =>
-  seriesFinding(s, { noun, decimals, window, windowLabel });
+  seriesFinding(s, { noun, decimals, window, windowLabel }, locale);
 
 /** "+4.1pp" / "−4.1pp" — a gap, stated without a direction verb. */
-const gapPp = (v: number, d = 1): string =>
-  `${Math.abs(v).toFixed(d)}pp ${v >= 0 ? "above" : "below"}`;
+const gapPp = (v: number, d = 1, locale = "en"): string =>
+  locale === "tr"
+    ? `${Math.abs(v).toFixed(d)} yüzde puan ${v >= 0 ? "üzerinde" : "altında"}`
+    : `${Math.abs(v).toFixed(d)}pp ${v >= 0 ? "above" : "below"}`;
 
 /** Economy — "what backdrop are the banks operating in?" */
 export function economyInsights(d: {
@@ -695,7 +684,8 @@ export function economyInsights(d: {
   usdtry: SeriesPoint[]; // MONTHLY average — a daily array would misread the lag
   budgetPctGdp: SeriesPoint[]; // 12m general-budget balance, % of GDP
   importCover?: number | null; // months of imports gross reserves cover
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.cpi);
   const items: Insight[] = [];
 
@@ -704,11 +694,11 @@ export function economyInsights(d: {
   // it is a different regime from the same print with expectations below.
   const cpiNow = last(d.cpi);
   const expNow = last(d.exp12m);
-  const cpiLine = levelRead(d.cpi, "Consumer inflation");
+  const cpiLine = levelRead(d.cpi, "Consumer inflation", undefined, undefined, undefined, locale);
   if (cpiLine) {
     const expClause =
       cpiNow != null && expNow != null
-        ? ` — the market's 12m-ahead expectation sits ${gapPp(expNow - cpiNow)} it`
+        ? tx(" — the market's 12m-ahead expectation sits {0} it", {0: gapPp(expNow - cpiNow, undefined, locale)})
         : "";
     items.push({ text: `${cpiLine}${expClause}.`, tone: "neutral", href: "/economy/inflation" });
   }
@@ -721,9 +711,9 @@ export function economyInsights(d: {
   if (fundNow != null) {
     items.push({
       text:
-        `CBRT funding costs ${pct(fundNow)}` +
+        tx("CBRT funding costs {0}", {0: pct(fundNow)}) +
         (realNow != null
-          ? ` — ${realNow >= 0 ? "positive" : "negative"} in real terms at ${realNow >= 0 ? "+" : "−"}${Math.abs(realNow).toFixed(1)}% against the 12m expectation.`
+          ? tx(" — {0} in real terms at {1}{2}% against the 12m expectation.", {0: realNow >= 0 ? "positive" : "negative", 1: realNow >= 0 ? "+" : "−", 2: Math.abs(realNow).toFixed(1)})
           : "."),
       tone: realNow != null && realNow < 0 ? "warn" : "neutral",
       href: "/rates",
@@ -732,11 +722,11 @@ export function economyInsights(d: {
 
   // Activity — output and the labour market in one line; they answer the same
   // question (is there demand for credit) from opposite ends.
-  const gdpLine = levelRead(d.gdp, "GDP growth", 1, 4, "4 quarters");
+  const gdpLine = levelRead(d.gdp, "GDP growth", 1, 4, "4 quarters", locale);
   const unempNow = last(d.unemployment);
   if (gdpLine) {
     items.push({
-      text: `${gdpLine}${unempNow != null ? `, with unemployment at ${pct(unempNow)}` : ""}.`,
+      text: `${gdpLine}${unempNow != null ? tx(", with unemployment at {0}", {0: pct(unempNow)}) : ""}.`,
       tone: "neutral",
       href: "/economy/economic-growth",
     });
@@ -748,8 +738,8 @@ export function economyInsights(d: {
     const cover = d.importCover;
     items.push({
       text:
-        `The current account runs ${Math.abs(caNow).toFixed(1)}% of GDP ${caNow >= 0 ? "in surplus" : "in deficit"}` +
-        (cover != null ? `, against gross reserves covering ${cover.toFixed(1)} months of imports` : "") +
+        tx("The current account runs {0}% of GDP {1}", {0: Math.abs(caNow).toFixed(1), 1: caNow >= 0 ? "in surplus" : "in deficit"}) +
+        (cover != null ? tx(", against gross reserves covering {0} months of imports", {0: cover.toFixed(1)}) : "") +
         ".",
       tone: caNow < -4 ? "warn" : "neutral",
       href: "/economy/balance-of-payments",
@@ -764,7 +754,7 @@ export function economyInsights(d: {
       // Not "the lira weakened": the sentence names WHICH way the pair moved and
       // lets the reader hold the sign. A currency verb is where a flipped sign
       // reads as fluent English and passes review.
-      text: `USD/TRY is ${Math.abs(fxMove).toFixed(1)}% ${fxMove >= 0 ? "higher" : "lower"} over 12 months — ${fxMove >= 0 ? "each dollar costs more lira" : "each dollar costs less lira"}.`,
+      text: tx("USD/TRY is {0}% {1} over 12 months — {2}.", {0: Math.abs(fxMove).toFixed(1), 1: fxMove >= 0 ? "higher" : "lower", 2: fxMove >= 0 ? "each dollar costs more lira" : "each dollar costs less lira"}),
       tone: "neutral",
     });
   }
@@ -774,7 +764,7 @@ export function economyInsights(d: {
   const budNow = last(d.budgetPctGdp);
   if (budNow != null) {
     items.push({
-      text: `The general budget runs ${Math.abs(budNow).toFixed(1)}% of GDP ${budNow >= 0 ? "in surplus" : "in deficit"} on a 12-month basis.`,
+      text: tx("The general budget runs {0}% of GDP {1} on a 12-month basis.", {0: Math.abs(budNow).toFixed(1), 1: budNow >= 0 ? "in surplus" : "in deficit"}),
       tone: budNow < -5 ? "warn" : "neutral",
       href: "/economy/budget",
     });
@@ -783,9 +773,9 @@ export function economyInsights(d: {
   const stance =
     realNow == null ? "unscored" : realNow >= 0 ? "restrictive in real terms" : "accommodative in real terms";
   const headline =
-    `Policy is ${stance} — funding at ${pct(fundNow)} against ${pct(expNow)} expected inflation` +
-    `, with prices at ${pct(cpiNow)} and output ${pct(last(d.gdp))} y/y` +
-    `${caNow != null ? `, on a current account of ${Math.abs(caNow).toFixed(1)}% of GDP` : ""}.`;
+    tx("Policy is {0} — funding at {1} against {2} expected inflation", {0: stance, 1: pct(fundNow), 2: pct(expNow)}) +
+    tx(", with prices at {0} and output {1} y/y", {0: pct(cpiNow), 1: pct(last(d.gdp))}) +
+    `${caNow != null ? tx(", on a current account of {0}% of GDP", {0: Math.abs(caNow).toFixed(1)}) : ""}.`;
 
   return { asOf: period, headline, items };
 }
@@ -801,11 +791,12 @@ export function inflationInsights(d: {
   diffusion?: number | null;
   /** How many groups that share was computed over (never print a bare share). */
   diffusionOf?: number | null;
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.cpi);
   const items: Insight[] = [];
 
-  const cpiLine = levelRead(d.cpi, "Headline CPI");
+  const cpiLine = levelRead(d.cpi, "Headline CPI", undefined, undefined, undefined, locale);
   if (cpiLine) items.push({ text: `${cpiLine}.`, tone: "neutral" });
 
   // Core against headline — the underlying read. Structural phrasing, no verb:
@@ -814,7 +805,7 @@ export function inflationInsights(d: {
   const cpiNow = last(d.cpi);
   if (coreNow != null && cpiNow != null) {
     items.push({
-      text: `Core-C is ${pct(coreNow)}, ${gapPp(coreNow - cpiNow)} headline — the read with energy, food, alcohol-tobacco and gold stripped out.`,
+      text: tx("Core-C is {0}, {1} headline — the read with energy, food, alcohol-tobacco and gold stripped out.", {0: pct(coreNow), 1: gapPp(coreNow - cpiNow, undefined, locale)}),
       tone: coreNow > cpiNow ? "warn" : "neutral",
     });
   }
@@ -823,13 +814,13 @@ export function inflationInsights(d: {
   const ppiNow = last(d.ppi);
   if (ppiNow != null && cpiNow != null) {
     items.push({
-      text: `Producer prices run ${pct(ppiNow)}, ${gapPp(ppiNow - cpiNow)} consumer prices.`,
+      text: tx("Producer prices run {0}, {1} consumer prices.", {0: pct(ppiNow), 1: gapPp(ppiNow - cpiNow, undefined, locale)}),
       tone: ppiNow > cpiNow + 5 ? "warn" : "neutral",
     });
   }
 
   // The monthly print — what the annual rate will be built from next.
-  const mmLine = levelRead(d.cpiMoM, "The monthly print", 2);
+  const mmLine = levelRead(d.cpiMoM, "The monthly print", 2, undefined, undefined, locale);
   if (mmLine) items.push({ text: `${mmLine}.`, tone: "neutral" });
 
   // Breadth. A headline can fall on two or three groups while most of the basket
@@ -837,7 +828,7 @@ export function inflationInsights(d: {
   // always prints its denominator.
   if (d.diffusion != null && d.diffusionOf) {
     items.push({
-      text: `${Math.round((d.diffusion / 100) * d.diffusionOf)} of ${d.diffusionOf} CPI groups printed a monthly rise above the headline's — the breadth behind the number.`,
+      text: tx("{0} of {1} CPI groups printed a monthly rise above the headline's — the breadth behind the number.", {0: Math.round((d.diffusion / 100) * d.diffusionOf), 1: d.diffusionOf}),
       tone: d.diffusion > 60 ? "warn" : "neutral",
     });
   }
@@ -845,15 +836,15 @@ export function inflationInsights(d: {
   const expNow = last(d.exp12m);
   if (expNow != null && cpiNow != null) {
     items.push({
-      text: `The market expects ${pct(expNow)} twelve months out, ${gapPp(expNow - cpiNow)} today's print.`,
+      text: tx("The market expects {0} twelve months out, {1} today's print.", {0: pct(expNow), 1: gapPp(expNow - cpiNow, undefined, locale)}),
       tone: "neutral",
     });
   }
 
   const headline =
-    `Headline CPI is ${pct(cpiNow)} with core-C at ${pct(coreNow)}` +
-    `${ppiNow != null ? ` and producer prices at ${pct(ppiNow)}` : ""}` +
-    `${expNow != null ? `; the market prices ${pct(expNow)} a year out` : ""}.`;
+    tx("Headline CPI is {0} with core-C at {1}", {0: pct(cpiNow), 1: pct(coreNow)}) +
+    `${ppiNow != null ? tx(" and producer prices at {0}", {0: pct(ppiNow)}) : ""}` +
+    `${expNow != null ? tx("; the market prices {0} a year out", {0: pct(expNow)}) : ""}.`;
 
   return { asOf: period, headline, items };
 }
@@ -866,17 +857,18 @@ export function growthInsights(d: {
   investment: SeriesPoint[]; // GFCF y/y, quarterly
   exports: SeriesPoint[]; // exports y/y, quarterly
   imports: SeriesPoint[]; // imports y/y, quarterly
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.gdp);
   const items: Insight[] = [];
 
-  const gdpLine = levelRead(d.gdp, "GDP", 1, 4, "4 quarters");
+  const gdpLine = levelRead(d.gdp, "GDP", 1, 4, "4 quarters", locale);
   if (gdpLine) items.push({ text: `${gdpLine}.`, tone: "neutral" });
 
-  const consLine = levelRead(d.consumption, "Household consumption", 1, 4, "4 quarters");
-  if (consLine) items.push({ text: `${consLine} — the largest expenditure component.`, tone: "neutral" });
+  const consLine = levelRead(d.consumption, "Household consumption", 1, 4, "4 quarters", locale);
+  if (consLine) items.push({ text: tx("{0} — the largest expenditure component.", {0: consLine}), tone: "neutral" });
 
-  const invLine = levelRead(d.investment, "Fixed investment", 1, 4, "4 quarters");
+  const invLine = levelRead(d.investment, "Fixed investment", 1, 4, "4 quarters", locale);
   if (invLine) items.push({ text: `${invLine}.`, tone: "neutral", href: "/credit" });
 
   // Net trade: exports against imports, as levels of growth. The CONTRIBUTION
@@ -886,19 +878,19 @@ export function growthInsights(d: {
   const im = last(d.imports);
   if (ex != null && im != null) {
     items.push({
-      text: `Exports grow ${pct(ex)} against imports at ${pct(im)} — real trade volumes, not the customs bill.`,
+      text: tx("Exports grow {0} against imports at {1} — real trade volumes, not the customs bill.", {0: pct(ex), 1: pct(im)}),
       tone: "neutral",
       href: "/economy/foreign-trade",
     });
   }
 
-  const ipLine = levelRead(d.ip, "Industrial production");
-  if (ipLine) items.push({ text: `${ipLine} — the monthly read between quarterly national accounts.`, tone: "neutral" });
+  const ipLine = levelRead(d.ip, "Industrial production", undefined, undefined, undefined, locale);
+  if (ipLine) items.push({ text: tx("{0} — the monthly read between quarterly national accounts.", {0: ipLine}), tone: "neutral" });
 
   const headline =
-    `Output runs ${pct(last(d.gdp))} y/y` +
-    `${last(d.consumption) != null ? `, with household consumption at ${pct(last(d.consumption))}` : ""}` +
-    `${last(d.investment) != null ? ` and fixed investment at ${pct(last(d.investment))}` : ""}.`;
+    tx("Output runs {0} y/y", {0: pct(last(d.gdp))}) +
+    `${last(d.consumption) != null ? tx(", with household consumption at {0}", {0: pct(last(d.consumption))}) : ""}` +
+    `${last(d.investment) != null ? tx(" and fixed investment at {0}", {0: pct(last(d.investment))}) : ""}.`;
 
   return { asOf: period, headline, items };
 }
@@ -910,7 +902,8 @@ export function bopInsights(d: {
   neo12m: SeriesPoint[]; // 12m net errors & omissions, USD bn
   fdi12m: SeriesPoint[]; // 12m net FDI liabilities incurred, USD bn
   portfolio12m: SeriesPoint[]; // 12m net portfolio liabilities incurred, USD bn
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.ca12m);
   const items: Insight[] = [];
 
@@ -919,9 +912,9 @@ export function bopInsights(d: {
   if (caNow != null) {
     items.push({
       text:
-        `The 12-month current account stands at $${Math.abs(caNow).toFixed(1)}bn ${caNow >= 0 ? "in surplus" : "in deficit"}` +
+        tx("The 12-month current account stands at ${0}bn {1}", {0: Math.abs(caNow).toFixed(1), 1: caNow >= 0 ? "in surplus" : "in deficit"}) +
         (coreNow != null
-          ? `; stripping gold and energy leaves $${Math.abs(coreNow).toFixed(1)}bn ${coreNow >= 0 ? "in surplus" : "in deficit"} — the structural read.`
+          ? tx("; stripping gold and energy leaves ${0}bn {1} — the structural read.", {0: Math.abs(coreNow).toFixed(1), 1: coreNow >= 0 ? "in surplus" : "in deficit"})
           : "."),
       tone: caNow < -40 ? "warn" : "neutral",
     });
@@ -933,7 +926,7 @@ export function bopInsights(d: {
   const port = last(d.portfolio12m);
   if (fdi != null && port != null) {
     items.push({
-      text: `Financing over 12 months: $${fdi.toFixed(1)}bn direct investment against $${port.toFixed(1)}bn portfolio — the first is committed capital, the second reprices daily.`,
+      text: tx("Financing over 12 months: ${0}bn direct investment against ${1}bn portfolio — the first is committed capital, the second reprices daily.", {0: fdi.toFixed(1), 1: port.toFixed(1)}),
       tone: "neutral",
     });
   }
@@ -941,17 +934,17 @@ export function bopInsights(d: {
   const neo = last(d.neo12m);
   if (neo != null) {
     items.push({
-      text: `Net errors and omissions run $${Math.abs(neo).toFixed(1)}bn over 12 months — unidentified flows, ${Math.abs(neo) > 10 ? "large enough to matter to the financing story" : "small against the financing need"}.`,
+      text: tx("Net errors and omissions run ${0}bn over 12 months — unidentified flows, {1}.", {0: Math.abs(neo).toFixed(1), 1: Math.abs(neo) > 10 ? "large enough to matter to the financing story" : "small against the financing need"}),
       tone: Math.abs(neo) > 20 ? "warn" : "neutral",
     });
   }
 
-  const caLine = levelRead(d.ca12m, "The 12-month balance", 1);
-  if (caLine) items.push({ text: `${caLine} (USD bn).`, tone: "neutral" });
+  const caLine = levelRead(d.ca12m, "The 12-month balance", 1, undefined, undefined, locale);
+  if (caLine) items.push({ text: tx("{0} (USD bn).", {0: caLine}), tone: "neutral" });
 
   const headline =
-    `The 12-month current account is $${caNow != null ? Math.abs(caNow).toFixed(1) : "—"}bn ${caNow != null && caNow >= 0 ? "in surplus" : "in deficit"}` +
-    `${fdi != null && port != null ? `, financed by $${fdi.toFixed(1)}bn of direct and $${port.toFixed(1)}bn of portfolio investment` : ""}.`;
+    tx("The 12-month current account is ${0}bn {1}", {0: caNow != null ? Math.abs(caNow).toFixed(1) : "—", 1: caNow != null && caNow >= 0 ? "in surplus" : "in deficit"}) +
+    `${fdi != null && port != null ? tx(", financed by ${0}bn of direct and ${1}bn of portfolio investment", {0: fdi.toFixed(1), 1: port.toFixed(1)}) : ""}.`;
 
   return { asOf: period, headline, items };
 }
@@ -963,7 +956,8 @@ export function budgetInsights(d: {
   taxRealYoY: SeriesPoint[]; // tax revenue y/y, CPI-DEFLATED
   expRealYoY: SeriesPoint[]; // primary expenditure y/y, CPI-DEFLATED
   interestShare: SeriesPoint[]; // interest expenditure as % of tax revenue
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.balancePctGdp);
   const items: Insight[] = [];
 
@@ -972,9 +966,9 @@ export function budgetInsights(d: {
   if (bal != null) {
     items.push({
       text:
-        `The 12-month budget balance is ${Math.abs(bal).toFixed(1)}% of GDP ${bal >= 0 ? "in surplus" : "in deficit"}` +
+        tx("The 12-month budget balance is {0}% of GDP {1}", {0: Math.abs(bal).toFixed(1), 1: bal >= 0 ? "in surplus" : "in deficit"}) +
         (prim != null
-          ? `; before interest, ${Math.abs(prim).toFixed(1)}% ${prim >= 0 ? "in surplus" : "in deficit"}.`
+          ? tx("; before interest, {0}% {1}.", {0: Math.abs(prim).toFixed(1), 1: prim >= 0 ? "in surplus" : "in deficit"})
           : "."),
       tone: bal < -5 ? "warn" : "neutral",
     });
@@ -983,23 +977,23 @@ export function budgetInsights(d: {
   // Real, not nominal. At a ~30% price level a nominal revenue line is mostly a
   // chart of the deflator (DESIGN.md: every nominal ₺ level ships with its real
   // twin), and "tax revenues up 28%" is a real CUT nobody would read as one.
-  const taxLine = levelRead(d.taxRealYoY, "Real tax revenue", 1);
-  if (taxLine) items.push({ text: `${taxLine}, CPI-deflated.`, tone: "neutral" });
+  const taxLine = levelRead(d.taxRealYoY, "Real tax revenue", 1, undefined, undefined, locale);
+  if (taxLine) items.push({ text: tx("{0}, CPI-deflated.", {0: taxLine}), tone: "neutral" });
 
-  const expLine = levelRead(d.expRealYoY, "Real primary spending", 1);
-  if (expLine) items.push({ text: `${expLine}, CPI-deflated.`, tone: "neutral" });
+  const expLine = levelRead(d.expRealYoY, "Real primary spending", 1, undefined, undefined, locale);
+  if (expLine) items.push({ text: tx("{0}, CPI-deflated.", {0: expLine}), tone: "neutral" });
 
   const int = last(d.interestShare);
   if (int != null) {
     items.push({
-      text: `Interest takes ${pct(int)} of tax revenue — the claim on the budget before any policy choice is made.`,
+      text: tx("Interest takes {0} of tax revenue — the claim on the budget before any policy choice is made.", {0: pct(int)}),
       tone: int > 25 ? "warn" : "neutral",
     });
   }
 
   const headline =
-    `The budget runs ${bal != null ? Math.abs(bal).toFixed(1) : "—"}% of GDP ${bal != null && bal >= 0 ? "in surplus" : "in deficit"} over 12 months` +
-    `${int != null ? `, with interest absorbing ${pct(int)} of tax revenue` : ""}.`;
+    tx("The budget runs {0}% of GDP {1} over 12 months", {0: bal != null ? Math.abs(bal).toFixed(1) : "—", 1: bal != null && bal >= 0 ? "in surplus" : "in deficit"}) +
+    `${int != null ? tx(", with interest absorbing {0} of tax revenue", {0: pct(int)}) : ""}.`;
 
   return { asOf: period, headline, items };
 }
@@ -1012,7 +1006,8 @@ export function tradeInsights(d: {
   imports12m: SeriesPoint[]; // 12m imports, USD bn
   coverage: SeriesPoint[]; // exports ÷ imports, %
   terms: SeriesPoint[]; // terms of trade index
-}): TabTakeaway {
+}, locale = "en"): TabTakeaway {
+  const tx = createText(locale);
   const period = asOf(d.balance12m);
   const items: Insight[] = [];
 
@@ -1022,36 +1017,36 @@ export function tradeInsights(d: {
     const energy = exEn != null ? bal - exEn : null;
     items.push({
       text:
-        `The 12-month goods balance is $${Math.abs(bal).toFixed(1)}bn ${bal >= 0 ? "in surplus" : "in deficit"}` +
-        (energy != null ? `, of which $${Math.abs(energy).toFixed(1)}bn is the energy bill.` : "."),
+        tx("The 12-month goods balance is ${0}bn {1}", {0: Math.abs(bal).toFixed(1), 1: bal >= 0 ? "in surplus" : "in deficit"}) +
+        (energy != null ? tx(", of which ${0}bn is the energy bill.", {0: Math.abs(energy).toFixed(1)}) : "."),
       tone: "neutral",
     });
   }
 
-  const covLine = levelRead(d.coverage, "Export cover of imports", 1);
-  if (covLine) items.push({ text: `${covLine} — how much of the import bill exports pay for.`, tone: "neutral" });
+  const covLine = levelRead(d.coverage, "Export cover of imports", 1, undefined, undefined, locale);
+  if (covLine) items.push({ text: tx("{0} — how much of the import bill exports pay for.", {0: covLine}), tone: "neutral" });
 
   const exp = last(d.exports12m);
   const imp = last(d.imports12m);
   if (exp != null && imp != null) {
     items.push({
-      text: `Exports run $${exp.toFixed(0)}bn against imports of $${imp.toFixed(0)}bn on trailing-12-month sums.`,
+      text: tx("Exports run ${0}bn against imports of ${1}bn on trailing-12-month sums.", {0: exp.toFixed(0), 1: imp.toFixed(0)}),
       tone: "neutral",
     });
   }
 
-  const termsLine = levelRead(d.terms, "Terms of trade", 1);
+  const termsLine = levelRead(d.terms, "Terms of trade", 1, undefined, undefined, locale);
   if (termsLine) {
     items.push({
-      text: `${termsLine} — export prices against import prices, so a higher index buys more imports per unit exported.`,
+      text: tx("{0} — export prices against import prices, so a higher index buys more imports per unit exported.", {0: termsLine}),
       tone: "neutral",
     });
   }
 
   const headline =
-    `The goods gap is $${bal != null ? Math.abs(bal).toFixed(1) : "—"}bn over 12 months` +
-    `${exEn != null && bal != null ? `, $${Math.abs(bal - exEn).toFixed(1)}bn of it energy` : ""}` +
-    `${last(d.coverage) != null ? `, with exports covering ${pct(last(d.coverage))} of imports` : ""}.`;
+    tx("The goods gap is ${0}bn over 12 months", {0: bal != null ? Math.abs(bal).toFixed(1) : "—"}) +
+    `${exEn != null && bal != null ? tx(", ${0}bn of it energy", {0: Math.abs(bal - exEn).toFixed(1)}) : ""}` +
+    `${last(d.coverage) != null ? tx(", with exports covering {0} of imports", {0: pct(last(d.coverage))}) : ""}.`;
 
   return { asOf: period, headline, items };
 }

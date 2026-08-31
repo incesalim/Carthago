@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 import { Card } from "./card";
@@ -32,6 +33,7 @@ export function ChartCard({
   bodyClassName,
   children,
 }: ChartCardProps) {
+  const tx = useText();
   if (plain) {
     return (
       <div data-chart-card="" className={cn("group min-w-0", className)}>
@@ -42,12 +44,12 @@ export function ChartCard({
                 data-chart-title=""
                 className="text-[12.5px] font-semibold leading-snug text-foreground"
               >
-                {title}
+                {tx(title)}
               </div>
             )}
             {description && (
               <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-                {description}
+                {tx(description)}
               </div>
             )}
           </div>
@@ -59,7 +61,7 @@ export function ChartCard({
         <div className={bodyClassName}>{children}</div>
         {source && (
           <div className="mt-2 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
-            {source}
+            {tx(source)}
           </div>
         )}
       </div>
@@ -77,11 +79,11 @@ export function ChartCard({
               data-chart-title=""
               className="font-serif text-[15px] font-semibold leading-tight text-foreground"
             >
-              {title}
+              {tx(title)}
             </div>
           )}
           {description && (
-            <div className="text-xs text-muted-foreground">{description}</div>
+            <div className="text-xs text-muted-foreground">{tx(description)}</div>
           )}
         </div>
         {/* Existing header action (toggle/filter…) sits beside the export pills. */}
@@ -93,7 +95,7 @@ export function ChartCard({
       <div className={bodyClassName}>{children}</div>
       {source && (
         <div className="mt-3 border-t border-border pt-2.5 font-mono text-[9.5px] text-faint">
-          {source}
+          {tx(source)}
         </div>
       )}
     </Card>

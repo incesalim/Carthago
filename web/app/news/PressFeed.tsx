@@ -6,6 +6,7 @@
  * drawer with cached body_text), press cards link straight out to the
  * original article — we store only headline + snippet, never the full body.
  */
+import { useText } from "@/i18n/use-text";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type NewsItem } from "@/app/lib/news";
@@ -19,9 +20,10 @@ function fmtDate(iso: string): string {
 }
 
 function Pill({ tag }: { tag: Tag }) {
+  const tx = useText();
   return (
     <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${tag.className}`}>
-      {tag.label}
+      {tx(tag.label)}
     </span>
   );
 }
@@ -30,6 +32,7 @@ function Pill({ tag }: { tag: Tag }) {
  *  The whole card is an <a>, so chips are spans that router.push instead of
  *  nesting a second anchor. */
 function BankChips({ tickers }: { tickers: string }) {
+  const tx = useText();
   const router = useRouter();
   const all = tickers.split(",").filter(Boolean);
   const shown = all.slice(0, 3);
@@ -40,7 +43,7 @@ function BankChips({ tickers }: { tickers: string }) {
           key={t}
           role="link"
           tabIndex={0}
-          title={bankDisplayName(t)}
+          title={tx(bankDisplayName(t))}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -55,7 +58,7 @@ function BankChips({ tickers }: { tickers: string }) {
           }}
           className="inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
         >
-          {t}
+          {tx(t)}
         </span>
       ))}
       {all.length > shown.length && (
@@ -68,6 +71,7 @@ function BankChips({ tickers }: { tickers: string }) {
 }
 
 function PressCard({ item }: { item: NewsItem }) {
+  const tx = useText();
   const outlet = item.category ?? "Press";
   return (
     <a
@@ -77,27 +81,26 @@ function PressCard({ item }: { item: NewsItem }) {
       className="group flex h-full flex-col rounded-[10px] border border-border bg-card p-3 transition hover:bg-accent hover:border-border/80"
     >
       <div className="mb-1 flex items-baseline justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-        <span className="font-medium text-foreground/80">{outlet}</span>
-        <span className="tabular-nums">{fmtDate(item.published_at)}</span>
+        <span className="font-medium text-foreground/80">{tx(outlet)}</span>
+        <span className="tabular-nums">{tx(fmtDate(item.published_at))}</span>
       </div>
       <div className="text-sm font-medium leading-snug text-foreground group-hover:underline underline-offset-2 line-clamp-3">
-        {item.title}
+        <span lang={item.language} translate="no">{item.title}</span>
       </div>
       {item.summary && (
-        <p className="mt-1.5 text-xs leading-snug text-muted-foreground line-clamp-2">{item.summary}</p>
+        <p className="mt-1.5 text-xs leading-snug text-muted-foreground line-clamp-2"><span lang={item.language} translate="no">{item.summary}</span></p>
       )}
       <div className="mt-auto flex flex-wrap gap-1 pt-2">
         <Pill tag={topicTag(item.title)} />
         {item.tickers && <BankChips tickers={item.tickers} />}
-        <span className="ml-auto text-[10px] text-muted-foreground opacity-0 transition group-hover:opacity-100">
-          open ↗
-        </span>
+        <span className="ml-auto text-[10px] text-muted-foreground opacity-0 transition group-hover:opacity-100">{tx("open ↗")}</span>
       </div>
     </a>
   );
 }
 
 export default function PressFeed({ items }: { items: NewsItem[] }) {
+  const tx = useText();
   const [outlet, setOutlet] = useState<string | null>(null);
 
   // Outlet chips with counts, ordered by frequency.
@@ -125,18 +128,17 @@ export default function PressFeed({ items }: { items: NewsItem[] }) {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center gap-1.5">
-        <button type="button" onClick={() => setOutlet(null)} className={chip(outlet === null)}>
-          All <span className="tabular-nums opacity-70">{items.length}</span>
+        <button type="button" onClick={() => setOutlet(null)} className={chip(outlet === null)}>{tx("All ")}<span className="tabular-nums opacity-70">{tx(items.length)}</span>
         </button>
         {outlets.map(([o, n]) => (
           <button key={o} type="button" onClick={() => setOutlet(o)} className={chip(outlet === o)}>
-            {o} <span className="tabular-nums opacity-70">{n}</span>
+            {tx(o)} <span className="tabular-nums opacity-70">{tx(n)}</span>
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">No items.</p>
+        <p className="text-sm text-muted-foreground italic">{tx("No items.")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((it) => (

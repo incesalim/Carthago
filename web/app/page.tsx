@@ -14,6 +14,24 @@
  * directly on the sheet, two per row — each spanning three cells of the band
  * above it — under a computed foot line. No boxes, no second grid.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+/**
+ * Home / Overview — "The Desk" two-layer page.
+ *
+ * Layer 1 (the brief): vitals band → movers vs last month → the macro
+ * backdrop's computed transmission into bank P&L → rule-based flags (rules
+ * printed) → capital standings → the release schedule. Every figure and every
+ * note is computed from the same D1/EVDS series the charts read — compiled,
+ * not written.
+ *
+ * Layer 2 ("In depth"): the same evidence, on the same grid. The read leads
+ * (deterministic pulse, no card); the Table-15 scorecard is the brief's OWN
+ * vitals band re-rendered for whichever ownership group `?type=` selects, with
+ * a peer bar marking where the sector sits; the by-group trend charts sit
+ * directly on the sheet, two per row — each spanning three cells of the band
+ * above it — under a computed foot line. No boxes, no second grid.
+ */
+import { getText } from "@/i18n/server";
 import Link from "next/link";
 import {
   ratioCar,
@@ -99,15 +117,16 @@ async function auditedBankCount(): Promise<number> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const tx = await getText();
   const n = await auditedBankCount();
-  return {
+  return localizeMetadata({
     // Absolute title bypasses the "· Carthago" template so the home page leads
     // with the target phrase. This is the page that competes for "Turkish
     // banking sector data".
     title: {
       absolute: "Turkish Banking Sector Data, Financials & Analytics — Carthago",
     },
-    description: `Live data on Türkiye's banking sector: ${n} banks' audited BRSA financials, BDDK aggregates, capital adequacy, NPLs, liquidity, profitability and macro context — updated every quarter, free.`,
+    description: tx("Live data on Türkiye's banking sector: {0} banks' audited BRSA financials, BDDK aggregates, capital adequacy, NPLs, liquidity, profitability and macro context — updated every quarter, free.", {0: n}),
     keywords: [
       "Turkish banking sector",
       "Turkish banks data",
@@ -121,10 +140,10 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: "/" },
     openGraph: {
       title: "Turkish Banking Sector Data, Financials & Analytics",
-      description: `${n} banks' audited BRSA financials, BDDK aggregates and macro context for Türkiye's banking sector — updated quarterly, free.`,
+      description: tx("{0} banks' audited BRSA financials, BDDK aggregates and macro context for Türkiye's banking sector — updated quarterly, free.", {0: n}),
       url: "https://carthago.app",
     },
-  };
+  });
 }
 
 const datasetJsonLd = {
@@ -166,6 +185,7 @@ export default async function OverviewPage({
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
+  const tx = await getText();
   // What lands next — derived from the record periods + TCMB's published calendar.
   const ahead = await aheadSlots();
   const sector = [BANK_TYPES.SECTOR];
@@ -270,7 +290,7 @@ export default async function OverviewPage({
       label: "ROE, ann.",
       note:
         roePeak && roeNow != null && roePeak.max - roeNow > 1
-          ? `cooling from ${roePeak.max.toFixed(1)}% ${monthLabel(roePeak.maxPeriod, false)} peak`
+          ? tx("cooling from {0}% {1} peak", {0: roePeak.max.toFixed(1), 1: monthLabel(roePeak.maxPeriod, false)})
           : undefined,
       prev: sRoe.at(-2)?.value ?? null,
       curr: roeNow,
@@ -280,7 +300,7 @@ export default async function OverviewPage({
     },
     {
       label: "Capital adequacy",
-      note: carSlip >= 3 ? `${carSlip} straight monthly slips` : undefined,
+      note: carSlip >= 3 ? tx("{0} straight monthly slips", {0: carSlip}) : undefined,
       prev: sCar.at(-2)?.value ?? null,
       curr: carNow,
       fmt: (v) => `${v.toFixed(1)}%`,
@@ -289,7 +309,7 @@ export default async function OverviewPage({
     },
     {
       label: "NPL ratio",
-      note: nplStreak >= 2 ? `${nplStreak} consecutive rises` : undefined,
+      note: nplStreak >= 2 ? tx("{0} consecutive rises", {0: nplStreak}) : undefined,
       prev: sNpl.at(-2)?.value ?? null,
       curr: nplNow,
       good: "down",
@@ -337,14 +357,12 @@ export default async function OverviewPage({
       v: `≈${cpiAvgNow.toFixed(1)}`,
       unit: "%",
       effect: (
-        <>
-          ROE {fmtPct(roeNow, 1)} ≈{" "}
-          <b>{roeReal != null ? signedPct(roeReal, 1) : "—"} in real terms</b> (deflated by
-          12m-avg CPI) —{" "}
-          {roeReal != null && roeReal < 0
+        <>{tx("ROE ")}{tx(fmtPct(roeNow, 1))} ≈{" "}
+          <b>{tx(roeReal != null ? signedPct(roeReal, 1) : "—")}{tx(" in real terms")}</b>{tx(" (deflated by 12m-avg CPI) —")}{" "}
+          {tx(roeReal != null && roeReal < 0
             ? "the sector still compounds a real loss."
-            : "the sector clears its inflation hurdle."}{" "}
-          <Go href="/profitability">/profitability</Go>
+            : "the sector clears its inflation hurdle.")}{" "}
+          <Go href="/profitability">{tx("/profitability")}</Go>
         </>
       ),
     });
@@ -355,14 +373,11 @@ export default async function OverviewPage({
       v: funding.toFixed(1),
       unit: "%",
       effect: (
-        <>
-          Deposits reprice first —{" "}
-          <b>
-            NIM {nimLow != null ? `rebuilt ${nimLow.toFixed(1)}%` : ""} →{" "}
-            {fmtPct(nimNow, 1)}
-          </b>
-          ; each policy move feeds the margin with a lag.{" "}
-          <Go href="/profitability">/profitability</Go>
+        <>{tx("Deposits reprice first —")}{" "}
+          <b>{tx("NIM ")}{tx(nimLow != null ? tx("rebuilt {0}%", {0: nimLow.toFixed(1)}) : "")} →{" "}
+            {tx(fmtPct(nimNow, 1))}
+          </b>{tx("; each policy move feeds the margin with a lag.")}{" "}
+          <Go href="/profitability">{tx("/profitability")}</Go>
         </>
       ),
     });
@@ -373,17 +388,16 @@ export default async function OverviewPage({
       v: signedPct(creditReal, 1).replace("%", ""),
       unit: "%",
       effect: (
-        <>
-          Loan growth {fmtPct(loansYoYNow, 1)} nominal, deflated by y/y CPI{" "}
-          {fmtPct(cpiYoYNow, 1)} —{" "}
+        <>{tx("Loan growth ")}{tx(fmtPct(loansYoYNow, 1))}{tx(" nominal, deflated by y/y CPI")}{" "}
+          {tx(fmtPct(cpiYoYNow, 1))} —{" "}
           <b>
-            {creditReal > 2
+            {tx(creditReal > 2
               ? "credit is growing ahead of prices."
               : creditReal < -2
                 ? "the book is shrinking in real terms."
-                : "growth with prices, not the economy."}
+                : "growth with prices, not the economy.")}
           </b>{" "}
-          <Go href="/credit">/credit</Go>
+          <Go href="/credit">{tx("/credit")}</Go>
         </>
       ),
     });
@@ -393,9 +407,7 @@ export default async function OverviewPage({
       k: "USD/TRY",
       v: `₺${usdtryNow.toFixed(2)}`,
       effect: (
-        <>
-          The lira&rsquo;s path sets the <b>dollarization incentive</b> — the FX share
-          of deposits is the tell. <Go href="/deposits">/deposits</Go>
+        <>{tx("The lira’s path sets the ")}<b>{tx("dollarization incentive")}</b>{tx(" — the FX share of deposits is the tell. ")}<Go href="/deposits">{tx("/deposits")}</Go>
         </>
       ),
     });
@@ -408,10 +420,9 @@ export default async function OverviewPage({
       active: roeReal != null && roeReal < 0,
       body: (
         <>
-          <b className="font-semibold">Real returns</b> — ROE {fmtPct(roeNow, 1)} vs{" "}
-          {fmtPct(cpiAvgNow, 1)} 12m-avg CPI: equity compounds a{" "}
-          {roeReal != null ? Math.abs(roeReal).toFixed(1) : "—"}% real loss.
-        </>
+          <b className="font-semibold">{tx("Real returns")}</b>{tx(" — ROE ")}{tx(fmtPct(roeNow, 1))}{tx(" vs")}{" "}
+          {tx(fmtPct(cpiAvgNow, 1))}{tx(" 12m-avg CPI: equity compounds a")}{" "}
+          {tx(roeReal != null ? Math.abs(roeReal).toFixed(1) : "—")}{tx("% real loss.")}</>
       ),
       rule: "(1+roe)/(1+cpi_12m_avg) − 1 < 0",
     },
@@ -420,11 +431,8 @@ export default async function OverviewPage({
       active: nplStreak >= 6,
       body: (
         <>
-          <b className="font-semibold">NPL streak</b> — {nplStreak} monthly rises (
-          {fmtPct(valAgo(sNpl, nplStreak), 2)} → {fmtPct(nplNow, 2)}). Level{" "}
-          {nplNow != null && nplNow < 3 ? "benign" : "elevated"}; persistence is the
-          signal. Next read: Stage-2 at the quarterly filings.
-        </>
+          <b className="font-semibold">{tx("NPL streak")}</b> — {tx(nplStreak)}{tx(" monthly rises (")}{tx(fmtPct(valAgo(sNpl, nplStreak), 2))} → {tx(fmtPct(nplNow, 2))}{tx("). Level")}{" "}
+          {tx(nplNow != null && nplNow < 3 ? "benign" : "elevated")}{tx("; persistence is the signal. Next read: Stage-2 at the quarterly filings.")}</>
       ),
       rule: "consecutive_rise(npl) ≥ 6m",
     },
@@ -433,10 +441,9 @@ export default async function OverviewPage({
       active: carDrift12 != null && carDrift12 < -0.5,
       body: (
         <>
-          <b className="font-semibold">Capital drift</b> — buffer{" "}
-          {buffer != null ? buffer.toFixed(1) : "—"}pp over the 12% minimum, drifting{" "}
-          {carDrift12 != null ? signedPp(carDrift12, 1) : "—"}/yr.
-        </>
+          <b className="font-semibold">{tx("Capital drift")}</b>{tx(" — buffer")}{" "}
+          {tx(buffer != null ? buffer.toFixed(1) : "—")}{tx("pp over the 12% target ratio, drifting")}{" "}
+          {tx(carDrift12 != null ? signedPp(carDrift12, 1) : "—")}{tx("/yr.")}</>
       ),
       rule: "Δcar_12m < −0.5pp",
     },
@@ -445,9 +452,8 @@ export default async function OverviewPage({
       active: ldrNow != null && ldrNow > LDR_PUBLISHED.line,
       body: (
         <>
-          <b className="font-semibold">Funding stretch</b> — TL+FC loan/deposit{" "}
-          {fmtPct(ldrNow, 1)}: growth leans on non-deposit funding. The TL-only book is
-          tested against a tighter line on <Go href="/liquidity">/liquidity</Go>.
+          <b className="font-semibold">{tx("Funding stretch")}</b>{tx(" — TL+FC loan/deposit")}{" "}
+          {tx(fmtPct(ldrNow, 1))}{tx(": growth leans on non-deposit funding. The TL-only book is tested against a tighter line on ")}<Go href="/liquidity">{tx("/liquidity")}</Go>.
         </>
       ),
       rule: LDR_PUBLISHED.rule,
@@ -459,7 +465,7 @@ export default async function OverviewPage({
   const ranked = league.rows.filter((r) => r.car != null);
   const standings: StandingsGroup[] = [
     {
-      heading: `Best capitalised — ${quarterLabel(league.period)}`,
+      heading: tx("Best capitalised — {0}", {0: quarterLabel(league.period)}),
       rows: ranked.slice(0, 3).map((r, i) => ({
         rank: i + 1,
         name: BANK_NAMES[r.bank_ticker] ?? r.bank_ticker,
@@ -485,8 +491,8 @@ export default async function OverviewPage({
   const pulse = overviewInsights({
     assetsYoY: sAssetsYoY, loansYoY: sLoansYoY, depositsYoY: sDepositsYoY,
     npl: sNpl, car: sCar, ldr: sLdr, roe: sRoe,
-  });
-  const read = await withLlmHeadline("overview", pulse);
+  }, tx.locale);
+  const read = await withLlmHeadline("overview", pulse, tx.locale);
 
   // ---- the scorecard = the brief's band, for the selected group ------------
   // Same six vitals, same cell, same sparkline — only the group changes. Each
@@ -518,14 +524,13 @@ export default async function OverviewPage({
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...datasetJsonLd, name: tx(datasetJsonLd.name), description: tx(datasetJsonLd.description), inLanguage: tx.locale }) }}
       />
 
       <DeskHeader
-        title="Overview"
+        title={tx("Overview")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{recMonth}</b> · vs {vsMonth}
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(recMonth)}</b>{tx(" · vs ")}{tx(vsMonth)}
           </>
         }
         right="every figure computed from source series"
@@ -533,26 +538,25 @@ export default async function OverviewPage({
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="equal weight · trailing 13 months"
+        title={tx("The vitals")}
+        meta={tx("equal weight · trailing 13 months")}
         className="mb-2.5 mt-6"
       />
       <Vitals>
         <Vital
-          label="Capital adequacy"
+          label={tx("Capital adequacy")}
           value={carNow != null ? carNow.toFixed(1) : "—"}
           unit="%"
           series={spark(sCar)}
           decimals={1}
           note={
-            <>
-              buffer <b className="font-semibold text-positive">{buffer != null ? `+${buffer.toFixed(1)}pp` : "—"}</b>{" "}
-              <Go href="/capital">/capital</Go>
+            <>{tx("buffer ")}<b className="font-semibold text-positive">{tx(buffer != null ? `+${buffer.toFixed(1)}pp` : "—")}</b>{" "}
+              <Go href="/capital">{tx("/capital")}</Go>
             </>
           }
         />
         <Vital
-          label="NPL ratio"
+          label={tx("NPL ratio")}
           value={nplNow != null ? nplNow.toFixed(2) : "—"}
           unit="%"
           series={spark(sNpl)}
@@ -560,55 +564,51 @@ export default async function OverviewPage({
             nplStreak >= 3 ? (
               <>
                 <em className="not-italic font-semibold text-negative">
-                  {nplStreak} straight rises
-                </em>{" "}
-                <Go href="/asset-quality">/asset-quality</Go>
+                  {tx(nplStreak)}{tx(" straight rises")}</em>{" "}
+                <Go href="/asset-quality">{tx("/asset-quality")}</Go>
               </>
             ) : (
-              <>
-                broadly stable <Go href="/asset-quality">/asset-quality</Go>
+              <>{tx("broadly stable ")}<Go href="/asset-quality">{tx("/asset-quality")}</Go>
               </>
             )
           }
         />
         <Vital
-          label="Net int. margin"
+          label={tx("Net int. margin")}
           value={nimNow != null ? nimNow.toFixed(2) : "—"}
           unit="%"
           series={spark(sNim)}
           note={
             <>
-              {nimLow != null && nimNow != null && nimNow - nimLow > 0.5
-                ? `rebuilt from ${nimLow.toFixed(1)}%`
-                : "cycle margin"}{" "}
-              <Go href="/profitability">/profitability</Go>
+              {tx(nimLow != null && nimNow != null && nimNow - nimLow > 0.5
+                ? tx("rebuilt from {0}%", {0: nimLow.toFixed(1)})
+                : "cycle margin")}{" "}
+              <Go href="/profitability">{tx("/profitability")}</Go>
             </>
           }
         />
         <Vital
-          label={LDR_PUBLISHED.label}
+          label={tx(LDR_PUBLISHED.label)}
           value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
           unit="%"
           series={spark(sLdr)}
           decimals={1}
           note={
             <>
-              {ldrNow != null && ldrNow < LDR_PUBLISHED.line
-                ? `below the ${LDR_PUBLISHED.line}% line`
-                : `above the ${LDR_PUBLISHED.line}% line`}{" "}
-              — published, monthly <Go href="/deposits">/deposits</Go>
+              {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
+                ? tx("below the {0}% line", {0: LDR_PUBLISHED.line})
+                : tx("above the {0}% line", {0: LDR_PUBLISHED.line}))}{" "}{tx("— published, monthly ")}<Go href="/deposits">{tx("/deposits")}</Go>
             </>
           }
         />
         <Vital
-          label="ROE, ann."
+          label={tx("ROE, ann.")}
           value={roeNow != null ? roeNow.toFixed(1) : "—"}
           unit="%"
           series={spark(sRoe)}
           decimals={1}
           note={
-            <>
-              − CPI ≈{" "}
+            <>{tx("− CPI ≈")}{" "}
               <em
                 className={
                   roeReal != null && roeReal < 0
@@ -616,14 +616,13 @@ export default async function OverviewPage({
                     : "not-italic font-semibold text-positive"
                 }
               >
-                {roeReal != null ? signedPct(roeReal, 1) : "—"} real
-              </em>{" "}
-              <Go href="/profitability">/profitability</Go>
+                {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}{tx(" real")}</em>{" "}
+              <Go href="/profitability">{tx("/profitability")}</Go>
             </>
           }
         />
         <Vital
-          label="ROA, ann."
+          label={tx("ROA, ann.")}
           value={roaNow != null ? roaNow.toFixed(2) : "—"}
           unit="%"
           series={spark(sRoa)}
@@ -634,7 +633,7 @@ export default async function OverviewPage({
       {/* ── Movers | Backdrop ──────────────────────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
-          <SecHead title="Movers" meta={`${vsMonth} → ${monthLabel(sNpl.at(-1)?.period, false)}`} className="mb-2.5" />
+          <SecHead title={tx("Movers")} meta={tx(`${vsMonth} → ${monthLabel(sNpl.at(-1)?.period, false)}`)} className="mb-2.5" />
           <Movers
             from={vsMonth.toUpperCase()}
             to={monthLabel(sNpl.at(-1)?.period, false).toUpperCase()}
@@ -643,8 +642,8 @@ export default async function OverviewPage({
         </div>
         <div>
           <SecHead
-            title="The backdrop → the banks"
-            meta="transmission computed"
+            title={tx("The backdrop → the banks")}
+            meta={tx("transmission computed")}
             className="mb-2.5"
           />
           <Transmission items={transmission} />
@@ -654,7 +653,7 @@ export default async function OverviewPage({
       {/* ── Flags | Standings | Ahead ──────────────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
-          <SecHead title="Flags" meta={`rule-based — ${activeFlags}`} className="mb-2.5" />
+          <SecHead title={tx("Flags")} meta={tx("rule-based — {0}", {0: activeFlags})} className="mb-2.5" />
           <Flags
             flags={flags}
             quietNote="NPL streak, capital drift, funding stretch and real returns are all below threshold."
@@ -662,33 +661,31 @@ export default async function OverviewPage({
         </div>
         <div>
           <SecHead
-            title="Standings"
-            meta={`car · ${quarterLabel(league.period)}`}
+            title={tx("Standings")}
+            meta={tx("car · {0}", {0: quarterLabel(league.period)})}
             href="/capital"
-            hrefLabel="full league →"
+            hrefLabel={tx("full league →")}
             className="mb-2.5"
           />
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
           <Ahead
             items={[
-              ahead.mpc && { when: ahead.mpc.when, what: <>TCMB MPC — rate decision</> },
+              ahead.mpc && { when: ahead.mpc.when, what: <>{tx("TCMB MPC — rate decision")}</> },
               ahead["inflation-report"] && {
                 when: ahead["inflation-report"].when,
-                what: <>TCMB Inflation Report — the policy outlook</>,
+                what: <>{tx("TCMB Inflation Report — the policy outlook")}</>,
               },
               ahead.fsr && {
                 when: ahead.fsr.when,
-                what: <>TCMB Financial Stability Report</>,
+                what: <>{tx("TCMB Financial Stability Report")}</>,
               },
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: (
-                  <>
-                    BRSA {ahead["brsa-filings"].record} filings — audited statements + capital
-                  </>
+                  <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — audited statements + capital")}</>
                 ),
                 href: "/actions",
               },
@@ -704,9 +701,9 @@ export default async function OverviewPage({
         {/* The scorecard IS the vitals band — one group at a time. */}
         <div id="by-type" className="scroll-mt-24">
           <SecHead
-            title="Snapshot scorecard"
+            title={tx("Snapshot scorecard")}
             action={<BankTypeFilter active={bankType} />}
-            meta={`table-15 vitals · ${groupLabel.toLowerCase()} · live d1`}
+            meta={tx("table-15 vitals · {0} · live d1", {0: groupLabel.toLowerCase()})}
             className="mb-2.5"
           />
           <Levels
@@ -725,7 +722,7 @@ export default async function OverviewPage({
               return (
                 <Vital
                   key={v.label}
-                  label={v.label}
+                  label={tx(v.label)}
                   value={now != null ? now.toFixed(v.decimals) : "—"}
                   unit="%"
                   series={spark(v.series)}
@@ -747,17 +744,17 @@ export default async function OverviewPage({
             })}
           </Vitals>
           <p className="mt-2 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-            {isSector
+            {tx(isSector
               ? "the sector aggregate — switch the group to read it against the league"
-              : "bar = this group across the league of ownership groups · grey tick = the sector"}
+              : "bar = this group across the league of ownership groups · grey tick = the sector")}
           </p>
         </div>
 
         {/* Two charts per row — each spans three cells of the band above. */}
         <div>
           <SecHead
-            title="Sector dynamics"
-            meta="by ownership group · sector = the navy hero line"
+            title={tx("Sector dynamics")}
+            meta={tx("by ownership group · sector = the navy hero line")}
             className="mb-3"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
@@ -766,10 +763,10 @@ export default async function OverviewPage({
               data={loansYoYGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }) ??
-                "Loan growth YoY (%) — by group"
+                tx(seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
+                "Loan growth YoY (%) — by group")
               }
-              description="loan growth y/y, %, monthly · BDDK monthly bulletin"
+              description={tx("loan growth y/y, %, monthly · BDDK monthly bulletin")}
               source={<ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}
@@ -781,10 +778,10 @@ export default async function OverviewPage({
               data={nplAllGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                seriesFinding(sNpl, { noun: "NPL ratio", decimals: 2 }) ??
-                "NPL ratio (%) — by group"
+                tx(seriesFinding(sNpl, { noun: "NPL ratio", decimals: 2 }, tx.locale) ??
+                "NPL ratio (%) — by group")
               }
-              description="npl ratio, %, monthly · BDDK monthly bulletin"
+              description={tx("npl ratio, %, monthly · BDDK monthly bulletin")}
               source={<ChartFoot data={nplAllGroups} labels={BANK_TYPE_LABELS} decimals={2} />}
               yFormat="pct"
               decimals={2}
@@ -795,10 +792,10 @@ export default async function OverviewPage({
               data={carGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }) ??
-                "Capital adequacy (%) — by group"
+                tx(seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }, tx.locale) ??
+                "Capital adequacy (%) — by group")
               }
-              description="capital adequacy, %, monthly · regulatory minimum 12% · BDDK"
+              description={tx("capital adequacy, %, monthly · target ratio 12% · BDDK")}
               source={<ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}
@@ -809,10 +806,10 @@ export default async function OverviewPage({
               data={roeGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                seriesFinding(sRoe, { noun: "ROE", decimals: 1 }) ??
-                "ROE — annualized (%) — by group"
+                tx(seriesFinding(sRoe, { noun: "ROE", decimals: 1 }, tx.locale) ??
+                "ROE — annualized (%) — by group")
               }
-              description="roe annualized, %, monthly · BDDK monthly bulletin"
+              description={tx("roe annualized, %, monthly · BDDK monthly bulletin")}
               source={<ChartFoot data={roeGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}

@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import Link from "next/link";
 import Sparkline from "@/app/components/Sparkline";
@@ -30,17 +31,18 @@ export function DeskHeader({
   /** Right-aligned mono note, e.g. the automation-honesty line. */
   right?: React.ReactNode;
 }) {
+  const tx = useText();
   return (
     <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-      <h1 className="text-[24px] font-bold tracking-tight text-foreground">{title}</h1>
+      <h1 className="text-[24px] font-bold tracking-tight text-foreground">{tx(title)}</h1>
       {record && (
         <span className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-muted-foreground">
-          {record}
+          {tx(record)}
         </span>
       )}
       {right && (
         <span className="ml-auto hidden font-mono text-[9px] uppercase tracking-[0.05em] text-faint sm:inline">
-          {right}
+          {tx(right)}
         </span>
       )}
     </header>
@@ -56,17 +58,18 @@ export interface TapeEntry {
 
 /** Flat market strip between two hairlines — no card, no scroll animation. */
 export function Tape({ items }: { items: TapeEntry[] }) {
+  const tx = useText();
   if (!items.length) return null;
   return (
     <div className="mt-3 flex gap-5 overflow-x-auto whitespace-nowrap border-y border-border py-2 font-mono text-[11px]">
       {items.map((it) => (
         <div key={it.k} className="flex items-baseline gap-1.5">
-          <span className="text-[9px] tracking-[0.05em] text-faint">{it.k}</span>
-          <span className="font-semibold text-foreground">{it.v}</span>
+          <span className="text-[9px] tracking-[0.05em] text-faint">{tx(it.k)}</span>
+          <span className="font-semibold text-foreground">{tx(it.v)}</span>
           {it.chg != null && (
             <span className={it.chg >= 0 ? "text-positive" : "text-negative"}>
-              {it.chg >= 0 ? "+" : ""}
-              {it.chg.toFixed(2)}%
+              {tx(it.chg >= 0 ? "+" : "")}
+              {tx(it.chg.toFixed(2))}%
             </span>
           )}
         </div>
@@ -96,18 +99,19 @@ export function SecHead({
   action?: React.ReactNode;
   className?: string;
 }) {
+  const tx = useText();
   return (
     <div className={cn("flex flex-wrap items-baseline gap-x-3 gap-y-1", className)}>
-      <h2 className="text-[13.5px] font-bold text-foreground">{title}</h2>
+      <h2 className="text-[13.5px] font-bold text-foreground">{tx(title)}</h2>
       {href && (
         <Link href={href} className="text-[11px] font-semibold text-primary">
-          {hrefLabel ?? "→"}
+          {tx(hrefLabel ?? "→")}
         </Link>
       )}
       {action}
       {meta && (
         <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-          {meta}
+          {tx(meta)}
         </span>
       )}
     </div>
@@ -174,12 +178,13 @@ export function Vital({
   format?: "pct" | "trn" | "raw";
   decimals?: number;
 }) {
+  const tx = useText();
   return (
     <div className="border-r border-hair px-4 py-3 last:border-r-0 max-sm:odd:pl-0 sm:first:pl-0">
-      <div className="text-[10.5px] text-muted-foreground">{label}</div>
+      <div className="text-[10.5px] text-muted-foreground">{tx(label)}</div>
       <div className="mt-0.5 font-mono text-[22px] font-semibold tracking-tight text-foreground">
-        {value}
-        {unit && <small className="ml-0.5 text-[11px] font-normal text-faint">{unit}</small>}
+        {tx(value)}
+        {unit && <small className="ml-0.5 text-[11px] font-normal text-faint">{tx(unit)}</small>}
       </div>
       {series && series.length > 0 && (
         <div className="mt-1.5 h-10">
@@ -190,8 +195,8 @@ export function Vital({
           />
         </div>
       )}
-      {peer}
-      {note && <div className="mt-1.5 text-[9.5px] leading-snug text-faint">{note}</div>}
+      {tx(peer)}
+      {note && <div className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
     </div>
   );
 }
@@ -214,6 +219,7 @@ export function PeerBar({
   hi: number;
   decimals?: number;
 }) {
+  const tx = useText();
   const span = hi - lo || 1;
   const pos = (v: number) => Math.max(0, Math.min(100, ((v - lo) / span) * 100));
   return (
@@ -228,7 +234,7 @@ export function PeerBar({
           style={{ left: `${pos(sector).toFixed(1)}%` }}
         />
       </span>
-      <span className="whitespace-nowrap">sector {sector.toFixed(decimals)}</span>
+      <span className="whitespace-nowrap">{tx("sector ")}{tx(sector.toFixed(decimals))}</span>
     </div>
   );
 }
@@ -242,6 +248,7 @@ export function Levels({
 }: {
   items: { k: string; v: string; unit?: string }[];
 }) {
+  const tx = useText();
   return (
     <div className="grid grid-cols-2 border-b border-hair sm:grid-cols-4">
       {items.map((it) => (
@@ -250,11 +257,11 @@ export function Levels({
           className="border-r border-hair px-4 py-2.5 last:border-r-0 max-sm:odd:pl-0 sm:first:pl-0"
         >
           <div className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-            {it.k}
+            {tx(it.k)}
           </div>
           <div className="mt-0.5 font-mono text-[15px] font-semibold text-foreground">
-            {it.v}
-            {it.unit && <small className="ml-0.5 text-[9.5px] font-normal text-faint">{it.unit}</small>}
+            {tx(it.v)}
+            {it.unit && <small className="ml-0.5 text-[9.5px] font-normal text-faint">{tx(it.unit)}</small>}
           </div>
         </div>
       ))}
@@ -283,6 +290,7 @@ export interface MoverRow {
 }
 
 export function Movers({ from, to, rows }: { from: string; to: string; rows: MoverRow[] }) {
+  const tx = useText();
   const fmtDefault = (v: number) => `${v.toFixed(2)}%`;
   return (
     <table className="w-full border-collapse">
@@ -296,7 +304,7 @@ export function Movers({ from, to, rows }: { from: string; to: string; rows: Mov
                 i === 0 ? "text-left" : "text-right",
               )}
             >
-              {h}
+              {tx(h)}
             </th>
           ))}
         </tr>
@@ -314,21 +322,21 @@ export function Movers({ from, to, rows }: { from: string; to: string; rows: Mov
           return (
             <tr key={r.label}>
               <td className="border-b border-hair py-1.5 pr-2 text-[12.5px] font-medium text-foreground">
-                {r.label}
+                {tx(r.label)}
                 {r.note && (
-                  <span className="block text-[10px] font-normal text-faint">{r.note}</span>
+                  <span className="block text-[10px] font-normal text-faint">{tx(r.note)}</span>
                 )}
               </td>
               <td className="border-b border-hair py-1.5 text-right font-mono text-[11.5px] text-faint">
-                {r.prev != null ? f(r.prev) : "—"}
+                {tx(r.prev != null ? f(r.prev) : "—")}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12.5px] font-semibold text-foreground">
-                {r.curr != null ? f(r.curr) : "—"}
+                {tx(r.curr != null ? f(r.curr) : "—")}
               </td>
               <td className={cn("border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] font-semibold", tone)}>
-                {d != null
+                {tx(d != null
                   ? `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(r.deltaDecimals ?? 2)}${r.deltaUnit ?? "pp"}`
-                  : "—"}
+                  : "—")}
               </td>
             </tr>
           );
@@ -367,6 +375,7 @@ export function Compare({
   b: string;
   rows: CompareRow[];
 }) {
+  const tx = useText();
   const f = (r: CompareRow, v: number | null) =>
     v == null ? "—" : (r.fmt ?? ((x: number) => `${x.toFixed(1)}%`))(v);
   return (
@@ -381,7 +390,7 @@ export function Compare({
                 i === 0 ? "text-left" : "text-right",
               )}
             >
-              {h}
+              {tx(h)}
             </th>
           ))}
         </tr>
@@ -392,21 +401,21 @@ export function Compare({
           return (
             <tr key={r.label}>
               <td className="border-b border-hair py-1.5 pr-2 text-[12.5px] text-foreground">
-                {r.label}
+                {tx(r.label)}
                 {r.note && (
-                  <span className="block text-[10px] text-faint">{r.note}</span>
+                  <span className="block text-[10px] text-faint">{tx(r.note)}</span>
                 )}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] font-semibold text-foreground">
-                {f(r, r.a)}
+                {tx(f(r, r.a))}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] font-semibold text-foreground">
-                {f(r, r.b)}
+                {tx(f(r, r.b))}
               </td>
               <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] text-faint">
-                {gap != null
+                {tx(gap != null
                   ? `${gap >= 0 ? "+" : "−"}${Math.abs(gap).toFixed(r.gapDecimals ?? 1)}pp`
-                  : "—"}
+                  : "—")}
               </td>
             </tr>
           );
@@ -428,6 +437,7 @@ export interface TransmissionItem {
 }
 
 export function Transmission({ items }: { items: TransmissionItem[] }) {
+  const tx = useText();
   return (
     <div>
       {items.map((it) => (
@@ -436,13 +446,13 @@ export function Transmission({ items }: { items: TransmissionItem[] }) {
           className="grid grid-cols-[minmax(100px,3fr)_minmax(180px,8fr)] gap-3.5 border-b border-hair py-2"
         >
           <div>
-            <div className="text-[10.5px] text-muted-foreground">{it.k}</div>
+            <div className="text-[10.5px] text-muted-foreground">{tx(it.k)}</div>
             <div className="mt-0.5 font-mono text-[15px] font-semibold text-foreground">
-              {it.v}
-              {it.unit && <small className="ml-0.5 text-[9.5px] font-normal text-faint">{it.unit}</small>}
+              {tx(it.v)}
+              {it.unit && <small className="ml-0.5 text-[9.5px] font-normal text-faint">{tx(it.unit)}</small>}
             </div>
           </div>
-          <p className="text-[12px] leading-relaxed text-foreground">{it.effect}</p>
+          <p className="text-[12px] leading-relaxed text-foreground">{tx(it.effect)}</p>
         </div>
       ))}
     </div>
@@ -477,14 +487,13 @@ export function Flags({
    */
   showCleared?: boolean;
 }) {
+  const tx = useText();
   const active = flags.filter((f) => f.active);
   const cleared = flags.filter((f) => !f.active && f.clear);
 
   const clearedList = showCleared && cleared.length > 0 && (
     <>
-      <h5 className="mb-1 mt-3 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-        Rules that did not fire
-      </h5>
+      <h5 className="mb-1 mt-3 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">{tx("Rules that did not fire")}</h5>
       <table className="w-full border-collapse">
         <tbody>
           {cleared.map((f) => (
@@ -493,10 +502,10 @@ export function Flags({
                 ✓
               </td>
               <td className="border-b border-hair py-1.5 pr-2 text-[11.5px] leading-snug text-muted-foreground">
-                {f.clear}
+                {tx(f.clear)}
               </td>
               <td className="border-b border-hair py-1.5 text-right align-top font-mono text-[8px] whitespace-nowrap text-faint">
-                {f.rule}
+                {tx(f.rule)}
               </td>
             </tr>
           ))}
@@ -511,10 +520,10 @@ export function Flags({
         <div className="flex gap-3 border-b border-hair py-2">
           <span className="min-w-5 pt-0.5 font-mono text-[10px] font-semibold text-positive">—</span>
           <p className="text-[12px] leading-relaxed">
-            <b className="font-semibold">No flags active.</b> {quietNote}
+            <b className="font-semibold">{tx("No flags active.")}</b> {tx(quietNote)}
           </p>
         </div>
-        {clearedList}
+        {tx(clearedList)}
       </div>
     );
   }
@@ -523,15 +532,15 @@ export function Flags({
       {active.map((f, i) => (
         <div key={f.code} className="flex gap-3 border-b border-hair py-2">
           <span className="min-w-5 pt-0.5 font-mono text-[10px] font-semibold text-negative">
-            F{i + 1}
+            F{tx(i + 1)}
           </span>
           <p className="text-[12px] leading-relaxed">
-            {f.body}
-            <span className="mt-0.5 block font-mono text-[8px] text-faint">{f.rule}</span>
+            {tx(f.body)}
+            <span className="mt-0.5 block font-mono text-[8px] text-faint">{tx(f.rule)}</span>
           </p>
         </div>
       ))}
-      {clearedList}
+      {tx(clearedList)}
     </div>
   );
 }
@@ -546,28 +555,29 @@ export interface StandingsGroup {
 }
 
 export function Standings({ groups }: { groups: StandingsGroup[] }) {
+  const tx = useText();
   return (
     <div>
       {groups.map((g) => (
         <React.Fragment key={g.heading}>
           <h5 className="mb-1 mt-2.5 font-mono text-[8px] uppercase tracking-[0.1em] text-faint first:mt-0">
-            {g.heading}
+            {tx(g.heading)}
           </h5>
           <table className="w-full border-collapse">
             <tbody>
               {g.rows.map((r) => (
                 <tr key={r.name}>
                   <td className="w-5 border-b border-hair py-1 font-mono text-[9.5px] text-faint">
-                    {r.rank}
+                    {tx(r.rank)}
                   </td>
-                  <td className="border-b border-hair py-1 text-[12px] text-foreground">{r.name}</td>
+                  <td className="border-b border-hair py-1 text-[12px] text-foreground">{tx(r.name)}</td>
                   <td
                     className={cn(
                       "border-b border-hair py-1 text-right font-mono text-[12px] font-semibold",
                       r.tone === "up" ? "text-positive" : r.tone === "dn" ? "text-negative" : "text-foreground",
                     )}
                   >
-                    {r.value}
+                    {tx(r.value)}
                   </td>
                 </tr>
               ))}
@@ -586,18 +596,19 @@ export interface AheadItem {
 }
 
 export function Ahead({ items }: { items: AheadItem[] }) {
+  const tx = useText();
   return (
     <table className="w-full border-collapse">
       <tbody>
         {items.map((it, i) => (
           <tr key={i}>
             <td className="border-b border-hair py-1.5 pr-3 font-mono text-[10.5px] font-semibold whitespace-nowrap text-foreground">
-              {it.when}
+              {tx(it.when)}
             </td>
             <td className="border-b border-hair py-1.5 text-[12px] text-foreground">
               {it.href ? (
                 <Link href={it.href} className="text-foreground hover:text-primary">
-                  {it.what}
+                  {tx(it.what)}
                 </Link>
               ) : (
                 it.what
@@ -644,6 +655,7 @@ export function ChartRow({
   deltaLabel?: string;
   children: React.ReactNode;
 }) {
+  const tx = useText();
   const f = fmt ?? ((v: number) => `${v.toFixed(2)}%`);
   const byKey = new Map<string, { period: string; value: number }[]>();
   for (const r of data) {
@@ -698,18 +710,18 @@ export function ChartRow({
       <div className="lg:col-span-2">{children}</div>
       <div className="lg:pt-1">
         <h5 className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
-          {keys.length > 1 ? `Latest · ${latestPeriod ?? ""} · Δ ${deltaLabel}` : `The read · ${latestPeriod ?? ""}`}
+          {tx(keys.length > 1 ? tx("Latest · {0} · Δ {1}", {0: latestPeriod ?? "", 1: deltaLabel}) : tx("The read · {0}", {0: latestPeriod ?? ""}))}
         </h5>
         <table className="w-full border-collapse">
           <tbody>
             {rows.map((r) => (
               <tr key={r.name}>
-                <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{r.name}</td>
+                <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{tx(r.name)}</td>
                 <td className="border-b border-hair py-1.5 text-right font-mono text-[12px] font-semibold text-foreground">
-                  {r.value}
+                  {tx(r.value)}
                 </td>
                 <td className="w-16 border-b border-hair py-1.5 text-right font-mono text-[10.5px] text-faint">
-                  {r.delta}
+                  {tx(r.delta)}
                 </td>
               </tr>
             ))}
@@ -741,6 +753,7 @@ export function ChartFoot({
   deltaPeriods?: number;
   deltaLabel?: string;
 }) {
+  const tx = useText();
   const byKey = new Map<string, { period: string; value: number }[]>();
   for (const r of data) {
     if (r.value == null) continue;
@@ -776,8 +789,8 @@ export function ChartFoot({
     <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
       {items.map((it) => (
         <span key={it.k} className="flex items-baseline gap-1.5">
-          <span className="uppercase tracking-[0.07em]">{it.k}</span>
-          <b className="font-semibold text-foreground">{it.v}</b>
+          <span className="uppercase tracking-[0.07em]">{tx(it.k)}</span>
+          <b className="font-semibold text-foreground">{tx(it.v)}</b>
         </span>
       ))}
     </div>
@@ -798,13 +811,14 @@ export function Depth({
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const tx = useText();
   return (
     <section className="mt-9 border-t-2 border-foreground pt-2">
-      <div className="flex items-baseline gap-2.5">
-        <h2 className="text-[14.5px] font-bold text-foreground">In depth</h2>
-        {action && <span className="ml-2">{action}</span>}
+      <div className="flex flex-wrap items-baseline gap-2.5">
+        <h2 className="text-[14.5px] font-bold text-foreground">{tx("In depth")}</h2>
+        {action && <span className="max-w-full sm:ml-2">{action}</span>}
         <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-          {meta}
+          {tx(meta)}
         </span>
       </div>
       <div className="mt-4 space-y-8">{children}</div>
@@ -814,32 +828,27 @@ export function Depth({
 
 /** Page colophon — sources, rules, no-advice line. */
 export function Colophon({ children }: { children?: React.ReactNode }) {
+  const tx = useText();
   return (
     <footer className="mt-8 border-t border-border pt-2.5 font-mono text-[8.5px] uppercase leading-relaxed tracking-[0.04em] text-faint">
-      {children ??
+      {tx(children ??
         // BIST was removed from this list on 2026-08-04. The lane was retired on
         // 2026-08-01 because Yahoo's terms forbid redistribution, and the colophon
         // kept claiming it — on a site whose whole promise is that the sources are
         // exactly what it says they are. An external reviewer read this line and
         // reported back that carthago carries BIST prices and valuation inputs.
         // Do not re-add a source here before the lane that serves it exists.
-        "Compiled, not written — every figure computed from BDDK · BRSA · TCMB · TÜİK · KAP source series. Flag rules are printed where they fire. No forecasts. Analytical information, not investment advice."}
+        "Compiled, not written — every figure computed from BDDK · BRSA · TCMB · TÜİK · KAP source series. Flag rules are printed where they fire. No forecasts. Analytical information, not investment advice.")}
       {/* Outside the `children ??` fallback on purpose: pages that pass their own
           colophon text still carry the privacy link. A notice reachable only from
           the pages that forgot to override the default is not reachable. */}
       <span className="ml-1">
         ·{" "}
-        <Link href="/about" className="text-primary hover:underline">
-          About
-        </Link>{" "}
+        <Link href="/about" className="text-primary hover:underline">{tx("About")}</Link>{" "}
         ·{" "}
-        <Link href="/methodology" className="text-primary hover:underline">
-          Methodology
-        </Link>{" "}
+        <Link href="/methodology" className="text-primary hover:underline">{tx("Methodology")}</Link>{" "}
         ·{" "}
-        <Link href="/privacy" className="text-primary hover:underline">
-          Privacy
-        </Link>
+        <Link href="/privacy" className="text-primary hover:underline">{tx("Privacy")}</Link>
       </span>
     </footer>
   );

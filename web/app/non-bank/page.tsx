@@ -6,6 +6,8 @@
  * Data: app/lib/non-bank.ts (BDDK BultenAylikBdmk monthly bulletin). The
  * "Share of Banking" sub-page quantifies their penetration of bank business.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getNonBankData, SECTORS, type SectorLatest } from "@/app/lib/non-bank";
@@ -37,11 +39,15 @@ import { nf } from "@/app/lib/chart-format";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Non-Bank Financial Sector",
   description: "Türkiye's non-bank financial sector — leasing, factoring and financing companies and their size relative to banks.",
   alternates: { canonical: "/non-bank" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const fmtTrn = (v: number | null) => (v == null ? "—" : `₺${nf(v / 1_000_000, 2)} trn`);
 const fmtBn = (v: number | null) => (v == null ? "—" : `₺${nf(v / 1_000, 0)} bn`);
@@ -64,6 +70,7 @@ function stackToLong(stack: StackPoint[]): { period: string; bank_type_code: str
 }
 
 export default async function NonBankPage() {
+  const tx = await getText();
   const d = await getNonBankData();
 
   // ---- the brief's computed vitals -----------------------------------------
@@ -103,13 +110,10 @@ export default async function NonBankPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Non-Bank Financial Institutions"
+        title={tx("Non-Bank Financial Institutions")}
         record={
           d.hasData ? (
-            <>
-              Record <b className="font-normal text-foreground">{monthLabel(d.asOfPeriod)}</b> · monthly — leasing ·
-              factoring · financing
-            </>
+            <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(d.asOfPeriod))}</b>{tx(" · monthly — leasing · factoring · financing")}</>
           ) : undefined
         }
         right="every figure computed from source series"
@@ -118,17 +122,17 @@ export default async function NonBankPage() {
       {!d.hasData ? (
         <Section
           className="mt-6"
-          title="No data yet"
-          description="The non-bank sector tables haven't been populated in D1 yet — run the backfill to see the sector here."
+          title={tx("No data yet")}
+          description={tx("The non-bank sector tables haven't been populated in D1 yet — run the backfill to see the sector here.")}
         >
           <div />
         </Section>
       ) : (
         <>
-          <SecHead title="The vitals" meta="level · penetration · mix · momentum" className="mb-2.5 mt-6" />
+          <SecHead title={tx("The vitals")} meta={tx("level · penetration · mix · momentum")} className="mb-2.5 mt-6" />
           <Vitals cols={5}>
             <Vital
-              label="Non-bank assets"
+              label={tx("Non-bank assets")}
               value={`₺${nf(d.nbfiAssets / 1_000_000, 2)}`}
               unit="trn"
               series={totalAssets.slice(-13)}
@@ -137,81 +141,77 @@ export default async function NonBankPage() {
               note={
                 assetsYoY != null ? (
                   <>
-                    {assetsYoY >= 0 ? "+" : "−"}
-                    {Math.abs(assetsYoY).toFixed(1)}% y/y — leasing + factoring + financing
-                  </>
+                    {tx(assetsYoY >= 0 ? "+" : "−")}
+                    {tx(Math.abs(assetsYoY).toFixed(1))}{tx("% y/y — leasing + factoring + financing")}</>
                 ) : (
                   "leasing + factoring + financing"
                 )
               }
             />
             <Vital
-              label="Share of banking assets"
+              label={tx("Share of banking assets")}
               value={d.assetSharePct != null ? d.assetSharePct.toFixed(2) : "—"}
               unit="%"
               series={assetShareSeries.slice(-13)}
               decimals={2}
               note={
                 <>
-                  {assetShareD != null ? `${signedPp(assetShareD, 2)} over 12m — ` : ""}
-                  <Link href="/non-bank/share-of-banking" className="font-semibold text-primary">
-                    /non-bank/share-of-banking
-                  </Link>
+                  {tx(assetShareD != null ? tx("{0} over 12m — ", {0: signedPp(assetShareD, 2)}) : "")}
+                  <Link href="/non-bank/share-of-banking" className="font-semibold text-primary">{tx("/non-bank/share-of-banking")}</Link>
                 </>
               }
             />
             <Vital
-              label="Share of system credit"
+              label={tx("Share of system credit")}
               value={d.creditSharePct != null ? d.creditSharePct.toFixed(2) : "—"}
               unit="%"
               series={creditShareSeries.slice(-13)}
               decimals={2}
               note={
-                <>
-                  book {fmtTrn(d.nbfiCredit)} vs bank loans {fmtTrn(d.bankCredit)}
+                <>{tx("book ")}{tx(fmtTrn(d.nbfiCredit))}{tx(" vs bank loans ")}{tx(fmtTrn(d.bankCredit))}
                 </>
               }
             />
             <Vital
-              label="Largest segment"
+              label={tx("Largest segment")}
               value={largestShare != null ? largestShare.toFixed(0) : "—"}
               unit="%"
-              note={largest ? <>{largest.label} — {fmtBn(largest.assets)} of the sector&rsquo;s assets</> : undefined}
+              note={largest ? <>{tx(largest.label)} — {tx(fmtBn(largest.assets))}{tx(" of the sector’s assets")}</> : undefined}
             />
             <Vital
-              label="Fastest growth, y/y"
+              label={tx("Fastest growth, y/y")}
               value={fastest?.growthYoY != null ? fastest.growthYoY.toFixed(1) : "—"}
               unit="%"
-              note={fastest ? <>{fastest.label} — assets vs a year earlier</> : undefined}
+              note={fastest ? <>{tx(fastest.label)}{tx(" — assets vs a year earlier")}</> : undefined}
             />
           </Vitals>
 
           <Depth action={<GlobalRangeSelector />}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Stat
-                label="Non-bank sector assets"
+                label={tx("Non-bank sector assets")}
                 value={fmtTrn(d.nbfiAssets)}
-                hint={`3 sectors · ${d.asOfLabel}`}
+                hint={tx("3 sectors · {0}", {0: d.asOfLabel})}
                 tone="neutral"
               />
               <Stat
-                label="Share of banking assets"
+                label={tx("Share of banking assets")}
                 value={fmtPct(d.assetSharePct, 2)}
-                hint="non-bank ÷ (banking + non-bank)"
+                hint={tx("non-bank ÷ (banking + non-bank)")}
                 tone="neutral"
               />
               <Stat
-                label="Lending book"
+                label={tx("Lending book")}
                 value={fmtTrn(d.nbfiCredit)}
-                hint={`amortized-cost financing · ${d.asOfLabel}`}
+                hint={tx("amortized-cost financing · {0}", {0: d.asOfLabel})}
                 tone="neutral"
               />
             </div>
 
             <Section
               index="01"
-              title="Sector size over time"
-              description="Total assets of each non-bank sector, Million TL, stacked. Monthly, from 2020 (where the banking aggregate begins)."
+              title={tx("Sector size over time")}
+              description={tx("Total assets of each non-bank sector, Million TL, stacked. Monthly, from 2020 (where the banking aggregate begins).")}
             >
               <ChartRow
                 data={stackLong}
@@ -227,7 +227,7 @@ export default async function NonBankPage() {
                     { key: "factoring", label: "Factoring" },
                     { key: "financing", label: "Financing cos." },
                   ]}
-                  title="Non-bank sector assets (₺ bn, stacked)"
+                  title={tx("Non-bank sector assets (₺ bn, stacked)")}
                   yFormat="bn"
                   colorKeys
                 />
@@ -236,26 +236,26 @@ export default async function NonBankPage() {
 
             <Section
               index="02"
-              title="By sector"
-              description={`Snapshot at ${d.asOfLabel}. The lending book is the sector's amortized-cost financial assets (factoring receivables / lease receivables / financing loans). YoY is the change in total assets vs. a year earlier.`}
+              title={tx("By sector")}
+              description={tx("Snapshot at {0}. The lending book is the sector's amortized-cost financial assets (factoring receivables / lease receivables / financing loans). YoY is the change in total assets vs. a year earlier.", {0: d.asOfLabel})}
             >
               <Table wrapperClassName="rounded-[10px] border border-border bg-card">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead>Sector</TableHead>
-                    <TableHead className="text-right">Assets (₺ bn)</TableHead>
-                    <TableHead className="text-right">Lending book (₺ bn)</TableHead>
-                    <TableHead className="text-right">Equity (₺ bn)</TableHead>
-                    <TableHead className="text-right">YoY assets</TableHead>
+                    <TableHead>{tx("Sector")}</TableHead>
+                    <TableHead className="text-right">{tx("Assets (₺ bn)")}</TableHead>
+                    <TableHead className="text-right">{tx("Lending book (₺ bn)")}</TableHead>
+                    <TableHead className="text-right">{tx("Equity (₺ bn)")}</TableHead>
+                    <TableHead className="text-right">{tx("YoY assets")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {d.sectors.map((s: SectorLatest) => (
                     <TableRow key={s.code}>
-                      <TableCell>{s.label}</TableCell>
-                      <TableCellNum>{fmtBn(s.assets)}</TableCellNum>
-                      <TableCellNum>{fmtBn(s.credit)}</TableCellNum>
-                      <TableCellNum>{fmtBn(s.equity)}</TableCellNum>
+                      <TableCell>{tx(s.label)}</TableCell>
+                      <TableCellNum>{tx(fmtBn(s.assets))}</TableCellNum>
+                      <TableCellNum>{tx(fmtBn(s.credit))}</TableCellNum>
+                      <TableCellNum>{tx(fmtBn(s.equity))}</TableCellNum>
                       {/* Growth column: green genuinely means "good" here. */}
                       <TableCellNum
                         tone={
@@ -264,25 +264,18 @@ export default async function NonBankPage() {
                             : toneFor(s.growthYoY)
                         }
                       >
-                        {fmtPct(s.growthYoY)}
+                        {tx(fmtPct(s.growthYoY))}
                       </TableCellNum>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-              <p className="text-xs text-muted-foreground">
-                Want the penetration view?{" "}
-                <Link href="/non-bank/share-of-banking" className="text-primary hover:underline">
-                  Share of Banking →
-                </Link>
+              <p className="text-xs text-muted-foreground">{tx("Want the penetration view?")}{" "}
+                <Link href="/non-bank/share-of-banking" className="text-primary hover:underline">{tx("Share of Banking →")}</Link>
               </p>
             </Section>
 
-            <p className="text-xs text-muted-foreground">
-              Scope: the three credit-substitution sectors. Asset-management (VYŞ) — a complement that
-              buys NPLs from banks — and savings-finance are not included here. Source: BDDK monthly
-              bulletin (BultenAylikBdmk); reconciles to FKB published sector totals.
-            </p>
+            <p className="text-xs text-muted-foreground">{tx("Scope: the three credit-substitution sectors. Asset-management (VYŞ) — a complement that buys NPLs from banks — and savings-finance are not included here. Source: BDDK monthly bulletin (BultenAylikBdmk); reconciles to FKB published sector totals.")}</p>
           </Depth>
         </>
       )}

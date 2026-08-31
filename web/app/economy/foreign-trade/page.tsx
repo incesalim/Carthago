@@ -11,6 +11,8 @@
  * "The Desk" (web/DESIGN.md): a computed brief (record line + vitals band)
  * above the full report, which is carried over intact under <Depth>.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getForeignTradeData } from "@/app/lib/foreign-trade";
@@ -41,11 +43,15 @@ import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkey Foreign Trade",
   description: "Türkiye's foreign trade — exports, imports and the trade balance by broad economic category.",
   alternates: { canonical: "/economy/foreign-trade" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const INK = { light: "#171717", dark: "#ededed" };
@@ -84,6 +90,7 @@ function topSeries(rec: Record<string, { value: number }[]>): string | null {
 }
 
 export default async function ForeignTradePage() {
+  const tx = await getText();
   const [d, ahead] = await Promise.all([getForeignTradeData(), aheadSlots()]);
 
   // The section reads — the trade gap and the leading BEC groups, off the charts'
@@ -138,7 +145,7 @@ export default async function ForeignTradePage() {
     imports12m: impS,
     coverage: covS,
     terms: termsS,
-  });
+  }, tx.locale);
 
   // ---- movers: the 12-month sums, this month against last ------------------
   // One customs release, one 12-month basis, so a single from→to header is
@@ -176,65 +183,38 @@ export default async function ForeignTradePage() {
       k: "Trade balance, 12m",
       v: bal12 != null ? `$${Math.abs(bal12).toFixed(1)}bn` : "—",
       effect: (
-        <>
-          The goods gap is the largest single line in the{" "}
-          <Link href="/economy/balance-of-payments" className="font-semibold text-primary">
-            current account
-          </Link>
-          , so it is the main driver of the external financing need the banks help
-          fund.
-        </>
+        <>{tx("The goods gap is the largest single line in the")}{" "}
+          <Link href="/economy/balance-of-payments" className="font-semibold text-primary">{tx("current account")}</Link>{tx(", so it is the main driver of the external financing need the banks help fund.")}</>
       ),
     },
     {
       k: "Energy bill, 12m",
       v: energy12 != null ? `$${Math.abs(energy12).toFixed(1)}bn` : "—",
       effect: (
-        <>
-          The part of the gap set abroad. Energy is priced in dollars and consumed
-          regardless of the lira, which is why the ex-energy balance is the read on
-          what domestic policy can actually move.
-        </>
+        <>{tx("The part of the gap set abroad. Energy is priced in dollars and consumed regardless of the lira, which is why the ex-energy balance is the read on what domestic policy can actually move.")}</>
       ),
     },
     {
       k: "Coverage ratio",
       v: cov != null ? `${cov.toFixed(1)}%` : "—",
       effect: (
-        <>
-          How much of the import bill exports pay for. The shortfall has to be
-          borrowed or drawn from reserves every year it persists —{" "}
-          <Link href="/economy" className="font-semibold text-primary">
-            the buffer
-          </Link>{" "}
-          is the other half of that sentence.
-        </>
+        <>{tx("How much of the import bill exports pay for. The shortfall has to be borrowed or drawn from reserves every year it persists —")}{" "}
+          <Link href="/economy" className="font-semibold text-primary">{tx("the buffer")}</Link>{" "}{tx("is the other half of that sentence.")}</>
       ),
     },
     {
       k: "Terms of trade",
       v: termsNow != null ? termsNow.toFixed(1) : "—",
       effect: (
-        <>
-          Export prices against import prices. A higher index buys more imports per
-          unit exported, so it moves the gap without any change in volume — a price
-          effect that is easy to misread as a demand one.
-        </>
+        <>{tx("Export prices against import prices. A higher index buys more imports per unit exported, so it moves the gap without any change in volume — a price effect that is easy to misread as a demand one.")}</>
       ),
     },
     {
       k: "Exporters' FX",
       v: expYoY != null ? `${expYoY >= 0 ? "" : "−"}${Math.abs(expYoY).toFixed(1)}%` : "—",
       effect: (
-        <>
-          Export growth y/y on 12-month sums. Exporters are the system&rsquo;s natural
-          source of foreign currency and a core commercial-banking segment — their
-          receipts are an FC{" "}
-          <Link href="/liquidity" className="font-semibold text-primary">
-            funding
-          </Link>{" "}
-          input, not just a trade statistic.
-        </>
+        <>{tx("Export growth y/y on 12-month sums. Exporters are the system’s natural source of foreign currency and a core commercial-banking segment — their receipts are an FC")}{" "}
+          <Link href="/liquidity" className="font-semibold text-primary">{tx("funding")}</Link>{" "}{tx("input, not just a trade statistic.")}</>
       ),
     },
   ];
@@ -247,16 +227,10 @@ export default async function ForeignTradePage() {
       rule: "exports_12m / imports_12m < 70%",
       body: (
         <>
-          <b className="font-semibold">Exports cover under 70% of the import bill.</b>{" "}
-          At {cov?.toFixed(1)}%, close to a third of imports is funded from something
-          other than export earnings.
-        </>
+          <b className="font-semibold">{tx("Exports cover under 70% of the import bill.")}</b>{" "}{tx("At ")}{tx(cov?.toFixed(1))}{tx("%, close to a third of imports is funded from something other than export earnings.")}</>
       ),
       clear: (
-        <>
-          Exports cover {cov != null ? `${cov.toFixed(1)}%` : "—"} of imports — at or
-          above the 70% line.
-        </>
+        <>{tx("Exports cover ")}{tx(cov != null ? `${cov.toFixed(1)}%` : "—")}{tx(" of imports — at or above the 70% line.")}</>
       ),
     },
     {
@@ -267,18 +241,11 @@ export default async function ForeignTradePage() {
       rule: "|energy_balance_12m| / |trade_balance_12m| > 50%",
       body: (
         <>
-          <b className="font-semibold">Energy is more than half the goods gap.</b> $
-          {energy12 != null ? Math.abs(energy12).toFixed(1) : "—"}bn of a $
-          {bal12 != null ? Math.abs(bal12).toFixed(1) : "—"}bn deficit — a gap set by
-          world prices rather than domestic demand.
-        </>
+          <b className="font-semibold">{tx("Energy is more than half the goods gap.")}</b> $
+          {tx(energy12 != null ? Math.abs(energy12).toFixed(1) : "—")}{tx("bn of a $")}{tx(bal12 != null ? Math.abs(bal12).toFixed(1) : "—")}{tx("bn deficit — a gap set by world prices rather than domestic demand.")}</>
       ),
       clear: (
-        <>
-          Energy is $
-          {energy12 != null ? Math.abs(energy12).toFixed(1) : "—"}bn of the $
-          {bal12 != null ? Math.abs(bal12).toFixed(1) : "—"}bn gap — inside half.
-        </>
+        <>{tx("Energy is $")}{tx(energy12 != null ? Math.abs(energy12).toFixed(1) : "—")}{tx("bn of the $")}{tx(bal12 != null ? Math.abs(bal12).toFixed(1) : "—")}{tx("bn gap — inside half.")}</>
       ),
     },
     {
@@ -287,16 +254,11 @@ export default async function ForeignTradePage() {
       rule: "imports_yoy > exports_yoy (12m sums)",
       body: (
         <>
-          <b className="font-semibold">Imports grow faster than exports.</b> Imports at{" "}
-          {impYoY?.toFixed(1)}% y/y against exports at {expYoY?.toFixed(1)}% — the gap
-          widens on volume, before any price effect.
-        </>
+          <b className="font-semibold">{tx("Imports grow faster than exports.")}</b>{tx(" Imports at")}{" "}
+          {tx(impYoY?.toFixed(1))}{tx("% y/y against exports at ")}{tx(expYoY?.toFixed(1))}{tx("% — the gap widens on volume, before any price effect.")}</>
       ),
       clear: (
-        <>
-          Exports ({expYoY != null ? `${expYoY.toFixed(1)}%` : "—"}) grow at or above
-          imports ({impYoY != null ? `${impYoY.toFixed(1)}%` : "—"}) on 12-month sums.
-        </>
+        <>{tx("Exports (")}{tx(expYoY != null ? `${expYoY.toFixed(1)}%` : "—")}{tx(") grow at or above imports (")}{tx(impYoY != null ? `${impYoY.toFixed(1)}%` : "—")}{tx(") on 12-month sums.")}</>
       ),
     },
     {
@@ -305,49 +267,41 @@ export default async function ForeignTradePage() {
       rule: "exports_12m_yoy < 0",
       body: (
         <>
-          <b className="font-semibold">Export earnings are below their year-ago level.</b>{" "}
-          {expYoY?.toFixed(1)}% y/y on trailing-12-month sums — the economy&rsquo;s
-          primary source of foreign currency.
-        </>
+          <b className="font-semibold">{tx("Export earnings are below their year-ago level.")}</b>{" "}
+          {tx(expYoY?.toFixed(1))}{tx("% y/y on trailing-12-month sums — the economy’s primary source of foreign currency.")}</>
       ),
       clear: (
-        <>
-          12-month exports are {expYoY != null ? `${expYoY.toFixed(1)}%` : "—"} y/y — at
-          or above their year-ago level.
-        </>
+        <>{tx("12-month exports are ")}{tx(expYoY != null ? `${expYoY.toFixed(1)}%` : "—")}{tx(" y/y — at or above their year-ago level.")}</>
       ),
     },
   ];
 
   const aheadItems = [
-    { when: "~1st", what: <>TÜİK / Ministry of Trade provisional foreign-trade figures</> },
-    { when: "~end", what: <>TÜİK final foreign-trade statistics for the month</> },
-    { when: "~11th", what: <>TCMB balance of payments — where this gap lands</>, href: "/economy/balance-of-payments" },
-    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision</>, href: "/rates" }] : []),
+    { when: "~1st", what: <>{tx("TÜİK / Ministry of Trade provisional foreign-trade figures")}</> },
+    { when: "~end", what: <>{tx("TÜİK final foreign-trade statistics for the month")}</> },
+    { when: "~11th", what: <>{tx("TCMB balance of payments — where this gap lands")}</>, href: "/economy/balance-of-payments" },
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision")}</>, href: "/rates" }] : []),
   ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Foreign Trade"
+        title={tx("Foreign Trade")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{monthLabel(recP ?? d.latestPeriod)}</b>{" "}
-            · vs {monthLabel(prevP, false)} · 12m rolling sums
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(recP ?? d.latestPeriod))}</b>{" "}{tx("· vs ")}{tx(monthLabel(prevP, false))}{tx(" · 12m rolling sums")}</>
         }
         right="every figure computed from source series"
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="tüik customs · trailing-12-month sums, usd bn"
+        title={tx("The vitals")}
+        meta={tx("tüik customs · trailing-12-month sums, usd bn")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={5}>
         <Vital
-          label="Exports · 12m"
+          label={tx("Exports · 12m")}
           value={nf1(exp12)}
           unit="$bn"
           series={expS.slice(-13)}
@@ -358,17 +312,16 @@ export default async function ForeignTradePage() {
               {expYoY != null && (
                 <>
                   <b className={expYoY >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                    {sPct(expYoY)}
+                    {tx(sPct(expYoY))}
                   </b>{" "}
                   y/y ·{" "}
                 </>
               )}
-              ${nf1(d.expQ)}bn in the last 3 months
-            </>
+              ${tx(nf1(d.expQ))}{tx("bn in the last 3 months")}</>
           }
         />
         <Vital
-          label="Imports · 12m"
+          label={tx("Imports · 12m")}
           value={nf1(imp12)}
           unit="$bn"
           series={impS.slice(-13)}
@@ -379,17 +332,16 @@ export default async function ForeignTradePage() {
               {impYoY != null && (
                 <>
                   <b className={impYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                    {sPct(impYoY)}
+                    {tx(sPct(impYoY))}
                   </b>{" "}
                   y/y ·{" "}
                 </>
               )}
-              ${nf1(d.impQ)}bn in the last 3 months
-            </>
+              ${tx(nf1(d.impQ))}{tx("bn in the last 3 months")}</>
           }
         />
         <Vital
-          label="Trade deficit · 12m"
+          label={tx("Trade deficit · 12m")}
           value={bal12 != null ? nf1(Math.abs(bal12)) : "—"}
           unit="$bn"
           series={balS.slice(-13)}
@@ -397,13 +349,13 @@ export default async function ForeignTradePage() {
           decimals={0}
           note={
             <>
-              {energy12 != null && <>energy bill ${nf1(Math.abs(energy12))}bn · </>}
-              {exEn12 != null && <>ex-energy gap ${nf1(Math.abs(exEn12))}bn</>}
+              {energy12 != null && <>{tx("energy bill $")}{tx(nf1(Math.abs(energy12)))}{tx("bn · ")}</>}
+              {exEn12 != null && <>{tx("ex-energy gap $")}{tx(nf1(Math.abs(exEn12)))}{tx("bn")}</>}
             </>
           }
         />
         <Vital
-          label="Coverage ratio · 12m"
+          label={tx("Coverage ratio · 12m")}
           value={cov != null ? cov.toFixed(1) : "—"}
           unit="%"
           series={covS.slice(-13)}
@@ -412,17 +364,15 @@ export default async function ForeignTradePage() {
             covD != null ? (
               <>
                 <b className={covD >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                  {signedPp(covD, 1)}
-                </b>{" "}
-                y/y — exports fund this much of the import bill
-              </>
+                  {tx(signedPp(covD, 1))}
+                </b>{" "}{tx("y/y — exports fund this much of the import bill")}</>
             ) : (
               "exports ÷ imports, 12m sums"
             )
           }
         />
         <Vital
-          label="Brent"
+          label={tx("Brent")}
           value={brentNow != null ? brentNow.toFixed(1) : "—"}
           unit="$/bbl"
           series={brentS.slice(-13)}
@@ -433,15 +383,12 @@ export default async function ForeignTradePage() {
               {brentYoY != null && (
                 <>
                   <b className={brentYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                    {sPct(brentYoY, 0)}
+                    {tx(sPct(brentYoY, 0))}
                   </b>{" "}
                   y/y ·{" "}
                 </>
-              )}
-              the energy bill&rsquo;s single driver —{" "}
-              <Link href="/economy" className="font-semibold text-primary">
-                /economy
-              </Link>
+              )}{tx("the energy bill’s single driver —")}{" "}
+              <Link href="/economy" className="font-semibold text-primary">{tx("/economy")}</Link>
             </>
           }
         />
@@ -456,8 +403,8 @@ export default async function ForeignTradePage() {
       <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
         <div>
           <SecHead
-            title="The 12-month sums"
-            meta="consecutive rolling windows · one customs release"
+            title={tx("The 12-month sums")}
+            meta={tx("consecutive rolling windows · one customs release")}
             className="mb-2.5"
           />
           <Movers
@@ -467,7 +414,7 @@ export default async function ForeignTradePage() {
           />
         </div>
         <div>
-          <SecHead title="Transmission" meta="the goods gap → the banks · computed" className="mb-2.5" />
+          <SecHead title={tx("Transmission")} meta={tx("the goods gap → the banks · computed")} className="mb-2.5" />
           <Transmission items={transmission} />
         </div>
       </div>
@@ -475,7 +422,7 @@ export default async function ForeignTradePage() {
       {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
         <div>
-          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
             flags={flagList}
             showCleared
@@ -483,55 +430,53 @@ export default async function ForeignTradePage() {
           />
         </div>
         <div>
-          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
           <Ahead items={aheadItems} />
         </div>
       </div>
 
       <Depth action={<GlobalRangeSelector />}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Stat label="Exports · last 3 months" value={`$${nf1(d.expQ)} bn`} hint={`customs · to ${d.asOfLabel}`} tone="positive" />
-          <Stat label="Imports · last 3 months" value={`$${nf1(d.impQ)} bn`} hint={`customs · to ${d.asOfLabel}`} tone="neutral" />
-          <Stat label="Trade deficit · last 3 months" value={`$${nf1(d.deficitQ)} bn`} hint={`imports − exports · to ${d.asOfLabel}`} tone="negative" />
+          <Stat label={tx("Exports · last 3 months")} value={`$${nf1(d.expQ)} bn`} hint={tx("customs · to {0}", {0: d.asOfLabel})} tone="positive" />
+          <Stat label={tx("Imports · last 3 months")} value={`$${nf1(d.impQ)} bn`} hint={tx("customs · to {0}", {0: d.asOfLabel})} tone="neutral" />
+          <Stat label={tx("Trade deficit · last 3 months")} value={`$${nf1(d.deficitQ)} bn`} hint={tx("imports − exports · to {0}", {0: d.asOfLabel})} tone="negative" />
         </div>
 
         <Section
-          title="Trade Balance"
-          description="Annualised (trailing-12-month) customs trade balance, USD bn. The ex-energy line strips out the energy bill — the dominant swing factor."
+          title={tx("Trade Balance")}
+          description={tx("Annualised (trailing-12-month) customs trade balance, USD bn. The ex-energy line strips out the energy bill — the dominant swing factor.")}
         >
           <Grid>
-            <TimeSeriesChart series={d.s1} title="Şekil 1 · Trade Balance (12m rolling, USD bn)" yFormat="raw" decimals={1} />
-            <TimeSeriesChart series={d.coverage} title="Şekil 4 · Export/Import Coverage Ratio (12m, %)" yFormat="pct" decimals={1} />
+            <TimeSeriesChart series={d.s1} title={tx("Şekil 1 · Trade Balance (12m rolling, USD bn)")} yFormat="raw" decimals={1} />
+            <TimeSeriesChart series={d.coverage} title={tx("Şekil 4 · Export/Import Coverage Ratio (12m, %)")} yFormat="pct" decimals={1} />
           </Grid>
         </Section>
 
         <Section
-          title="Exports & Imports"
+          title={tx("Exports & Imports")}
           description={
-            gap != null
-              ? `Annualised level (USD bn) and annual growth. Imports run $${Math.abs(gap).toFixed(0)}bn ${
-                  gap > 0 ? "above" : "below"
-                } exports — the structural trade gap.`
-              : "Annualised level (USD bn) and annual growth."
+            tx(gap != null
+              ? tx("Annualised level (USD bn) and annual growth. Imports run ${0}bn {1} exports — the structural trade gap.", {0: Math.abs(gap).toFixed(0), 1: gap > 0 ? "above" : "below"})
+              : "Annualised level (USD bn) and annual growth.")
           }
         >
           <Grid>
-            <TimeSeriesChart series={d.levels} title="Şekil 2–3 · Exports & Imports (12m rolling, USD bn)" yFormat="raw" decimals={0} />
-            <TimeSeriesChart series={d.growth} title="Export & Import Growth (y/y %)" yFormat="pct" decimals={0} />
+            <TimeSeriesChart series={d.levels} title={tx("Şekil 2–3 · Exports & Imports (12m rolling, USD bn)")} yFormat="raw" decimals={0} />
+            <TimeSeriesChart series={d.growth} title={tx("Export & Import Growth (y/y %)")} yFormat="pct" decimals={0} />
           </Grid>
         </Section>
 
         <Section
-          title="By Product Group (BEC)"
+          title={tx("By Product Group (BEC)")}
           description={
-            becImpTop && becExpTop
-              ? `Broad Economic Categories, annualised USD bn. ${becImpTop} lead imports; ${becExpTop} lead exports.`
-              : "Broad Economic Categories, annualised USD bn."
+            tx(becImpTop && becExpTop
+              ? tx("Broad Economic Categories, annualised USD bn. {0} lead imports; {1} lead exports.", {0: becImpTop, 1: becExpTop})
+              : "Broad Economic Categories, annualised USD bn.")
           }
         >
           <Grid>
-            <TimeSeriesChart series={d.becExp} title="Şekil 6 · Exports by BEC Group (12m, USD bn)" yFormat="raw" decimals={0} />
-            <TimeSeriesChart series={d.becImp} title="Şekil 7 · Imports by BEC Group (12m, USD bn)" yFormat="raw" decimals={0} />
+            <TimeSeriesChart series={d.becExp} title={tx("Şekil 6 · Exports by BEC Group (12m, USD bn)")} yFormat="raw" decimals={0} />
+            <TimeSeriesChart series={d.becImp} title={tx("Şekil 7 · Imports by BEC Group (12m, USD bn)")} yFormat="raw" decimals={0} />
           </Grid>
         </Section>
 
@@ -539,12 +484,12 @@ export default async function ForeignTradePage() {
             the trade gap" is a correlation claim we never computed. The charts show
             both series; the reader can see the co-movement without being told. */}
         <Section
-          title="Terms of Trade & Energy"
-          description="Terms of trade = export unit-value ÷ import unit-value (2015=100), against the energy balance and Brent."
+          title={tx("Terms of Trade & Energy")}
+          description={tx("Terms of trade = export unit-value ÷ import unit-value (2015=100), against the energy balance and Brent.")}
         >
           <Grid>
-            <TimeSeriesChart series={d.terms} title="Şekil 5 · Terms of Trade (%)" yFormat="rate" decimals={1} />
-            <ChartCard title="Şekil 8 · Energy Deficit (12m, USD bn) & Brent ($/bbl)">
+            <TimeSeriesChart series={d.terms} title={tx("Şekil 5 · Terms of Trade (%)")} yFormat="rate" decimals={1} />
+            <ChartCard title={tx("Şekil 8 · Energy Deficit (12m, USD bn) & Brent ($/bbl)")}>
               <BopFlowChart
                 data={d.energy}
                 bars={[{ key: "deficit", label: "Energy deficit (12m)", fill: MAROON }] satisfies BarSeries[]}
@@ -555,24 +500,12 @@ export default async function ForeignTradePage() {
           </Grid>
         </Section>
 
-        <p className="text-xs text-muted-foreground">
-          Source: TÜİK (TurkStat) foreign-trade statistics + Brent via TCMB EVDS.
-          Two elements are not shown: the «Çekirdek Denge» (core balance) line,
-          which doesn&apos;t reconcile from EVDS primitives; and the HS-chapter
-          («Fasıl») trade tables, which live only in TÜİK&apos;s dynamic
-          foreign-trade database, not EVDS.{" "}
-          <Link href="/economy/balance-of-payments" className="text-primary hover:underline">
-            Balance of Payments →
-          </Link>
+        <p className="text-xs text-muted-foreground">{tx("Source: TÜİK (TurkStat) foreign-trade statistics + Brent via TCMB EVDS. Two elements are not shown: the «Çekirdek Denge» (core balance) line, which doesn't reconcile from EVDS primitives; and the HS-chapter («Fasıl») trade tables, which live only in TÜİK's dynamic foreign-trade database, not EVDS.")}{" "}
+          <Link href="/economy/balance-of-payments" className="text-primary hover:underline">{tx("Balance of Payments →")}</Link>
         </p>
       </Depth>
 
-      <Colophon>
-        Compiled, not written — every figure computed from TÜİK (TurkStat) customs foreign-trade
-        series and Brent, via TCMB EVDS. 12-month figures are trailing rolling sums; the coverage
-        ratio is exports ÷ imports on those sums. No forecasts. Analytical information, not
-        investment advice.
-      </Colophon>
+      <Colophon>{tx("Compiled, not written — every figure computed from TÜİK (TurkStat) customs foreign-trade series and Brent, via TCMB EVDS. 12-month figures are trailing rolling sums; the coverage ratio is exports ÷ imports on those sums. No forecasts. Analytical information, not investment advice.")}</Colophon>
     </main>
   );
 }

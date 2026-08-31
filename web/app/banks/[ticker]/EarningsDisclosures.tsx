@@ -4,6 +4,7 @@
  * (matches the "Fresh / Flat" mock). Each is capped to the latest few items;
  * the headers link out to the full /earnings and /disclosures tabs.
  */
+import { useText } from "@/i18n/use-text";
 import Link from "next/link";
 import type { EarningsEvent } from "@/app/lib/earnings";
 import type { NewsItem } from "@/app/lib/news";
@@ -45,6 +46,7 @@ export default function EarningsDisclosures({
   disclosures: NewsItem[];
   ticker: string;
 }) {
+  const tx = useText();
   const results = earnings.slice(0, 6);
   const kap = disclosures.slice(0, 6);
 
@@ -52,15 +54,11 @@ export default function EarningsDisclosures({
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="p-5">
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <div className="text-sm font-bold text-foreground">
-            Quarterly results &amp; presentations
-          </div>
-          <Link href="/actions" className="text-xs text-muted-foreground hover:text-foreground">
-            all banks →
-          </Link>
+          <div className="text-sm font-bold text-foreground">{tx("Quarterly results & presentations")}</div>
+          <Link href="/actions" className="text-xs text-muted-foreground hover:text-foreground">{tx("all banks →")}</Link>
         </div>
         {results.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground">None cached.</div>
+          <div className="text-xs italic text-muted-foreground">{tx("None cached.")}</div>
         ) : (
           <ul className="space-y-3">
             {results.map((e) => (
@@ -72,15 +70,15 @@ export default function EarningsDisclosures({
                   className="-mx-2 block rounded-lg px-2 py-1 transition hover:bg-accent"
                 >
                   <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
-                    <span className={`font-bold ${tagClass(e.kind)}`}>{tagOf(e.kind)}</span>
+                    <span className={`font-bold ${tagClass(e.kind)}`}>{tx(tagOf(e.kind))}</span>
                     {e.period && (
                       <span className="tabular-nums text-muted-foreground">
-                        {fmtPeriod(e.period)}
+                        {tx(fmtPeriod(e.period))}
                       </span>
                     )}
                   </div>
                   <div className="mt-0.5 leading-snug text-foreground line-clamp-2">
-                    {e.title ?? "—"}
+                    <span translate="no">{e.title ?? "—"}</span>
                   </div>
                 </a>
               </li>
@@ -91,18 +89,17 @@ export default function EarningsDisclosures({
 
       <Card className="p-5">
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <div className="text-sm font-bold text-foreground">Recent KAP disclosures</div>
+          <div className="text-sm font-bold text-foreground">{tx("Recent KAP disclosures")}</div>
           {kap.length > 0 && (
             <Link
               href={`/actions?ticker=${ticker}`}
               className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              all {ticker} →
+            >{tx("all ")}{tx(ticker)} →
             </Link>
           )}
         </div>
         {kap.length === 0 ? (
-          <div className="text-xs italic text-muted-foreground">No disclosures cached.</div>
+          <div className="text-xs italic text-muted-foreground">{tx("No disclosures cached.")}</div>
         ) : (
           <ul className="space-y-3">
             {kap.map((it) => (
@@ -114,10 +111,10 @@ export default function EarningsDisclosures({
                   className="-mx-2 block rounded-lg px-2 py-1 transition hover:bg-accent"
                 >
                   <div className="text-[10px] uppercase tracking-wide tabular-nums text-muted-foreground">
-                    {fmtDate(it.published_at)}
+                    {tx(fmtDate(it.published_at))}
                   </div>
                   <div className="mt-0.5 leading-snug text-foreground line-clamp-2">
-                    {it.title}
+                    <span lang={it.language} translate="no">{it.title}</span>
                   </div>
                 </a>
               </li>

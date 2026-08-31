@@ -11,6 +11,7 @@
  * The net figure is printed under each year, and formation carries the hero mark,
  * because the finding is that formation is running away from exits.
  */
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   BarChart,
@@ -39,11 +40,12 @@ export default function FormationBars({
   data: RollForwardYear[];
   height?: number;
 }) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
 
   if (data.length === 0) {
-    return <p className="py-6 text-[12px] text-faint">The audited roll-forward has no full year yet.</p>;
+    return <p className="py-6 text-[12px] text-faint">{tx("The audited roll-forward has no full year yet.")}</p>;
   }
 
   const rows = data.map((y) => ({
@@ -57,12 +59,10 @@ export default function FormationBars({
     <div>
       <div className="mb-1 flex items-center gap-3 font-mono text-[9px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2.5" style={{ background: t.negative }} /> formation
-        </span>
+          <span className="inline-block h-2 w-2.5" style={{ background: t.negative }} />{tx(" formation")}</span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2.5" style={{ background: t.context }} /> exits
-        </span>
-        <span className="text-faint">₺bn · net formation below each year</span>
+          <span className="inline-block h-2 w-2.5" style={{ background: t.context }} />{tx(" exits")}</span>
+        <span className="text-faint">{tx("₺bn · net formation below each year")}</span>
       </div>
 
       <ResponsiveContainer width="100%" height={height}>

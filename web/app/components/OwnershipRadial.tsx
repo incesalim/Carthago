@@ -11,6 +11,7 @@
  * The SVG fan itself is exported as `RadialFanView` so the /ownership sector
  * network reuses it in focus mode (with refocus hooks for bank-linked nodes).
  */
+import { useText } from "@/i18n/use-text";
 import { useMemo, useState } from "react";
 import type { KapOwnershipRow } from "@/app/lib/kap";
 import {
@@ -58,6 +59,7 @@ export function RadialFanView({
   onBankRefClick,
   sharedLookup,
 }: RadialFanProps) {
+  const tx = useText();
   const t = useChartTheme();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export function RadialFanView({
               fontSize={10}
               className={active ? "fill-foreground font-medium" : "fill-muted-foreground"}
             >
-              {trimLabel(p.leaf.label)}
+              {tx(trimLabel(p.leaf.label))}
             </text>
           </g>
         );
@@ -150,7 +152,7 @@ export function RadialFanView({
         viewBox={`0 0 ${W} ${H}`}
         className="w-full h-auto select-none"
         role="img"
-        aria-label={`Ownership map of ${bankDisplayName(ticker)}`}
+        aria-label={tx("Ownership map of {0}", {0: bankDisplayName(ticker)})}
       >
         <rect
           width={W}
@@ -158,8 +160,8 @@ export function RadialFanView({
           fill="transparent"
           onClick={() => setSelectedId(null)}
         />
-        {renderSide("top", layout.top)}
-        {renderSide("bottom", layout.bottom)}
+        {tx(renderSide("top", layout.top))}
+        {tx(renderSide("bottom", layout.bottom))}
 
         {/* Center bank node */}
         <g
@@ -189,20 +191,16 @@ export function RadialFanView({
             fontWeight={600}
             fill="#fff"
           >
-            {ticker}
+            {tx(ticker)}
           </text>
         </g>
 
         {/* Arc captions */}
         {holders.length > 0 && (
-          <text x={12} y={16} fontSize={10} className="fill-muted-foreground uppercase tracking-wide">
-            Shareholders
-          </text>
+          <text x={12} y={16} fontSize={10} className="fill-muted-foreground uppercase tracking-wide">{tx("Shareholders")}</text>
         )}
         {subs.length > 0 && (
-          <text x={12} y={H - 8} fontSize={10} className="fill-muted-foreground uppercase tracking-wide">
-            Subsidiaries &amp; investments
-          </text>
+          <text x={12} y={H - 8} fontSize={10} className="fill-muted-foreground uppercase tracking-wide">{tx("Subsidiaries & investments")}</text>
         )}
       </svg>
 
@@ -216,27 +214,26 @@ export function RadialFanView({
             transform: `translate(${hovered.x > cx ? "-104%" : "10px"}, -50%)`,
           }}
         >
-          <div className="font-medium text-foreground">{hovered.leaf.fullName}</div>
+          <div className="font-medium text-foreground">{tx(hovered.leaf.fullName)}</div>
           <div className="mt-1 space-y-0.5 text-muted-foreground">
             <div>
-              {hovered.leaf.kind === "holder" ? "Share" : "Ownership"}:{" "}
-              <span className="tabular-nums text-foreground">{fmtPct(hovered.leaf.ratioPct)}</span>
+              {tx(hovered.leaf.kind === "holder" ? "Share" : "Ownership")}:{" "}
+              <span className="tabular-nums text-foreground">{tx(fmtPct(hovered.leaf.ratioPct))}</span>
             </div>
             {hovered.leaf.kind === "holder" && hovered.leaf.votingPct != null && (
-              <div>
-                Voting: <span className="tabular-nums">{fmtPct(hovered.leaf.votingPct)}</span>
+              <div>{tx("Voting: ")}<span className="tabular-nums">{tx(fmtPct(hovered.leaf.votingPct))}</span>
               </div>
             )}
             {hovered.leaf.kind === "sub" && (
               <>
-                <div>Capital share: {fmtAmount(hovered.leaf.shareAmt, hovered.leaf.currency)}</div>
-                <div>Relation: {relationLabel(hovered.leaf.relation)}</div>
+                <div>{tx("Capital share: ")}{tx(fmtAmount(hovered.leaf.shareAmt, hovered.leaf.currency))}</div>
+                <div>{tx("Relation: ")}{tx(relationLabel(hovered.leaf.relation))}</div>
               </>
             )}
             {hovered.leaf.activity && (
-              <div className="line-clamp-3">{hovered.leaf.activity}</div>
+              <div className="line-clamp-3">{tx(hovered.leaf.activity)}</div>
             )}
-            {fmtAsOf(hovered.leaf.asOf) && <div>Filed {fmtAsOf(hovered.leaf.asOf)}</div>}
+            {fmtAsOf(hovered.leaf.asOf) && <div>{tx("Filed ")}{tx(fmtAsOf(hovered.leaf.asOf))}</div>}
           </div>
         </div>
       )}
@@ -279,25 +276,23 @@ function CenterPanel({
   nHolders: number;
   nSubs: number;
 }) {
+  const tx = useText();
   return (
     <div className="space-y-1.5">
-      <div className="font-medium text-foreground">{bankDisplayName(ticker)}</div>
+      <div className="font-medium text-foreground">{tx(bankDisplayName(ticker))}</div>
       <div className="text-muted-foreground">
-        {nHolders} disclosed shareholder{nHolders === 1 ? "" : "s"} ·{" "}
-        {nSubs} subsidiar{nSubs === 1 ? "y" : "ies"} / investments
-        {freeFloatPct != null && <> · free float {fmtPct(freeFloatPct)}</>}
+        {tx(nHolders)}{tx(" disclosed shareholder")}{tx(nHolders === 1 ? "" : "s")} ·{" "}
+        {tx(nSubs)}{tx(" subsidiar")}{tx(nSubs === 1 ? "y" : "ies")}{tx(" / investments")}{freeFloatPct != null && <>{tx(" · free float ")}{tx(fmtPct(freeFloatPct))}</>}
       </div>
       {indirect.length > 0 && (
         <div>
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Indirect (ultimate) holders ≥5%
-          </div>
+          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{tx("Indirect (ultimate) holders ≥5%")}</div>
           {indirect.map((h, i) => (
             <div key={i} className="flex justify-between gap-3 text-muted-foreground">
-              <span className="min-w-0 truncate" title={h.fullName}>
-                {h.fullName}
+              <span className="min-w-0 truncate" title={tx(h.fullName)}>
+                {tx(h.fullName)}
               </span>
-              <span className="shrink-0 tabular-nums">{fmtPct(h.ratioPct)}</span>
+              <span className="shrink-0 tabular-nums">{tx(fmtPct(h.ratioPct))}</span>
             </div>
           ))}
         </div>
@@ -317,17 +312,18 @@ export function LeafPanel({
   onBankRefClick?: (ticker: string) => void;
   focusTicker: string;
 }) {
+  const tx = useText();
   const shared = leaf.sharedKey && sharedLookup ? sharedLookup(leaf.sharedKey) : undefined;
   const otherLinks = shared?.links.filter((l) => l.ticker !== focusTicker) ?? [];
 
   if (leaf.collapsed) {
     return (
       <div className="space-y-1">
-        <div className="font-medium text-foreground">{leaf.fullName}</div>
+        <div className="font-medium text-foreground">{tx(leaf.fullName)}</div>
         {leaf.collapsed.map((c) => (
           <div key={c.id} className="flex justify-between gap-3 text-muted-foreground">
-            <span className="min-w-0 truncate" title={c.fullName}>{c.fullName}</span>
-            <span className="shrink-0 tabular-nums">{fmtPct(c.ratioPct)}</span>
+            <span className="min-w-0 truncate" title={tx(c.fullName)}>{tx(c.fullName)}</span>
+            <span className="shrink-0 tabular-nums">{tx(fmtPct(c.ratioPct))}</span>
           </div>
         ))}
       </div>
@@ -336,34 +332,31 @@ export function LeafPanel({
 
   return (
     <div className="space-y-1">
-      <div className="font-medium text-foreground">{leaf.fullName}</div>
+      <div className="font-medium text-foreground">{tx(leaf.fullName)}</div>
       <div className="grid gap-x-6 gap-y-0.5 text-muted-foreground sm:grid-cols-2">
         <div>
-          {leaf.kind === "holder" ? "Share of capital" : "Bank's ownership"}:{" "}
-          <span className="tabular-nums text-foreground">{fmtPct(leaf.ratioPct)}</span>
+          {tx(leaf.kind === "holder" ? "Share of capital" : "Bank's ownership")}:{" "}
+          <span className="tabular-nums text-foreground">{tx(fmtPct(leaf.ratioPct))}</span>
         </div>
         {leaf.kind === "holder" && leaf.votingPct != null && (
-          <div>
-            Voting rights: <span className="tabular-nums">{fmtPct(leaf.votingPct)}</span>
+          <div>{tx("Voting rights: ")}<span className="tabular-nums">{tx(fmtPct(leaf.votingPct))}</span>
           </div>
         )}
         {leaf.kind === "holder" && leaf.shareAmt != null && (
-          <div>Nominal: {fmtAmount(leaf.shareAmt, "TRY")}</div>
+          <div>{tx("Nominal: ")}{tx(fmtAmount(leaf.shareAmt, "TRY"))}</div>
         )}
         {leaf.kind === "sub" && (
           <>
-            <div>Capital share: {fmtAmount(leaf.shareAmt, leaf.currency)}</div>
-            <div>Relation: {relationLabel(leaf.relation)}</div>
+            <div>{tx("Capital share: ")}{tx(fmtAmount(leaf.shareAmt, leaf.currency))}</div>
+            <div>{tx("Relation: ")}{tx(relationLabel(leaf.relation))}</div>
           </>
         )}
-        {fmtAsOf(leaf.asOf) && <div>Filed {fmtAsOf(leaf.asOf)}</div>}
+        {fmtAsOf(leaf.asOf) && <div>{tx("Filed ")}{tx(fmtAsOf(leaf.asOf))}</div>}
       </div>
-      {leaf.activity && <div className="text-muted-foreground">{leaf.activity}</div>}
+      {leaf.activity && <div className="text-muted-foreground">{tx(leaf.activity)}</div>}
       {otherLinks.length > 0 && (
         <div>
-          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Also linked to
-          </div>
+          <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{tx("Also linked to")}</div>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5">
             {otherLinks.map((l, i) =>
               onBankRefClick ? (
@@ -373,15 +366,15 @@ export function LeafPanel({
                   onClick={() => onBankRefClick(l.ticker)}
                   className="text-foreground underline-offset-2 hover:underline"
                 >
-                  {bankDisplayName(l.ticker)}{" "}
+                  {tx(bankDisplayName(l.ticker))}{" "}
                   <span className="tabular-nums text-muted-foreground">
-                    {fmtPct(l.ratioPct)}
+                    {tx(fmtPct(l.ratioPct))}
                   </span>
                 </button>
               ) : (
                 <span key={i} className="text-muted-foreground">
-                  {bankDisplayName(l.ticker)}{" "}
-                  <span className="tabular-nums">{fmtPct(l.ratioPct)}</span>
+                  {tx(bankDisplayName(l.ticker))}{" "}
+                  <span className="tabular-nums">{tx(fmtPct(l.ratioPct))}</span>
                 </span>
               ),
             )}
@@ -402,16 +395,15 @@ interface Props {
 }
 
 export default function OwnershipRadial({ ticker, rows }: Props) {
+  const tx = useText();
   const nodes = useMemo(() => buildBankNodes(rows), [rows]);
   if (nodes.holders.length === 0 && nodes.subs.length === 0) return null;
 
   return (
     <section className="mb-6 rounded-[10px] border border-border bg-card overflow-hidden">
       <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Ownership map</h2>
-        <span className="text-[11px] text-muted-foreground">
-          hover for details · click to pin
-        </span>
+        <h2 className="text-sm font-semibold text-foreground">{tx("Ownership map")}</h2>
+        <span className="text-[11px] text-muted-foreground">{tx("hover for details · click to pin")}</span>
       </div>
       <div className="px-3 py-2">
         <RadialFanView

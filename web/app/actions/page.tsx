@@ -10,6 +10,9 @@
  *
  * `?ticker=AKBNK` renders one bank's acts (absorbs the old /disclosures?ticker=).
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -31,12 +34,16 @@ import { monthLabel } from "@/app/lib/desk";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banks — Corporate Actions",
   description:
     "What Türkiye's banks are doing, classified from KAP filings: wholesale funding and capital instruments, rights issues and dividends, rating actions, and results season.",
   alternates: { canonical: "/actions" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 interface Props {
   searchParams: Promise<{ ticker?: string }>;
@@ -60,17 +67,18 @@ function fmtPeriod(p: string | null): string {
 /** One classified KAP act as a table row: date · bank · English gloss (with the
  *  Turkish original beneath, so the gloss is checkable) · an optional right cell. */
 function FilingRow({ r, right }: { r: ClassifiedRow; right?: ReactNode }) {
+  const tx = useText();
   return (
     <tr>
       <td className="border-b border-hair py-2 pr-3 align-top font-mono text-[11px] whitespace-nowrap text-muted-foreground tabular-nums">
-        {shortDate(r.published_at)}
+        {tx(shortDate(r.published_at))}
       </td>
       <td className="border-b border-hair py-2 pr-3 align-top">
         <Link
           href={`/actions?ticker=${r.ticker}`}
           className="font-mono text-[11.5px] font-semibold text-foreground hover:text-primary"
         >
-          {r.ticker}
+          {tx(r.ticker)}
         </Link>
       </td>
       <td className="border-b border-hair py-2 pr-3 align-top">
@@ -80,11 +88,11 @@ function FilingRow({ r, right }: { r: ClassifiedRow; right?: ReactNode }) {
           rel="noopener noreferrer"
           className="text-[12.5px] leading-snug text-foreground hover:underline"
         >
-          {r.gloss}
+          {tx(r.gloss)}
         </a>
         {r.summary && r.summary.trim() && (
           <span className="mt-0.5 block text-[10.5px] leading-snug text-faint line-clamp-1">
-            {r.summary}
+            {tx(r.summary)}
           </span>
         )}
       </td>
@@ -96,6 +104,7 @@ function FilingRow({ r, right }: { r: ClassifiedRow; right?: ReactNode }) {
 }
 
 function TableHead({ cols }: { cols: string[] }) {
+  const tx = useText();
   return (
     <thead>
       <tr>
@@ -106,7 +115,7 @@ function TableHead({ cols }: { cols: string[] }) {
               i === cols.length - 1 && cols.length > 3 ? "text-right" : "text-left"
             }`}
           >
-            {c}
+            {tx(c)}
           </th>
         ))}
       </tr>
@@ -138,6 +147,7 @@ function fundingTag(r: ClassifiedRow): ReactNode {
 
 /** Per-bank funding bars — the mockup's strip, computed from `funding.byBank`. */
 function FundingStrip({ data }: { data: ActionsData }) {
+  const tx = useText();
   const max = data.funding.byBank[0]?.n ?? 1;
   return (
     <div className="grid gap-1.5">
@@ -147,7 +157,7 @@ function FundingStrip({ data }: { data: ActionsData }) {
             href={`/actions?ticker=${b.ticker}`}
             className="font-mono text-[11px] font-semibold text-foreground hover:text-primary"
           >
-            {b.ticker}
+            {tx(b.ticker)}
           </Link>
           <span className="h-3 rounded-[1px]" aria-hidden>
             <span
@@ -156,8 +166,8 @@ function FundingStrip({ data }: { data: ActionsData }) {
             />
           </span>
           <span className="text-right font-mono text-[11px] text-muted-foreground tabular-nums">
-            {b.n}
-            <span className="text-faint"> · {b.offshore} off</span>
+            {tx(b.n)}
+            <span className="text-faint"> · {tx(b.offshore)}{tx(" off")}</span>
           </span>
         </div>
       ))}
@@ -206,6 +216,7 @@ function buildSeason(events: EarningsEvent[]): { rows: SeasonBank[]; season: str
 
 // ── page ─────────────────────────────────────────────────────────────────
 export default async function ActionsPage({ searchParams }: Props) {
+  const tx = await getText();
   const sp = await searchParams;
   const ticker = sp.ticker?.toUpperCase();
 
@@ -233,22 +244,16 @@ export default async function ActionsPage({ searchParams }: Props) {
     return (
       <main className="mx-auto w-full max-w-[1080px] px-4 py-7 sm:px-6 lg:px-9">
         <DeskHeader
-          title={`${ticker} — corporate actions`}
+          title={tx("{0} — corporate actions", {0: ticker})}
           record={
-            <>
-              Record <b className="font-normal text-foreground">{monthLabel(data.window.last)}</b> · classified
-              from {ticker}&apos;s KAP filings
-            </>
+            <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(data.window.last))}</b>{tx(" · classified from ")}{tx(ticker)}{tx("'s KAP filings")}</>
           }
           right="compiled, not written"
         />
         <div className="mt-2 flex flex-wrap gap-4 font-mono text-[9.5px] uppercase tracking-[0.05em]">
-          <Link href={`/banks/${ticker}`} className="font-semibold text-primary">
-            ← back to {ticker}
+          <Link href={`/banks/${ticker}`} className="font-semibold text-primary">{tx("← back to ")}{tx(ticker)}
           </Link>
-          <Link href="/actions" className="font-semibold text-primary">
-            ← all bank actions
-          </Link>
+          <Link href="/actions" className="font-semibold text-primary">{tx("← all bank actions")}</Link>
         </div>
 
         <div className="mt-8 space-y-9">
@@ -256,7 +261,7 @@ export default async function ActionsPage({ searchParams }: Props) {
             .filter(([, rows]) => rows.length > 0)
             .map(([title, rows, isFunding]) => (
               <section key={title}>
-                <SecHead title={title} meta={`${rows.length} filing${rows.length === 1 ? "" : "s"}`} className="mb-2" />
+                <SecHead title={tx(title)} meta={tx("{0} filing{1}", {0: rows.length, 1: rows.length === 1 ? "" : "s"})} className="mb-2" />
                 <table className="w-full border-collapse">
                   <TableHead cols={isFunding ? ["Date", "Bank", "Act", "Type"] : ["Date", "Bank", "Act"]} />
                   <tbody>
@@ -274,20 +279,19 @@ export default async function ActionsPage({ searchParams }: Props) {
 
           {season.rows.length > 0 && (
             <section>
-              <SecHead title="Results & presentations" meta="KAP filing · IR deck" className="mb-2" />
+              <SecHead title={tx("Results & presentations")} meta={tx("KAP filing · IR deck")} className="mb-2" />
               <table className="w-full border-collapse">
                 <TableHead cols={["Filed", "Report", "Deck"]} />
                 <tbody>
                   {season.rows.map((b) => (
                     <tr key={b.ticker}>
                       <td className="border-b border-hair py-2 pr-3 font-mono text-[11px] whitespace-nowrap text-muted-foreground tabular-nums">
-                        {shortDate(b.filed)}
+                        {tx(shortDate(b.filed))}
                       </td>
                       <td className="border-b border-hair py-2 pr-3 text-[12.5px] text-foreground">
                         {b.filingUrl ? (
                           <a href={b.filingUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                            {fmtPeriod(b.period) || "Financial report"} — KAP filing ↗
-                          </a>
+                            {tx(fmtPeriod(b.period) || "Financial report")}{tx(" — KAP filing ↗")}</a>
                         ) : (
                           "—"
                         )}
@@ -295,8 +299,7 @@ export default async function ActionsPage({ searchParams }: Props) {
                       <td className="border-b border-hair py-2 text-right text-[12px]">
                         {b.deckUrl ? (
                           <a href={b.deckUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                            {fmtPeriod(b.deckPeriod)} deck ↗
-                          </a>
+                            {tx(fmtPeriod(b.deckPeriod))}{tx(" deck ↗")}</a>
                         ) : (
                           <span className="text-faint">—</span>
                         )}
@@ -310,11 +313,8 @@ export default async function ActionsPage({ searchParams }: Props) {
 
           {data.routineCount > 0 && (
             <p className="text-[11px] text-muted-foreground">
-              {data.routineCount} routine filing{data.routineCount === 1 ? "" : "s"} suppressed for {ticker} — coupon
-              payments, redemptions, dematerialisation notices and information forms.{" "}
-              <a href={`https://www.kap.org.tr/en/bldsm/${ticker}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                All {ticker} filings on KAP ↗
-              </a>
+              {tx(data.routineCount)}{tx(" routine filing")}{tx(data.routineCount === 1 ? "" : "s")}{tx(" suppressed for ")}{tx(ticker)}{tx(" — coupon payments, redemptions, dematerialisation notices and information forms.")}{" "}
+              <a href={`https://www.kap.org.tr/en/bldsm/${ticker}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{tx("All ")}{tx(ticker)}{tx(" filings on KAP ↗")}</a>
             </p>
           )}
         </div>
@@ -335,23 +335,20 @@ export default async function ActionsPage({ searchParams }: Props) {
   const nplSales = data.material.filter((r) => /NPL/i.test(r.gloss));
 
   const capBits: string[] = [];
-  if (rights) capBits.push(`a rights issue at ${rights.ticker}`);
-  if (buyback) capBits.push(`a buyback at ${buyback.ticker}`);
+  if (rights) capBits.push(tx("a rights issue at {0}", {0: rights.ticker}));
+  if (buyback) capBits.push(tx("a buyback at {0}", {0: buyback.ticker}));
   if (nplSales.length)
     capBits.push(
-      `${nplSales.length} loan-portfolio sale${nplSales.length === 1 ? "" : "s"} (${[...new Set(nplSales.map((r) => r.ticker))].join(", ")})`,
+      tx("{0} loan-portfolio sale{1} ({2})", {0: nplSales.length, 1: nplSales.length === 1 ? "" : "s", 2: [...new Set(nplSales.map((r) => r.ticker))].join(", ")}),
     );
-  if (legal) capBits.push(`a live legal proceeding at ${legal.ticker}`);
+  if (legal) capBits.push(tx("a live legal proceeding at {0}", {0: legal.ticker}));
 
   return (
     <main className="mx-auto w-full max-w-[1180px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Bank Actions"
+        title={tx("Bank Actions")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{monthLabel(data.window.last)}</b> · KAP filings,
-            classified daily · routine notices suppressed
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(data.window.last))}</b>{tx(" · KAP filings, classified daily · routine notices suppressed")}</>
         }
         right="compiled, not written"
       />
@@ -359,69 +356,60 @@ export default async function ActionsPage({ searchParams }: Props) {
       {/* The read — computed counts, no trend claim. */}
       <div className="mt-6 max-w-[74ch] space-y-2.5">
         <p className="text-[16.5px] leading-relaxed text-foreground">
-          <b className="font-semibold">{data.funding.funders}</b> of the {universe} banks that file on KAP raised
-          wholesale funding in the {weeks} weeks on record — <b className="font-semibold tabular-nums">{data.funding.total}</b>{" "}
-          issuance approvals, <b className="font-semibold tabular-nums">{data.funding.offshore}</b> of them to foreign
-          markets (bonds, GMTN programmes, Tier-2 sub-debt, syndication).
-        </p>
+          <b className="font-semibold">{tx(data.funding.funders)}</b>{tx(" of the ")}{tx(universe)}{tx(" banks that file on KAP raised wholesale funding in the ")}{tx(weeks)}{tx(" weeks on record — ")}<b className="font-semibold tabular-nums">{tx(data.funding.total)}</b>{" "}{tx("issuance approvals, ")}<b className="font-semibold tabular-nums">{tx(data.funding.offshore)}</b>{tx(" of them to foreign markets (bonds, GMTN programmes, Tier-2 sub-debt, syndication).")}</p>
         {capBits.length > 0 && (
-          <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-            Beyond funding, the window holds {capBits.join("; ")}. Everything else in the KAP stream —{" "}
-            {data.routineCount} coupon notices, redemptions and information forms — is counted below, not shown.
-          </p>
+          <p className="text-[13.5px] leading-relaxed text-muted-foreground">{tx("Beyond funding, the window holds ")}{tx(capBits.join("; "))}{tx(". Everything else in the KAP stream —")}{" "}
+            {tx(data.routineCount)}{tx(" coupon notices, redemptions and information forms — is counted below, not shown.")}</p>
         )}
       </div>
 
       {/* Vitals — the signature band. */}
-      <SecHead title="The vitals" meta="funding · reach · ratings · capital · results" className="mb-2.5 mt-8" />
+      <SecHead title={tx("The vitals")} meta={tx("funding · reach · ratings · capital · results")} className="mb-2.5 mt-8" />
       <Vitals cols={5}>
         <Vital
-          label="Wholesale funding filings"
+          label={tx("Wholesale funding filings")}
           value={String(data.funding.total)}
-          note={`${data.funding.offshore} to foreign markets · ${weeks} weeks on record`}
+          note={tx("{0} to foreign markets · {1} weeks on record", {0: data.funding.offshore, 1: weeks})}
         />
         <Vital
-          label="Banks tapping markets"
+          label={tx("Banks tapping markets")}
           value={String(data.funding.funders)}
           unit={`of ${universe}`}
           note="raised debt or capital instruments; the rest filed none"
         />
         <Vital
-          label="Rating actions"
+          label={tx("Rating actions")}
           value={String(data.counts.rating)}
-          note={`across ${data.bankCounts.rating} bank${data.bankCounts.rating === 1 ? "" : "s"} · agency named per filing`}
+          note={tx("across {0} bank{1} · agency named per filing", {0: data.bankCounts.rating, 1: data.bankCounts.rating === 1 ? "" : "s"})}
         />
         <Vital
-          label="Capital & shareholder events"
+          label={tx("Capital & shareholder events")}
           value={String(data.counts.capital)}
           note={
             rights
-              ? `incl. a rights issue at ${rights.ticker}`
+              ? tx("incl. a rights issue at {0}", {0: rights.ticker})
               : "rights issues · dividends · buybacks · ceilings"
           }
         />
         <Vital
-          label="Results season"
+          label={tx("Results season")}
           value={season.season ? fmtPeriod(season.season) : "—"}
-          note={`${season.rows.filter((r) => r.filed).length} filed · ${season.decks} IR decks collected`}
+          note={tx("{0} filed · {1} IR decks collected", {0: season.rows.filter((r) => r.filed).length, 1: season.decks})}
         />
       </Vitals>
 
-      <Depth meta="classified from the KAP filing stream — deterministic, no model">
+      <Depth meta={tx("classified from the KAP filing stream — deterministic, no model")}>
         {/* Wholesale funding */}
         <section>
           <SecHead
-            title="Wholesale funding & capital instruments"
-            meta={`${data.funding.total} filings · ${data.funding.offshore} offshore · ${weeks}w`}
+            title={tx("Wholesale funding & capital instruments")}
+            meta={tx("{0} filings · {1} offshore · {2}w", {0: data.funding.total, 1: data.funding.offshore, 2: weeks})}
             className="mb-3"
           />
           <div className="grid gap-6 lg:grid-cols-[minmax(260px,340px)_1fr]">
             <div>
               <FundingStrip data={data} />
-              <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
-                Filings per bank — counts, not amounts (see <i>the gap</i>). &ldquo;off&rdquo; = to foreign markets.
-                The four large private and state banks lead; participation and foreign-owned banks file least.
-              </p>
+              <p className="mt-3 text-[11px] leading-snug text-muted-foreground">{tx("Filings per bank — counts, not amounts (see ")}<i>{tx("the gap")}</i>{tx("). “off” = to foreign markets. The four large private and state banks lead; participation and foreign-owned banks file least.")}</p>
             </div>
             <div>
               <table className="w-full border-collapse">
@@ -433,8 +421,7 @@ export default async function ActionsPage({ searchParams }: Props) {
                 </tbody>
               </table>
               {data.funding.rows.length > 12 && (
-                <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">
-                  latest 12 of {data.funding.rows.length}
+                <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.06em] text-faint">{tx("latest 12 of ")}{tx(data.funding.rows.length)}
                 </p>
               )}
             </div>
@@ -444,7 +431,7 @@ export default async function ActionsPage({ searchParams }: Props) {
         {/* Capital events */}
         {data.capital.length > 0 && (
           <section>
-            <SecHead title="Capital & shareholder events" meta="rights issues · dividends · buybacks · ceilings" className="mb-2" />
+            <SecHead title={tx("Capital & shareholder events")} meta={tx("rights issues · dividends · buybacks · ceilings")} className="mb-2" />
             <table className="w-full border-collapse">
               <TableHead cols={["Date", "Bank", "Act"]} />
               <tbody>
@@ -459,26 +446,26 @@ export default async function ActionsPage({ searchParams }: Props) {
         {/* Rating actions */}
         {data.rating.length > 0 && (
           <section>
-            <SecHead title="Rating actions" meta={`${data.rating.length} filings · ${data.bankCounts.rating} banks`} className="mb-2" />
+            <SecHead title={tx("Rating actions")} meta={tx("{0} filings · {1} banks", {0: data.rating.length, 1: data.bankCounts.rating})} className="mb-2" />
             <table className="w-full border-collapse">
               <TableHead cols={["Date", "Bank", "Agency", "Filing"]} />
               <tbody>
                 {data.rating.map((r) => (
                   <tr key={r.external_id}>
                     <td className="border-b border-hair py-2 pr-3 font-mono text-[11px] whitespace-nowrap text-muted-foreground tabular-nums">
-                      {shortDate(r.published_at)}
+                      {tx(shortDate(r.published_at))}
                     </td>
                     <td className="border-b border-hair py-2 pr-3">
                       <Link href={`/actions?ticker=${r.ticker}`} className="font-mono text-[11.5px] font-semibold text-foreground hover:text-primary">
-                        {r.ticker}
+                        {tx(r.ticker)}
                       </Link>
                     </td>
                     <td className="border-b border-hair py-2 pr-3 text-[12.5px] font-medium text-foreground">
-                      {r.agency ?? "—"}
+                      {tx(r.agency ?? "—")}
                     </td>
                     <td className="border-b border-hair py-2 text-right text-[12px]">
                       <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">
-                        {r.summary?.trim() || "rating filing"} ↗
+                        {tx(r.summary?.trim() || "rating filing")} ↗
                       </a>
                     </td>
                   </tr>
@@ -492,8 +479,8 @@ export default async function ActionsPage({ searchParams }: Props) {
         {data.material.length > 0 && (
           <section>
             <SecHead
-              title="Other material events"
-              meta="portfolio sales · litigation · business development"
+              title={tx("Other material events")}
+              meta={tx("portfolio sales · litigation · business development")}
               className="mb-2"
             />
             <table className="w-full border-collapse">
@@ -504,10 +491,7 @@ export default async function ActionsPage({ searchParams }: Props) {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-[10.5px] leading-snug text-faint">
-              The residual bucket: genuine disclosed events the classifier does not slot into funding, capital, rating
-              or results. Anything it cannot place lands here — visible, never suppressed.
-            </p>
+            <p className="mt-2 text-[10.5px] leading-snug text-faint">{tx("The residual bucket: genuine disclosed events the classifier does not slot into funding, capital, rating or results. Anything it cannot place lands here — visible, never suppressed.")}</p>
           </section>
         )}
 
@@ -515,8 +499,8 @@ export default async function ActionsPage({ searchParams }: Props) {
         {season.rows.length > 0 && (
           <section>
             <SecHead
-              title="Results season"
-              meta={season.season ? `${fmtPeriod(season.season)} · KAP filing dates · IR decks` : "KAP filing dates · IR decks"}
+              title={tx("Results season")}
+              meta={tx(season.season ? tx("{0} · KAP filing dates · IR decks", {0: fmtPeriod(season.season)}) : "KAP filing dates · IR decks")}
               className="mb-2"
             />
             <table className="w-full border-collapse">
@@ -525,27 +509,25 @@ export default async function ActionsPage({ searchParams }: Props) {
                 {season.rows.map((b) => (
                   <tr key={b.ticker}>
                     <td className="border-b border-hair py-2 pr-3 font-mono text-[11px] whitespace-nowrap text-muted-foreground tabular-nums">
-                      {shortDate(b.filed)}
+                      {tx(shortDate(b.filed))}
                     </td>
                     <td className="border-b border-hair py-2 pr-3">
                       <Link href={`/actions?ticker=${b.ticker}`} className="font-mono text-[11.5px] font-semibold text-foreground hover:text-primary">
-                        {b.ticker}
+                        {tx(b.ticker)}
                       </Link>
                     </td>
                     <td className="border-b border-hair py-2 pr-3 text-[12.5px] text-foreground">
                       {b.filingUrl ? (
                         <a href={b.filingUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                          {fmtPeriod(b.period) || "Financial report"} — KAP filing ↗
-                        </a>
+                          {tx(fmtPeriod(b.period) || "Financial report")}{tx(" — KAP filing ↗")}</a>
                       ) : (
-                        <span className="text-faint">deck only</span>
+                        <span className="text-faint">{tx("deck only")}</span>
                       )}
                     </td>
                     <td className="border-b border-hair py-2 text-right text-[12px]">
                       {b.deckUrl ? (
                         <a href={b.deckUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          {fmtPeriod(b.deckPeriod)} deck ↗
-                        </a>
+                          {tx(fmtPeriod(b.deckPeriod))}{tx(" deck ↗")}</a>
                       ) : (
                         <span className="text-faint">—</span>
                       )}
@@ -554,11 +536,7 @@ export default async function ActionsPage({ searchParams }: Props) {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-[10.5px] leading-snug text-faint">
-              Turkish banks do not file earnings-call invitations on KAP and no free transcript feed exists, so there
-              is no call calendar. Results filings and decks cover the {season.decks ? "listed" : ""} banks with public
-              IR archives.
-            </p>
+            <p className="mt-2 text-[10.5px] leading-snug text-faint">{tx("Turkish banks do not file earnings-call invitations on KAP and no free transcript feed exists, so there is no call calendar. Results filings and decks cover the ")}{tx(season.decks ? "listed" : "")}{tx(" banks with public IR archives.")}</p>
           </section>
         )}
 
@@ -566,8 +544,8 @@ export default async function ActionsPage({ searchParams }: Props) {
         {data.governance.length > 0 && (
           <section>
             <SecHead
-              title="Governance & management"
-              meta={`${data.governance.length} filings · latest ${Math.min(8, data.governance.length)}`}
+              title={tx("Governance & management")}
+              meta={tx("{0} filings · latest {1}", {0: data.governance.length, 1: Math.min(8, data.governance.length)})}
               className="mb-2"
             />
             <table className="w-full border-collapse">
@@ -583,22 +561,16 @@ export default async function ActionsPage({ searchParams }: Props) {
 
         {/* Suppressed routine */}
         <section>
-          <SecHead title="Suppressed as routine" meta="counted, not shown" className="mb-2" />
+          <SecHead title={tx("Suppressed as routine")} meta={tx("counted, not shown")} className="mb-2" />
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <span className="font-mono text-[20px] font-semibold text-muted-foreground tabular-nums">
-              {data.routineCount}
+              {tx(data.routineCount)}
             </span>
-            <span className="max-w-[62ch] text-[12.5px] leading-snug text-muted-foreground">
-              coupon-payment notices, redemptions, dematerialisation notices, issuance-ceiling maintenance,
-              company-information forms and third-party IPO intermediation — filings a bank makes because a rule
-              requires it, not because anything happened. They were the top of /disclosures every day.
-            </span>
+            <span className="max-w-[62ch] text-[12.5px] leading-snug text-muted-foreground">{tx("coupon-payment notices, redemptions, dematerialisation notices, issuance-ceiling maintenance, company-information forms and third-party IPO intermediation — filings a bank makes because a rule requires it, not because anything happened. They were the top of /disclosures every day.")}</span>
           </div>
           {data.routineSample.length > 0 && (
             <details className="mt-3">
-              <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.06em] text-primary">
-                Show a sample
-              </summary>
+              <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.06em] text-primary">{tx("Show a sample")}</summary>
               <table className="mt-2 w-full border-collapse">
                 <TableHead cols={["Date", "Bank", "Filing"]} />
                 <tbody>
@@ -613,27 +585,17 @@ export default async function ActionsPage({ searchParams }: Props) {
 
         {/* The gap */}
         <section>
-          <SecHead title="The gap" meta="what this page cannot yet say" className="mb-2" />
+          <SecHead title={tx("The gap")} meta={tx("what this page cannot yet say")} className="mb-2" />
           <div className="max-w-[78ch] space-y-2 border-l-2 border-warning pl-4">
-            <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              A KAP filing carries structured amount, ISIN, maturity and coupon fields on its detail form. We hold only
-              the title and summary line (the body is not fetched), so this page can say <i>that</i> a bank went to
-              foreign markets but not for how much, for how long, or at what price. Until the detail form is scraped
-              (<code className="font-mono text-[11.5px] text-foreground">src/news/kap.py</code>), this{" "}
-              <b className="font-semibold text-foreground">counts acts; it does not measure them.</b>
+            <p className="text-[12.5px] leading-relaxed text-muted-foreground">{tx("A KAP filing carries structured amount, ISIN, maturity and coupon fields on its detail form. We hold only the title and summary line (the body is not fetched), so this page can say ")}<i>{tx("that")}</i>{tx(" a bank went to foreign markets but not for how much, for how long, or at what price. Until the detail form is scraped (")}<code className="font-mono text-[11.5px] text-foreground">src/news/kap.py</code>{tx("), this")}{" "}
+              <b className="font-semibold text-foreground">{tx("counts acts; it does not measure them.")}</b>
             </p>
-            <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              The feed reaches back to <b className="font-semibold text-foreground">{shortDate(data.window.first)}</b> —
-              KAP&apos;s own window — so a quarter-on-quarter issuance series needs a backfill before it can exist.
-            </p>
+            <p className="text-[12.5px] leading-relaxed text-muted-foreground">{tx("The feed reaches back to ")}<b className="font-semibold text-foreground">{tx(shortDate(data.window.first))}</b>{tx(" — KAP's own window — so a quarter-on-quarter issuance series needs a backfill before it can exist.")}</p>
           </div>
         </section>
       </Depth>
 
-      <Colophon>
-        Compiled, not written — classified deterministically from KAP filings (news_items), refreshed daily; IR decks
-        from bank investor-relations sites. No model sets a category. Analytical information, not investment advice.
-      </Colophon>
+      <Colophon>{tx("Compiled, not written — classified deterministically from KAP filings (news_items), refreshed daily; IR decks from bank investor-relations sites. No model sets a category. Analytical information, not investment advice.")}</Colophon>
     </main>
   );
 }

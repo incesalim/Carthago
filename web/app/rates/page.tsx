@@ -3,6 +3,9 @@
  *
  * Cron-fed via scripts/refresh.py → src/scrapers/evds_scraper.py.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { evdsMulti, latestPeriod } from "@/app/lib/metrics";
@@ -24,11 +27,15 @@ import TrendChart from "@/app/components/TrendChart";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banking — Interest Rates",
   description: "Lending and deposit interest rates in Türkiye's banking sector from CBRT and BDDK data.",
   alternates: { canonical: "/rates" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const RATE_CORRIDOR = {
   "TP.PY.P02.1H": "Policy (1-week repo)",
@@ -119,10 +126,12 @@ interface KpiCardProps {
 }
 
 function KpiCard({ label, value, asOf }: KpiCardProps) {
-  return <Stat label={label} value={value} hint={`as of ${asOf}`} />;
+  const tx = useText();
+  return <Stat label={tx(label)} value={value} hint={tx("as of {0}", {0: asOf})} />;
 }
 
 export default async function RatesPage() {
+  const tx = await getText();
   const allCodes = [
     ...Object.keys(RATE_CORRIDOR),
     ...Object.keys(FX),
@@ -205,32 +214,29 @@ export default async function RatesPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Rates & Macro"
+        title={tx("Rates & Macro")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{recMonth}</b> · daily EVDS + weekly
-            survey
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(recMonth)}</b>{tx(" · daily EVDS + weekly survey")}</>
         }
         right="every figure computed from source series"
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="daily corridor · weekly survey · computed spreads"
+        title={tx("The vitals")}
+        meta={tx("daily corridor · weekly survey · computed spreads")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={6}>
         <Vital
-          label="Policy rate (1-week repo)"
+          label={tx("Policy rate (1-week repo)")}
           value={policyNow != null ? policyNow.toFixed(2) : "—"}
           unit="%"
           series={sparkWindow(policyS)}
-          note={policyYoY != null ? <>{signedPp(policyYoY, 2)} y/y</> : undefined}
+          note={policyYoY != null ? <>{tx(signedPp(policyYoY, 2))} y/y</> : undefined}
         />
         <Vital
-          label="CBRT effective funding"
+          label={tx("CBRT effective funding")}
           value={fundNow != null ? fundNow.toFixed(2) : "—"}
           unit="%"
           series={sparkWindow(fundS)}
@@ -244,47 +250,41 @@ export default async function RatesPage() {
                       : "font-semibold text-foreground"
                   }
                 >
-                  {signedPp(fundGap, 2)}
-                </b>{" "}
-                vs the policy rate
-              </>
+                  {tx(signedPp(fundGap, 2))}
+                </b>{" "}{tx("vs the policy rate")}</>
             ) : undefined
           }
         />
         <Vital
-          label="TL deposit rate (blended)"
+          label={tx("TL deposit rate (blended)")}
           value={depNow != null ? depNow.toFixed(2) : "—"}
           unit="%"
           series={sparkWindow(depS)}
           note={
             depD13 != null ? (
               <>
-                {signedPp(depD13, 2)} over 13w{" "}
-                <Link href="/deposits" className="font-semibold text-primary">
-                  /deposits
-                </Link>
+                {tx(signedPp(depD13, 2))}{tx(" over 13w")}{" "}
+                <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
               </>
             ) : undefined
           }
         />
         <Vital
-          label="Commercial loan rate"
+          label={tx("Commercial loan rate")}
           value={loanNow != null ? loanNow.toFixed(2) : "—"}
           unit="%"
           series={sparkWindow(loanS)}
           note={
             loanD13 != null ? (
               <>
-                {signedPp(loanD13, 2)} over 13w{" "}
-                <Link href="/credit" className="font-semibold text-primary">
-                  /credit
-                </Link>
+                {tx(signedPp(loanD13, 2))}{tx(" over 13w")}{" "}
+                <Link href="/credit" className="font-semibold text-primary">{tx("/credit")}</Link>
               </>
             ) : undefined
           }
         />
         <Vital
-          label="TL loan–deposit spread"
+          label={tx("TL loan–deposit spread")}
           value={spreadNow != null ? spreadNow.toFixed(2) : "—"}
           unit="pp"
           series={sparkWindow(spreadS)}
@@ -296,15 +296,13 @@ export default async function RatesPage() {
                     spreadNow >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
                   }
                 >
-                  {spreadNow >= 0 ? "loans out-price deposits" : "deposits out-price loans"}
-                </b>{" "}
-                · commercial ex-OD − blended TL
-              </>
+                  {tx(spreadNow >= 0 ? "loans out-price deposits" : "deposits out-price loans")}
+                </b>{" "}{tx("· commercial ex-OD − blended TL")}</>
             ) : undefined
           }
         />
         <Vital
-          label="USD / TRY"
+          label={tx("USD / TRY")}
           value={usdNow != null ? usdNow.toFixed(2) : "—"}
           unit="₺"
           series={sparkWindow(usdS)}
@@ -313,11 +311,9 @@ export default async function RatesPage() {
             usdYoY != null ? (
               <>
                 <b className={usdYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
-                  {usdYoY >= 0 ? "+" : "−"}
-                  {Math.abs(usdYoY).toFixed(1)}%
-                </b>{" "}
-                y/y TL depreciation
-              </>
+                  {tx(usdYoY >= 0 ? "+" : "−")}
+                  {tx(Math.abs(usdYoY).toFixed(1))}%
+                </b>{" "}{tx("y/y TL depreciation")}</>
             ) : undefined
           }
         />
@@ -326,16 +322,16 @@ export default async function RatesPage() {
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth action={<GlobalRangeSelector />}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard label="Policy Rate"
+          <KpiCard label={tx("Policy Rate")}
                    value={fmtPct(policy?.value)}
                    asOf={policy?.period_date ?? "—"} />
-          <KpiCard label="CBRT Funding Cost"
+          <KpiCard label={tx("CBRT Funding Cost")}
                    value={fmtPct(cbrtCost?.value)}
                    asOf={cbrtCost?.period_date ?? "—"} />
-          <KpiCard label="USD / TRY"
+          <KpiCard label={tx("USD / TRY")}
                    value={fmtFx(usd?.value)}
                    asOf={usd?.period_date ?? "—"} />
-          <KpiCard label="EUR / TRY"
+          <KpiCard label={tx("EUR / TRY")}
                    value={fmtFx(eur?.value)}
                    asOf={eur?.period_date ?? "—"} />
         </div>
@@ -347,7 +343,7 @@ export default async function RatesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TimeSeriesChart
             series={byLabel(RATE_CORRIDOR)}
-            title="Rate Corridor — Policy + ON + Effective Funding (%)"
+            title={tx("Rate Corridor — Policy + ON + Effective Funding (%)")}
             yFormat="pct"
             decimals={2}        />
           {/* "policy cuts reach deposit pricing first" presumed an EASING cycle. In a
@@ -356,10 +352,10 @@ export default async function RatesPage() {
           <TimeSeriesChart
             series={byLabel(LENDING)}
             title={
-              claim(
+              tx(claim(
                 cycleWord != null && cycleWord !== VERBS.cycle.flat,
-                `Transmission — policy ${cycleWord} reach deposit pricing first (weekly survey, %)`,
-              ) ?? "Transmission — policy, deposit and loan pricing (weekly survey, %)"
+                tx("Transmission — policy {0} reach deposit pricing first (weekly survey, %)", {0: cycleWord}),
+              ) ?? "Transmission — policy, deposit and loan pricing (weekly survey, %)")
             }
             yFormat="pct"
             decimals={2}        />
@@ -371,7 +367,7 @@ export default async function RatesPage() {
         <ChartRow data={tsRows(depLadder)} deltaPeriods={52} deltaLabel="52w">
           <TimeSeriesChart
             series={depLadder}
-            title="TL Deposit Rates by Maturity (weekly survey, %)"
+            title={tx("TL Deposit Rates by Maturity (weekly survey, %)")}
             yFormat="pct"
             decimals={2}
           />
@@ -380,7 +376,7 @@ export default async function RatesPage() {
           <TrendChart
             data={spread}
             seriesLabels={{ SPREAD: "Commercial (ex-OD) − Deposit" }}
-            title="TL Loan–Deposit Spread (pp) — commercial vs deposit cost"
+            title={tx("TL Loan–Deposit Spread (pp) — commercial vs deposit cost")}
             yFormat="pct"
             decimals={2}
             zeroLine
@@ -388,7 +384,7 @@ export default async function RatesPage() {
           <TrendChart
             data={fcSpread}
             seriesLabels={fcSpreadLabels}
-            title="FC Loan–Deposit Spread (pp) — USD &amp; EUR commercial vs deposit"
+            title={tx("FC Loan–Deposit Spread (pp) — USD & EUR commercial vs deposit")}
             yFormat="pct"
             decimals={2}
             zeroLine
@@ -398,12 +394,12 @@ export default async function RatesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TimeSeriesChart
             series={byLabel(FX)}
-            title="Exchange Rates — USD &amp; EUR"
+            title={tx("Exchange Rates — USD & EUR")}
             yFormat="fx"
             decimals={2}        />
           <TimeSeriesChart
             series={byLabel(STERIL)}
-            title="CBRT Sterilization Channels (TL bn)"
+            title={tx("CBRT Sterilization Channels (TL bn)")}
             yFormat="raw"
             decimals={0}        />
         </div>

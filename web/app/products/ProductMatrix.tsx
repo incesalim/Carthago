@@ -8,6 +8,7 @@
  * Click a cell → the bank's own evidence; click a bank → its shelf profile.
  * Amber = "about us, not the bank" so the honest gaps read as gaps, not absence.
  */
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 import type { CellValue, ProductBenchmark, ProductBank } from "@/app/lib/products";
@@ -50,6 +51,7 @@ type Detail =
   | null;
 
 export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
+  const tx = useText();
   const [block, setBlock] = React.useState(data.blocks[0]?.id ?? "A");
   const [cluster, setCluster] = React.useState<string>("all");
   const [q, setQ] = React.useState("");
@@ -94,19 +96,19 @@ export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
         <div className="flex flex-wrap gap-1.5">
           {data.blocks.map((b) => (
             <Chip key={b.id} active={b.id === block} onClick={() => setBlock(b.id)}>
-              {b.id} · {b.name}
+              {tx(b.id)} · {tx(b.name)}
             </Chip>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <Chip active={cluster === "all"} onClick={() => setCluster("all")}>all</Chip>
+          <Chip active={cluster === "all"} onClick={() => setCluster("all")}>{tx("all")}</Chip>
           {data.clusters.map((c) => (
-            <Chip key={c} active={cluster === c} onClick={() => setCluster(c)}>{c}</Chip>
+            <Chip key={c} active={cluster === c} onClick={() => setCluster(c)}>{tx(c)}</Chip>
           ))}
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="find a bank…"
+            placeholder={tx("find a bank…")}
             className="ml-auto min-w-32 flex-1 rounded-full border border-border bg-card px-3 py-1 font-mono text-[12px] text-foreground outline-none placeholder:text-faint focus:border-foreground/40 sm:max-w-48"
           />
         </div>
@@ -118,19 +120,17 @@ export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
         <table className="w-full border-separate border-spacing-0 font-mono">
           <thead>
             <tr>
-              <th className="sticky left-0 top-0 z-10 min-w-[128px] border-b border-r border-border bg-card px-3 py-2 text-left text-[9.5px] font-medium uppercase tracking-[0.1em] text-faint">
-                bank
-              </th>
+              <th className="sticky left-0 top-0 z-10 min-w-[128px] border-b border-r border-border bg-card px-3 py-2 text-left text-[9.5px] font-medium uppercase tracking-[0.1em] text-faint">{tx("bank")}</th>
               {cols.map((a) => (
                 <th
                   key={a.code}
-                  title={`${a.label}  ·  ${a.enough ? `penetration ${pct(a.pen ?? 0)}` : "evidence too thin"}`}
+                  title={tx(`${a.label}  ·  ${a.enough ? tx("penetration {0}", {0: pct(a.pen ?? 0)}) : "evidence too thin"}`)}
                   className="border-b border-r border-border bg-card px-1 py-1.5 align-bottom text-center text-[11px] font-semibold text-muted-foreground"
                 >
-                  {a.code}
+                  {tx(a.code)}
                   {a.distinctive && <span className="text-warning"> ◆</span>}
                   <span className="mt-0.5 block text-[9px] font-normal text-faint">
-                    {a.enough ? pct(a.pen ?? 0) : "—"}
+                    {tx(a.enough ? pct(a.pen ?? 0) : "—")}
                   </span>
                 </th>
               ))}
@@ -143,12 +143,12 @@ export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
                   onClick={() => setDetail({ kind: "bank", ticker: b.ticker })}
                   className="sticky left-0 z-[5] min-w-[128px] cursor-pointer border-b border-r border-border bg-card px-3 py-1.5 group-hover:bg-accent"
                 >
-                  <div className="text-[12.5px] font-semibold tracking-[0.02em] text-foreground">{b.ticker}</div>
+                  <div className="text-[12.5px] font-semibold tracking-[0.02em] text-foreground">{tx(b.ticker)}</div>
                   <div className="mt-0.5 flex items-center gap-1.5 text-[9.5px] text-faint">
                     <span className="inline-block h-1 w-8 overflow-hidden rounded-full bg-border">
                       <span className="block h-full bg-positive" style={{ width: pct(b.shelf) }} />
                     </span>
-                    {pct(b.shelf)}
+                    {tx(pct(b.shelf))}
                   </div>
                 </td>
                 {cols.map((a) => {
@@ -170,8 +170,7 @@ export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
         </table>
       </div>
       <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-        {banks.length} banks · block {block} — {blockName} ({cols.length} attributes)
-      </p>
+        {tx(banks.length)}{tx(" banks · block ")}{tx(block)} — {tx(blockName)} ({tx(cols.length)}{tx(" attributes)")}</p>
 
       {/* detail */}
       {detail && (
@@ -209,27 +208,29 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 }
 
 function Legend() {
+  const tx = useText();
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
-      <span className="inline-flex items-center gap-1.5"><Glyph v="yes" className="size-4" /> Has it</span>
-      <span className="inline-flex items-center gap-1.5"><Glyph v="partial" className="size-4" /> Partial</span>
-      <span className="inline-flex items-center gap-1.5"><Glyph v="no" className="size-4" /> No</span>
+      <span className="inline-flex items-center gap-1.5"><Glyph v="yes" className="size-4" />{tx(" Has it")}</span>
+      <span className="inline-flex items-center gap-1.5"><Glyph v="partial" className="size-4" />{tx(" Partial")}</span>
+      <span className="inline-flex items-center gap-1.5"><Glyph v="no" className="size-4" />{tx(" No")}</span>
       <span className="inline-flex items-center gap-1.5">
-        <Glyph v="unknown" className="size-4" /> Unverified <em className="not-italic text-warning">(about us)</em>
+        <Glyph v="unknown" className="size-4" />{tx(" Unverified ")}<em className="not-italic text-warning">{tx("(about us)")}</em>
       </span>
-      <span className="text-faint">◆ discriminating attribute</span>
+      <span className="text-faint">{tx("◆ discriminating attribute")}</span>
     </div>
   );
 }
 
 function RailHeader({ kicker, title, onClose }: { kicker: React.ReactNode; title: React.ReactNode; onClose: () => void }) {
+  const tx = useText();
   return (
     <div className="flex items-start justify-between gap-3 border-b border-border px-5 pb-3.5 pt-4">
       <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{kicker}</div>
-        <h3 className="mt-0.5 text-[19px] font-bold tracking-tight text-foreground">{title}</h3>
+        <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{tx(kicker)}</div>
+        <h3 className="mt-0.5 text-[19px] font-bold tracking-tight text-foreground">{tx(title)}</h3>
       </div>
-      <button type="button" aria-label="close" onClick={onClose} className="-mr-1 text-[22px] leading-none text-muted-foreground hover:text-foreground">
+      <button type="button" aria-label={tx("close")} onClick={onClose} className="-mr-1 text-[22px] leading-none text-muted-foreground hover:text-foreground">
         ×
       </button>
     </div>
@@ -245,13 +246,14 @@ function CellDetail({
   attr: ProductBenchmark["attrs"][number];
   onClose: () => void;
 }) {
+  const tx = useText();
   const cell = bank.cells[code];
   const v = cell?.v ?? "unknown";
   return (
     <>
       <RailHeader
-        kicker={`${bank.name} · ${code} · ${attr.blockName}`}
-        title={<>{attr.label}{attr.distinctive && <span className="text-warning"> ◆</span>}</>}
+        kicker={tx(`${bank.name} · ${code} · ${attr.blockName}`)}
+        title={<>{tx(attr.label)}{attr.distinctive && <span className="text-warning"> ◆</span>}</>}
         onClose={onClose}
       />
       <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -259,10 +261,10 @@ function CellDetail({
           <Glyph v={v} className="size-7" />
           <div>
             <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-              {v === "unknown" ? "about us" : "about the bank"}
+              {tx(v === "unknown" ? "about us" : "about the bank")}
             </div>
             <div className={cn("text-[16px] font-bold tracking-tight", v === "unknown" ? "text-warning" : v === "no" ? "text-muted-foreground" : "text-positive")}>
-              {STATE_LABEL[v]}
+              {tx(STATE_LABEL[v])}
             </div>
           </div>
         </div>
@@ -272,20 +274,16 @@ function CellDetail({
             target="_blank"
             rel="noopener"
             className="mt-4 inline-flex items-center gap-1.5 break-all rounded-full border border-border px-3.5 py-2 font-mono text-[12px] text-primary hover:border-primary"
-          >
-            evidence →
-          </a>
+          >{tx("evidence →")}</a>
         )}
         {v === "unknown" && (
-          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-warning">
-            This is <b>unverified</b> — we could not confirm it, so it is left open. It does not mean the bank lacks the product; it is a gap about us.
-          </div>
+          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-warning">{tx("This is ")}<b>{tx("unverified")}</b>{tx(" — we could not confirm it, so it is left open. It does not mean the bank lacks the product; it is a gap about us.")}</div>
         )}
         <div className="mt-4 font-mono text-[12px] text-muted-foreground">
           {attr.enough ? (
-            <>Sector penetration: <b className="text-foreground">{pct(attr.pen ?? 0)}</b> ({attr.yes} has · {attr.partial} partial · {attr.no} no · {attr.unknown} unverified)</>
+            <>{tx("Sector penetration: ")}<b className="text-foreground">{tx(pct(attr.pen ?? 0))}</b> ({tx(attr.yes)}{tx(" has · ")}{tx(attr.partial)}{tx(" partial · ")}{tx(attr.no)}{tx(" no · ")}{tx(attr.unknown)}{tx(" unverified)")}</>
           ) : (
-            <>Not enough banks verified (denominator &lt; {data.minVer}); penetration not computed.</>
+            <>{tx("Not enough banks verified (denominator < ")}{tx(data.minVer)}{tx("); penetration not computed.")}</>
           )}
         </div>
       </div>
@@ -294,38 +292,39 @@ function CellDetail({
 }
 
 function BankDetail({ bank, onClose }: { bank: ProductBank; onClose: () => void }) {
+  const tx = useText();
   const tot = bank.yes + bank.no + bank.partial + bank.unknown || 1;
   const seg = (n: number, color: string) => (n ? <span style={{ width: `${(n / tot) * 100}%`, background: color }} /> : null);
   return (
     <>
-      <RailHeader kicker={`${bank.cluster} · ${bank.ticker}`} title={bank.name} onClose={onClose} />
+      <RailHeader kicker={tx(`${bank.cluster} · ${bank.ticker}`)} title={tx(bank.name)} onClose={onClose} />
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <div className="flex h-2.5 overflow-hidden rounded-full border border-border [&>span]:h-full">
-          {seg(bank.yes, "var(--positive)")}
-          {seg(bank.partial, "color-mix(in srgb, var(--positive) 55%, transparent)")}
-          {seg(bank.no, "var(--border)")}
-          {seg(bank.unknown, "var(--warning)")}
+          {tx(seg(bank.yes, "var(--positive)"))}
+          {tx(seg(bank.partial, "color-mix(in srgb, var(--positive) 55%, transparent)"))}
+          {tx(seg(bank.no, "var(--border)"))}
+          {tx(seg(bank.unknown, "var(--warning)"))}
         </div>
         <div className="mt-1.5 flex flex-wrap gap-x-3.5 font-mono text-[11px] text-muted-foreground">
-          <span><b className="text-foreground">{bank.yes}</b> has</span>
-          <span><b className="text-foreground">{bank.partial}</b> partial</span>
-          <span><b className="text-foreground">{bank.no}</b> no</span>
-          <span className="text-warning"><b>{bank.unknown}</b> unverified</span>
+          <span><b className="text-foreground">{tx(bank.yes)}</b>{tx(" has")}</span>
+          <span><b className="text-foreground">{tx(bank.partial)}</b>{tx(" partial")}</span>
+          <span><b className="text-foreground">{tx(bank.no)}</b>{tx(" no")}</span>
+          <span className="text-warning"><b>{tx(bank.unknown)}</b>{tx(" unverified")}</span>
         </div>
         <div className="mt-4 flex gap-6">
-          <Metric label="Verified shelf" value={pct(bank.shelf)} tone="pos" />
-          <Metric label="Evidence coverage" value={pct(bank.coverage)} tone={bank.coverage < 0.65 ? "warn" : "ink"} />
+          <Metric label={tx("Verified shelf")} value={pct(bank.shelf)} tone="pos" />
+          <Metric label={tx("Evidence coverage")} value={pct(bank.coverage)} tone={bank.coverage < 0.65 ? "warn" : "ink"} />
         </div>
         {bank.shelfNotes && (
-          <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">{bank.shelfNotes}</p>
+          <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">{tx(bank.shelfNotes)}</p>
         )}
         {bank.distinctive.length > 0 && (
           <>
-            <div className="mt-5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">What sets its shelf apart</div>
+            <div className="mt-5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{tx("What sets its shelf apart")}</div>
             <ul className="mt-1.5 flex flex-col gap-2">
               {bank.distinctive.map((d, i) => (
                 <li key={i} className="relative pl-4 text-[13.5px] leading-relaxed text-muted-foreground before:absolute before:left-0 before:text-positive before:content-['▪']">
-                  {d}
+                  {tx(d)}
                 </li>
               ))}
             </ul>
@@ -337,11 +336,12 @@ function BankDetail({ bank, onClose }: { bank: ProductBank; onClose: () => void 
 }
 
 function Metric({ label, value, tone }: { label: string; value: string; tone: "pos" | "warn" | "ink" }) {
+  const tx = useText();
   return (
     <div>
-      <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
+      <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{tx(label)}</div>
       <div className={cn("font-mono text-[26px] font-semibold", tone === "pos" ? "text-positive" : tone === "warn" ? "text-warning" : "text-foreground")}>
-        {value}
+        {tx(value)}
       </div>
     </div>
   );

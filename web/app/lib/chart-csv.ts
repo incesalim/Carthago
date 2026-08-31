@@ -9,6 +9,8 @@
  * `[{ period, "10006": 1.2, … }]`).
  */
 
+import { createText } from "../../i18n/text";
+
 export interface ChartTable {
   columns: string[];
   /** One row per x-value; cell order matches `columns`. `null` = empty cell. */
@@ -95,13 +97,15 @@ export function srTableIsUseful(t: ChartTable): boolean {
 }
 
 /** Round for speech, not for storage: nobody needs "16.104346" read aloud. */
-function speak(v: string | number | null): string | null {
+function speak(v: string | number | null, locale = "en"): string | null {
   if (v == null) return null;
   if (typeof v === "string") return v.trim() || null;
   if (!Number.isFinite(v)) return null;
   const abs = Math.abs(v);
   const decimals = abs >= 10_000 ? 0 : abs >= 100 ? 1 : 2;
-  return String(Number(v.toFixed(decimals)));
+  return locale === "tr"
+    ? new Intl.NumberFormat("tr-TR", { maximumFractionDigits: decimals }).format(v)
+    : String(Number(v.toFixed(decimals)));
 }
 
 /**
@@ -110,15 +114,16 @@ function speak(v: string | number | null): string | null {
  * on this site are computed next to the series that settles them
  * (`lib/prose.ts`). First and last are the facts; the reader draws the arrow.
  */
-export function chartSummary(t: ChartTable): string {
+export function chartSummary(t: ChartTable, locale = "en"): string {
   if (t.columns.length === 0 || t.rows.length === 0) return "";
 
-  const xLabel = t.columns[0] ?? "Category";
-  const xFirst = speak(t.rows[0]?.[0]);
-  const xLast = speak(t.rows[t.rows.length - 1]?.[0]);
+  const tx = createText(locale);
+  const xLabel = tx(t.columns[0] ?? "Category");
+  const xFirst = tx(speak(t.rows[0]?.[0], locale));
+  const xLast = tx(speak(t.rows[t.rows.length - 1]?.[0], locale));
   const span =
     xFirst && xLast && xFirst !== xLast
-      ? `${xLabel} from ${xFirst} to ${xLast}`
+      ? locale === "tr" ? `${xLabel}: ${xFirst} – ${xLast}` : `${xLabel} from ${xFirst} to ${xLast}`
       : xFirst
         ? `${xLabel} ${xFirst}`
         : xLabel;
@@ -133,14 +138,18 @@ export function chartSummary(t: ChartTable): string {
       .map((r) => r[col])
       .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
     if (values.length === 0) {
-      parts.push(`${label}: no values`);
+      parts.push(locale === "tr" ? `${tx(label)}: veri yok` : `${label}: no values`);
       return;
     }
-    const first = speak(values[0]);
-    const last = speak(values[values.length - 1]);
-    const min = speak(Math.min(...values));
-    const max = speak(Math.max(...values));
-    const range = min === max ? `` : `, ranging ${min} to ${max}`;
+    const first = speak(values[0], locale);
+    const last = speak(values[values.length - 1], locale);
+    const min = speak(Math.min(...values), locale);
+    const max = speak(Math.max(...values), locale);
+    const range = min === max ? `` : locale === "tr" ? `, aralık ${min} – ${max}` : `, ranging ${min} to ${max}`;
+    if (locale === "tr") {
+      parts.push(first === last ? `${tx(label)}: ${last}${range}` : `${tx(label)}: başlangıç ${first}, son ${last}${range}`);
+      return;
+    }
     parts.push(
       first === last
         ? `${label}: ${last}${range}`
@@ -149,7 +158,14 @@ export function chartSummary(t: ChartTable): string {
   });
 
   const hidden = seriesCols.length - described.length;
-  if (hidden > 0) parts.push(`and ${hidden} more series`);
+  if (hidden > 0) parts.push(locale === "tr" ? `ve ${hidden} seri daha` : `and ${hidden} more series`);
+
+  if (locale === "tr") {
+    const tail = srTableIsUseful(t)
+      ? "Verilerin tamamı aşağıdaki tablodadır."
+      : "Verilerin tamamı grafiğin CSV indirmesinde bulunur.";
+    return `Grafik verileri: ${t.rows.length} satır, ${span}. ${parts.join(". ")}. ${tail}`;
+  }
 
   const rowNote = `${t.rows.length} ${t.rows.length === 1 ? "row" : "rows"}`;
   const tail = srTableIsUseful(t)

@@ -7,6 +7,7 @@
  * (spots deterioration as a left-to-right green→red gradient). The raw value
  * shows on hover; the selected period's value renders in-cell.
  */
+import { useText } from "@/i18n/use-text";
 import { useMemo, useState } from "react";
 import type { MetricDef, MetricKey } from "@/app/lib/heatmap";
 import {
@@ -61,6 +62,7 @@ const SCALE_LABELS: Record<ScaleMode, string> = {
 };
 
 export default function HeatmapOverTime({ metrics, banks, periods, panel }: Props) {
+  const tx = useText();
   const [metricKey, setMetricKey] = useState<MetricKey>("npl_ratio");
   const [scaleMode, setScaleMode] = useState<ScaleMode>("panel");
   const metric = metrics.find((m) => m.key === metricKey) ?? metrics[0];
@@ -94,9 +96,9 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
   const dirWord =
     metric.direction === "neutral" ? "higher = darker" : "green = better, red = worse";
   const caption = {
-    panel: `Each cell ranked against every bank-quarter — ${dirWord}.`,
-    bank: `Each bank ranked against its own history — ${dirWord}.`,
-    period: `Banks ranked within each quarter — ${dirWord}.`,
+    panel: tx("Each cell ranked against every bank-quarter — {0}.", {0: dirWord}),
+    bank: tx("Each bank ranked against its own history — {0}.", {0: dirWord}),
+    period: tx("Banks ranked within each quarter — {0}.", {0: dirWord}),
   }[scaleMode];
 
   return (
@@ -105,9 +107,7 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
         <label
           htmlFor="heatmap-metric"
           className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint"
-        >
-          Metric
-        </label>
+        >{tx("Metric")}</label>
         <select
           id="heatmap-metric"
           value={metricKey}
@@ -116,14 +116,12 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
         >
           {metrics.map((m) => (
             <option key={m.key} value={m.key}>
-              {m.label}
+              {tx(m.label)}
             </option>
           ))}
         </select>
 
-        <span className="ml-2 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-          Colour scale
-        </span>
+        <span className="ml-2 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx("Colour scale")}</span>
         {(["panel", "bank", "period"] as ScaleMode[]).map((mode) => (
           <button
             key={mode}
@@ -136,13 +134,13 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {SCALE_LABELS[mode]}
+            {tx(SCALE_LABELS[mode])}
           </button>
         ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <span className="text-[11px] text-muted-foreground">{caption}</span>
+        <span className="text-[11px] text-muted-foreground">{tx(caption)}</span>
         <HeatmapLegend mode={metric.direction === "neutral" ? "neutral" : "directional"} />
       </div>
 
@@ -154,15 +152,13 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
           }}
         >
           {/* Header */}
-          <div className="sticky left-0 top-0 z-30 border-b border-foreground bg-card px-3 py-2 font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] text-faint">
-            Bank
-          </div>
+          <div className="sticky left-0 top-0 z-30 border-b border-foreground bg-card px-3 py-2 font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] text-faint">{tx("Bank")}</div>
           {periods.map((p) => (
             <div
               key={p}
               className="sticky top-0 z-20 border-b border-foreground bg-card px-2 py-2 text-right font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] tabular-nums text-faint"
             >
-              {shortPeriod(p)}
+              {tx(shortPeriod(p))}
             </div>
           ))}
 
@@ -171,10 +167,10 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
             <div key={bank.ticker} className="contents">
               <div className="sticky left-0 z-10 flex items-center justify-between gap-2 border-b border-hair bg-card px-3 py-1.5">
                 <div className="min-w-0">
-                  <div className="truncate text-xs font-medium text-foreground">{bank.name}</div>
+                  <div className="truncate text-xs font-medium text-foreground">{tx(bank.name)}</div>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] tabular-nums text-faint">{bank.ticker}</span>
-                    <BankTypeBadge code={bank.groupCode} label={bank.groupLabel} />
+                    <span className="font-mono text-[10px] tabular-nums text-faint">{tx(bank.ticker)}</span>
+                    <BankTypeBadge code={bank.groupCode} label={tx(bank.groupLabel)} />
                   </div>
                 </div>
               </div>
@@ -186,7 +182,7 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
                 return (
                   <div
                     key={p}
-                    title={`${bank.name} · ${metric.label} · ${shortPeriod(p)}: ${text}`}
+                    title={tx(`${bank.name} · ${metric.label} · ${shortPeriod(p)}: ${text}`)}
                     style={{ background: scoreToColor(score, metric.direction === "neutral") }}
                     className="flex items-center justify-end border-b border-hair px-1.5 py-1.5 text-right font-mono text-[11px] tabular-nums text-foreground"
                   >

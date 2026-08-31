@@ -18,6 +18,7 @@
  * quarter; a short history bar = a young bank; "clearing" = carried but excluded
  * from every share and concentration figure (Takasbank is a CCP, not a lender).
  */
+import { useText } from "@/i18n/use-text";
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import BankLogo from "@/app/components/BankLogo";
@@ -81,6 +82,7 @@ const p2 = (v: number | null) => (v == null ? "—" : `${(v * 100).toFixed(2)}%`
 const pts = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
 
 export default function Register({ rows, groups, latest, maxPeriods }: Props) {
+  const tx = useText();
   const [query, setQuery] = useState("");
   const [grouped, setGrouped] = useState(true);
   const [sortKey, setSortKey] = useState<SortKey>("assets");
@@ -140,25 +142,23 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
     return (
       <tr className="group">
         <td className="border-b border-hair py-1.5 pr-2.5">
-          <Link href={`/banks/${r.ticker}`} className="flex items-center gap-2.5" title={`Open ${r.name}`}>
+          <Link href={`/banks/${r.ticker}`} className="flex items-center gap-2.5" title={tx("Open {0}", {0: r.name})}>
             {rank != null && (
-              <span className="w-5 shrink-0 text-right font-mono text-[10px] text-faint">{rank}</span>
+              <span className="w-5 shrink-0 text-right font-mono text-[10px] text-faint">{tx(rank)}</span>
             )}
             <span className="flex w-8 shrink-0 justify-center">
-              <BankLogo ticker={r.ticker} name={r.name} height={14} maxWidth={26} />
+              <BankLogo ticker={r.ticker} name={tx(r.name)} height={14} maxWidth={26} />
             </span>
-            <span className="truncate text-[13px] font-medium text-foreground">{r.name}</span>
-            <span className="font-mono text-[9px] text-faint">{r.ticker}</span>
+            <span className="truncate text-[13px] font-medium text-foreground">{tx(r.name)}</span>
+            <span className="font-mono text-[9px] text-faint">{tx(r.ticker)}</span>
             {!grouped && (
-              <span className="hidden font-mono text-[9px] text-faint lg:inline">{r.groupLabel}</span>
+              <span className="hidden font-mono text-[9px] text-faint lg:inline">{tx(r.groupLabel)}</span>
             )}
             {r.excluded && (
               <span
                 className="font-mono text-[9px] text-warning"
-                title="Central clearing / CCP — carried, but excluded from share and concentration stats"
-              >
-                clearing
-              </span>
+                title={tx("Central clearing / CCP — carried, but excluded from share and concentration stats")}
+              >{tx("clearing")}</span>
             )}
             <span
               aria-hidden
@@ -169,8 +169,8 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
           </Link>
         </td>
         <td className={`${num} text-foreground`}>
-          {bn(r.assets)}
-          <span className="text-faint"> bn</span>
+          {tx(bn(r.assets))}
+          <span className="text-faint">{tx(" bn")}</span>
         </td>
         <td className="border-b border-hair px-2.5 py-1.5">
           <div className="flex items-center justify-end gap-2">
@@ -181,14 +181,14 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
               />
             </span>
             <span className="w-11 text-right font-mono text-[11.5px] tabular-nums text-muted-foreground">
-              {share == null ? "—" : `${(share * 100).toFixed(2)}%`}
+              {tx(share == null ? "—" : `${(share * 100).toFixed(2)}%`)}
             </span>
           </div>
         </td>
-        <td className={`${num} ${tone(r.roe)}`}>{p1(r.roe)}</td>
-        <td className={`${num} ${tone(r.npl)}`}>{p2(r.npl)}</td>
-        <td className={`${num} ${tone(r.nim)}`}>{p2(r.nim)}</td>
-        <td className={`${num} ${tone(r.car)}`}>{pts(r.car)}</td>
+        <td className={`${num} ${tone(r.roe)}`}>{tx(p1(r.roe))}</td>
+        <td className={`${num} ${tone(r.npl)}`}>{tx(p2(r.npl))}</td>
+        <td className={`${num} ${tone(r.nim)}`}>{tx(p2(r.nim))}</td>
+        <td className={`${num} ${tone(r.car)}`}>{tx(pts(r.car))}</td>
         <td className="border-b border-hair px-2.5 py-1.5">
           <div className="flex items-center justify-end gap-2">
             <span className="h-[5px] w-11 shrink-0 overflow-hidden rounded-[1px] bg-hair">
@@ -198,19 +198,19 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
               />
             </span>
             <span className="w-7 text-right font-mono text-[11.5px] tabular-nums text-muted-foreground">
-              {r.periods}q
+              {tx(r.periods)}q
             </span>
             <span
               title={
-                r.latest === latest
+                tx(r.latest === latest
                   ? "Has filed the latest audited quarter"
-                  : `Has not filed ${latest} yet`
+                  : tx("Has not filed {0} yet", {0: latest}))
               }
               className={`w-14 text-right font-mono text-[11.5px] tabular-nums ${
                 r.latest === latest ? "text-muted-foreground" : "font-semibold text-warning"
               }`}
             >
-              {r.latest}
+              {tx(r.latest)}
             </span>
           </div>
         </td>
@@ -228,22 +228,22 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
       <tr>
         <td className="border-b border-hair pb-1 pr-2.5 pt-4">
           <span className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.09em] text-foreground">
-            {label}
+            {tx(label)}
           </span>
           <span className="ml-2 font-mono text-[8.5px] text-faint">
-            {list.length} bank{list.length > 1 ? "s" : ""}
+            {tx(list.length)}{tx(" bank")}{tx(list.length > 1 ? "s" : "")}
           </span>
         </td>
         <td className={med}>
-          {bn(a)}
-          <span className="text-faint"> bn</span>
+          {tx(bn(a))}
+          <span className="text-faint">{tx(" bn")}</span>
         </td>
-        <td className={med}>{total ? `${((a / total) * 100).toFixed(1)}%` : "—"}</td>
-        <td className={med}>{p1(m("roe"))}</td>
-        <td className={med}>{p2(m("npl"))}</td>
-        <td className={med}>{p2(m("nim"))}</td>
-        <td className={med}>{pts(m("car"))}</td>
-        <td className={`${med} text-faint`}>median →</td>
+        <td className={med}>{tx(total ? `${((a / total) * 100).toFixed(1)}%` : "—")}</td>
+        <td className={med}>{tx(p1(m("roe")))}</td>
+        <td className={med}>{tx(p2(m("npl")))}</td>
+        <td className={med}>{tx(p2(m("nim")))}</td>
+        <td className={med}>{tx(pts(m("car")))}</td>
+        <td className={`${med} text-faint`}>{tx("median →")}</td>
       </tr>
     );
   };
@@ -253,11 +253,9 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 border-b border-hair pb-1.5">
-        <h2 className="text-[13.5px] font-bold text-foreground">The register</h2>
+        <h2 className="text-[13.5px] font-bold text-foreground">{tx("The register")}</h2>
         <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-          {query.trim() ? `${hits.length} of ${rows.length} banks` : `all ${rows.length} banks`} ·
-          click a column to rank · click a row to open the bank
-        </span>
+          {tx(query.trim() ? tx("{0} of {1} banks", {0: hits.length, 1: rows.length}) : tx("all {0} banks", {0: rows.length}))}{tx(" · click a column to rank · click a row to open the bank")}</span>
         <span className="ml-auto flex items-center gap-x-5">
           {(
             [
@@ -282,7 +280,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {label}
+              {tx(label)}
             </button>
           ))}
           <label className="flex items-center gap-1.5 border-b border-border pb-0.5">
@@ -293,19 +291,19 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="find a bank"
-              aria-label="Find a bank"
+              placeholder={tx("find a bank")}
+              aria-label={tx("Find a bank")}
               className="w-32 bg-transparent font-mono text-[11px] text-foreground placeholder:text-faint focus:outline-none"
             />
           </label>
         </span>
       </div>
 
-      <ScrollX className="mt-1" label="Bank register — scrolls horizontally">
+      <ScrollX className="mt-1" label={tx("Bank register — scrolls horizontally")}>
         <table className="w-full min-w-[940px] border-collapse text-foreground">
           <thead>
             <tr>
-              <th className={`${head} pr-2.5 text-left text-faint`}>Bank</th>
+              <th className={`${head} pr-2.5 text-left text-faint`}>{tx("Bank")}</th>
               {COLUMNS.map((c) => (
                 <th key={c.label} className={`${head} px-2.5 text-right`}>
                   <button
@@ -315,8 +313,8 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
                       sortKey === c.key ? "text-foreground" : "text-faint hover:text-foreground"
                     }`}
                   >
-                    {c.label}
-                    {arrow(c.key)}
+                    {tx(c.label)}
+                    {tx(arrow(c.key))}
                   </button>
                 </th>
               ))}
@@ -325,8 +323,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
           <tbody>
             {hits.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-6 text-[12.5px] text-faint">
-                  No bank matches “{query}”.
+                <td colSpan={8} className="py-6 text-[12.5px] text-faint">{tx("No bank matches “")}{tx(query)}”.
                 </td>
               </tr>
             ) : grouped ? (
@@ -335,7 +332,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
                 if (!list.length) return null;
                 return (
                   <Fragment key={code}>
-                    <GroupRule label={label} list={list} />
+                    <GroupRule label={tx(label)} list={list} />
                     {sort(list).map((r) => (
                       <Row key={r.ticker} r={r} />
                     ))}
@@ -349,14 +346,9 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
         </table>
       </ScrollX>
 
-      <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">
-        Group rules carry each type&rsquo;s asset subtotal, its share of the reporting total, and its{" "}
-        <b className="font-medium text-muted-foreground">median</b> ROE / NPL / NIM / CAR — so every
-        bank reads against its own peers, not the sector. History bar is quarters filed out of{" "}
-        {maxPeriods}. An <span className="text-warning">amber period</span> marks a bank that has
-        not filed {latest}. Ratios are at the record quarter; a bank that has not filed it shows
-        “—”. Takasbank shows no share by rule, not by omission.
-      </p>
+      <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">{tx("Group rules carry each type’s asset subtotal, its share of the reporting total, and its")}{" "}
+        <b className="font-medium text-muted-foreground">{tx("median")}</b>{tx(" ROE / NPL / NIM / CAR — so every bank reads against its own peers, not the sector. History bar is quarters filed out of")}{" "}
+        {tx(maxPeriods)}{tx(". An ")}<span className="text-warning">{tx("amber period")}</span>{tx(" marks a bank that has not filed ")}{tx(latest)}{tx(". Ratios are at the record quarter; a bank that has not filed it shows “—”. Takasbank shows no share by rule, not by omission.")}</p>
     </div>
   );
 }

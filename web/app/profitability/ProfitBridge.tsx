@@ -12,6 +12,7 @@
  * column is the REPORTED net-profit line, not the sum — and the page only draws
  * this chart when the two reconcile (see lib/profitability.ts).
  */
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   BarChart,
@@ -43,6 +44,7 @@ export default function ProfitBridge({
   source?: React.ReactNode;
   height?: number;
 }) {
+  const tx = useText();
   const t = useChartTheme();
 
   const steps: { key: keyof Bridge; name: string }[] = [
@@ -80,7 +82,7 @@ export default function ProfitBridge({
     k === "total" ? t.hero : k === "up" ? "var(--positive)" : "var(--negative)";
 
   return (
-    <ChartCard plain title={title} description={description} source={source}>
+    <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

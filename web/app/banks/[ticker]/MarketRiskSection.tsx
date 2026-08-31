@@ -8,6 +8,7 @@
  * comes from market-risk.ts. Renders nothing when the bank discloses no §4
  * market-risk data.
  */
+import { useText } from "@/i18n/use-text";
 import { Card } from "@/app/components/ui/card";
 import { Section, Stat } from "@/app/components/ui";
 import type { BankMetricRow } from "@/app/lib/heatmap";
@@ -30,6 +31,7 @@ function DivergingBars({
 }: {
   rows: { label: string; pct: number | null }[];
 }) {
+  const tx = useText();
   const maxAbs = Math.max(...rows.map((r) => Math.abs(r.pct ?? 0)), 0.001);
   return (
     <div className="space-y-2.5">
@@ -39,7 +41,7 @@ function DivergingBars({
         const w = (Math.abs(pct) / maxAbs) * 50; // % of the half-width
         return (
           <div key={r.label} className="flex items-center gap-3 text-xs">
-            <div className="w-12 shrink-0 font-medium text-muted-foreground">{r.label}</div>
+            <div className="w-12 shrink-0 font-medium text-muted-foreground">{tx(r.label)}</div>
             <div className="relative h-2.5 flex-1">
               <div className="absolute inset-y-0 left-1/2 w-px bg-border" aria-hidden />
               <div
@@ -56,7 +58,7 @@ function DivergingBars({
                 pos ? "text-positive" : "text-negative"
               }`}
             >
-              {r.pct == null ? "—" : signedPct(r.pct, 1)}
+              {tx(r.pct == null ? "—" : signedPct(r.pct, 1))}
             </div>
           </div>
         );
@@ -74,6 +76,7 @@ export default function MarketRiskSection({
   /** Per-bank §4 repricing ladder + FX net open position (latest quarter). */
   detail: MarketRiskDetail;
 }) {
+  const tx = useText();
   const latest = rows[rows.length - 1] ?? null;
   const fxNop = latest?.fx_nop ?? null;
   const lcr = latest?.lcr ?? null;
@@ -84,37 +87,37 @@ export default function MarketRiskSection({
 
   return (
     <Section
-      title="Market Risk"
-      description="FX net open position and interest-rate repricing gap, from the bank's §4 footnotes."
+      title={tx("Market Risk")}
+      description={tx("FX net open position and interest-rate repricing gap, from the bank's §4 footnotes.")}
       contentClassName=""
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat
-          label="FX NOP / Capital"
+          label={tx("FX NOP / Capital")}
           value={signedPct(fxNop)}
           hint={
             fxNop == null ? undefined : (
               <span className={toneClass(fxNop >= 0)}>
-                {fxNop >= 0 ? "net long FX" : "net short FX"}
+                {tx(fxNop >= 0 ? "net long FX" : "net short FX")}
               </span>
             )
           }
         />
         <Stat
-          label="1Y Repricing Gap"
+          label={tx("1Y Repricing Gap")}
           value={signedPct(gap1y)}
           hint={
             gap1y == null ? undefined : (
-              <span className={toneClass(gap1y >= 0)}>of rate-sensitive assets</span>
+              <span className={toneClass(gap1y >= 0)}>{tx("of rate-sensitive assets")}</span>
             )
           }
         />
         <Stat
-          label="Liquidity Coverage"
+          label={tx("Liquidity Coverage")}
           value={levelPct(lcr)}
           hint={
             lcr == null ? undefined : (
-              <span className={toneClass(lcr >= 100)}>LCR · min 100%</span>
+              <span className={toneClass(lcr >= 100)}>{tx("LCR · min 100%")}</span>
             )
           }
         />
@@ -125,10 +128,8 @@ export default function MarketRiskSection({
           {detail.repricing.buckets.length > 0 && (
             <Card className="p-5">
               <div className="mb-4">
-                <div className="text-sm font-bold text-foreground">Interest-rate repricing gap</div>
-                <div className="text-xs text-muted-foreground">
-                  % of rate-sensitive assets, by repricing bucket
-                </div>
+                <div className="text-sm font-bold text-foreground">{tx("Interest-rate repricing gap")}</div>
+                <div className="text-xs text-muted-foreground">{tx("% of rate-sensitive assets, by repricing bucket")}</div>
               </div>
               <DivergingBars rows={detail.repricing.buckets} />
             </Card>
@@ -137,10 +138,8 @@ export default function MarketRiskSection({
           {detail.fx.items.length > 0 && (
             <Card className="p-5">
               <div className="mb-3">
-                <div className="text-sm font-bold text-foreground">FX net open position</div>
-                <div className="text-xs text-muted-foreground">
-                  Net position as % of regulatory capital
-                </div>
+                <div className="text-sm font-bold text-foreground">{tx("FX net open position")}</div>
+                <div className="text-xs text-muted-foreground">{tx("Net position as % of regulatory capital")}</div>
               </div>
               <div>
                 {detail.fx.items.map((it) => {
@@ -150,13 +149,13 @@ export default function MarketRiskSection({
                       key={it.label}
                       className="flex items-center justify-between border-b border-border py-2.5 text-sm last:border-0"
                     >
-                      <span className="font-medium text-foreground">{it.label}</span>
+                      <span className="font-medium text-foreground">{tx(it.label)}</span>
                       <span
                         className={`font-semibold tabular-nums ${
                           it.pct == null ? "text-muted-foreground" : pos ? "text-positive" : "text-negative"
                         }`}
                       >
-                        {it.pct == null ? "—" : signedPct(it.pct, 1)}
+                        {tx(it.pct == null ? "—" : signedPct(it.pct, 1))}
                       </span>
                     </div>
                   );

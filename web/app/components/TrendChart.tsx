@@ -12,6 +12,8 @@
  * labels. Below ~500px the legend returns and lines keep their series colours
  * (grey context without labels would lose identity on mobile).
  */
+import { useChartFormat } from "@/i18n/use-chart-format";
+import { useText } from "@/i18n/use-text";
 import { useState } from "react";
 import {
   Area,
@@ -43,7 +45,7 @@ import {
   Y_AXIS_WIDTH,
 } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
-import { formatters, type FormatKind } from "@/app/lib/chart-format";
+import { type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
 export interface TrendPoint {
@@ -134,6 +136,7 @@ export default function TrendChart({
   hero,
   annotations,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
   // Hovering an end-label (or legend item on narrow plots) emphasises that
   // line and fades the rest; right-clicking pins the isolation.
@@ -169,6 +172,7 @@ export default function TrendChart({
     a.period.localeCompare(b.period),
   );
 
+  const formatters = useChartFormat();
   const fmt = formatters[yFormat];
   const lastIdx = wide.length - 1;
 
@@ -203,7 +207,7 @@ export default function TrendChart({
       .map((c) => {
         const lp = lastPoint(wide, "period", c);
         return lp
-          ? { name: seriesLabels[c], value: fmt(lp.value, decimals) }
+          ? { name: tx(seriesLabels[c]), value: fmt(lp.value, decimals) }
           : null;
       })
       .filter((e): e is { name: string; value: string } => e != null),
@@ -211,7 +215,7 @@ export default function TrendChart({
   );
 
   return (
-    <ChartCard title={title} description={description} source={source} plain={plain}>
+    <ChartCard title={tx(title)} description={tx(description)} source={tx(source)} plain={plain}>
       <ChartData
         table={wideToTable(
           wide,
@@ -235,6 +239,7 @@ export default function TrendChart({
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
+              tickFormatter={(value) => tx(String(value))}
               tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
               tickMargin={6}
               minTickGap={30}
@@ -249,7 +254,7 @@ export default function TrendChart({
               tickLine={false}
             />
             {zeroLine && <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />}
-            {renderAnnotations(annotations, wide, "period", t)}
+            {tx(renderAnnotations(annotations, wide, "period", t))}
             {/* Nearest-series tooltip: one group's point, not the whole date
                 column (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
@@ -258,7 +263,7 @@ export default function TrendChart({
                 <NearestSeriesTooltip
                   active={p.active}
                   payload={p.payload}
-                  label={p.label}
+                  label={tx(p.label)}
                   coordinate={p.coordinate}
                   formatValue={(v) => fmt(v, decimals)}
                 />
@@ -322,7 +327,7 @@ export default function TrendChart({
                                 background: it.color ?? "currentColor",
                               }}
                             />
-                            {it.value}
+                            {tx(it.value)}
                           </li>
                         );
                       })}
@@ -348,7 +353,7 @@ export default function TrendChart({
                       <Area
                         type="monotone"
                         dataKey={code}
-                        name={seriesLabels[code]}
+                        name={tx(seriesLabels[code])}
                         stroke={color}
                         strokeWidth={2.5}
                         strokeLinecap="round"
@@ -377,7 +382,7 @@ export default function TrendChart({
                       key={code}
                       type="monotone"
                       dataKey={code}
-                      name={seriesLabels[code]}
+                      name={tx(seriesLabels[code])}
                       stroke={color}
                       strokeWidth={width}
                       strokeOpacity={opacity}

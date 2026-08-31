@@ -6,6 +6,7 @@
  * tiles are gone and the charts moved to where they explain something: the margin
  * bridge beside the ladder, the share trend beside the loan book.
  */
+import { useText } from "@/i18n/use-text";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import type { BankMetricRow } from "@/app/lib/heatmap";
 import type { ShareRow } from "@/app/lib/market-share";
@@ -24,15 +25,16 @@ const pts = (rows: BankMetricRow[], key: "loan_yield" | "deposit_cost") =>
     .map((r) => ({ period_date: qStart(r.period), value: (r[key] as number) * 100 }));
 
 export function MarginBridgeChart({ rows, height = 250 }: { rows: BankMetricRow[]; height?: number }) {
+  const tx = useText();
   const yieldSeries = pts(rows, "loan_yield");
   const costSeries = pts(rows, "deposit_cost");
   if (yieldSeries.length < 2 && costSeries.length < 2) return null;
   return (
     <TimeSeriesChart
       series={{ "Loan yield": yieldSeries, "Deposit cost": costSeries }}
-      title="Margin bridge — loan yield vs deposit cost (TTM, %)"
-      description="What the book earns against what the funding costs — the spread is the gap."
-      source="Source: audited P&L ÷ average balances, trailing twelve months"
+      title={tx("Margin bridge — loan yield vs deposit cost (TTM, %)")}
+      description={tx("What the book earns against what the funding costs — the spread is the gap.")}
+      source={tx("Source: audited P&L ÷ average balances, trailing twelve months")}
       yFormat="pct"
       xFormat="quarter"
       decimals={1}
@@ -42,6 +44,7 @@ export function MarginBridgeChart({ rows, height = 250 }: { rows: BankMetricRow[
 }
 
 export function MarketShareChart({ rows, height = 230 }: { rows: ShareRow[]; height?: number }) {
+  const tx = useText();
   const s = (key: "assets_share" | "loans_share" | "deposits_share") =>
     rows.filter((r) => r[key] != null).map((r) => ({ period_date: qStart(r.period), value: (r[key] as number) * 100 }));
   const assets = s("assets_share");
@@ -49,8 +52,8 @@ export function MarketShareChart({ rows, height = 230 }: { rows: ShareRow[]; hei
   return (
     <TimeSeriesChart
       series={{ Assets: assets, Loans: s("loans_share"), Deposits: s("deposits_share") }}
-      title="Share of the system (%)"
-      description="Share of the banks reporting each quarter (~98% of sector assets)."
+      title={tx("Share of the system (%)")}
+      description={tx("Share of the banks reporting each quarter (~98% of sector assets).")}
       yFormat="pct"
       xFormat="quarter"
       decimals={2}

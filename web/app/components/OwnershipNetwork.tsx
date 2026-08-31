@@ -17,6 +17,7 @@
  * /banks/[ticker]); state mirrors to ?view=&focus= via shallow
  * history.replaceState (no server roundtrip on a force-dynamic page).
  */
+import { useText } from "@/i18n/use-text";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -68,6 +69,7 @@ export default function OwnershipNetwork({
   initialFocus,
   initialView,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
   const validFocus = (f: string | null | undefined) =>
     f && graph.banks.some((b) => b.ticker === f) ? f : null;
@@ -251,21 +253,17 @@ export default function OwnershipNetwork({
             type="button"
             onClick={() => changeFocus(null)}
             className="text-muted-foreground hover:text-foreground"
-          >
-            ← All banks
-          </button>
-          <span className="font-semibold text-foreground">{focusBank.name}</span>
+          >{tx("← All banks")}</button>
+          <span className="font-semibold text-foreground">{tx(focusBank.name)}</span>
           {focusBank.typeCode && (
             <span className="text-xs text-muted-foreground">
-              {BANK_TYPE_BADGE_LABELS[focusBank.typeCode]}
+              {tx(BANK_TYPE_BADGE_LABELS[focusBank.typeCode])}
             </span>
           )}
           <Link
             href={`/banks/${focusBank.ticker}`}
             className="ml-auto text-xs text-muted-foreground hover:text-foreground"
-          >
-            Open bank page →
-          </Link>
+          >{tx("Open bank page →")}</Link>
         </div>
         <RadialFanView
           ticker={focusBank.ticker}
@@ -329,7 +327,7 @@ export default function OwnershipNetwork({
                   : "hover:text-foreground"
               }`}
             >
-              {m === "all" ? "All holdings" : "Shared only"}
+              {tx(m === "all" ? "All holdings" : "Shared only")}
             </button>
           ))}
         </div>
@@ -339,46 +337,35 @@ export default function OwnershipNetwork({
               className="inline-block size-2.5 rounded-full"
               style={{ background: seriesColor(t, code, 0) }}
             />
-            {label}
+            {tx(label)}
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5">
           <span
             className="inline-block size-2.5 rotate-45"
             style={{ background: t.palette[5] }}
-          />
-          Shared entity
-        </span>
+          />{tx("Shared entity")}</span>
         {view === "all" && (
           <>
             <span className="inline-flex items-center gap-1.5">
               <span
                 className="inline-block size-2 rounded-full"
                 style={{ background: holderColor }}
-              />
-              Shareholder
-            </span>
+              />{tx("Shareholder")}</span>
             <span className="inline-flex items-center gap-1.5">
               <span
                 className="inline-block size-2 rounded-full"
                 style={{ background: subColor }}
-              />
-              Subsidiary
-            </span>
+              />{tx("Subsidiary")}</span>
           </>
         )}
-        <span className="ml-auto">
-          hover to highlight · scroll to zoom
-          {view === "all" ? " (zoom in for names)" : ""} · click a bank to focus
-        </span>
+        <span className="ml-auto">{tx("hover to highlight · scroll to zoom")}{tx(view === "all" ? " (zoom in for names)" : "")}{tx(" · click a bank to focus")}</span>
         {isZoomed && (
           <button
             type="button"
             onClick={() => animateVbTo({ x: 0, y: 0, w: size, h: size })}
             className="rounded border border-border px-1.5 py-0.5 hover:text-foreground"
-          >
-            Reset view
-          </button>
+          >{tx("Reset view")}</button>
         )}
       </div>
 
@@ -388,7 +375,7 @@ export default function OwnershipNetwork({
           viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
           className="w-full h-auto cursor-grab select-none touch-none active:cursor-grabbing"
           role="img"
-          aria-label="Sector ownership network"
+          aria-label={tx("Sector ownership network")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -540,7 +527,7 @@ export default function OwnershipNetwork({
                                 : "fill-muted-foreground"
                             }
                           >
-                            {n.kind === "leaf" ? trimLabel(n.label, 26) : n.label}
+                            {tx(n.kind === "leaf" ? trimLabel(n.label, 26) : n.label)}
                           </text>
                         )}
                       </g>
@@ -637,7 +624,7 @@ export default function OwnershipNetwork({
                         active ? "fill-foreground font-medium" : "fill-muted-foreground"
                       }
                     >
-                      {s.label}
+                      {tx(s.label)}
                     </text>
                   </g>
                 );
@@ -677,7 +664,7 @@ export default function OwnershipNetwork({
                         active ? "fill-foreground font-medium" : "fill-muted-foreground"
                       }
                     >
-                      {b.name}
+                      {tx(b.name)}
                     </text>
                   </g>
                 );
@@ -698,41 +685,38 @@ export default function OwnershipNetwork({
           >
             {hoveredNode.kind === "bank" ? (
               <>
-                <div className="font-medium text-foreground">{hoveredNode.label}</div>
+                <div className="font-medium text-foreground">{tx(hoveredNode.label)}</div>
                 <div className="text-muted-foreground">
-                  {hoveredNode.typeCode ? BANK_TYPE_BADGE_LABELS[hoveredNode.typeCode] : ""}
+                  {tx(hoveredNode.typeCode ? BANK_TYPE_BADGE_LABELS[hoveredNode.typeCode] : "")}
                 </div>
                 <div className="mt-0.5 text-muted-foreground">
-                  {hoveredNode.hasData
-                    ? `${hoveredNode.nHolders} shareholders · ${hoveredNode.nSubs} subsidiaries`
-                    : "No KAP form filed — shown via counterparty stakes"}
-                  {hoveredNode.freeFloatPct != null &&
-                    ` · free float ${fmtPct(hoveredNode.freeFloatPct)}`}
+                  {tx(hoveredNode.hasData
+                    ? tx("{0} shareholders · {1} subsidiaries", {0: hoveredNode.nHolders, 1: hoveredNode.nSubs})
+                    : "No KAP form filed — shown via counterparty stakes")}
+                  {tx(hoveredNode.freeFloatPct != null &&
+                    tx(" · free float {0}", {0: fmtPct(hoveredNode.freeFloatPct)}))}
                 </div>
               </>
             ) : hoveredNode.kind === "shared" ? (
               <>
-                <div className="font-medium text-foreground">{hoveredNode.label}</div>
-                <div className="text-muted-foreground">
-                  Linked to {new Set(hoveredNode.sharedLinks?.map((l) => l.ticker)).size}{" "}
-                  banks — click for details
-                </div>
+                <div className="font-medium text-foreground">{tx(hoveredNode.label)}</div>
+                <div className="text-muted-foreground">{tx("Linked to ")}{tx(new Set(hoveredNode.sharedLinks?.map((l) => l.ticker)).size)}{" "}{tx("banks — click for details")}</div>
               </>
             ) : (
               <>
                 <div className="font-medium text-foreground">
-                  {hoveredNode.leaf?.fullName}
+                  {tx(hoveredNode.leaf?.fullName)}
                 </div>
                 <div className="text-muted-foreground">
-                  {hoveredNode.leaf?.kind === "holder" ? "Shareholder of" : "Held by"}{" "}
-                  {bankDisplayName(hoveredNode.ticker)} ·{" "}
+                  {tx(hoveredNode.leaf?.kind === "holder" ? "Shareholder of" : "Held by")}{" "}
+                  {tx(bankDisplayName(hoveredNode.ticker))} ·{" "}
                   <span className="tabular-nums">
-                    {fmtPct(hoveredNode.leaf?.ratioPct ?? null)}
+                    {tx(fmtPct(hoveredNode.leaf?.ratioPct ?? null))}
                   </span>
                 </div>
                 {hoveredNode.leaf?.activity && (
                   <div className="mt-0.5 text-muted-foreground line-clamp-2">
-                    {hoveredNode.leaf.activity}
+                    {tx(hoveredNode.leaf.activity)}
                   </div>
                 )}
               </>
@@ -750,16 +734,16 @@ export default function OwnershipNetwork({
               transform: `translate(${hoveredRingBank.x > c ? "-104%" : "14px"}, -50%)`,
             }}
           >
-            <div className="font-medium text-foreground">{hoveredRingBank.name}</div>
+            <div className="font-medium text-foreground">{tx(hoveredRingBank.name)}</div>
             <div className="text-muted-foreground">
-              {hoveredRingBank.typeCode
+              {tx(hoveredRingBank.typeCode
                 ? BANK_TYPE_BADGE_LABELS[hoveredRingBank.typeCode]
-                : ""}
+                : "")}
             </div>
             <div className="mt-0.5 text-muted-foreground">
-              {hoveredRingBank.hasData
-                ? `${hoveredRingBank.nHolders} shareholders · ${hoveredRingBank.nSubs} subsidiaries`
-                : "No KAP form filed — shown via counterparty stakes"}
+              {tx(hoveredRingBank.hasData
+                ? tx("{0} shareholders · {1} subsidiaries", {0: hoveredRingBank.nHolders, 1: hoveredRingBank.nSubs})
+                : "No KAP form filed — shown via counterparty stakes")}
             </div>
           </div>
         )}
@@ -768,7 +752,7 @@ export default function OwnershipNetwork({
       {/* Shared-entity panel */}
       {selShared && (
         <div className="mt-2 border-t border-border px-1 pt-3 text-xs">
-          <div className="font-medium text-foreground">{selShared.label}</div>
+          <div className="font-medium text-foreground">{tx(selShared.label)}</div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
             {selShared.links.map((l, i) => (
               <button
@@ -777,9 +761,9 @@ export default function OwnershipNetwork({
                 onClick={() => changeFocus(l.ticker)}
                 className="text-foreground underline-offset-2 hover:underline"
               >
-                {bankDisplayName(l.ticker)}{" "}
+                {tx(bankDisplayName(l.ticker))}{" "}
                 <span className="tabular-nums text-muted-foreground">
-                  {l.kind === "holder" ? "shareholder" : "subsidiary"} · {fmtPct(l.ratioPct)}
+                  {tx(l.kind === "holder" ? "shareholder" : "subsidiary")} · {tx(fmtPct(l.ratioPct))}
                 </span>
               </button>
             ))}
@@ -791,13 +775,13 @@ export default function OwnershipNetwork({
       {selectedLeaf && (
         <div className="mt-2 border-t border-border px-1 pt-3 text-xs">
           <div className="mb-1 text-muted-foreground">
-            {selectedLeaf.leaf.kind === "holder" ? "Shareholder of" : "Holding of"}{" "}
+            {tx(selectedLeaf.leaf.kind === "holder" ? "Shareholder of" : "Holding of")}{" "}
             <button
               type="button"
               onClick={() => changeFocus(selectedLeaf.ticker)}
               className="text-foreground underline-offset-2 hover:underline"
             >
-              {bankDisplayName(selectedLeaf.ticker)} →
+              {tx(bankDisplayName(selectedLeaf.ticker))} →
             </button>
           </div>
           <LeafPanel

@@ -9,6 +9,9 @@
  * and the calendar-adjusted production variant) is flagged in the page notes
  * — it would need a separate TÜİK Excel scraper.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getGrowthData, type GrowthTable } from "@/app/lib/growth";
@@ -53,11 +56,15 @@ import { nf } from "@/app/lib/chart-format";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkey Economic Growth — GDP",
   description: "Türkiye GDP and economic growth — chain-volume series and year-on-year growth from TÜİK.",
   alternates: { canonical: "/economy/economic-growth" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const AMBER = { light: "#f5c518", dark: "#fbd34d" };
@@ -122,15 +129,16 @@ const SECTORS: Record<string, string> = {
 };
 
 function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
+  const tx = useText();
   return (
     <div className="space-y-2">
       <Table wrapperClassName="rounded-[10px] border border-border bg-card">
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead>y/y % change</TableHead>
+            <TableHead>{tx("y/y % change")}</TableHead>
             {table.quarters.map((q) => (
               <TableHead key={q} className="text-right">
-                {q}
+                {tx(q)}
               </TableHead>
             ))}
           </TableRow>
@@ -141,11 +149,11 @@ function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
             return (
               <TableRow key={r.label} className={isGdp ? "bg-accent/30 font-semibold" : undefined}>
                 <TableCell className={`py-1.5 ${r.indent ? "pl-6 text-muted-foreground" : ""}`}>
-                  {r.label}
+                  {tx(r.label)}
                 </TableCell>
                 {r.values.map((v, i) => (
                   <TableCellNum key={i} tone={toneFor(v)} className="py-1.5">
-                    {v == null ? "—" : v.toFixed(1)}
+                    {tx(v == null ? "—" : v.toFixed(1))}
                   </TableCellNum>
                 ))}
               </TableRow>
@@ -153,7 +161,7 @@ function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
           })}
         </TableBody>
       </Table>
-      {note && <p className="text-xs text-muted-foreground">{note}</p>}
+      {note && <p className="text-xs text-muted-foreground">{tx(note)}</p>}
     </div>
   );
 }
@@ -161,6 +169,7 @@ function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
 const pp = (v: number) => signed(v, (x) => `${x.toFixed(1)}pp`);
 
 export default async function EconomicGrowthPage() {
+  const tx = await getText();
   const [d, ahead] = await Promise.all([getGrowthData(), aheadSlots()]);
 
   // ---- the brief's computed vitals ------------------------------------------
@@ -187,12 +196,12 @@ export default async function EconomicGrowthPage() {
   const gdpVerb = direction(gdpNow, VERBS.size, { flat: 0.1, sharp: Number.POSITIVE_INFINITY });
   const growthRead =
     gdpNow != null && gdpVerb && gdpQuarter
-      ? `GDP ${gdpVerb} ${Math.abs(gdpNow).toFixed(1)}% y/y in ${gdpQuarter}` +
+      ? tx("GDP {0} {1}% y/y in {2}", {0: gdpVerb, 1: Math.abs(gdpNow).toFixed(1), 2: gdpQuarter}) +
         (topExp && topExp.value > 0
-          ? `. ${topExp.label} drove it (${pp(topExp.value)})`
+          ? tx(". {0} drove it ({1})", {0: topExp.label, 1: pp(topExp.value)})
           : "") +
         (dragExp && dragExp.value < 0
-          ? `, while ${dragExp.label.toLowerCase()} subtracted ${pp(dragExp.value)}`
+          ? tx(", while {0} subtracted {1}", {0: dragExp.label.toLowerCase(), 1: pp(dragExp.value)})
           : "") +
         "."
       : null;
@@ -200,8 +209,8 @@ export default async function EconomicGrowthPage() {
   const sectorRead =
     topSec || weakSec
       ? "Gross value added by activity, y/y %." +
-        (topSec ? ` ${topSec.label} led (${pp(topSec.value)})` : "") +
-        (weakSec ? `${topSec ? ";" : ""} ${weakSec.label.toLowerCase()} lagged (${pp(weakSec.value)})` : "") +
+        (topSec ? tx(" {0} led ({1})", {0: topSec.label, 1: pp(topSec.value)}) : "") +
+        (weakSec ? tx("{0} {1} lagged ({2})", {0: topSec ? ";" : "", 1: weakSec.label.toLowerCase(), 2: pp(weakSec.value)}) : "") +
         ". Figures use the unadjusted chain-volume index (see table note)."
       : null;
 
@@ -213,7 +222,7 @@ export default async function EconomicGrowthPage() {
     investment: toPts(d.expYoY["Fixed investment"] ?? []),
     exports: toPts(d.expYoY["Exports"] ?? []),
     imports: toPts(d.expYoY["Imports"] ?? []),
-  });
+  }, tx.locale);
 
   // ---- movers: the expenditure side, quarter on quarter --------------------
   // All five rows are the SAME quarterly cadence off the same national-accounts
@@ -253,60 +262,37 @@ export default async function EconomicGrowthPage() {
       k: "GDP, y/y",
       v: pct1(d.gdpYoY),
       effect: (
-        <>
-          The demand behind the loan book, and the denominator under every
-          %-of-GDP ratio on the site. Output turns before{" "}
-          <Link href="/asset-quality" className="font-semibold text-primary">
-            NPL formation
-          </Link>{" "}
-          does, so this is the leading half of the credit-quality question.
-        </>
+        <>{tx("The demand behind the loan book, and the denominator under every %-of-GDP ratio on the site. Output turns before")}{" "}
+          <Link href="/asset-quality" className="font-semibold text-primary">{tx("NPL formation")}</Link>{" "}{tx("does, so this is the leading half of the credit-quality question.")}</>
       ),
     },
     {
       k: "Household consumption",
       v: pct1(consNow),
       effect: (
-        <>
-          The largest expenditure component, and the one that shows up first in
-          card spending and{" "}
-          <Link href="/credit" className="font-semibold text-primary">
-            consumer credit
-          </Link>
-          . Retail demand is a volume signal for the unsecured book.
-        </>
+        <>{tx("The largest expenditure component, and the one that shows up first in card spending and")}{" "}
+          <Link href="/credit" className="font-semibold text-primary">{tx("consumer credit")}</Link>{tx(". Retail demand is a volume signal for the unsecured book.")}</>
       ),
     },
     {
       k: "Fixed investment",
       v: pct1(invNow),
       effect: (
-        <>
-          Corporate capex is what long-tenor commercial lending funds. Investment
-          is the component most sensitive to the real rate, so it carries the
-          policy stance into the loan book.
-        </>
+        <>{tx("Corporate capex is what long-tenor commercial lending funds. Investment is the component most sensitive to the real rate, so it carries the policy stance into the loan book.")}</>
       ),
     },
     {
       k: "Construction GVA",
       v: pct1(constrNow),
       effect: (
-        <>
-          Construction is a concentrated exposure for Turkish banks and a
-          historically early source of problem loans — worth reading separately
-          from the services aggregate it usually sits inside.
-        </>
+        <>{tx("Construction is a concentrated exposure for Turkish banks and a historically early source of problem loans — worth reading separately from the services aggregate it usually sits inside.")}</>
       ),
     },
     {
       k: "Finance & insurance GVA",
       v: pct1(finNow),
       effect: (
-        <>
-          The sector&rsquo;s own value added, on the production side of the
-          accounts — the banks as an industry rather than as a lender to one.
-        </>
+        <>{tx("The sector’s own value added, on the production side of the accounts — the banks as an industry rather than as a lender to one.")}</>
       ),
     },
   ];
@@ -322,12 +308,10 @@ export default async function EconomicGrowthPage() {
       rule: "gdp_yoy < 0",
       body: (
         <>
-          <b className="font-semibold">Output is below its year-ago level.</b> GDP at{" "}
-          {pct1(gdpNow)} y/y in {gdpQuarter ?? "the latest quarter"} — a contraction on
-          the chain-volume index.
-        </>
+          <b className="font-semibold">{tx("Output is below its year-ago level.")}</b>{tx(" GDP at")}{" "}
+          {tx(pct1(gdpNow))}{tx(" y/y in ")}{tx(gdpQuarter ?? "the latest quarter")}{tx(" — a contraction on the chain-volume index.")}</>
       ),
-      clear: <>GDP is {pct1(gdpNow)} y/y — at or above its year-ago level.</>,
+      clear: <>{tx("GDP is ")}{tx(pct1(gdpNow))}{tx(" y/y — at or above its year-ago level.")}</>,
     },
     {
       code: "GDP_RUN",
@@ -335,13 +319,9 @@ export default async function EconomicGrowthPage() {
       rule: "consecutive_fall(gdp_yoy) ≥ 3 quarters",
       body: (
         <>
-          <b className="font-semibold">
-            Growth has slowed for {gdpFallRun} quarters running.
-          </b>{" "}
-          Three consecutive lower y/y prints is a trend rather than a base effect.
-        </>
+          <b className="font-semibold">{tx("Growth has slowed for ")}{tx(gdpFallRun)}{tx(" quarters running.")}</b>{" "}{tx("Three consecutive lower y/y prints is a trend rather than a base effect.")}</>
       ),
-      clear: <>The y/y growth rate has not fallen three quarters running.</>,
+      clear: <>{tx("The y/y growth rate has not fallen three quarters running.")}</>,
     },
     {
       code: "INV_NEG",
@@ -349,17 +329,11 @@ export default async function EconomicGrowthPage() {
       rule: "investment_contribution_pp < 0",
       body: (
         <>
-          <b className="font-semibold">Investment is subtracting from growth.</b> Fixed
-          capital formation contributed {pp(invContrib as number)} in{" "}
-          {gdpQuarter ?? "the latest quarter"} — the component that funds long-tenor
-          commercial lending.
-        </>
+          <b className="font-semibold">{tx("Investment is subtracting from growth.")}</b>{tx(" Fixed capital formation contributed ")}{tx(pp(invContrib as number))}{tx(" in")}{" "}
+          {tx(gdpQuarter ?? "the latest quarter")}{tx(" — the component that funds long-tenor commercial lending.")}</>
       ),
       clear: (
-        <>
-          Investment contributed {invContrib != null ? pp(invContrib) : "—"} to growth —
-          not a drag.
-        </>
+        <>{tx("Investment contributed ")}{tx(invContrib != null ? pp(invContrib) : "—")}{tx(" to growth — not a drag.")}</>
       ),
     },
     {
@@ -368,63 +342,54 @@ export default async function EconomicGrowthPage() {
       rule: "import_contribution_pp < −2pp",
       body: (
         <>
-          <b className="font-semibold">Imports are a heavy drag on growth.</b> Import
-          volumes subtracted {pp(importDrag as number)} in{" "}
-          {gdpQuarter ?? "the latest quarter"} — domestic demand met from abroad, which
-          lands in the current account.
-        </>
+          <b className="font-semibold">{tx("Imports are a heavy drag on growth.")}</b>{tx(" Import volumes subtracted ")}{tx(pp(importDrag as number))}{tx(" in")}{" "}
+          {tx(gdpQuarter ?? "the latest quarter")}{tx(" — domestic demand met from abroad, which lands in the current account.")}</>
       ),
       clear: (
-        <>
-          Imports contributed {importDrag != null ? pp(importDrag) : "—"} — inside the
-          −2pp drag line.
-        </>
+        <>{tx("Imports contributed ")}{tx(importDrag != null ? pp(importDrag) : "—")}{tx(" — inside the −2pp drag line.")}</>
       ),
     },
   ];
 
   const aheadItems = [
-    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision</>, href: "/rates" }] : []),
-    { when: "quarterly", what: <>TÜİK national accounts — the next GDP release</> },
-    { when: "monthly", what: <>TÜİK industrial production — the read between quarters</> },
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision")}</>, href: "/rates" }] : []),
+    { when: "quarterly", what: <>{tx("TÜİK national accounts — the next GDP release")}</> },
+    { when: "monthly", what: <>{tx("TÜİK industrial production — the read between quarters")}</> },
   ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Economic Growth"
+        title={tx("Economic Growth")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{d.asOfLabel || "—"}</b> · quarterly
-            TÜİK national accounts · chain-linked volume, y/y from the index
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(d.asOfLabel || "—")}</b>{tx(" · quarterly TÜİK national accounts · chain-linked volume, y/y from the index")}</>
         }
         right="every figure computed from source series"
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="headline · level · what added · what subtracted"
+        title={tx("The vitals")}
+        meta={tx("headline · level · what added · what subtracted")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={5}>
         <Vital
-          label="GDP growth, y/y"
+          label={tx("GDP growth, y/y")}
           value={gdpNow != null ? gdpNow.toFixed(1) : "—"}
           unit="%"
           series={gdp.slice(-13)}
           decimals={1}
           note={
             <>
-              {gdpD != null ? `${signedPpStr(gdpD)} vs the prior quarter` : d.asOfLabel}
-              {atWinHigh && <> · the fastest of the last 8 quarters</>}
-              {atWinLow && <> · the slowest of the last 8 quarters</>}
+              {tx(gdpD != null ? tx("{0} vs the prior quarter", {0: signedPpStr(gdpD)}) : d.asOfLabel)}
+              {atWinHigh && <>{tx(" · the fastest of the last 8 quarters")}</>}
+              {atWinLow && <>{tx(" · the slowest of the last 8 quarters")}</>}
             </>
           }
         />
         <Vital
-          label="Nominal GDP, trailing 4Q"
+          label={tx("Nominal GDP, trailing 4Q")}
           value={d.nominalAnnual == null ? "—" : `₺${d.nominalAnnual.toFixed(1)}`}
           unit="tn"
           format="raw"
@@ -432,15 +397,14 @@ export default async function EconomicGrowthPage() {
           note={
             d.nominalQ != null ? (
               <>
-                ₺{d.nominalQ.toFixed(1)} tn in {d.asOfLabel} alone · current prices
-              </>
+                ₺{tx(d.nominalQ.toFixed(1))}{tx(" tn in ")}{tx(d.asOfLabel)}{tx(" alone · current prices")}</>
             ) : (
               "current prices, TÜİK"
             )
           }
         />
         <Vital
-          label="Biggest contributor"
+          label={tx("Biggest contributor")}
           value={topExp != null ? `${topExp.value >= 0 ? "+" : "−"}${Math.abs(topExp.value).toFixed(1)}` : "—"}
           unit="pp"
           series={topExp ? barSeries(d.s2, topExp.key).slice(-13) : undefined}
@@ -449,8 +413,8 @@ export default async function EconomicGrowthPage() {
           note={
             topExp != null && gdpNow != null ? (
               <>
-                <em className="not-italic font-semibold text-foreground">{topExp.label}</em> — of the{" "}
-                {gdpNow.toFixed(1)}% print, {d.asOfLabel}
+                <em className="not-italic font-semibold text-foreground">{tx(topExp.label)}</em>{tx(" — of the")}{" "}
+                {tx(gdpNow.toFixed(1))}{tx("% print, ")}{tx(d.asOfLabel)}
               </>
             ) : (
               "expenditure-side contributions"
@@ -458,7 +422,7 @@ export default async function EconomicGrowthPage() {
           }
         />
         <Vital
-          label="Biggest drag"
+          label={tx("Biggest drag")}
           value={dragExp != null ? `${dragExp.value >= 0 ? "+" : "−"}${Math.abs(dragExp.value).toFixed(1)}` : "—"}
           unit="pp"
           series={dragExp ? barSeries(d.s2, dragExp.key).slice(-13) : undefined}
@@ -468,13 +432,10 @@ export default async function EconomicGrowthPage() {
             dragExp != null ? (
               dragExp.value < 0 ? (
                 <>
-                  <em className="not-italic font-semibold text-negative">{dragExp.label}</em>{" "}
-                  subtracted from growth, {d.asOfLabel}
+                  <em className="not-italic font-semibold text-negative">{tx(dragExp.label)}</em>{" "}{tx("subtracted from growth, ")}{tx(d.asOfLabel)}
                 </>
               ) : (
-                <>
-                  no component subtracted — {dragExp.label} added the least
-                </>
+                <>{tx("no component subtracted — ")}{tx(dragExp.label)}{tx(" added the least")}</>
               )
             ) : (
               "expenditure-side contributions"
@@ -482,7 +443,7 @@ export default async function EconomicGrowthPage() {
           }
         />
         <Vital
-          label="Fastest sector"
+          label={tx("Fastest sector")}
           value={topSec != null ? `${topSec.value >= 0 ? "+" : "−"}${Math.abs(topSec.value).toFixed(1)}` : "—"}
           unit="%"
           series={topSec ? barSeries(d.s3, topSec.key).slice(-13) : undefined}
@@ -490,9 +451,9 @@ export default async function EconomicGrowthPage() {
           note={
             topSec != null && weakSec != null ? (
               <>
-                <em className="not-italic font-semibold text-foreground">{topSec.label}</em> leads ·{" "}
-                {weakSec.label} lags at {weakSec.value >= 0 ? "+" : "−"}
-                {Math.abs(weakSec.value).toFixed(1)}%
+                <em className="not-italic font-semibold text-foreground">{tx(topSec.label)}</em>{tx(" leads ·")}{" "}
+                {tx(weakSec.label)}{tx(" lags at ")}{tx(weakSec.value >= 0 ? "+" : "−")}
+                {tx(Math.abs(weakSec.value).toFixed(1))}%
               </>
             ) : (
               "gross value added by activity, y/y"
@@ -510,14 +471,14 @@ export default async function EconomicGrowthPage() {
       <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
         <div>
           <SecHead
-            title="The expenditure side"
-            meta="y/y %, chain-volume · one national-accounts release"
+            title={tx("The expenditure side")}
+            meta={tx("y/y %, chain-volume · one national-accounts release")}
             className="mb-2.5"
           />
           <Movers from={prevQuarter} to={latestQuarter} rows={movers} />
         </div>
         <div>
-          <SecHead title="Transmission" meta="output → the banks · computed" className="mb-2.5" />
+          <SecHead title={tx("Transmission")} meta={tx("output → the banks · computed")} className="mb-2.5" />
           <Transmission items={transmission} />
         </div>
       </div>
@@ -525,7 +486,7 @@ export default async function EconomicGrowthPage() {
       {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
         <div>
-          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
             flags={flagList}
             showCleared
@@ -533,7 +494,7 @@ export default async function EconomicGrowthPage() {
           />
         </div>
         <div>
-          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
           <Ahead items={aheadItems} />
         </div>
       </div>
@@ -542,20 +503,20 @@ export default async function EconomicGrowthPage() {
       <Depth action={<GlobalRangeSelector />}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat
-            label="GDP growth · y/y"
+            label={tx("GDP growth · y/y")}
             value={pct1(d.gdpYoY)}
-            hint={`${d.asOfLabel} · chain-linked volume`}
+            hint={tx("{0} · chain-linked volume", {0: d.asOfLabel})}
             tone={d.gdpYoY != null && d.gdpYoY < 0 ? "negative" : "positive"}
           />
           <Stat
-            label="Nominal GDP · quarter"
+            label={tx("Nominal GDP · quarter")}
             value={d.nominalQ == null ? "—" : `₺${d.nominalQ.toFixed(1)} tn`}
-            hint={`current prices · ${d.asOfLabel}`}
+            hint={tx("current prices · {0}", {0: d.asOfLabel})}
           />
           <Stat
-            label="Nominal GDP · annualized"
+            label={tx("Nominal GDP · annualized")}
             value={d.nominalAnnual == null ? "—" : `₺${d.nominalAnnual.toFixed(1)} tn`}
-            hint="current prices · trailing 4 quarters"
+            hint={tx("current prices · trailing 4 quarters")}
           />
         </div>
 
@@ -563,18 +524,18 @@ export default async function EconomicGrowthPage() {
             all of them sitting in d.s2, which is the chart's own data prop one line
             below. The moment 2026-Q2 printed, the chart moved and the sentence did not. */}
         <Section
-          title="GDP Growth & Contributions"
-          description={growthRead ?? "GDP growth and the expenditure contributions behind it, y/y."}
+          title={tx("GDP Growth & Contributions")}
+          description={tx(growthRead ?? "GDP growth and the expenditure contributions behind it, y/y.")}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TimeSeriesChart
               series={d.s1}
-              title="Şekil 1 · GDP Growth (y/y %, chain-linked volume)"
+              title={tx("Şekil 1 · GDP Growth (y/y %, chain-linked volume)")}
               yFormat="pct"
               xFormat="quarter"
               decimals={1}
             />
-            <ChartCard title="Şekil 2 · Contributions to GDP Growth (y/y, pp)">
+            <ChartCard title={tx("Şekil 2 · Contributions to GDP Growth (y/y, pp)")}>
               <BopFlowChart
                 data={d.s2}
                 bars={[
@@ -593,13 +554,13 @@ export default async function EconomicGrowthPage() {
         </Section>
 
         <Section
-          title="Production Side"
+          title={tx("Production Side")}
           description={
-            sectorRead ??
-            "Gross value added by activity, y/y %. Figures use the unadjusted chain-volume index (see table note)."
+            tx(sectorRead ??
+            "Gross value added by activity, y/y %. Figures use the unadjusted chain-volume index (see table note).")
           }
         >
-          <ChartCard title="Şekil 3 · Sectoral Growth (y/y %)">
+          <ChartCard title={tx("Şekil 3 · Sectoral Growth (y/y %)")}>
             <BopFlowChart
               data={d.s3}
               grouped
@@ -620,12 +581,12 @@ export default async function EconomicGrowthPage() {
         </Section>
 
         <Section
-          title="Expenditure Side"
-          description="Demand components, y/y %. Consumption-by-durability and investment-by-type come from TÜİK's national-accounts detail (not in EVDS); government and the aggregates from EVDS."
+          title={tx("Expenditure Side")}
+          description={tx("Demand components, y/y %. Consumption-by-durability and investment-by-type come from TÜİK's national-accounts detail (not in EVDS); government and the aggregates from EVDS.")}
         >
           {d.hasTuik && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ChartCard title="Şekil 5 · Private Consumption by Durability (y/y %)">
+              <ChartCard title={tx("Şekil 5 · Private Consumption by Durability (y/y %)")}>
                 <BopFlowChart
                   data={d.s5cons}
                   grouped
@@ -639,7 +600,7 @@ export default async function EconomicGrowthPage() {
                   height={320}
                 />
               </ChartCard>
-              <ChartCard title="Şekil 4 · Investment by Type (y/y %)">
+              <ChartCard title={tx("Şekil 4 · Investment by Type (y/y %)")}>
                 <BopFlowChart
                   data={d.s4inv}
                   grouped
@@ -654,7 +615,7 @@ export default async function EconomicGrowthPage() {
               </ChartCard>
             </div>
           )}
-          <ChartCard title="Şekil 6 · Government Consumption (y/y %)">
+          <ChartCard title={tx("Şekil 6 · Government Consumption (y/y %)")}>
             <BopFlowChart
               data={d.s6}
               grouped
@@ -670,23 +631,12 @@ export default async function EconomicGrowthPage() {
         </Section>
 
         <p className="text-xs text-muted-foreground">
-          <Link href="/economy" className="text-primary hover:underline">
-            ← Economy
-          </Link>{" "}
-          · Source: TÜİK (TurkStat) quarterly national accounts via EVDS.{" "}
-          <Link href="/economy/balance-of-payments" className="text-primary hover:underline">
-            Balance of Payments →
-          </Link>
+          <Link href="/economy" className="text-primary hover:underline">{tx("← Economy")}</Link>{" "}{tx("· Source: TÜİK (TurkStat) quarterly national accounts via EVDS.")}{" "}
+          <Link href="/economy/balance-of-payments" className="text-primary hover:underline">{tx("Balance of Payments →")}</Link>
         </p>
       </Depth>
 
-      <Colophon>
-        Compiled, not written — GDP growth, contributions and sectoral value added computed
-        from TÜİK quarterly national accounts (chain-linked volume indices) via TCMB EVDS,
-        plus the TÜİK national-accounts Excel detail for consumption and investment
-        breakdowns. Contributions use the additive approximation; inventories are the
-        residual. No forecasts. Analytical information, not investment advice.
-      </Colophon>
+      <Colophon>{tx("Compiled, not written — GDP growth, contributions and sectoral value added computed from TÜİK quarterly national accounts (chain-linked volume indices) via TCMB EVDS, plus the TÜİK national-accounts Excel detail for consumption and investment breakdowns. Contributions use the additive approximation; inventories are the residual. No forecasts. Analytical information, not investment advice.")}</Colophon>
     </main>
   );
 }

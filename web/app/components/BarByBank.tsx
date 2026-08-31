@@ -3,6 +3,8 @@
 /**
  * Horizontal bar chart comparing the latest value per bank type.
  */
+import { useChartFormat } from "@/i18n/use-chart-format";
+import { useText } from "@/i18n/use-text";
 import {
   Bar,
   BarChart,
@@ -17,7 +19,7 @@ import {
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
-import { formatters, type FormatKind } from "@/app/lib/chart-format";
+import { type FormatKind } from "@/app/lib/chart-format";
 
 interface Row {
   bank_type_code: string;
@@ -45,8 +47,10 @@ export default function BarByBank({
   height = 320,
   plain = false,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
+  const formatters = useChartFormat();
   const fmt = formatters[format];
   const ordered = data
     .filter((r) => labels[r.bank_type_code] && r.value != null && !Number.isNaN(r.value))
@@ -63,7 +67,7 @@ export default function BarByBank({
     v == null ? "" : fmt(Number(v), decimals);
 
   return (
-    <ChartCard title={title} plain={plain}>
+    <ChartCard title={tx(title)} plain={plain}>
       <ChartData
         table={{
           columns: ["Group", "Value"],

@@ -6,6 +6,7 @@
  * existed. Server-rendered SVG — there is no interaction to justify shipping
  * Recharts and a client bundle for 48 static points.
  */
+import { useText } from "@/i18n/use-text";
 import type { PolicyPoint } from "@/app/lib/regulation";
 
 const W = 620;
@@ -13,6 +14,7 @@ const H = 190;
 const PAD = { l: 4, r: 46, t: 12, b: 20 };
 
 export default function PolicyPath({ path, through }: { path: PolicyPoint[]; through: string }) {
+  const tx = useText();
   if (path.length < 2) return null;
 
   const t0 = Date.parse(path[0].date);
@@ -50,13 +52,13 @@ export default function PolicyPath({ path, through }: { path: PolicyPoint[]; thr
       viewBox={`0 0 ${W} ${H}`}
       className="mt-2.5 block h-[190px] w-full overflow-visible"
       role="img"
-      aria-label={`CBRT policy rate across ${path.length} Committee decisions, from ${path[0].rate}% in ${path[0].date.slice(0, 4)} to ${last.rate}% today; peak ${peak.rate}%, trough ${trough.rate}%.`}
+      aria-label={tx("CBRT policy rate across {0} Committee decisions, from {1}% in {2} to {3}% today; peak {4}%, trough {5}%.", {0: path.length, 1: path[0].rate, 2: path[0].date.slice(0, 4), 3: last.rate, 4: peak.rate, 5: trough.rate})}
     >
       {gridValues.map((v) => (
         <g key={v}>
           <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} stroke="var(--hair)" strokeWidth="1" />
           <text x={W - PAD.r + 5} y={y(v) + 3} className={axis}>
-            {v}%
+            {tx(v)}%
           </text>
         </g>
       ))}
@@ -65,25 +67,25 @@ export default function PolicyPath({ path, through }: { path: PolicyPoint[]; thr
       <path d={line} fill="none" stroke="var(--data)" strokeWidth="1.6" strokeLinejoin="round" />
 
       {[
-        { p: peak, dy: -9, label: `${peak.rate}% peak` },
-        { p: trough, dy: 14, label: `${trough.rate}% trough` },
+        { p: peak, dy: -9, label: tx("{0}% peak", {0: peak.rate}) },
+        { p: trough, dy: 14, label: tx("{0}% trough", {0: trough.rate}) },
       ].map(({ p, dy, label }) => (
         <g key={label}>
           <circle cx={x(p.date)} cy={y(p.rate)} r="2.6" fill="var(--data)" />
           <text x={x(p.date)} y={y(p.rate) + dy} className="font-mono text-[8.5px] fill-muted-foreground" textAnchor="middle">
-            {label}
+            {tx(label)}
           </text>
         </g>
       ))}
 
       <circle cx={x(last.date)} cy={y(last.rate)} r="3" fill="var(--data)" />
       <text x={W - PAD.r + 5} y={y(last.rate) - 3} className="font-mono text-[10px] font-semibold fill-data">
-        {last.rate}%
+        {tx(last.rate)}%
       </text>
 
       {years.map((yr) => (
         <text key={yr} x={x(`${yr}-01-01`)} y={H - 5} className={axis} textAnchor="middle">
-          {yr}
+          {tx(yr)}
         </text>
       ))}
     </svg>

@@ -21,6 +21,7 @@
  * from normalizeColumn() — the SAME percentile rule the heatmap cells use — so
  * "rank" is defined in exactly one place.
  */
+import { useText } from "@/i18n/use-text";
 import { useMemo, useState, type ReactNode } from "react";
 import {
   METRIC_FAMILIES,
@@ -103,6 +104,7 @@ export default function CompareBoard({
   period,
   marketShare,
 }: Props) {
+  const tx = useText();
   const [picks, setPicks] = useState<string[]>(() => {
     const known = new Set(banks.map((b) => b.ticker));
     const seed = DEFAULT_PICKS.filter((t) => known.has(t));
@@ -302,15 +304,15 @@ export default function CompareBoard({
     <>
       {/* ---- the bench ---- */}
       <SecHead
-        title="The matchup"
-        meta="pick up to four · the peer frame sets every axis, median and rank below"
+        title={tx("The matchup")}
+        meta={tx("pick up to four · the peer frame sets every axis, median and rank below")}
         className="mb-3 mt-6"
       />
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
         {benchGroups.map((g) => (
           <div key={g.code}>
             <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
-              {g.label} <span className="text-faint">{g.rows.length}</span>
+              {tx(g.label)} <span className="text-faint">{tx(g.rows.length)}</span>
             </div>
             <div className="flex flex-wrap gap-x-1 gap-y-0.5">
               {g.rows.map((b) => {
@@ -322,7 +324,7 @@ export default function CompareBoard({
                     type="button"
                     onClick={() => togglePick(b.ticker)}
                     aria-pressed={on}
-                    title={on ? `Drop ${b.name} from the matchup` : `Add ${b.name} to the matchup`}
+                    title={tx(on ? tx("Drop {0} from the matchup", {0: b.name}) : tx("Add {0} to the matchup", {0: b.name}))}
                     className={`border-b-[1.5px] px-0.5 pb-0.5 font-mono text-[10px] transition-colors ${
                       on
                         ? "font-semibold text-foreground"
@@ -337,7 +339,7 @@ export default function CompareBoard({
                         style={{ background: PICK_COLORS[i] }}
                       />
                     )}
-                    {b.name}
+                    {tx(b.name)}
                   </button>
                 );
               })}
@@ -348,8 +350,8 @@ export default function CompareBoard({
 
       {/* ---- the peer frame ---- */}
       <SecHead
-        title="The peer frame"
-        meta="who the picks are measured against"
+        title={tx("The peer frame")}
+        meta={tx("who the picks are measured against")}
         className="mb-3 mt-6 border-b border-hair pb-1.5"
       />
       <div className="-mt-1 mb-3 flex flex-wrap gap-x-5">
@@ -365,7 +367,7 @@ export default function CompareBoard({
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {FRAME_LABELS[k]} <span className="text-faint">{frameCounts[k]}</span>
+            {tx(FRAME_LABELS[k])} <span className="text-faint">{tx(frameCounts[k])}</span>
           </button>
         ))}
       </div>
@@ -373,31 +375,30 @@ export default function CompareBoard({
       {/* ---- the vitals, over the frame ---- */}
       <Vitals cols={6}>
         <Vital
-          label="In the matchup"
+          label={tx("In the matchup")}
           value={String(picks.length)}
-          unit={` of ${frameBanks.length}`}
+          unit={tx(" of {0}", {0: frameBanks.length})}
           note={
             <>
               {picks.map((t, i) => (
                 <span key={t}>
-                  {i > 0 && " · "}
-                  <b className="font-semibold text-foreground">{nameOf(t)}</b>
+                  {tx(i > 0 && " · ")}
+                  <b className="font-semibold text-foreground">{tx(nameOf(t))}</b>
                 </span>
               ))}
             </>
           }
         />
         <Vital
-          label="Median ROE (TTM)"
+          label={tx("Median ROE (TTM)")}
           value={medOf("roe") != null ? ((medOf("roe") as number) * 100).toFixed(1) : "—"}
           unit="%"
           series={medianSeries("roe")}
           decimals={1}
           note={
             bestOf("roe") ? (
-              <>
-                highest: <b className="font-semibold text-foreground">{bestOf("roe")!.name}</b>{" "}
-                {(((rawOf(bestOf("roe")!.ticker, "roe") ?? 0) as number) * 100).toFixed(1)}%
+              <>{tx("highest: ")}<b className="font-semibold text-foreground">{tx(bestOf("roe")!.name)}</b>{" "}
+                {tx((((rawOf(bestOf("roe")!.ticker, "roe") ?? 0) as number) * 100).toFixed(1))}%
               </>
             ) : (
               "TTM net income ÷ 5-quarter avg equity"
@@ -405,16 +406,15 @@ export default function CompareBoard({
           }
         />
         <Vital
-          label="Median NPL"
+          label={tx("Median NPL")}
           value={medOf("npl_ratio") != null ? ((medOf("npl_ratio") as number) * 100).toFixed(2) : "—"}
           unit="%"
           series={medianSeries("npl_ratio")}
           note={
             bestOf("npl_ratio") ? (
-              <>
-                cleanest:{" "}
-                <b className="font-semibold text-foreground">{bestOf("npl_ratio")!.name}</b>{" "}
-                {(((rawOf(bestOf("npl_ratio")!.ticker, "npl_ratio") ?? 0) as number) * 100).toFixed(2)}%
+              <>{tx("cleanest:")}{" "}
+                <b className="font-semibold text-foreground">{tx(bestOf("npl_ratio")!.name)}</b>{" "}
+                {tx((((rawOf(bestOf("npl_ratio")!.ticker, "npl_ratio") ?? 0) as number) * 100).toFixed(2))}%
               </>
             ) : (
               "stage-3 ÷ total loans"
@@ -422,14 +422,14 @@ export default function CompareBoard({
           }
         />
         <Vital
-          label="Median NIM"
+          label={tx("Median NIM")}
           value={medOf("nim") != null ? ((medOf("nim") as number) * 100).toFixed(2) : "—"}
           unit="%"
           series={medianSeries("nim")}
           note="TTM net interest ÷ avg assets"
         />
         <Vital
-          label="Median cost of risk"
+          label={tx("Median cost of risk")}
           value={
             medOf("cost_of_risk") != null
               ? ((medOf("cost_of_risk") as number) * 100).toFixed(2)
@@ -439,10 +439,9 @@ export default function CompareBoard({
           series={medianSeries("cost_of_risk")}
           note={
             bestOf("cost_of_risk") ? (
-              <>
-                lowest:{" "}
-                <b className="font-semibold text-foreground">{bestOf("cost_of_risk")!.name}</b>{" "}
-                {(((rawOf(bestOf("cost_of_risk")!.ticker, "cost_of_risk") ?? 0) as number) * 100).toFixed(2)}%
+              <>{tx("lowest:")}{" "}
+                <b className="font-semibold text-foreground">{tx(bestOf("cost_of_risk")!.name)}</b>{" "}
+                {tx((((rawOf(bestOf("cost_of_risk")!.ticker, "cost_of_risk") ?? 0) as number) * 100).toFixed(2))}%
               </>
             ) : (
               "|TTM ECL flow| ÷ avg gross loans"
@@ -450,16 +449,15 @@ export default function CompareBoard({
           }
         />
         <Vital
-          label="Concentration (HHI)"
+          label={tx("Concentration (HHI)")}
           value={conc ? conc.hhi.toFixed(0) : "—"}
           format="raw"
           decimals={0}
           note={
             conc ? (
               <>
-                <b className="font-semibold text-foreground">{conc.leader.b.name}</b> holds{" "}
-                {(conc.leader.s * 100).toFixed(1)}% of the frame&rsquo;s assets
-              </>
+                <b className="font-semibold text-foreground">{tx(conc.leader.b.name)}</b>{tx(" holds")}{" "}
+                {tx((conc.leader.s * 100).toFixed(1))}{tx("% of the frame’s assets")}</>
             ) : (
               "Σ share² × 10,000"
             )
@@ -469,69 +467,59 @@ export default function CompareBoard({
 
       {/* ---- the read ---- */}
       {read.widest && (
-        <p className="mt-4 max-w-[82ch] border-l-2 border-foreground pl-3 text-[13.5px] leading-relaxed text-foreground">
-          Across <span className="font-mono tabular-nums">{read.judged}</span> directional metrics,{" "}
-          <b className="font-semibold">{nameOf(read.ranked[0])}</b> takes{" "}
-          <span className="font-mono tabular-nums">{read.wins.get(read.ranked[0]) ?? 0}</span>
+        <p className="mt-4 max-w-[82ch] border-l-2 border-foreground pl-3 text-[13.5px] leading-relaxed text-foreground">{tx("Across ")}<span className="font-mono tabular-nums">{tx(read.judged)}</span>{tx(" directional metrics,")}{" "}
+          <b className="font-semibold">{tx(nameOf(read.ranked[0]))}</b>{tx(" takes")}{" "}
+          <span className="font-mono tabular-nums">{tx(read.wins.get(read.ranked[0]) ?? 0)}</span>
           {read.ranked[1] && (
             <>
-              {" "}
-              and <b className="font-semibold">{nameOf(read.ranked[1])}</b>{" "}
-              <span className="font-mono tabular-nums">{read.wins.get(read.ranked[1]) ?? 0}</span>
+              {" "}{tx("and ")}<b className="font-semibold">{tx(nameOf(read.ranked[1]))}</b>{" "}
+              <span className="font-mono tabular-nums">{tx(read.wins.get(read.ranked[1]) ?? 0)}</span>
             </>
-          )}
-          . The set splits widest on{" "}
-          <b className="font-semibold">{(read.widest as { m: MetricDef }).m.label}</b> —{" "}
+          )}{tx(". The set splits widest on")}{" "}
+          <b className="font-semibold">{tx((read.widest as { m: MetricDef }).m.label)}</b> —{" "}
           <span className="font-mono tabular-nums">
-            {formatMetricValue(
+            {tx(formatMetricValue(
               (read.widest as { spread: number }).spread,
               (read.widest as { m: MetricDef }).m.unit,
               (read.widest as { m: MetricDef }).m.decimals,
-            ).replace("%", "pp")}
-          </span>{" "}
-          between {nameOf((read.widest as { hi: string }).hi)} and{" "}
-          {nameOf((read.widest as { lo: string }).lo)}, which is{" "}
+            ).replace("%", "pp"))}
+          </span>{" "}{tx("between ")}{tx(nameOf((read.widest as { hi: string }).hi))}{tx(" and")}{" "}
+          {tx(nameOf((read.widest as { lo: string }).lo))}{tx(", which is")}{" "}
           <span className="font-mono tabular-nums">
-            {Math.round((read.widest as { rel: number }).rel * 100)}%
-          </span>{" "}
-          of the entire range across the frame.
-        </p>
+            {tx(Math.round((read.widest as { rel: number }).rel * 100))}%
+          </span>{" "}{tx("of the entire range across the frame.")}</p>
       )}
 
       {/* ---- the scorecard ---- */}
       <SecHead
-        title="The scorecard"
-        meta="each metric on its own value axis — every peer a tick, the median marked, your picks as dots"
+        title={tx("The scorecard")}
+        meta={tx("each metric on its own value axis — every peer a tick, the median marked, your picks as dots")}
         className="mb-2 mt-7 border-b border-hair pb-1.5"
       />
-      <ScrollX label="Scorecard — scrolls horizontally">
+      <ScrollX label={tx("Scorecard — scrolls horizontally")}>
         <div className="min-w-[820px]">
           {/* header */}
           <div
             className="grid items-end border-b border-border pb-1.5"
             style={{ gridTemplateColumns: gridCols }}
           >
-            <div className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
-              Metric
-            </div>
-            <div className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
-              Where they sit in the frame
-            </div>
+            <div className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">{tx("Metric")}</div>
+            <div className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">{tx("Where they sit in the frame")}</div>
             {picks.map((t, i) => (
               <div key={t} className="pl-2.5 text-right">
                 <div
                   className="font-mono text-[10px] font-semibold"
                   style={{ color: PICK_COLORS[i] }}
                 >
-                  {t}
+                  {tx(t)}
                 </div>
                 <div className="truncate text-[10px] leading-tight text-muted-foreground">
-                  {nameOf(t)}
+                  {tx(nameOf(t))}
                 </div>
               </div>
             ))}
             <div className="pl-3 text-right font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
-              {picks.length === 2 ? `Δ ${picks[0]}−${picks[1]}` : "Set spread"}
+              {tx(picks.length === 2 ? `Δ ${picks[0]}−${picks[1]}` : "Set spread")}
             </div>
           </div>
 
@@ -542,10 +530,10 @@ export default function CompareBoard({
               <div key={fam}>
                 <div className="pb-1 pt-4">
                   <span className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.09em] text-foreground">
-                    {fam}
+                    {tx(fam)}
                   </span>
                   <span className="ml-2 font-mono text-[8.5px] text-faint">
-                    {rows.length} metric{rows.length > 1 ? "s" : ""}
+                    {tx(rows.length)}{tx(" metric")}{tx(rows.length > 1 ? "s" : "")}
                   </span>
                 </div>
 
@@ -609,19 +597,19 @@ export default function CompareBoard({
                             : "text-negative";
                       tail = (
                         <span className={tone}>
-                          {d > 0 ? "+" : d < 0 ? "−" : ""}
-                          {formatMetricValue(Math.abs(d), m.unit, m.decimals).replace("%", "pp")}
+                          {tx(d > 0 ? "+" : d < 0 ? "−" : "")}
+                          {tx(formatMetricValue(Math.abs(d), m.unit, m.decimals).replace("%", "pp"))}
                         </span>
                       );
                     }
                   } else if (pickVals.length >= 2) {
                     tail = (
                       <span className="text-muted-foreground">
-                        {formatMetricValue(
+                        {tx(formatMetricValue(
                           Math.max(...pickVals) - Math.min(...pickVals),
                           m.unit,
                           m.decimals,
-                        ).replace("%", "pp")}
+                        ).replace("%", "pp"))}
                       </span>
                     );
                   }
@@ -634,13 +622,13 @@ export default function CompareBoard({
                     >
                       <div className="pr-3.5">
                         <div className="text-[12.5px] font-medium leading-tight text-foreground">
-                          {m.label}
-                          <span className="ml-1 font-normal text-faint" title={dirNote}>
-                            {arrow}
+                          {tx(m.label)}
+                          <span className="ml-1 font-normal text-faint" title={tx(dirNote)}>
+                            {tx(arrow)}
                           </span>
                         </div>
                         <div className="mt-0.5 font-mono text-[8.5px] leading-snug text-faint">
-                          {m.rule}
+                          {tx(m.rule)}
                         </div>
                       </div>
 
@@ -665,9 +653,9 @@ export default function CompareBoard({
                               return (
                                 <div
                                   key={b.ticker}
-                                  title={`${b.name} · ${formatMetricValue(v, m.unit, m.decimals)}${
+                                  title={tx(`${b.name} · ${formatMetricValue(v, m.unit, m.decimals)}${
                                     clipped ? " — beyond the axis" : ""
-                                  }`}
+                                  }`)}
                                   className={`absolute w-px bg-context ${
                                     clipped ? "top-[22px] h-[5px] opacity-55" : "top-5 h-[9px]"
                                   }`}
@@ -690,8 +678,7 @@ export default function CompareBoard({
                                       ? "translateX(-100%)"
                                       : "translateX(-50%)",
                               }}
-                            >
-                              median {formatMetricValue(c.med, m.unit, m.decimals)}
+                            >{tx("median ")}{tx(formatMetricValue(c.med, m.unit, m.decimals))}
                             </div>
                             {picks.map((t, i) => {
                               const v = snapshot.get(t)?.[ci];
@@ -700,9 +687,9 @@ export default function CompareBoard({
                               return (
                                 <div
                                   key={t}
-                                  title={`${nameOf(t)} · ${formatMetricValue(v, m.unit, m.decimals)}${
-                                    r ? ` · rank ${r}/${c.n}` : ""
-                                  }`}
+                                  title={tx(`${nameOf(t)} · ${formatMetricValue(v, m.unit, m.decimals)}${
+                                    r ? tx(" · rank {0}/{1}", {0: r, 1: c.n}) : ""
+                                  }`)}
                                   className="absolute top-[18px] -ml-[5.5px] size-[11px] rounded-full border-[1.5px] border-card"
                                   style={{ left: at(v), background: PICK_COLORS[i] }}
                                 />
@@ -711,30 +698,28 @@ export default function CompareBoard({
                             <div className="absolute left-1.5 top-8 font-mono text-[8.5px] text-faint">
                               {outLo.length > 0 && (
                                 <>
-                                  <span className="cursor-help text-faint" title={`beyond the axis — ${cut(outLo)}`}>
-                                    ‹{outLo.length}
+                                  <span className="cursor-help text-faint" title={tx("beyond the axis — {0}", {0: cut(outLo)})}>
+                                    ‹{tx(outLo.length)}
                                   </span>
                                   <span className="mx-[3px] text-faint">·</span>
                                 </>
                               )}
-                              {formatMetricValue(lo, m.unit, m.decimals)}
+                              {tx(formatMetricValue(lo, m.unit, m.decimals))}
                             </div>
                             <div className="absolute right-1.5 top-8 font-mono text-[8.5px] text-faint">
-                              {formatMetricValue(hi, m.unit, m.decimals)}
+                              {tx(formatMetricValue(hi, m.unit, m.decimals))}
                               {outHi.length > 0 && (
                                 <>
                                   <span className="mx-[3px] text-faint">·</span>
-                                  <span className="cursor-help text-faint" title={`beyond the axis — ${cut(outHi)}`}>
-                                    ›{outHi.length}
+                                  <span className="cursor-help text-faint" title={tx("beyond the axis — {0}", {0: cut(outHi)})}>
+                                    ›{tx(outHi.length)}
                                   </span>
                                 </>
                               )}
                             </div>
                           </>
                         ) : (
-                          <div className="absolute left-1.5 top-5 font-mono text-[8.5px] text-faint">
-                            only {c.n} bank{c.n === 1 ? "" : "s"} filed this in the frame
-                          </div>
+                          <div className="absolute left-1.5 top-5 font-mono text-[8.5px] text-faint">{tx("only ")}{tx(c.n)}{tx(" bank")}{tx(c.n === 1 ? "" : "s")}{tx(" filed this in the frame")}</div>
                         )}
                       </div>
 
@@ -748,17 +733,17 @@ export default function CompareBoard({
                               className="font-mono text-[12.5px] font-semibold tabular-nums leading-tight"
                               style={{ color: v == null ? "var(--faint)" : PICK_COLORS[i] }}
                             >
-                              {formatMetricValue(v, m.unit, m.decimals)}
+                              {tx(formatMetricValue(v, m.unit, m.decimals))}
                             </div>
                             <div className="font-mono text-[8.5px] leading-snug text-faint">
-                              {v == null ? "not filed" : `${r}/${c.n}`}
+                              {tx(v == null ? "not filed" : `${r}/${c.n}`)}
                             </div>
                           </div>
                         );
                       })}
 
                       <div className="pl-3 text-right font-mono text-[11.5px] tabular-nums">
-                        {tail}
+                        {tx(tail)}
                       </div>
                     </div>
                   );
@@ -769,13 +754,7 @@ export default function CompareBoard({
         </div>
       </ScrollX>
 
-      <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">
-        Axis runs the peer frame&rsquo;s range, clipped to the Tukey whiskers (q₁/q₃ ± 1.5 × IQR)
-        where a lone freak value would otherwise flatten the field — clipped peers are counted at
-        the edge (<span className="text-faint">‹3</span>), and a pick is never clipped out of
-        view. Shaded band is the interquartile range. Assets use a log axis. Ranks are the same
-        percentile rule the grid below colours by.
-      </p>
+      <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">{tx("Axis runs the peer frame’s range, clipped to the Tukey whiskers (q₁/q₃ ± 1.5 × IQR) where a lone freak value would otherwise flatten the field — clipped peers are counted at the edge (")}<span className="text-faint">‹3</span>{tx("), and a pick is never clipped out of view. Shaded band is the interquartile range. Assets use a log axis. Ranks are the same percentile rule the grid below colours by.")}</p>
 
       {/* ---- the evidence ---- */}
       <Depth>
@@ -788,7 +767,7 @@ export default function CompareBoard({
           picks={picks}
           frameLabel={FRAME_LABELS[frame]}
         />
-        {marketShare}
+        {tx(marketShare)}
       </Depth>
     </>
   );

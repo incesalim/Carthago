@@ -1,15 +1,15 @@
 /**
  * Shared number formatting for the dashboard charts.
  *
- * `nf` is the single en-US locale formatter (comma thousands + dot decimal,
- * e.g. 1,234,567.89) used by every chart. `formatters`/`FormatKind` are the
+ * `nf` defaults to en-US for existing analytical callers; locale is explicit,
+ * never mutable module state. `formatters`/`FormatKind` are the
  * common y-axis/tooltip value formats shared by ALL chart wrappers
  * (TrendChart, TimeSeriesChart, StackedArea, BarByBank, Sparkline) — don't
  * re-declare a local dict.
  */
 
-export const nf = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
+export const nf = (v: number, d: number, locale = "en-US") =>
+  new Intl.NumberFormat(locale, {
     minimumFractionDigits: d,
     maximumFractionDigits: d,
   }).format(v);
@@ -29,3 +29,17 @@ export const formatters: Record<FormatKind, (v: number, d: number) => string> = 
   rate: (v, d) => nf(v, d),
   fx: (v, d) => `₺${nf(v, d)}`,
 };
+
+/** Display-only formatters; input units remain the same in both languages. */
+export function createFormatters(locale: string): typeof formatters {
+  if (locale !== "tr") return formatters;
+  const number = (v: number, d: number) => nf(v, d, "tr-TR");
+  return {
+    pct: (v, d) => `%${number(v, d)}`,
+    trn: (v, d) => `₺${number(v / 1_000_000, d)} trilyon`,
+    bn: (v, d) => `₺${number(v / 1_000, d)} milyar`,
+    raw: number,
+    rate: number,
+    fx: (v, d) => `₺${number(v, d)}`,
+  };
+}

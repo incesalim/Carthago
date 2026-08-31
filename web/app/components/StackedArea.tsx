@@ -17,6 +17,8 @@
  * restated in web/DESIGN.md, which is versioned.
  */
 
+import { useChartFormat } from "@/i18n/use-chart-format";
+import { useText } from "@/i18n/use-text";
 import {
   Area,
   AreaChart,
@@ -38,7 +40,7 @@ import {
   Y_AXIS_WIDTH,
 } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
-import { nf, formatters, type FormatKind } from "@/app/lib/chart-format";
+import { type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
 export interface StackPoint {
@@ -86,8 +88,10 @@ export default function StackedArea({
   percentStack = false,
   colorKeys = false,
 }: Props) {
+  const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
+  const formatters = useChartFormat();
   const fmt = formatters[percentStack ? "pct" : yFormat];
 
   // Window to the dashboard's global date range. Everything below (near-zero
@@ -128,11 +132,11 @@ export default function StackedArea({
     const total = shown.reduce((sum, s) => sum + (Number(row[s.key]) || 0), 0);
     return (
       <div style={{ ...tt.contentStyle, minWidth: 180, lineHeight: 1.7 }}>
-        <div style={tt.labelStyle}>{String(label)}</div>
+        <div style={tt.labelStyle}>{tx(String(label))}</div>
         {shown.map((s, i) => {
           const v = Number(row[s.key]) || 0;
           const display = percentStack
-            ? `${nf(total > 0 ? (v / total) * 100 : 0, decimals)}%`
+            ? fmt(total > 0 ? (v / total) * 100 : 0, decimals)
             : fmt(v, decimals);
           return (
             <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -146,9 +150,9 @@ export default function StackedArea({
                   flex: "none",
                 }}
               />
-              <span style={{ color: t.axis }}>{s.label}</span>
+              <span style={{ color: t.axis }}>{tx(s.label)}</span>
               <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-                {display}
+                {tx(display)}
               </span>
             </div>
           );
@@ -166,9 +170,9 @@ export default function StackedArea({
             }}
           >
             <span style={{ width: 9, flex: "none" }} />
-            <span style={{ color: t.tooltipText }}>Total</span>
+            <span style={{ color: t.tooltipText }}>{tx("Total")}</span>
             <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-              {fmt(total, decimals)}
+              {tx(fmt(total, decimals))}
             </span>
           </div>
         )}
@@ -177,7 +181,7 @@ export default function StackedArea({
   };
 
   return (
-    <ChartCard title={title} description={description} source={source} plain={plain}>
+    <ChartCard title={tx(title)} description={tx(description)} source={tx(source)} plain={plain}>
       <ChartData
         table={wideToTable(filtered, { key: "period", label: "Period" }, shown)}
       />
@@ -188,6 +192,7 @@ export default function StackedArea({
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
             <XAxis
               dataKey="period"
+              tickFormatter={(value) => tx(String(value))}
               tick={{ fontSize: 11, fill: t.axis }}
               minTickGap={30}
               axisLine={{ stroke: t.grid }}
@@ -238,7 +243,7 @@ export default function StackedArea({
                           background: colorAt(i),
                         }}
                       />
-                      {s.label}
+                      {tx(s.label)}
                     </li>
                   ))}
                 </ul>
@@ -249,7 +254,7 @@ export default function StackedArea({
                 key={s.key}
                 type="monotone"
                 dataKey={s.key}
-                name={s.label}
+                name={tx(s.label)}
                 stackId="1"
                 stroke={colorAt(i)}
                 fill={colorAt(i)}

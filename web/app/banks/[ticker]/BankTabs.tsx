@@ -11,6 +11,7 @@
  * ?kind params the Financials controls set, and carry the tab in the URL so a view
  * is shareable and back/forward work.
  */
+import { useText } from "@/i18n/use-text";
 import Link from "next/link";
 import { cn } from "@/app/lib/cn";
 
@@ -37,10 +38,11 @@ export function BankTabs({
   /** The financials controls' params, preserved across tab switches. */
   query?: string;
 }) {
+  const tx = useText();
   const tabs = BANK_TABS.filter((t) => !hide.includes(t.id));
   return (
     <nav
-      aria-label="Bank sections"
+      aria-label={tx("Bank sections")}
       className="sticky top-0 z-20 -mx-4 flex gap-1 overflow-x-auto border-b border-border bg-card/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
     >
       {tabs.map((t) => {
@@ -61,7 +63,7 @@ export function BankTabs({
                 : "border-transparent font-normal text-muted-foreground hover:text-foreground",
             )}
           >
-            {t.label}
+            {tx(t.label)}
           </Link>
         );
       })}

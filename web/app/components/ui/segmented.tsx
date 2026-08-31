@@ -9,6 +9,7 @@
  * same. Use this for new toggles instead of hand-rolling; bespoke toggles that
  * can't adopt the markup should still use these active classes.
  */
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 
@@ -30,10 +31,11 @@ export function Segmented<T extends string>({
   className?: string;
   "aria-label"?: string;
 }) {
+  const tx = useText();
   return (
     <div
       role="group"
-      aria-label={ariaLabel}
+      aria-label={tx(ariaLabel)}
       className={cn(
         "inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]",
         className,
@@ -52,7 +54,7 @@ export function Segmented<T extends string>({
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
-          {o.label}
+          {tx(o.label)}
         </button>
       ))}
     </div>

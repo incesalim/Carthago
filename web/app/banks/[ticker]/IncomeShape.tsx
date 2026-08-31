@@ -22,6 +22,7 @@
  * that don't add up. Only the tab / period selection is client state — the
  * derivations are pure and run in a memo.
  */
+import { useText } from "@/i18n/use-text";
 import { useMemo, useState } from "react";
 import { SecHead } from "@/app/components/desk";
 import { cn } from "@/app/lib/cn";
@@ -50,10 +51,11 @@ const periodLabel = (p: string) => p.replace(/^(\d{4})Q([1-4])$/, "$1 Q$2");
 // ---------------------------------------------------------------------------
 
 function WaterfallView({ w }: { w: Waterfall }) {
+  const tx = useText();
   if (!w.renderable) {
     return (
       <div className="border-t-2 border-foreground py-6">
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground">{w.notes[0]}</p>
+        <p className="text-[12.5px] leading-relaxed text-muted-foreground">{tx(w.notes[0])}</p>
       </div>
     );
   }
@@ -89,9 +91,9 @@ function WaterfallView({ w }: { w: Waterfall }) {
                 "truncate text-[12px]",
                 isTotal ? "font-semibold text-foreground" : "pl-3 text-muted-foreground",
               )}
-              title={s.label}
+              title={tx(s.label)}
             >
-              {s.label}
+              {tx(s.label)}
             </div>
             <div className="relative h-2.5 rounded-[1px] bg-muted">
               <span
@@ -116,10 +118,10 @@ function WaterfallView({ w }: { w: Waterfall }) {
                     : "text-positive",
               )}
             >
-              {fmtTl(figure)}
+              {tx(fmtTl(figure))}
             </span>
             <span className="w-12 text-right font-mono text-[10.5px] tabular-nums text-faint">
-              {income > 0 ? `${((figure / income) * 100).toFixed(0)}%` : "--"}
+              {tx(income > 0 ? `${((figure / income) * 100).toFixed(0)}%` : "--")}
             </span>
           </div>
         );
@@ -133,11 +135,12 @@ function WaterfallView({ w }: { w: Waterfall }) {
 // ---------------------------------------------------------------------------
 
 function FlowView({ f }: { f: InterestFlow }) {
+  const tx = useText();
   const layout = useMemo(() => layoutInterestFlow(f), [f]);
   if (!f.renderable) {
     return (
       <div className="border-t-2 border-foreground py-6">
-        <p className="text-[12.5px] leading-relaxed text-muted-foreground">{f.notes[0]}</p>
+        <p className="text-[12.5px] leading-relaxed text-muted-foreground">{tx(f.notes[0])}</p>
       </div>
     );
   }
@@ -155,7 +158,7 @@ function FlowView({ f }: { f: InterestFlow }) {
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full select-none"
         role="img"
-        aria-label={`Interest income of ${fmtTl(f.income)} fanned out by source and by destination; net interest income kept: ${fmtTl(f.nii)}`}
+        aria-label={tx("Interest income of {0} fanned out by source and by destination; net interest income kept: {1}", {0: fmtTl(f.income), 1: fmtTl(f.nii)})}
       >
         {layout.ribbons.map((r) => (
           <path
@@ -199,7 +202,7 @@ function FlowView({ f }: { f: InterestFlow }) {
                 fontSize={9}
                 style={{ letterSpacing: "0.06em" }}
               >
-                {n.label.toUpperCase()} {fmtTl(n.value)}
+                {tx(n.label.toUpperCase())} {tx(fmtTl(n.value))}
               </text>
             ) : (
               <>
@@ -210,7 +213,7 @@ function FlowView({ f }: { f: InterestFlow }) {
                   className={n.hero ? "fill-data font-semibold" : "fill-foreground"}
                   fontSize={11}
                 >
-                  {n.label}
+                  {tx(n.label)}
                 </text>
                 <text
                   x={n.labelX}
@@ -219,7 +222,7 @@ function FlowView({ f }: { f: InterestFlow }) {
                   className="fill-muted-foreground font-mono tabular-nums"
                   fontSize={9.5}
                 >
-                  {fmtTl(n.value)} · {n.share.toFixed(1)}%
+                  {tx(fmtTl(n.value))} · {tx(n.share.toFixed(1))}%
                 </text>
               </>
             )}
@@ -228,14 +231,11 @@ function FlowView({ f }: { f: InterestFlow }) {
       </svg>
       <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
         <span className="inline-flex items-center gap-1.5">
-          <i className="inline-block size-2 rounded-[2px] bg-[--color-chart-3]" aria-hidden /> earned on
-        </span>
+          <i className="inline-block size-2 rounded-[2px] bg-[--color-chart-3]" aria-hidden />{tx(" earned on")}</span>
         <span className="inline-flex items-center gap-1.5">
-          <i className="inline-block size-2 rounded-[2px] bg-negative" aria-hidden /> paid out on
-        </span>
+          <i className="inline-block size-2 rounded-[2px] bg-negative" aria-hidden />{tx(" paid out on")}</span>
         <span className="inline-flex items-center gap-1.5">
-          <i className="inline-block size-2 rounded-[2px] bg-data" aria-hidden /> kept — net interest income
-        </span>
+          <i className="inline-block size-2 rounded-[2px] bg-data" aria-hidden />{tx(" kept — net interest income")}</span>
       </div>
     </div>
   );
@@ -265,6 +265,7 @@ export default function IncomeShape({
   /** Display order, latest first — matches the table columns. */
   periods: string[];
 }) {
+  const tx = useText();
   const [tab, setTab] = useState<Tab>("waterfall");
   const [period, setPeriod] = useState(periods[0]);
   const active = periods.includes(period) ? period : periods[0];
@@ -283,8 +284,8 @@ export default function IncomeShape({
   return (
     <section className="mb-7">
       <SecHead
-        title="The shape"
-        meta={`${periodLabel(active)} as filed · year-to-date cumulative · TL`}
+        title={tx("The shape")}
+        meta={tx("{0} as filed · year-to-date cumulative · TL", {0: periodLabel(active)})}
         className="mb-2"
       />
 
@@ -303,8 +304,8 @@ export default function IncomeShape({
                   : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
-              <b className={tab === t.id ? "font-semibold" : "font-normal"}>{t.title}</b>
-              <span className="ml-1.5 text-[11px] text-faint">— {t.sub}</span>
+              <b className={tab === t.id ? "font-semibold" : "font-normal"}>{tx(t.title)}</b>
+              <span className="ml-1.5 text-[11px] text-faint">— {tx(t.sub)}</span>
             </button>
           ))}
         </div>
@@ -322,14 +323,14 @@ export default function IncomeShape({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {periodLabel(p)}
+              {tx(periodLabel(p))}
             </button>
           ))}
         </div>
       </div>
 
       {shown && lead && (
-        <p className="mb-3.5 max-w-[92ch] text-[12.5px] leading-relaxed text-foreground">{lead}</p>
+        <p className="mb-3.5 max-w-[92ch] text-[12.5px] leading-relaxed text-foreground">{tx(lead)}</p>
       )}
 
       {tab === "waterfall" ? <WaterfallView w={waterfall} /> : <FlowView f={flow} />}
@@ -337,14 +338,14 @@ export default function IncomeShape({
       {shown && notes.length > 0 && (
         <ul className="mt-2 space-y-0.5 text-[11px] leading-relaxed text-muted-foreground">
           {notes.map((n, i) => (
-            <li key={i}>{n}</li>
+            <li key={i}>{tx(n)}</li>
           ))}
         </ul>
       )}
       <p className="mt-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.04em] text-faint">
-        {tab === "waterfall"
+        {tx(tab === "waterfall"
           ? "every step reconciled against the filed BRSA subtotal (III / VIII / XIII / XVII / XXV) — a bridge that does not close is suppressed, not drawn"
-          : "Σ sources = filed I. · Σ destinations + net interest income = filed I. — any residual is drawn as an explicit “Other” node, never dropped"}
+          : "Σ sources = filed I. · Σ destinations + net interest income = filed I. — any residual is drawn as an explicit “Other” node, never dropped")}
       </p>
     </section>
   );

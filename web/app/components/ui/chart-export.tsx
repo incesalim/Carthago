@@ -21,6 +21,7 @@
  * post-mount effect so SSR/first paint omit the pill and there's no hydration
  * mismatch.
  */
+import { useText } from "@/i18n/use-text";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Clipboard, Download, Maximize2, Minimize2, Sheet, X } from "lucide-react";
@@ -206,6 +207,7 @@ function cardOf(e: React.MouseEvent<HTMLButtonElement>): HTMLElement | null {
 }
 
 export default function ChartExport() {
+  const tx = useText();
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -290,7 +292,7 @@ export default function ChartExport() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("chart download failed", err);
-      toast.error("Could not export chart as an image.");
+      toast.error(tx("Could not export chart as an image."));
     } finally {
       setBusy(false);
     }
@@ -309,7 +311,7 @@ export default function ChartExport() {
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
       console.error("chart copy failed", err);
-      toast.error("Copying the chart image isn't supported in this browser.");
+      toast.error(tx("Copying the chart image isn't supported in this browser."));
     } finally {
       setBusy(false);
     }
@@ -335,7 +337,7 @@ export default function ChartExport() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("chart CSV export failed", err);
-      toast.error("Could not export the chart data.");
+      toast.error(tx("Could not export the chart data."));
     }
   }
 
@@ -346,8 +348,8 @@ export default function ChartExport() {
           type="button"
           onClick={onCopy}
           disabled={busy}
-          aria-label="Copy chart image to clipboard"
-          title={copied ? "Copied" : "Copy image"}
+          aria-label={tx("Copy chart image to clipboard")}
+          title={tx(copied ? "Copied" : "Copy image")}
           className={BTN}
         >
           {copied ? (
@@ -360,8 +362,8 @@ export default function ChartExport() {
           type="button"
           onClick={onDownload}
           disabled={busy}
-          aria-label="Download chart as PNG"
-          title="Download PNG"
+          aria-label={tx("Download chart as PNG")}
+          title={tx("Download PNG")}
           className={BTN}
         >
           <Download className="size-3.5" aria-hidden />
@@ -370,8 +372,8 @@ export default function ChartExport() {
           <button
             type="button"
             onClick={onCsv}
-            aria-label="Download chart data as CSV"
-            title="Download CSV"
+            aria-label={tx("Download chart data as CSV")}
+            title={tx("Download CSV")}
             className={BTN}
           >
             <Sheet className="size-3.5" aria-hidden />
@@ -380,8 +382,8 @@ export default function ChartExport() {
         <button
           type="button"
           onClick={expanded ? closeExpand : openExpand}
-          aria-label={expanded ? "Close expanded chart" : "Expand chart to centre of screen"}
-          title={expanded ? "Restore" : "Expand"}
+          aria-label={tx(expanded ? "Close expanded chart" : "Expand chart to centre of screen")}
+          title={tx(expanded ? "Restore" : "Expand")}
           className={BTN}
         >
           {expanded ? (
@@ -401,7 +403,7 @@ export default function ChartExport() {
           >
             <button
               type="button"
-              aria-label="Close"
+              aria-label={tx("Close")}
               onClick={closeExpand}
               className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             />
@@ -409,8 +411,8 @@ export default function ChartExport() {
               <button
                 type="button"
                 onClick={closeExpand}
-                aria-label="Close expanded chart"
-                title="Close"
+                aria-label={tx("Close expanded chart")}
+                title={tx("Close")}
                 className="absolute -top-10 right-0 z-10 inline-flex size-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground"
               >
                 <X className="size-4" aria-hidden />

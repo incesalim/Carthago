@@ -10,6 +10,8 @@
  * market-share panel. Every rank, median and axis is derived client-side off the
  * frame the reader chooses — see CompareBoard.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import {
   heatmapPanel,
@@ -31,12 +33,16 @@ import type { PanelCell } from "./HeatmapOverTime";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banks Compared — Cross-Bank League",
   description:
     "Compare Turkish banks head-to-head — market share, margins, cost of risk, capital and returns across the sector on one screen.",
   alternates: { canonical: "/cross-bank" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 // Section order, top to bottom — same as /banks. 10006 State · 10005
 // Private·Domestic · 10007 Private·Foreign · 10003 Participation · 10004 Dev&Inv.
@@ -60,6 +66,7 @@ function quarterLabel(p: string | null | undefined): string {
 }
 
 export default async function CrossBankPage() {
+  const tx = await getText();
   const [period, sharePanel] = await Promise.all([
     latestCommonPeriod(),
     marketSharePanel(),
@@ -106,12 +113,10 @@ export default async function CrossBankPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Compare"
+        title={tx("Compare")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{quarterLabel(period)}</b> ·{" "}
-            {reporting} of {banks.length} banks reporting
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(quarterLabel(period))}</b> ·{" "}
+            {tx(reporting)}{tx(" of ")}{tx(banks.length)}{tx(" banks reporting")}</>
         }
         right="every figure computed from source series"
       />
@@ -128,9 +133,7 @@ export default async function CrossBankPage() {
           }
         />
       ) : (
-        <p className="mt-6 text-sm text-muted-foreground">
-          No per-bank audit data available yet.
-        </p>
+        <p className="mt-6 text-sm text-muted-foreground">{tx("No per-bank audit data available yet.")}</p>
       )}
 
       <Colophon />

@@ -266,8 +266,13 @@ export function countOf<T>(
  * weeks" the moment real growth turned positive, because the count was computed
  * and the word "negative" was typed.
  */
-export function runPhrase(n: number, what: string, unit = "w"): string | null {
+export function runPhrase(n: number, what: string, unit = "w", locale = "en"): string | null {
   if (!Number.isFinite(n) || n <= 0) return null;
+  if (locale === "tr") {
+    const units: Record<string, string> = { w: "hafta", m: "ay", q: "çeyrek" };
+    const description = what === "negative" ? "negatif" : what === "positive" ? "pozitif" : what;
+    return `${n} ${units[unit] ?? unit} boyunca ${description}`;
+  }
   return `${what} for ${n}${unit} running`;
 }
 

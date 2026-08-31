@@ -10,6 +10,8 @@
  * Holder names are matched across banks via Turkish-aware normalization plus
  * an exact-match alias map — see web/app/lib/ownership-graph.ts.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Section } from "@/app/components/ui";
@@ -29,17 +31,22 @@ import { monthLabel } from "@/app/lib/desk";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   title: "Turkish Banks — Ownership & Subsidiaries",
   description: "Ownership structure and subsidiaries of Türkiye's banks from KAP public disclosures — shareholders and group networks.",
   alternates: { canonical: "/ownership" },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
 
 interface Props {
   searchParams: Promise<{ focus?: string; view?: string }>;
 }
 
 export default async function OwnershipPage({ searchParams }: Props) {
+  const tx = await getText();
   const sp = await searchParams;
   const rows = await sectorOwnership();
   const graph = buildOwnershipGraph(rows);
@@ -102,67 +109,64 @@ export default async function OwnershipPage({ searchParams }: Props) {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
-        title="Ownership network"
+        title={tx("Ownership network")}
         record={
-          <>
-            Record <b className="font-normal text-foreground">{monthLabel(latestAsOf)}</b> ·
-            latest KAP filing · re-scraped weekly
-          </>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(latestAsOf))}</b>{tx(" · latest KAP filing · re-scraped weekly")}</>
         }
         right="every figure computed from source series"
       />
 
       <SecHead
-        title="The vitals"
-        meta="network · control · cross-holdings"
+        title={tx("The vitals")}
+        meta={tx("network · control · cross-holdings")}
         className="mb-2.5 mt-6"
       />
       <Vitals cols={6}>
         <Vital
-          label="Banks filing KAP forms"
+          label={tx("Banks filing KAP forms")}
           value={String(filed.length)}
           note={
             <>
-              {hollow > 0 ? `+${hollow} linked by stakes only — ` : ""}per-bank fans on{" "}
-              <Link href="/banks" className="font-semibold text-primary">/banks</Link>
+              {tx(hollow > 0 ? tx("+{0} linked by stakes only — ", {0: hollow}) : "")}{tx("per-bank fans on")}{" "}
+              <Link href="/banks" className="font-semibold text-primary">{tx("/banks")}</Link>
             </>
           }
         />
         <Vital
-          label="Subsidiaries mapped"
+          label={tx("Subsidiaries mapped")}
           value={String(totalSubs)}
-          note={`§7 grids filed by ${banksWithSubs} of ${filed.length} banks`}
+          note={tx("§7 grids filed by {0} of {1} banks", {0: banksWithSubs, 1: filed.length})}
         />
         <Vital
-          label="Shared entities"
+          label={tx("Shared entities")}
           value={String(graph.sharedHolders.length)}
           note={
             topShared
-              ? `${trimLabel(topShared.label, 26)} alone links ${topSharedBanks} banks`
+              ? tx("{0} alone links {1} banks", {0: trimLabel(topShared.label, 26), 1: topSharedBanks})
               : "entities held by ≥2 banks"
           }
         />
         <Vital
-          label="Cross-bank stakes"
+          label={tx("Cross-bank stakes")}
           value={String(graph.bankEdges.length)}
           note={
             maxEdge
-              ? `largest: ${nameOf(maxEdge.from)} → ${nameOf(maxEdge.to)}, ${maxEdge.pct.toFixed(1)}%`
+              ? tx("largest: {0} → {1}, {2}%", {0: nameOf(maxEdge.from), 1: nameOf(maxEdge.to), 2: maxEdge.pct.toFixed(1)})
               : "bank-to-bank arrows on the graph"
           }
         />
         <Vital
-          label="Foreign-owned banks"
+          label={tx("Foreign-owned banks")}
           value={String(foreignOwned)}
-          note={<>BDDK&rsquo;s Yabancı group — foreign-capital deposit banks</>}
+          note={<>{tx("BDDK’s Yabancı group — foreign-capital deposit banks")}</>}
         />
         <Vital
-          label="Largest single stake"
+          label={tx("Largest single stake")}
           value={maxStake ? maxStake.pct.toFixed(1) : "—"}
           unit="%"
           note={
             wholly > 0
-              ? `${wholly} banks are wholly owned by a single holder`
+              ? tx("{0} banks are wholly owned by a single holder", {0: wholly})
               : maxStake
                 ? `${trimLabel(maxStake.holder, 20)} in ${maxStake.bank}`
                 : "no shareholder rows extracted"
@@ -173,8 +177,8 @@ export default async function OwnershipPage({ searchParams }: Props) {
       <Depth>
         <Section
           index="01"
-          title="The network"
-          description="Banks on a circle grouped by BDDK type; entities shared across ≥2 banks sit inside (Treasury, TVF, BKM, Takasbank, KGF, …); bank-to-bank stakes draw as arrows. Click a bank for its radial fan. Stakes filed years ago persist until the structure changes."
+          title={tx("The network")}
+          description={tx("Banks on a circle grouped by BDDK type; entities shared across ≥2 banks sit inside (Treasury, TVF, BKM, Takasbank, KGF, …); bank-to-bank stakes draw as arrows. Click a bank for its radial fan. Stakes filed years ago persist until the structure changes.")}
         >
           <OwnershipNetwork
             graph={graph}

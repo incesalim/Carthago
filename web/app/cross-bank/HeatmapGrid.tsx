@@ -17,6 +17,7 @@
  * Scores are computed HERE, from the rows actually on screen, so the colour and
  * the rank can never describe a different population than the one displayed.
  */
+import { useText } from "@/i18n/use-text";
 import { Fragment, useMemo, useState } from "react";
 import {
   METRIC_FAMILIES,
@@ -53,6 +54,7 @@ function directionArrow(dir: MetricDef["direction"]): string {
 }
 
 export default function HeatmapGrid({ metrics, rows, picks }: Props) {
+  const tx = useText();
   const [family, setFamily] = useState<MetricFamily>("Asset quality");
   const [sortMetric, setSortMetric] = useState<MetricKey | null>(null);
 
@@ -124,11 +126,11 @@ export default function HeatmapGrid({ metrics, rows, picks }: Props) {
             <div
               className={`truncate text-xs ${pinned ? "font-semibold" : "font-medium"} text-foreground`}
             >
-              {row.name}
+              {tx(row.name)}
             </div>
             <div className="mt-0.5 flex items-center gap-1.5">
-              <span className="font-mono text-[10px] tabular-nums text-faint">{row.ticker}</span>
-              <BankTypeBadge code={row.groupCode} label={row.groupLabel} />
+              <span className="font-mono text-[10px] tabular-nums text-faint">{tx(row.ticker)}</span>
+              <BankTypeBadge code={row.groupCode} label={tx(row.groupLabel)} />
             </div>
           </div>
         </div>
@@ -141,7 +143,7 @@ export default function HeatmapGrid({ metrics, rows, picks }: Props) {
           return (
             <div
               key={m.key}
-              title={`${row.name} · ${m.label}: ${text}${rank ? ` (rank ${rank})` : ""}`}
+              title={tx(`${row.name} · ${m.label}: ${text}${rank ? tx(" (rank {0})", {0: rank}) : ""}`)}
               style={{ background: scoreToColor(score, m.direction === "neutral") }}
               className={`flex items-center justify-end px-2 py-1.5 text-right font-mono text-[11.5px] tabular-nums text-foreground ${
                 last ? "border-b border-foreground" : "border-b border-hair"
@@ -177,7 +179,7 @@ export default function HeatmapGrid({ metrics, rows, picks }: Props) {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {f} <span className="text-faint">{n}</span>
+              {tx(f)} <span className="text-faint">{tx(n)}</span>
             </button>
           );
         })}
@@ -185,9 +187,9 @@ export default function HeatmapGrid({ metrics, rows, picks }: Props) {
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="text-[11px] text-muted-foreground">
-          {sortMetric == null
+          {tx(sortMetric == null
             ? "Your picks are pinned to the top; the rest keep their type order. Click a metric to rank every bank by it."
-            : "Ranked by the highlighted metric — click it again to restore the type order."}
+            : "Ranked by the highlighted metric — click it again to restore the type order.")}
         </p>
         <HeatmapLegend mode="both" />
       </div>
@@ -200,9 +202,7 @@ export default function HeatmapGrid({ metrics, rows, picks }: Props) {
           }}
         >
           {/* header */}
-          <div className="sticky left-0 top-0 z-30 border-b border-foreground bg-card px-3 py-2 font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] text-faint">
-            Bank
-          </div>
+          <div className="sticky left-0 top-0 z-30 border-b border-foreground bg-card px-3 py-2 font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] text-faint">{tx("Bank")}</div>
           {shown.map((m) => {
             const active = sortMetric === m.key;
             return (
@@ -210,24 +210,24 @@ export default function HeatmapGrid({ metrics, rows, picks }: Props) {
                 key={m.key}
                 type="button"
                 onClick={() => toggleSort(m.key)}
-                title={`${m.rule}${
-                  m.direction === "neutral" ? "" : ` · ${directionArrow(m.direction)} = better`
-                }`}
+                title={tx(`${m.rule}${
+                  m.direction === "neutral" ? "" : tx(" · {0} = better", {0: directionArrow(m.direction)})
+                }`)}
                 className={`sticky top-0 z-20 flex items-center justify-end gap-1 border-b border-foreground bg-card px-2 py-2 text-right font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] transition-colors ${
                   active ? "text-foreground" : "text-faint hover:text-foreground"
                 }`}
               >
-                <span className="truncate">{m.short}</span>
-                <span className="text-faint">{directionArrow(m.direction)}</span>
+                <span className="truncate">{tx(m.short)}</span>
+                <span className="text-faint">{tx(directionArrow(m.direction))}</span>
                 {active && <span aria-hidden>▾</span>}
               </button>
             );
           })}
 
-          {ordered.pinned.map((row, i) =>
+          {tx(ordered.pinned.map((row, i) =>
             renderRow(row, i, i === ordered.pinned.length - 1),
-          )}
-          {ordered.rest.map((row) => renderRow(row, null, false))}
+          ))}
+          {tx(ordered.rest.map((row) => renderRow(row, null, false)))}
         </div>
       </div>
     </div>

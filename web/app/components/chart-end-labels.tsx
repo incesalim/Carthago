@@ -14,6 +14,7 @@
  * estimated from string lengths only — never DOM-measured — so there is no
  * layout feedback loop with ResponsiveContainer.
  */
+import { useText } from "@/i18n/use-text";
 import {
   ReferenceArea,
   ReferenceLine,
@@ -104,6 +105,7 @@ export function EndLabelLayer({
   onPinToggle,
   valueOnly = false,
 }: EndLabelLayerProps) {
+  const tx = useText();
   const t = useChartTheme();
   const xScale = useXAxisScale();
   const yScale = useYAxisScale();
@@ -125,7 +127,7 @@ export function EndLabelLayer({
     const x = xScale(lp.period, { position: "middle" });
     const y = yScale(lp.value);
     if (x == null || y == null) continue;
-    items.push({ key, name: labelFor(key), value: lp.value, x, yTarget: y, y });
+    items.push({ key, name: tx(labelFor(key)), value: lp.value, x, yTarget: y, y });
   }
   if (!items.length) return null;
 
@@ -190,18 +192,18 @@ export function EndLabelLayer({
               fontSize={11}
               style={{ cursor: "default", userSelect: "none" }}
             >
-              {it.name.length > NAME_MAX && <title>{it.name}</title>}
+              {it.name.length > NAME_MAX && <title>{tx(it.name)}</title>}
               {!valueOnly && (
                 <tspan
                   fill={nameInk}
                   fontFamily={SANS}
                   fontWeight={isHero || pinned === it.key ? 600 : 400}
                 >
-                  {name}{" "}
+                  {tx(name)}{" "}
                 </tspan>
               )}
               <tspan fill={t.tooltipText} fontFamily={MONO} fontWeight={600}>
-                {formatValue(it.value)}
+                {tx(formatValue(it.value))}
               </tspan>
             </text>
           </g>

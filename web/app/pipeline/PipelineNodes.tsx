@@ -6,6 +6,7 @@
  * design-system semantic tokens (bg-card, border-border, text-positive, …) so
  * light/dark track the app theme automatically.
  */
+import { useText } from "@/i18n/use-text";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
@@ -70,6 +71,7 @@ function Shell({
   children: ReactNode;
   href?: string;
 }) {
+  const tx = useText();
   const base = cn(
     "rounded-lg border border-border border-l-4 bg-card px-3 py-2 shadow-sm transition-opacity",
     KIND_ACCENT[data.node.kind],
@@ -85,59 +87,64 @@ function Shell({
   );
   return href ? (
     <Link href={href} className={cn(base, "block")} style={{ width: NODE_W }}>
-      {inner}
+      {tx(inner)}
     </Link>
   ) : (
     <div className={base} style={{ width: NODE_W }}>
-      {inner}
+      {tx(inner)}
     </div>
   );
 }
 
 function Title({ data, dot }: { data: PNodeData; dot?: ReactNode }) {
+  const tx = useText();
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="truncate text-[12px] font-semibold leading-tight text-foreground">
-        {data.node.label}
+        {tx(data.node.label)}
       </span>
-      {dot}
+      {tx(dot)}
     </div>
   );
 }
 
 function Sub({ text }: { text?: string }) {
+  const tx = useText();
   if (!text) return null;
-  return <div className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">{text}</div>;
+  return <div className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">{tx(text)}</div>;
 }
 
 /** Row count + freshness line for source / store nodes. */
 function StatusLine({ status }: { status?: NodeStatus }) {
+  const tx = useText();
   if (!status) return null;
   const parts: string[] = [];
-  if (status.rowCount != null) parts.push(`${compact(status.rowCount)} rows`);
+  if (status.rowCount != null) parts.push(tx("{0} rows", {0: compact(status.rowCount)}));
   if (status.latest) parts.push(status.latest);
   else if (status.ageHours != null) parts.push(relativeFromHours(status.ageHours));
   if (!parts.length) return null;
-  return <div className="mt-1 truncate text-[10px] tabular-nums text-muted-foreground">{parts.join(" · ")}</div>;
+  return <div className="mt-1 truncate text-[10px] tabular-nums text-muted-foreground">{tx(parts.join(" · "))}</div>;
 }
 
 export function SourceNode({ data }: NodeProps) {
+  const tx = useText();
   const d = data as unknown as PNodeData;
   return (
     <Shell data={d}>
       <Title data={d} dot={d.status ? <Dot tone={d.status.tone} /> : undefined} />
-      <Sub text={d.node.sublabel} />
+      <Sub text={tx(d.node.sublabel)} />
       <StatusLine status={d.status} />
     </Shell>
   );
 }
 
 export function StoreNode({ data }: NodeProps) {
+  const tx = useText();
   const d = data as unknown as PNodeData;
   return (
     <Shell data={d}>
       <Title data={d} dot={d.status ? <Dot tone={d.status.tone} /> : undefined} />
-      <Sub text={d.node.sublabel} />
+      <Sub text={tx(d.node.sublabel)} />
       <StatusLine status={d.status} />
     </Shell>
   );
@@ -168,33 +175,36 @@ function runLabel(run: RunBadge | undefined, configured: boolean | undefined): s
 }
 
 export function WorkflowNode({ data }: NodeProps) {
+  const tx = useText();
   const d = data as unknown as PNodeData;
   const tone = runTone(d.run, d.runConfigured);
   return (
     <Shell data={d}>
       <Title data={d} dot={<Dot tone={tone} />} />
-      <Sub text={d.node.sublabel} />
-      <div className="mt-1 truncate text-[10px] text-muted-foreground">{runLabel(d.run, d.runConfigured)}</div>
+      <Sub text={tx(d.node.sublabel)} />
+      <div className="mt-1 truncate text-[10px] text-muted-foreground">{tx(runLabel(d.run, d.runConfigured))}</div>
     </Shell>
   );
 }
 
 export function PageNode({ data }: NodeProps) {
+  const tx = useText();
   const d = data as unknown as PNodeData;
   return (
     <Shell data={d} href={d.node.href}>
       <Title data={d} />
-      <Sub text={d.node.sublabel} />
+      <Sub text={tx(d.node.sublabel)} />
     </Shell>
   );
 }
 
 export function LaneBandNode({ data }: NodeProps) {
+  const tx = useText();
   const d = data as unknown as BandData;
   return (
     <div className="pointer-events-none relative size-full rounded-[10px] border border-dashed border-border/70 bg-muted/30">
       <span className="absolute left-4 top-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        {d.label}
+        {tx(d.label)}
       </span>
     </div>
   );

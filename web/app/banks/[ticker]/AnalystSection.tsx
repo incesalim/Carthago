@@ -11,6 +11,8 @@
  * analyst lane (bank_audit_opinion + the sweep-established reporting unit),
  * so it renders for every bank today.
  */
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import { SecHead } from "@/app/components/desk";
 import { classifyBasisLead } from "@/app/lib/analyst/sections";
 import { cachedAll, getDB } from "@/app/lib/db";
@@ -86,6 +88,7 @@ async function signalsFor(ticker: string, period: string, kind: string): Promise
  *  paragraphs. No raw HTML ever reaches this (the body is LLM text that
  *  passed the figure guard; rendering stays text-only by construction). */
 function MemoBody({ body }: { body: string }) {
+  const tx = useText();
   const blocks = body.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
   return (
     <div className="space-y-2.5">
@@ -94,7 +97,7 @@ function MemoBody({ body }: { body: string }) {
         if (b.startsWith("## ")) {
           return (
             <h4 key={i} className="pt-1 text-[11px] font-bold uppercase tracking-[0.05em] text-foreground">
-              {b.slice(3)}
+              {tx(b.slice(3))}
             </h4>
           );
         }
@@ -111,7 +114,7 @@ function MemoBody({ body }: { body: string }) {
                     <tr key={ri} className="border-b border-hair">
                       {cells.map((c, ci) => (
                         <td key={ci} className={`py-1 pr-3 align-top ${ri === 0 ? "font-semibold text-foreground" : "font-mono text-[10.5px] text-muted-foreground"}`}>
-                          {c}
+                          {tx(c)}
                         </td>
                       ))}
                     </tr>
@@ -125,14 +128,14 @@ function MemoBody({ body }: { body: string }) {
           return (
             <ul key={i} className="list-disc space-y-1 pl-4 text-[12px] leading-relaxed text-muted-foreground">
               {b.split(/\n/).map((li, j) => (
-                <li key={j}>{li.replace(/^[-*] /, "")}</li>
+                <li key={j}>{tx(li.replace(/^[-*] /, ""))}</li>
               ))}
             </ul>
           );
         }
         return (
           <p key={i} className="text-[12px] leading-relaxed text-muted-foreground">
-            {b}
+            {tx(b)}
           </p>
         );
       })}
@@ -147,6 +150,7 @@ export default async function AnalystSection({
   ticker: string;
   kind: string;
 }) {
+  const tx = await getText();
   const opinions = await cachedAll<OpinionRow>(
     "SELECT period, opinion_type, report_kind, auditor, basis_text " +
       "FROM bank_audit_opinion WHERE bank_ticker = ? AND kind = ? ORDER BY period",
@@ -173,7 +177,7 @@ export default async function AnalystSection({
     "BRSA basis",
     unit,
     latest.opinion_type === "qualified"
-      ? `Qualified${category === "free_provision" ? " — free provision" : ""}${latest.auditor ? ` (${latest.auditor})` : ""}${streak > 1 ? ` · ${streak} quarters running` : ""}`
+      ? tx("Qualified{0}{1}{2}", {0: category === "free_provision" ? " — free provision" : "", 1: latest.auditor ? ` (${latest.auditor})` : "", 2: streak > 1 ? tx(" · {0} quarters running", {0: streak}) : ""})
       : `${latest.opinion_type ?? "opinion n/a"}${latest.auditor ? ` (${latest.auditor})` : ""}`,
   ].join(" · ");
 
@@ -184,42 +188,34 @@ export default async function AnalystSection({
 
   return (
     <section className="mt-8">
-      <SecHead title="The analyst's read" meta="grounded on stored rows · automated checks passed" className="mb-2" />
+      <SecHead title={tx("The analyst's read")} meta={tx("grounded on stored rows · automated checks passed")} className="mb-2" />
       <p className="mb-3 font-mono text-[9.5px] uppercase tracking-[0.06em] text-faint">{badge}</p>
 
       {latest.opinion_type === "qualified" && lead && (
         <details className="mb-3 border-b border-hair pb-2.5">
-          <summary className="cursor-pointer text-[11.5px] font-semibold text-primary">
-            What the auditor said — basis for the qualified opinion
-          </summary>
-          <p className="mt-1.5 text-[11.5px] italic leading-relaxed text-muted-foreground">“{lead}…”</p>
+          <summary className="cursor-pointer text-[11.5px] font-semibold text-primary">{tx("What the auditor said — basis for the qualified opinion")}</summary>
+          <p className="mt-1.5 text-[11.5px] italic leading-relaxed text-muted-foreground">“{tx(lead)}…”</p>
         </details>
       )}
 
       {signals.length > 0 && (
         <p className="mb-3 text-[11px] text-muted-foreground">
-          {signals.length} comparability signal{signals.length === 1 ? "" : "s"} this quarter:{" "}
+          {tx(signals.length)}{tx(" comparability signal")}{tx(signals.length === 1 ? "" : "s")}{tx(" this quarter:")}{" "}
           <span className="font-mono text-[10px]">
-            {signals.map((s) => `${s.signal_type} [${s.severity}]`).join(" · ")}
+            {tx(signals.map((s) => `${s.signal_type} [${s.severity}]`).join(" · "))}
           </span>
         </p>
       )}
 
       {note && note.fact_check_passed === 1 ? (
         <>
-          <h3 className="mb-2 text-[13.5px] font-bold leading-snug text-foreground">{note.title}</h3>
+          <h3 className="mb-2 text-[13.5px] font-bold leading-snug text-foreground">{tx(note.title)}</h3>
           <MemoBody body={note.body} />
           <p className="mt-2.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-            {note.period} · {note.kind} · {note.model ?? "model n/a"} · generated {note.generated_at.slice(0, 10)} · automated checks passed — figures matched to stored rows; wording is the model&apos;s
-          </p>
+            {tx(note.period)} · {tx(note.kind)} · {tx(note.model ?? "model n/a")}{tx(" · generated ")}{tx(note.generated_at.slice(0, 10))}{tx(" · automated checks passed — figures matched to stored rows; wording is the model's")}</p>
         </>
       ) : (
-        <p className="text-[11.5px] text-muted-foreground">
-          Analysis pending — no memo has been generated for this bank and quarter yet.
-          Memos come from the dispatch-run analyst workflow
-          (<span className="font-mono text-[10.5px]">analyst-daily.yml</span>) and appear
-          here once generated and pushed. The badge above is live data.
-        </p>
+        <p className="text-[11.5px] text-muted-foreground">{tx("Analysis pending — no memo has been generated for this bank and quarter yet. Memos come from the dispatch-run analyst workflow (")}<span className="font-mono text-[10.5px]">{tx("analyst-daily.yml")}</span>{tx(") and appear here once generated and pushed. The badge above is live data.")}</p>
       )}
     </section>
   );

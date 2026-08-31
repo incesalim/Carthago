@@ -17,6 +17,7 @@
  *
  * Server component, on the sheet — no card (DESIGN.md ground rule 1).
  */
+import { useText } from "@/i18n/use-text";
 import Link from "next/link";
 import { BANK_NAMES } from "@/app/lib/bank_names";
 import { SecHead } from "@/app/components/desk";
@@ -40,6 +41,7 @@ export default function CapitalByBank({
   period: string | null;
   rows: BankCapitalRow[];
 }) {
+  const tx = useText();
   if (rows.length === 0) return null;
 
   // thinnest common equity first — the register's whole argument
@@ -50,29 +52,21 @@ export default function CapitalByBank({
   return (
     <div>
       <SecHead
-        title="By bank"
+        title={tx("By bank")}
         href="/banks"
-        hrefLabel="all banks →"
-        meta={`common equity vs the hybrid stack · thinnest first · audited ${quarterLabel(period)}`}
+        hrefLabel={tx("all banks →")}
+        meta={tx("common equity vs the hybrid stack · thinnest first · audited {0}", {0: quarterLabel(period)})}
         className="mb-2.5"
       />
       <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
         <b className="font-semibold text-foreground">
-          {hybridFunded} of {ranked.length} banks
-        </b>{" "}
-        hold common equity below the {CAR_TARGET}% target they must meet in total. AT1 and Tier-2
-        count toward that target, so this is not a breach — it is what the cushion is made of.
-        Common equity answers to its own {CET1_TARGET}% level ({CET1_MIN}% minimum + 2.5pp
-        conservation buffer), and{" "}
+          {tx(hybridFunded)}{tx(" of ")}{tx(ranked.length)}{tx(" banks")}</b>{" "}{tx("hold common equity below the ")}{tx(CAR_TARGET)}{tx("% target they must meet in total. AT1 and Tier-2 count toward that target, so this is not a breach — it is what the cushion is made of. Common equity answers to its own ")}{tx(CET1_TARGET)}{tx("% level (")}{tx(CET1_MIN)}{tx("% minimum + 2.5pp conservation buffer), and")}{" "}
         {belowCet1Req === 0 ? (
-          <b className="font-semibold text-foreground">every bank sits above it</b>
+          <b className="font-semibold text-foreground">{tx("every bank sits above it")}</b>
         ) : (
           <b className="font-semibold text-foreground">
-            {belowCet1Req} {belowCet1Req === 1 ? "has" : "have"} dipped into the buffer
-          </b>
-        )}{" "}
-        — a constraint on distributions, not a breach of the {CET1_MIN}% floor.
-      </p>
+            {tx(belowCet1Req)} {tx(belowCet1Req === 1 ? "has" : "have")}{tx(" dipped into the buffer")}</b>
+        )}{" "}{tx("— a constraint on distributions, not a breach of the ")}{tx(CET1_MIN)}{tx("% floor.")}</p>
 
       <table className="w-full border-collapse">
         <thead>
@@ -84,7 +78,7 @@ export default function CapitalByBank({
                   i <= 1 ? "text-left" : "text-right"
                 }`}
               >
-                {h}
+                {tx(h)}
               </th>
             ))}
           </tr>
@@ -102,7 +96,7 @@ export default function CapitalByBank({
               <tr key={b.bank_ticker} className="hover:bg-muted">
                 <td className="border-b border-hair py-1.5 pr-3 text-[12.5px]">
                   <Link href={`/banks/${b.bank_ticker}`} className="font-medium text-foreground hover:text-primary">
-                    {name}
+                    {tx(name)}
                   </Link>
                 </td>
                 <td className="border-b border-hair py-1.5 pr-3">
@@ -123,18 +117,18 @@ export default function CapitalByBank({
                     thinCet1 ? "text-negative" : "text-foreground"
                   }`}
                 >
-                  {pctStr(b.cet1)}
+                  {tx(pctStr(b.cet1))}
                 </td>
                 <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] tabular-nums text-faint">
-                  {pctStr(b.tier1)}
+                  {tx(pctStr(b.tier1))}
                 </td>
                 <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] tabular-nums text-foreground">
-                  {pctStr(b.car)}
+                  {tx(pctStr(b.car))}
                 </td>
                 <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] tabular-nums text-faint">
-                  {buffer == null
+                  {tx(buffer == null
                     ? "—"
-                    : `${buffer >= 0 ? "+" : "−"}${Math.abs(buffer).toFixed(1)}pp`}
+                    : `${buffer >= 0 ? "+" : "−"}${Math.abs(buffer).toFixed(1)}pp`)}
                 </td>
               </tr>
             );
@@ -143,17 +137,12 @@ export default function CapitalByBank({
       </table>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
         <span>
-          <span className="mr-1 inline-block size-2 bg-data align-middle" aria-hidden /> CET1
-        </span>
+          <span className="mr-1 inline-block size-2 bg-data align-middle" aria-hidden />{tx(" CET1")}</span>
         <span>
-          <span className="mr-1 inline-block size-2 bg-chart-5 align-middle opacity-70" aria-hidden />
-          AT1 + Tier-2
+          <span className="mr-1 inline-block size-2 bg-chart-5 align-middle opacity-70" aria-hidden />{tx("AT1 + Tier-2")}</span>
+        <span>{tx("Track = 0–25% of RWA · tick = BDDK’s ")}{tx(CAR_TARGET)}{tx("% target · red CET1 = inside the conservation buffer (<")}{tx(CET1_TARGET)}%)
         </span>
-        <span>
-          Track = 0–25% of RWA · tick = BDDK&rsquo;s {CAR_TARGET}% target · red CET1 = inside the
-          conservation buffer (&lt;{CET1_TARGET}%)
-        </span>
-        <span>Source: BRSA quarterly filings · {quarterLabel(period)}</span>
+        <span>{tx("Source: BRSA quarterly filings · ")}{tx(quarterLabel(period))}</span>
       </div>
     </div>
   );

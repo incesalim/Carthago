@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 import { Badge } from "./badge";
@@ -53,6 +54,7 @@ export function PageHeader({
   children,
   className,
 }: PageHeaderProps) {
+  const tx = useText();
   return (
     <header
       className={cn(
@@ -75,25 +77,24 @@ export function PageHeader({
         {eyebrow && (
           // Desk eyebrows are quiet mono-caps — blue is reserved for links.
           <div className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-faint">
-            {eyebrow}
+            {tx(eyebrow)}
           </div>
         )}
         <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground">
-          {title}
+          {tx(title)}
         </h1>
         {description && (
-          <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+          <p className="max-w-2xl text-sm text-muted-foreground">{tx(description)}</p>
         )}
       </div>
       {(dataThrough || rangeSelector || children) && (
         <div className="flex flex-wrap items-center gap-2">
           {dataThrough && (
-            <Badge variant="secondary" title={`Latest data point: ${dataThrough}`}>
+            <Badge variant="secondary" title={tx("Latest data point: {0}", {0: dataThrough})}>
               <span
                 className="size-1.5 rounded-full bg-positive"
                 aria-hidden="true"
-              />
-              Data through {formatPeriod(dataThrough)}
+              />{tx("Data through ")}{tx(formatPeriod(dataThrough))}
             </Badge>
           )}
           {rangeSelector && <GlobalRangeSelector />}

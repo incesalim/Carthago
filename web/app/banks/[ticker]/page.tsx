@@ -33,6 +33,44 @@
  * interest-flow fan (where the money comes from and goes). Derived in
  * `lib/bank-financials.ts` + `lib/pl-shape.ts`; both reconcile to the filing.
  */
+import { localizeMetadata } from "@/i18n/metadata";
+/**
+ * /banks/[ticker] — per-bank drill-down.
+ *
+ * Standardized financial statements (Balance Sheet / Income Statement / Cash
+ * Flow) in a Yahoo-Finance-style layout: single continuous table, period-end
+ * dates as column headers, computed subtotals (Total Assets, Total Liabilities,
+ * Total Liabilities + Equity, plus P&L subtotals) shown in bold. Missing values
+ * render as "--".
+ *
+ * Controls (URL params, server-rendered):
+ *   ?statement=bs|is|cf — which statement
+ *   ?mode=abs           — the filed figure, TL thousands
+ *   ?mode=yoy           — nominal YoY % vs the same quarter a year earlier
+ *   ?mode=real          — the same YoY DEFLATED by CPI (nominal | CPI | real |
+ *                         verdict). Under 30-40% inflation the nominal column
+ *                         says almost nothing: `realGrowth` DIVIDES, it does not
+ *                         subtract — 40% against 32% CPI is +6.1% real, not +8.
+ *   ?mode=size          — common-size: every line as a % of total assets (BS) or
+ *                         of interest income (IS), plus — on the balance sheet —
+ *                         the SECTOR MEDIAN share and this bank's gap to it.
+ *   ?view=annual        — most recent Q4s (comparable year-end data)
+ *   ?view=quarterly     — most recent quarters (sequential); adds a leading TTM
+ *                         column for the income statement + cash flow
+ *   ?kind=consolidated|unconsolidated
+ *
+ * All three statements map to BRSA hierarchy codes (see
+ * web/app/lib/standard_lines.ts) with canonical English labels — the raw
+ * `item_name` is never displayed, so banks are comparable line-for-line.
+ *
+ * Above the table sits the SHAPE layer — the balance sheet as two composition
+ * columns (what it owns / what funds it, each line with its share and its REAL
+ * growth), the income statement as a waterfall (how the profit is built) or an
+ * interest-flow fan (where the money comes from and goes). Derived in
+ * `lib/bank-financials.ts` + `lib/pl-shape.ts`; both reconcile to the filing.
+ */
+import { useText } from "@/i18n/use-text";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import Link from "next/link";
@@ -130,17 +168,18 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const tx = await getText();
   const { ticker: rawTicker } = await params;
   const ticker = rawTicker.toUpperCase();
   const name = bankDisplayName(ticker);
-  const title = `${name} — Financials & Analysis`;
-  const description = `Audited BRSA financials for ${name} (${ticker}): balance sheet, income statement, cash flow, capital, asset quality and profitability — quarterly, from official Turkish banking-sector reports.`;
-  return {
+  const title = tx("{0} — Financials & Analysis", {0: name});
+  const description = tx("Audited BRSA financials for {0} ({1}): balance sheet, income statement, cash flow, capital, asset quality and profitability — quarterly, from official Turkish banking-sector reports.", {0: name, 1: ticker});
+  return localizeMetadata({
     title,
     description,
     alternates: { canonical: `/banks/${ticker}` },
-    openGraph: { title: `${title} · Carthago`, description, url: `https://carthago.app/banks/${ticker}` },
-  };
+    openGraph: { title: tx("{0} · Carthago", {0: title}), description, url: `https://carthago.app/banks/${ticker}` },
+  });
 }
 
 const NF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
@@ -232,6 +271,7 @@ const INDENT_PL = ["pl-0", "pl-6", "pl-10"];
  *              hanging off its parent instead of thirty free-standing rows.
  */
 function Row({ label, cells, divider, depth = 0 }: RowProps) {
+  const tx = useText();
   const pl = INDENT_PL[Math.min(depth, INDENT_PL.length - 1)];
   const detail = depth >= 1 && !divider;
 
@@ -255,7 +295,7 @@ function Row({ label, cells, divider, depth = 0 }: RowProps) {
 
   return (
     <tr className={rowCls}>
-      <td className={`pr-3 ${pl} ${labelCls}`}>{label}</td>
+      <td className={`pr-3 ${pl} ${labelCls}`}>{tx(label)}</td>
       {cells.map((c, i) => (
         <td
           key={i}
@@ -263,7 +303,7 @@ function Row({ label, cells, divider, depth = 0 }: RowProps) {
             c.tone ? `${TONE_CLASS[c.tone]} ${divider ? "font-semibold" : ""}` : ""
           }`}
         >
-          {c.text}
+          {tx(c.text)}
         </td>
       ))}
     </tr>
@@ -272,13 +312,14 @@ function Row({ label, cells, divider, depth = 0 }: RowProps) {
 
 /** Mono-caps band that splits the statement into its blocks (Assets · Funding). */
 function GroupRow({ label, span }: { label: string; span: number }) {
+  const tx = useText();
   return (
     <tr>
       <td
         colSpan={span}
         className="border-b border-border pt-4 pb-1 font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint"
       >
-        {label}
+        {tx(label)}
       </td>
     </tr>
   );
@@ -286,9 +327,10 @@ function GroupRow({ label, span }: { label: string; span: number }) {
 
 /** A labelled control group — the label states what the control reaches. */
 function ControlGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  const tx = useText();
   return (
     <div>
-      <div className="mb-1 font-mono text-[8px] uppercase tracking-[0.12em] text-faint">{label}</div>
+      <div className="mb-1 font-mono text-[8px] uppercase tracking-[0.12em] text-faint">{tx(label)}</div>
       <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">{children}</div>
     </div>
   );
@@ -306,11 +348,12 @@ function Toggle({
   title?: string;
   children: React.ReactNode;
 }) {
+  const tx = useText();
   return (
     <Link
       href={href}
       scroll={false}
-      title={title}
+      title={tx(title)}
       aria-current={on ? "true" : undefined}
       className={
         on
@@ -367,6 +410,7 @@ function sumSeries(
 }
 
 export default async function BankDetailPage({ params, searchParams }: Props) {
+  const tx = await getText();
   const { ticker: rawTicker } = await params;
   const sp = await searchParams;
   const ticker = rawTicker.toUpperCase();
@@ -582,7 +626,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     taNow != null ? (
       <Vital
         key="assets"
-        label="Total assets"
+        label={tx("Total assets")}
         value={taUseTrn ? (taTrn as number).toFixed(2) : (taNow / 1e6).toFixed(0)}
         unit={taUseTrn ? "₺trn" : "₺bn"}
         series={assetsSeries.slice(-8)}
@@ -590,8 +634,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         decimals={taUseTrn ? 2 : 0}
         note={
           <>
-            {taYoY != null ? `${taYoY >= 0 ? "+" : "−"}${Math.abs(taYoY).toFixed(0)}% y/y` : "nominal, TL"}
-            {assetsRank && ` · ${ord(assetsRank.rank)} of ${assetsRank.n} by assets`}
+            {tx(taYoY != null ? `${taYoY >= 0 ? "+" : "−"}${Math.abs(taYoY).toFixed(0)}% y/y` : "nominal, TL")}
+            {tx(assetsRank && tx(" · {0} of {1} by assets", {0: ord(assetsRank.rank), 1: assetsRank.n}))}
           </>
         }
       />
@@ -599,20 +643,18 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     carNow != null ? (
       <Vital
         key="car"
-        label="CAR (§4)"
+        label={tx("CAR (§4)")}
         value={carNow.toFixed(1)}
         unit="%"
         series={carSeries.slice(-8)}
         decimals={1}
         note={
           carBuffer != null && carBuffer < 2 ? (
-            <em className="not-italic font-semibold text-warning">
-              only {carBuffer.toFixed(1)}pp over the 12% minimum
-            </em>
+            <em className="not-italic font-semibold text-warning">{tx("only ")}{tx(carBuffer.toFixed(1))}{tx("pp over the 12% minimum")}</em>
           ) : (
             <>
-              {carBuffer != null && `${carBuffer.toFixed(1)}pp over the 12% minimum`}
-              {carQoq != null && ` · ${signedPp(carQoq, 1)} q/q`}
+              {tx(carBuffer != null && tx("{0}pp over the 12% minimum", {0: carBuffer.toFixed(1)}))}
+              {tx(carQoq != null && ` · ${signedPp(carQoq, 1)} q/q`)}
             </>
           )
         }
@@ -621,14 +663,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     cet1Now != null ? (
       <Vital
         key="cet1"
-        label="CET1 (§4)"
+        label={tx("CET1 (§4)")}
         value={cet1Now.toFixed(1)}
         unit="%"
         series={cet1Series.slice(-8)}
         decimals={1}
         note={
           at1T2 != null
-            ? `${at1T2.toFixed(1)}pp of the CAR is AT1 / Tier-2`
+            ? tx("{0}pp of the CAR is AT1 / Tier-2", {0: at1T2.toFixed(1)})
             : "core equity over risk-weighted assets"
         }
       />
@@ -636,7 +678,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     nplNow != null ? (
       <Vital
         key="npl"
-        label="NPL ratio"
+        label={tx("NPL ratio")}
         value={nplNow.toFixed(2)}
         unit="%"
         series={nplSeries.slice(-8)}
@@ -644,12 +686,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         note={
           nplQoq != null && nplQoq > 0.05 ? (
             <em className="not-italic font-semibold text-negative">
-              {signedPp(nplQoq)} q/q · stage-3 / gross loans
-            </em>
+              {tx(signedPp(nplQoq))}{tx(" q/q · stage-3 / gross loans")}</em>
           ) : (
             <>
-              {nplQoq != null && `${signedPp(nplQoq)} q/q · `}stage-3 / gross loans
-            </>
+              {tx(nplQoq != null && `${signedPp(nplQoq)} q/q · `)}{tx("stage-3 / gross loans")}</>
           )
         }
       />
@@ -657,15 +697,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     roeNow != null ? (
       <Vital
         key="roe"
-        label="ROE (TTM)"
+        label={tx("ROE (TTM)")}
         value={roeNow.toFixed(1)}
         unit="%"
         series={roeSeries.slice(-8)}
         decimals={1}
         note={
-          <>
-            trailing 4 quarters ÷ avg equity
-            {roeRank && ` · ${ord(roeRank.rank)} of ${roeRank.n}`}
+          <>{tx("trailing 4 quarters ÷ avg equity")}{tx(roeRank && ` · ${ord(roeRank.rank)} of ${roeRank.n}`)}
           </>
         }
       />
@@ -673,7 +711,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     lcrNow != null ? (
       <Vital
         key="lcr"
-        label="LCR (§4)"
+        label={tx("LCR (§4)")}
         value={lcrNow.toFixed(0)}
         unit="%"
         series={lcrSeries.slice(-8)}
@@ -681,10 +719,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         note={
           lcrNow < 100 ? (
             <em className="not-italic font-semibold text-warning">
-              {(lcrNow - 100).toFixed(0)}pp under the 100% minimum
-            </em>
+              {tx((lcrNow - 100).toFixed(0))}{tx("pp under the 100% minimum")}</em>
           ) : (
-            `+${(lcrNow - 100).toFixed(0)}pp over the 100% minimum`
+            tx("+{0}pp over the 100% minimum", {0: (lcrNow - 100).toFixed(0)})
           )
         }
       />
@@ -734,7 +771,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const gate = engineGate(perfRows, {
     auditedQuarters: allPeriods.length,
     peerExcluded: isPeerExcluded(ticker),
-  });
+  }, tx.locale);
   const pctOf = (v: number | null | undefined) => (v == null ? null : v * 100);
   const engineRows: EngineRow[] = gate.ready
     ? ([
@@ -744,7 +781,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         { label: "Net interest margin", note: "TTM net interest ÷ avg assets", value: pctOf(perfLatest?.nim), unit: "%", kind: "sub", scale: 30 },
         { label: "Pre-provision profit / assets", value: pctOf(perfLatest?.ppop_ratio), unit: "%", kind: "sub", scale: 30 },
         { label: "− Cost of risk", value: pctOf(perfLatest?.cost_of_risk), unit: "%", kind: "sub", scale: 30 },
-        { label: "Cost / income", note: ciRank ? `${ord(ciRank.rank)} of ${ciRank.n}` : undefined, value: pctOf(perfLatest?.cost_income), unit: "%", kind: "sub", scale: 100 },
+        { label: "Cost / income", note: ciRank ? tx("{0} of {1}", {0: ord(ciRank.rank), 1: ciRank.n}) : undefined, value: pctOf(perfLatest?.cost_income), unit: "%", kind: "sub", scale: 100 },
         { label: "= ROE (TTM)", value: roeNow, unit: "%", kind: "total", scale: 50 },
         // Only when the free-provision stock actually moved over the trailing year:
         // otherwise this restates reported ROE to the digit and says nothing.
@@ -800,14 +837,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       k: LDR_AUDITED.label,
       v: `${ldr.toFixed(0)}%`,
       // Basis, because the sector's figure on /deposits is a different one — see lib/ldr.ts.
-      note: `${ldr < LDR_AUDITED.line ? "self-funded" : "leans on wholesale"} · audited, quarterly`,
+      note: tx("{0} · audited, quarterly", {0: ldr < LDR_AUDITED.line ? "self-funded" : "leans on wholesale"}),
     });
   }
   if (profile?.branches_total && taNow) {
     franchiseStats.push({
       k: "Assets per branch",
       v: `₺${(taNow / 1e6 / profile.branches_total).toFixed(1)}bn`,
-      note: `${profile.branches_total.toLocaleString()} branches`,
+      note: tx("{0} branches", {0: profile.branches_total.toLocaleString()}),
     });
   } else {
     franchiseStats.push({ k: "Assets per branch", v: "—", note: "branch count not filed" });
@@ -816,7 +853,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     franchiseStats.push({
       k: "Assets per employee",
       v: `₺${(taNow / 1e3 / profile.personnel).toFixed(0)}mn`,
-      note: `${profile.personnel.toLocaleString()} staff`,
+      note: tx("{0} staff", {0: profile.personnel.toLocaleString()}),
     });
   }
   if (taNow && equityTl && equityTl > 0) {
@@ -835,15 +872,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             ] as Array<[string, number | null, number | null]>
           ).map(([label, amt, ecl]) => (
             <tr key={label}>
-              <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{label}</td>
+              <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{tx(label)}</td>
               <td className="border-b border-hair py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-foreground">
-                {amt != null ? `₺${(amt / 1e6).toFixed(amt / 1e6 >= 100 ? 0 : 1)}bn` : "—"}
+                {tx(amt != null ? `₺${(amt / 1e6).toFixed(amt / 1e6 >= 100 ? 0 : 1)}bn` : "—")}
               </td>
               <td className="border-b border-hair py-1.5 pl-3 text-right font-mono text-[10.5px] text-faint">
-                {amt != null && stages.total_amount
+                {tx(amt != null && stages.total_amount
                   ? `${((amt / stages.total_amount) * 100).toFixed(1)}%`
-                  : "—"}
-                {ecl != null && amt != null && amt > 0 ? ` · ${((ecl / amt) * 100).toFixed(1)}% cover` : ""}
+                  : "—")}
+                {tx(ecl != null && amt != null && amt > 0 ? tx(" · {0}% cover", {0: ((ecl / amt) * 100).toFixed(1)}) : "")}
               </td>
             </tr>
           ))}
@@ -866,7 +903,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     filings: gate.filings,
     lcr: lcrNow,
     ldr,
-  });
+  }, tx.locale);
 
   const spreadNow = pctOf(perfLatest?.spread);
   const spreadPrev = pctOf(perfRows[perfRows.length - 2]?.spread);
@@ -875,7 +912,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       carNow != null && carQoq != null
         ? {
             label: "Capital adequacy",
-            note: assetsQoqPct != null ? `while assets grew ${assetsQoqPct.toFixed(1)}% q/q` : undefined,
+            note: assetsQoqPct != null ? tx("while assets grew {0}% q/q", {0: assetsQoqPct.toFixed(1)}) : undefined,
             prev: carNow - carQoq,
             curr: carNow,
             fmt: (v: number) => `${v.toFixed(1)}%`,
@@ -889,7 +926,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       nplNow != null && nplQoq != null
         ? {
             label: "NPL ratio",
-            note: nplRises >= 2 ? `${nplRises} consecutive rises` : undefined,
+            note: nplRises >= 2 ? tx("{0} consecutive rises", {0: nplRises}) : undefined,
             prev: nplNow - nplQoq,
             curr: nplNow,
             good: "down" as const,
@@ -909,7 +946,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).slice(0, 5);
 
   const identityItems: Array<{ k: string; v: ReactElement | string }> = [];
-  if (assetsRank) identityItems.push({ k: "Rank", v: `#${assetsRank.rank} of ${assetsRank.n} by assets` });
+  if (assetsRank) identityItems.push({ k: "Rank", v: tx("#{0} of {1} by assets", {0: assetsRank.rank, 1: assetsRank.n}) });
   if (profile?.branches_total) identityItems.push({ k: "Branches", v: profile.branches_total.toLocaleString() });
   if (profile?.personnel) identityItems.push({ k: "Staff", v: profile.personnel.toLocaleString() });
   // Largest disclosed NAMED shareholder — the same rows the Ownership section
@@ -929,7 +966,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     v: topHolder?.holder
       ? `${holderShortName(topHolder.holder)}${topHolder.ratio_pct != null ? ` ${topHolder.ratio_pct.toFixed(1)}%` : ""}`
       : freeFloatResidual
-        ? `free float${freeFloatResidual.ratio_pct != null ? ` ${freeFloatResidual.ratio_pct.toFixed(1)}%` : ""}`
+        ? tx("free float{0}", {0: freeFloatResidual.ratio_pct != null ? ` ${freeFloatResidual.ratio_pct.toFixed(1)}%` : ""})
         : "— not filed to KAP",
   });
   void cpiYoY;
@@ -963,7 +1000,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     }
     if (failed === 0) return null;
     const label = STATEMENT_LABEL[statement] ?? statement;
-    return `${failed} of ${failed + passed} internal-sum checks failed for this quarter's ${label} extraction — figures may be incomplete or misread.`;
+    return tx("{0} of {1} internal-sum checks failed for this quarter's {2} extraction — figures may be incomplete or misread.", {0: failed, 1: failed + passed, 2: label});
   };
   const anyWarning = periods.some((p) => periodWarning(p) !== null);
 
@@ -1161,31 +1198,31 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   const periodHeaderRow = (
     <tr className="border-b border-foreground">
-      <th className={`${TH} pl-0 text-left`}>Breakdown</th>
+      <th className={`${TH} pl-0 text-left`}>{tx("Breakdown")}</th>
       {isReal ? (
         <>
-          <th className={TH}>Nominal y/y</th>
-          <th className={TH}>CPI y/y</th>
-          <th className={`${TH} text-foreground`}>Real y/y</th>
-          <th className={TH}>Verdict</th>
+          <th className={TH}>{tx("Nominal y/y")}</th>
+          <th className={TH}>{tx("CPI y/y")}</th>
+          <th className={`${TH} text-foreground`}>{tx("Real y/y")}</th>
+          <th className={TH}>{tx("Verdict")}</th>
         </>
       ) : (
         <>
           {showTtm && (
-            <th className={TH}>TTM</th>
+            <th className={TH}>{tx("TTM")}</th>
           )}
           {periods.map((p) => (
             <th key={p} className={TH}>
-              {periodToDate(p)}
+              {tx(periodToDate(p))}
               {periodWarning(p) && (
-                <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+                <span title={tx(periodWarning(p)!)} className="ml-1 cursor-help text-amber-600">⚠</span>
               )}
             </th>
           ))}
           {showPeers && (
             <>
-              <th className={TH}>Sector median</th>
-              <th className={TH}>Gap (pp)</th>
+              <th className={TH}>{tx("Sector median")}</th>
+              <th className={TH}>{tx("Gap (pp)")}</th>
             </>
           )}
         </>
@@ -1268,8 +1305,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   );
   const cpiNote = cpiPick
     ? cpiPick.matched
-      ? `CPI y/y read at the quarter end (${monthLabel(cpiPick.month)}): ${cpiPick.value.toFixed(1)}% · real = (1+nominal)/(1+CPI)−1, a deflation, not a subtraction`
-      : `CPI y/y taken from the latest print (${monthLabel(cpiPick.month)}): ${cpiPick.value.toFixed(1)}% — the series does not yet reach ${latestPeriod ?? "this quarter"} · real = (1+nominal)/(1+CPI)−1`
+      ? tx("CPI y/y read at the quarter end ({0}): {1}% · real = (1+nominal)/(1+CPI)−1, a deflation, not a subtraction", {0: monthLabel(cpiPick.month), 1: cpiPick.value.toFixed(1)})
+      : tx("CPI y/y taken from the latest print ({0}): {1}% — the series does not yet reach {2} · real = (1+nominal)/(1+CPI)−1", {0: monthLabel(cpiPick.month), 1: cpiPick.value.toFixed(1), 2: latestPeriod ?? "this quarter"})
     : "CPI is not available for this quarter — real growth is left blank rather than guessed";
 
   // In-page jump-nav: only list groups that actually render (the ownership
@@ -1295,7 +1332,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       ? [{
           id: "risk" as BankTab,
           h: "Risk & Capital",
-          p: `FX net open position and the ≤1y repricing gap from the §4 footnotes${hasCapital ? ", with the audited capital stack and its buffer over the 12% minimum" : ""}.`,
+          p: tx("FX net open position and the ≤1y repricing gap from the §4 footnotes{0}.", {0: hasCapital ? ", with the audited capital stack and its buffer over the 12% minimum" : ""}),
           go: "§4 footnotes",
         }]
       : []),
@@ -1307,7 +1344,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           id: "news" as BankTab,
           h: "News & Filings",
           p: `Press coverage tagged to this bank, quarterly results decks and recent KAP disclosures.`,
-          go: `${bankNews.length + earnings.length + kapItems.length} items`,
+          go: tx("{0} items", {0: bankNews.length + earnings.length + kapItems.length}),
         }]
       : []),
   ];
@@ -1321,21 +1358,19 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           pinned by this wrapper instead; on mobile the nav self-sticks at top-14. */}
       <div className="lg:sticky lg:top-0 lg:z-30">
         <PageHeader
-          eyebrow={ticker}
+          eyebrow={tx(ticker)}
           title={
             <span className="inline-flex items-center gap-3">
-              <BankLogo ticker={ticker} name={bankDisplayName(ticker)} height={30} />
-              {bankDisplayName(ticker)}
+              <BankLogo ticker={ticker} name={tx(bankDisplayName(ticker))} height={30} />
+              {tx(bankDisplayName(ticker))}
             </span>
           }
-          description="Standardized per-bank financials from quarterly BRSA reports"
+          description={tx("Standardized per-bank financials from quarterly BRSA reports")}
           rangeSelector
           dataThrough={allPeriods[0]}
           sticky={false}
         >
-          <Link href="/banks" className="text-sm text-muted-foreground hover:text-foreground">
-            ← All banks
-          </Link>
+          <Link href="/banks" className="text-sm text-muted-foreground hover:text-foreground">{tx("← All banks")}</Link>
         </PageHeader>
 
         <BankTabs ticker={ticker} active={tab} hide={hiddenTabs} query={finQuery} />
@@ -1354,11 +1389,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {vitals.length >= 3 && (
         <>
           <SecHead
-            title="The vitals"
-            meta="audited quarterly · this bank"
+            title={tx("The vitals")}
+            meta={tx("audited quarterly · this bank")}
             className="mb-2.5 mt-6"
           />
-          <Vitals cols={vitalCols}>{vitals}</Vitals>
+          <Vitals cols={vitalCols}>{tx(vitals)}</Vitals>
         </>
       )}
 
@@ -1404,10 +1439,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           old one-page layout carried is now hidden behind an unlabelled tab. */}
       <section className="mt-9 border-t-2 border-foreground pt-2">
         <div className="flex items-baseline gap-2.5">
-          <h2 className="text-[14.5px] font-bold text-foreground">In depth</h2>
+          <h2 className="text-[14.5px] font-bold text-foreground">{tx("In depth")}</h2>
           <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-            {tabIndex.length} more {tabIndex.length === 1 ? "view" : "views"} — same data, one click
-          </span>
+            {tx(tabIndex.length)}{tx(" more ")}{tx(tabIndex.length === 1 ? "view" : "views")}{tx(" — same data, one click")}</span>
         </div>
         {tabIndex.map((d) => (
           <Link
@@ -1415,9 +1449,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             href={d.id === "financials" ? `/banks/${ticker}?tab=financials&${finQuery}` : `/banks/${ticker}?tab=${d.id}`}
             className="grid items-baseline gap-4 border-b border-hair py-2.5 lg:grid-cols-[minmax(110px,2fr)_minmax(200px,7fr)_auto]"
           >
-            <h4 className="text-[12.5px] font-semibold text-primary">{d.h}</h4>
-            <p className="text-[11.5px] leading-snug text-muted-foreground">{d.p}</p>
-            <span className="whitespace-nowrap font-mono text-[9.5px] text-faint">{d.go}</span>
+            <h4 className="text-[12.5px] font-semibold text-primary">{tx(d.h)}</h4>
+            <p className="text-[11.5px] leading-snug text-muted-foreground">{tx(d.p)}</p>
+            <span className="whitespace-nowrap font-mono text-[9.5px] text-faint">{tx(d.go)}</span>
           </Link>
         ))}
       </section>
@@ -1438,15 +1472,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {tab === "risk" && hasCapital && perfLatest && (
         <div className="mb-8">
           <Section
-            title="Capital"
-            description={`Audited §4 capital ratios · ${perfLatest.period} · buffer vs the 12% regulatory minimum (incl. buffers). Ranks are among banks reporting the quarter.`}
+            title={tx("Capital")}
+            description={tx("Audited §4 capital ratios · {0} · buffer vs the 12% regulatory minimum (incl. buffers). Ranks are among banks reporting the quarter.", {0: perfLatest.period})}
             contentClassName=""
           >
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat
-                label="CAR"
+                label={tx("CAR")}
                 value={perfLatest.car != null ? `${perfLatest.car.toFixed(1)}%` : "—"}
-                hint={rankOf("car") ? `${ord(rankOf("car")!.rank)} of ${rankOf("car")!.n}` : undefined}
+                hint={tx(rankOf("car") ? tx("{0} of {1}", {0: ord(rankOf("car")!.rank), 1: rankOf("car")!.n}) : undefined)}
                 tone={
                   perfLatest.car == null
                     ? "neutral"
@@ -1458,23 +1492,23 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 }
               />
               <Stat
-                label="Buffer over minimum"
+                label={tx("Buffer over minimum")}
                 value={perfLatest.car != null ? `${(perfLatest.car - 12).toFixed(1)}pp` : "—"}
-                hint="CAR − 12%"
+                hint={tx("CAR − 12%")}
               />
               <Stat
-                label="CET1"
+                label={tx("CET1")}
                 value={perfLatest.cet1 != null ? `${perfLatest.cet1.toFixed(1)}%` : "—"}
-                hint={rankOf("cet1") ? `${ord(rankOf("cet1")!.rank)} of ${rankOf("cet1")!.n}` : undefined}
+                hint={tx(rankOf("cet1") ? tx("{0} of {1}", {0: ord(rankOf("cet1")!.rank), 1: rankOf("cet1")!.n}) : undefined)}
               />
               <Stat
-                label="AT1 / Tier-2 reliance"
+                label={tx("AT1 / Tier-2 reliance")}
                 value={
                   perfLatest.car != null && perfLatest.cet1 != null
                     ? `${(perfLatest.car - perfLatest.cet1).toFixed(1)}pp`
                     : "—"
                 }
-                hint="CAR − CET1"
+                hint={tx("CAR − CET1")}
               />
             </div>
           </Section>
@@ -1486,44 +1520,44 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           the standardized BS / IS / CF tables, with the lens + statement controls. */}
       {tab === "financials" && (
       <div className="mb-8 mt-6">
-        <Section title="Financials" contentClassName="">
+        <Section title={tx("Financials")} contentClassName="">
           {/* The controls, ABOVE the shape they drive — and grouped by scope, because
               they do not all reach the same distance. Statement, basis and periods
               re-read the filings, so they change the shape AND the table. The lens
               is a way of *reading* the same rows: it now drives the composition's
               trailing column too, so no control is inert on what sits above it. */}
           <div className="mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 border-b border-border pb-3">
-            <ControlGroup label="Statement">
+            <ControlGroup label={tx("Statement")}>
               {(["bs", "is", "cf"] as const).map((s2) => (
                 <Toggle key={s2} href={url({ statement: s2 })} on={s2 === statement}>
-                  {s2 === "bs" ? "Balance sheet" : s2 === "is" ? "Income statement" : "Cash flow"}
+                  {tx(s2 === "bs" ? "Balance sheet" : s2 === "is" ? "Income statement" : "Cash flow")}
                 </Toggle>
               ))}
             </ControlGroup>
 
-            <ControlGroup label="Lens">
+            <ControlGroup label={tx("Lens")}>
               {(statement === "cf"
                 ? (["abs", "yoy", "real"] as const)
                 : (["abs", "yoy", "real", "size"] as const)
               ).map((m) => (
-                <Toggle key={m} href={url({ mode: m })} on={m === mode} title={LENS_HINT[m]}>
-                  {LENS_LABEL[m]}
+                <Toggle key={m} href={url({ mode: m })} on={m === mode} title={tx(LENS_HINT[m])}>
+                  {tx(LENS_LABEL[m])}
                 </Toggle>
               ))}
             </ControlGroup>
 
-            <ControlGroup label="Periods">
+            <ControlGroup label={tx("Periods")}>
               {(["quarterly", "annual"] as const).map((v) => (
                 <Toggle key={v} href={url({ view: v })} on={v === view}>
-                  {v === "annual" ? "Annual" : "Quarterly"}
+                  {tx(v === "annual" ? "Annual" : "Quarterly")}
                 </Toggle>
               ))}
             </ControlGroup>
 
-            <ControlGroup label="Basis">
+            <ControlGroup label={tx("Basis")}>
               {(["unconsolidated", "consolidated"] as const).map((k) => (
                 <Toggle key={k} href={url({ kind: k })} on={k === kind}>
-                  {k === "unconsolidated" ? "Bank-only" : "Consolidated"}
+                  {tx(k === "unconsolidated" ? "Bank-only" : "Consolidated")}
                 </Toggle>
               ))}
             </ControlGroup>
@@ -1538,7 +1572,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               funding={fundingComp}
               lens={mode}
               lead={shapeLead}
-              meta={`${latestPeriod ?? "—"} · share of total assets · real y/y`}
+              meta={tx("{0} · share of total assets · real y/y", {0: latestPeriod ?? "—"})}
               footnote={cpiNote}
             />
           )}
@@ -1546,9 +1580,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <>
               <IncomeShape rowsByPeriod={plRows} rolesByPeriod={plRoles} periods={periods} />
               {mode !== "abs" && (
-                <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint">
-                  The bridge above reads the filed quarter in ₺ — the {LENS_LABEL[mode].toLowerCase()} lens applies to the statement below.
-                </p>
+                <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint">{tx("The bridge above reads the filed quarter in ₺ — the ")}{tx(LENS_LABEL[mode].toLowerCase())}{tx(" lens applies to the statement below.")}</p>
               )}
             </>
           )}
@@ -1557,17 +1589,17 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           {statement === "bs" && (
           <section className="group mb-6">
             <div className="flex items-baseline justify-between gap-3 pb-2">
-              <h2 className="text-[13.5px] font-bold text-foreground">Balance Sheet</h2>
+              <h2 className="text-[13.5px] font-bold text-foreground">{tx("Balance Sheet")}</h2>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{unitLabel}</span>
+                <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx(unitLabel)}</span>
                 <CopyTableButton />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
-                <thead className="text-muted-foreground">{periodHeaderRow}</thead>
+                <thead className="text-muted-foreground">{tx(periodHeaderRow)}</thead>
                 <tbody>
-                  <GroupRow label="Assets — what it owns" span={colCount + 1} />
+                  <GroupRow label={tx("Assets — what it owns")} span={colCount + 1} />
                   {(() => {
                     // Standard, uniform layout for every bank. Asset code 2.3 holds
                     // Factoring (deposit layout) OR Securities at Amortized Cost
@@ -1591,7 +1623,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                     }).map((line) => (
                       <Row
                         key={line.id}
-                        label={line.label}
+                        label={tx(line.label)}
                         cells={cellsForLine(
                           line,
                           bsPivot,
@@ -1602,26 +1634,26 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                       />
                     ));
                   })()}
-                  <Row label="Total Assets" cells={totalAssets} divider />
-                  <GroupRow label="Liabilities & equity — what pays for it" span={colCount + 1} />
+                  <Row label={tx("Total Assets")} cells={totalAssets} divider />
+                  <GroupRow label={tx("Liabilities & equity — what pays for it")} span={colCount + 1} />
                   {liabPreEquity.map((line) => (
                     <Row
                       key={line.id}
-                      label={line.label}
+                      label={tx(line.label)}
                       cells={cellsForLine(line, bsPivot, "liabilities")}
                       depth={indentLevel(line.hierarchy)}
                     />
                   ))}
-                  <Row label="Total Liabilities" cells={totalLiab} divider />
+                  <Row label={tx("Total Liabilities")} cells={totalLiab} divider />
                   {equityBlock.map((line) => (
                     <Row
                       key={line.id}
-                      label={line.label}
+                      label={tx(line.label)}
                       cells={cellsForLine(line, bsPivot, "liabilities")}
                       depth={indentLevel(line.hierarchy)}
                     />
                   ))}
-                  <Row label="Total Liabilities & Equity" cells={totalLE} divider />
+                  <Row label={tx("Total Liabilities & Equity")} cells={totalLE} divider />
                 </tbody>
               </table>
             </div>
@@ -1633,15 +1665,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           {statement === "is" && (
           <section className="group">
             <div className="flex items-baseline justify-between gap-3 pb-2">
-              <h2 className="text-[13.5px] font-bold text-foreground">Income Statement</h2>
+              <h2 className="text-[13.5px] font-bold text-foreground">{tx("Income Statement")}</h2>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{unitLabel}</span>
+                <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx(unitLabel)}</span>
                 <CopyTableButton />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
-                <thead className="text-muted-foreground">{periodHeaderRow}</thead>
+                <thead className="text-muted-foreground">{tx(periodHeaderRow)}</thead>
                 <tbody>
                   {/* Only the six sums that close a block are subtotals; the rest are
                       components with their breakdown nested under them. Passing
@@ -1650,7 +1682,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   {plLinesForFiler.map((line) => (
                     <Row
                       key={line.id}
-                      label={line.label}
+                      label={tx(line.label)}
                       cells={cellsForLine(line, plPivot, "")}
                       divider={line.subtotal}
                       depth={indentLevel(line.hierarchy)}
@@ -1666,21 +1698,19 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               codes are consistent across banks). Empty → "not available" note. */}
           {statement === "cf" && (
             !hasCfData ? (
-              <section className="rounded-[10px] border border-border bg-card px-5 py-4 text-xs text-muted-foreground">
-                Cash flow statement not available for these periods.
-              </section>
+              <section className="rounded-[10px] border border-border bg-card px-5 py-4 text-xs text-muted-foreground">{tx("Cash flow statement not available for these periods.")}</section>
             ) : (
             <section className="group">
               <div className="flex items-baseline justify-between gap-3 pb-2">
-                <h2 className="text-[13.5px] font-bold text-foreground">Cash Flow</h2>
+                <h2 className="text-[13.5px] font-bold text-foreground">{tx("Cash Flow")}</h2>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{unitLabel}</span>
+                  <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx(unitLabel)}</span>
                   <CopyTableButton />
                 </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
-                  <thead className="text-muted-foreground">{periodHeaderRow}</thead>
+                  <thead className="text-muted-foreground">{tx(periodHeaderRow)}</thead>
                   <tbody>
                     {CF_LINES.map((line) =>
                       line.header ? (
@@ -1689,13 +1719,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                             colSpan={colCount + 1}
                             className="border-b border-border pb-1 pt-4 font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint"
                           >
-                            {line.label}
+                            {tx(line.label)}
                           </td>
                         </tr>
                       ) : (
                         <Row
                           key={line.id}
-                          label={line.label}
+                          label={tx(line.label)}
                           cells={cellsForLine(line, cfPivot, "")}
                           divider={CF_ROMAN_HIERARCHIES.includes(line.hierarchy)}
                           depth={indentLevel(line.hierarchy)}
@@ -1709,59 +1739,35 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             )
           )}
 
-          <p className="text-[11px] text-muted-foreground mt-3">
-            Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
-            reported for that period or did not extract.
-            {statement === "bs" && (
-              <> &quot;Total Assets&quot;, &quot;Total Liabilities&quot;, and
-              &quot;Total Liabilities &amp; Equity&quot; are computed as sums of the
-              Roman-numeral rows. Lines labelled &quot;(-)&quot; are deductions shown as
-              magnitudes.</>
+          <p className="text-[11px] text-muted-foreground mt-3">{tx("Lines aligned by BRSA hierarchy code. \"--\" indicates the line was not reported for that period or did not extract.")}{statement === "bs" && (
+              <>{tx(" \"Total Assets\", \"Total Liabilities\", and \"Total Liabilities & Equity\" are computed as sums of the Roman-numeral rows. Lines labelled \"(-)\" are deductions shown as magnitudes.")}</>
             )}
             {statement === "cf" && (
-              <> Section totals (Roman numerals) follow the BRSA chain
-              V&nbsp;=&nbsp;I+II+III+IV and VII&nbsp;=&nbsp;V+VI; amounts are
-              cumulative year-to-date.</>
+              <>{tx(" Section totals (Roman numerals) follow the BRSA chain V = I+II+III+IV and VII = V+VI; amounts are cumulative year-to-date.")}</>
             )}
             {mode === "yoy" && (
-              <> Cells show year-over-year % change vs the same quarter one year
-              earlier; &quot;--&quot; where the prior-year period is unavailable.</>
+              <>{tx(" Cells show year-over-year % change vs the same quarter one year earlier; \"--\" where the prior-year period is unavailable.")}</>
             )}
             {isReal && (
               <>
-                {" "}Real growth deflates the nominal rate:
-                {" "}(1&nbsp;+&nbsp;nominal)&nbsp;/&nbsp;(1&nbsp;+&nbsp;CPI)&nbsp;−&nbsp;1 —
-                a division, not a subtraction. Columns are the latest displayed
-                quarter ({latestPeriod ?? "—"}) against the same quarter a year
-                earlier. {cpiNote}. The verdict band is real&nbsp;&gt;&nbsp;+3%
-                growing, −3%&nbsp;to&nbsp;+3% standing still,
-                &lt;&nbsp;−3% shrinking.
-              </>
+                {" "}{tx("Real growth deflates the nominal rate:")}{" "}{tx("(1 + nominal) / (1 + CPI) − 1 — a division, not a subtraction. Columns are the latest displayed quarter (")}{tx(latestPeriod ?? "—")}{tx(") against the same quarter a year earlier. ")}{tx(cpiNote)}{tx(". The verdict band is real > +3% growing, −3% to +3% standing still, < −3% shrinking.")}</>
             )}
             {isSize && statement === "bs" && (
               <>
-                {" "}Every line is shown as a % of total assets (the sum of the
-                Roman-numeral rows).{" "}
-                {showPeers && sectorShares
-                  ? `"Sector median" is the median share across the ${sectorShares.n} ${
-                      isParticipation ? "participation" : "deposit / development"
-                    } banks that filed ${latestPeriod} on the same BRSA template — the two templates put different line-items on the same Roman numeral, so a median across both would compare unlike lines. A peer that filed the quarter but not the line counts as zero. "Gap" is this bank's share minus that median, in percentage points; ±5pp or wider is marked amber. The median is withheld ("--") for Factoring Receivables and Securities at Amortized Cost: both are filed under code 2.3, and banks that leave the line unnamed cannot be told apart — so no peer set can be formed for them without guessing.`
-                  : "The sector median is unavailable for this quarter."}
+                {" "}{tx("Every line is shown as a % of total assets (the sum of the Roman-numeral rows).")}{" "}
+                {tx(showPeers && sectorShares
+                  ? tx("\"Sector median\" is the median share across the {0} {1} banks that filed {2} on the same BRSA template — the two templates put different line-items on the same Roman numeral, so a median across both would compare unlike lines. A peer that filed the quarter but not the line counts as zero. \"Gap\" is this bank's share minus that median, in percentage points; ±5pp or wider is marked amber. The median is withheld (\"--\") for Factoring Receivables and Securities at Amortized Cost: both are filed under code 2.3, and banks that leave the line unnamed cannot be told apart — so no peer set can be formed for them without guessing.", {0: sectorShares.n, 1: isParticipation ? "participation" : "deposit / development", 2: latestPeriod})
+                  : "The sector median is unavailable for this quarter.")}
               </>
             )}
             {isSize && statement === "is" && (
-              <> Every line is shown as a % of interest / profit-share income
-              (BRSA line I.) — the denominator that makes two banks of different
-              size comparable line-for-line.</>
+              <>{tx(" Every line is shown as a % of interest / profit-share income (BRSA line I.) — the denominator that makes two banks of different size comparable line-for-line.")}</>
             )}
             {showTtm && (
-              <> &quot;TTM&quot; is the trailing twelve months ending the latest quarter
-              (de-cumulated from the year-to-date figures).</>
+              <>{tx(" \"TTM\" is the trailing twelve months ending the latest quarter (de-cumulated from the year-to-date figures).")}</>
             )}
             {anyWarning && (
-              <> <span className="text-amber-600">⚠</span> marks a period whose
-              extraction failed internal-sum validation (TL+FC=Total,
-              subtotal=Σcomponents) — treat those figures with care.</>
+              <> <span className="text-amber-600">⚠</span>{tx(" marks a period whose extraction failed internal-sum validation (TL+FC=Total, subtotal=Σcomponents) — treat those figures with care.")}</>
             )}
           </p>
         </Section>
@@ -1773,7 +1779,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           subsidiary chips. */}
       {tab === "ownership" && hasOwnership && (
         <div className="mb-8 mt-6">
-          <Section title="Ownership" contentClassName="">
+          <Section title={tx("Ownership")} contentClassName="">
             <OwnershipSummary rows={ownership} />
           </Section>
         </div>
@@ -1785,7 +1791,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           exist, so quiet banks don't get an empty section. */}
       {tab === "news" && hasBankNews && (
         <div className="mb-8 mt-6">
-          <Section title="In the News" contentClassName="">
+          <Section title={tx("In the News")} contentClassName="">
             <BankNewsSection items={bankNews} />
           </Section>
         </div>
@@ -1795,7 +1801,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           Compact results/presentation list + recent KAP filings, side by side. */}
       {tab === "news" && (
         <div className="mb-8">
-          <Section title="Earnings & Disclosures" contentClassName="">
+          <Section title={tx("Earnings & Disclosures")} contentClassName="">
             <EarningsDisclosures earnings={earnings} disclosures={kapItems} ticker={ticker} />
           </Section>
         </div>
@@ -1807,7 +1813,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           a permanent empty state about someone else's editorial decision. */}
       {tab === "news" && TRANSCRIPT_BANKS.has(ticker) && (
         <div className="mb-8">
-          <Section title="Earnings calls" contentClassName="">
+          <Section title={tx("Earnings calls")} contentClassName="">
             <CallTranscripts calls={calls} ticker={ticker} holdsCalls />
           </Section>
         </div>

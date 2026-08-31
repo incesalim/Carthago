@@ -1,3 +1,4 @@
+import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import Link from "next/link";
 import { SecHead, Flags, Movers, type Flag, type MoverRow } from "@/app/components/desk";
@@ -26,6 +27,7 @@ import {
 // ---------------------------------------------------------------------------
 
 function Strip({ s, spec }: { s: PeerStat; spec: PeerFieldSpec }) {
+  const tx = useText();
   // H must clear the two label rows: the value sits above the rule, the median
   // and the axis ends below it. At H=40 the descenders of "MED 16.9" fell
   // outside the viewBox and were clipped.
@@ -42,24 +44,23 @@ function Strip({ s, spec }: { s: PeerStat; spec: PeerFieldSpec }) {
       height={H}
       viewBox={`0 0 ${W} ${H}`}
       role="img"
-      aria-label={`${spec.label}: ${s.value.toFixed(spec.decimals)}, median ${s.median.toFixed(spec.decimals)}, ${ordinal(s.rank)} of ${s.n}`}
+      aria-label={tx("{0}: {1}, median {2}, {3} of {4}", {0: spec.label, 1: s.value.toFixed(spec.decimals), 2: s.median.toFixed(spec.decimals), 3: ordinal(s.rank, tx.locale), 4: s.n})}
       className="max-w-full"
     >
       <line x1={x0} y1={base} x2={x1} y2={base} stroke="var(--chart-6)" strokeWidth={3} strokeLinecap="round" />
       <line x1={med} y1={base - 7} x2={med} y2={base + 7} stroke="var(--warning)" strokeWidth={1.6} />
-      <text x={med} y={base + 17} textAnchor="middle" fill="var(--warning)" className="font-mono" fontSize={8}>
-        MED {s.median.toFixed(spec.decimals)}
+      <text x={med} y={base + 17} textAnchor="middle" fill="var(--warning)" className="font-mono" fontSize={8}>{tx("MED ")}{tx(s.median.toFixed(spec.decimals))}
       </text>
       <circle cx={me} cy={base} r={5} fill="var(--data)" stroke="var(--card)" strokeWidth={1.5} />
       <text x={me} y={base - 9} textAnchor="middle" fill="var(--data)" className="font-mono font-semibold" fontSize={9.5}>
-        {s.value.toFixed(spec.decimals)}%
+        {tx(s.value.toFixed(spec.decimals))}%
       </text>
       <text x={x0} y={base + 17} fill="var(--faint)" className="font-mono" fontSize={8}>
-        {spec.lo}
+        {tx(spec.lo)}
       </text>
       <text x={x1} y={base + 17} textAnchor="end" fill="var(--faint)" className="font-mono" fontSize={8}>
-        {spec.hi}
-        {overflow ? "+" : ""}
+        {tx(spec.hi)}
+        {tx(overflow ? "+" : "")}
       </text>
     </svg>
   );
@@ -74,12 +75,13 @@ export function WhereItStands({
   // above income is a franchise problem, not a young bank finding its feet.
   ctx: { buffer?: number | null; realRoe?: number | null; filings?: number | null };
 }) {
+  const tx = useText();
   if (stats.length === 0) return null;
   return (
     <section>
       <SecHead
-        title="Where it stands"
-        meta={`the ${stats[0].stat.n} ${stats[0].stat.universe} reporting · dot = this bank · tick = median`}
+        title={tx("Where it stands")}
+        meta={tx("the {0} {1} reporting · dot = this bank · tick = median", {0: stats[0].stat.n, 1: stats[0].stat.universe})}
         className="mb-2.5 mt-8"
       />
       <div className="border-t-2 border-foreground">
@@ -89,14 +91,14 @@ export function WhereItStands({
             className="grid items-center gap-4 border-b border-hair py-2.5 lg:grid-cols-[minmax(110px,2fr)_minmax(230px,6fr)_minmax(150px,2.7fr)]"
           >
             <div>
-              <div className="text-[12.5px] font-semibold text-foreground">{spec.label}</div>
-              <div className="text-[9.5px] text-faint">{spec.sub}</div>
+              <div className="text-[12.5px] font-semibold text-foreground">{tx(spec.label)}</div>
+              <div className="text-[9.5px] text-faint">{tx(spec.sub)}</div>
             </div>
             <div className="overflow-x-auto">
               <Strip s={stat} spec={spec} />
             </div>
             <p className="text-[11.5px] leading-snug text-muted-foreground">
-              {peerRead(spec.key, stat, ctx)}
+              {tx(peerRead(spec.key, stat, ctx, tx.locale))}
             </p>
           </div>
         ))}
@@ -130,9 +132,10 @@ export function Engine({
   /** The margin-bridge chart the old Performance section already rendered. */
   chart?: React.ReactNode;
 }) {
+  const tx = useText();
   return (
     <section>
-      <SecHead title="The engine" meta="TTM · what the balance sheet earns" className="mb-2.5 mt-8" />
+      <SecHead title={tx("The engine")} meta={tx("TTM · what the balance sheet earns")} className="mb-2.5 mt-8" />
       <div className="grid gap-7 lg:grid-cols-[5fr_7fr]">
         <div>
           {gate.ready ? (
@@ -152,9 +155,9 @@ export function Engine({
                         r.kind === "total" ? "font-bold text-foreground" : r.kind === "sub" ? "pl-3 text-muted-foreground" : "text-foreground",
                       )}
                     >
-                      {r.label}
+                      {tx(r.label)}
                     </div>
-                    {r.note && <div className="text-[9.5px] text-faint">{r.note}</div>}
+                    {r.note && <div className="text-[9.5px] text-faint">{tx(r.note)}</div>}
                   </div>
                   <div className="relative h-2.5 rounded-[1px] bg-muted">
                     <span
@@ -172,27 +175,25 @@ export function Engine({
                       r.value < 0 ? "text-negative" : "text-foreground",
                     )}
                   >
-                    {r.value >= 0 ? "" : "−"}
-                    {Math.abs(r.value).toFixed(r.unit === "pp" ? 1 : 2)}
-                    {r.unit}
+                    {tx(r.value >= 0 ? "" : "−")}
+                    {tx(Math.abs(r.value).toFixed(r.unit === "pp" ? 1 : 2))}
+                    {tx(r.unit)}
                   </div>
                 </div>
               ))}
               {gate.fundingNote && (
-                <p className="mt-2.5 text-[9.5px] leading-relaxed text-faint">{gate.fundingNote}</p>
+                <p className="mt-2.5 text-[9.5px] leading-relaxed text-faint">{tx(gate.fundingNote)}</p>
               )}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-border bg-muted p-4">
-              <h4 className="text-[12.5px] font-bold text-foreground">Not derivable yet — and the page says so</h4>
-              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{gate.reason}</p>
-              <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.05em] text-faint">
-                rule: the ladder needs a ttm roe — never a blank tile
-              </p>
+              <h4 className="text-[12.5px] font-bold text-foreground">{tx("Not derivable yet — and the page says so")}</h4>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{tx(gate.reason)}</p>
+              <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.05em] text-faint">{tx("rule: the ladder needs a ttm roe — never a blank tile")}</p>
             </div>
           )}
         </div>
-        <div>{chart}</div>
+        <div>{tx(chart)}</div>
       </div>
     </section>
   );
@@ -221,20 +222,19 @@ export function Franchise({
   stages?: React.ReactNode;
   chart?: React.ReactNode;
 }) {
+  const tx = useText();
   const deposits = funding[0];
   const depShare = deposits ? (deposits.value / assets) * 100 : null;
   return (
     <section>
-      <SecHead title="The franchise" meta="what the balance sheet is made of" className="mb-2.5 mt-8" />
+      <SecHead title={tx("The franchise")} meta={tx("what the balance sheet is made of")} className="mb-2.5 mt-8" />
       <div className="grid gap-7 lg:grid-cols-2">
         <div>
           {depShare != null && (
             <p className="mb-1 text-[12.5px] text-foreground">
               <b className="font-bold">
-                {depShare > 50 ? "Funded by depositors, not markets." : "Deposit-light — still funded by its own capital."}
-              </b>{" "}
-              Deposits cover {depShare.toFixed(0)}% of the balance sheet.
-            </p>
+                {tx(depShare > 50 ? "Funded by depositors, not markets." : "Deposit-light — still funded by its own capital.")}
+              </b>{" "}{tx("Deposits cover ")}{tx(depShare.toFixed(0))}{tx("% of the balance sheet.")}</p>
           )}
           <div className="mt-1 flex h-6 overflow-hidden rounded-[2px]">
             {funding.map((f) => (
@@ -242,7 +242,7 @@ export function Franchise({
                 key={f.label}
                 className={f.className}
                 style={{ width: `${(f.value / assets) * 100}%` }}
-                title={`${f.label} — ${((f.value / assets) * 100).toFixed(1)}%`}
+                title={tx(`${f.label} — ${((f.value / assets) * 100).toFixed(1)}%`)}
               />
             ))}
           </div>
@@ -250,8 +250,8 @@ export function Franchise({
             {funding.map((f) => (
               <span key={f.label} className="inline-flex items-center gap-1.5">
                 <i className={cn("inline-block size-2 rounded-[2px]", f.className)} aria-hidden />
-                {f.label}{" "}
-                <b className="font-mono font-semibold text-foreground">{((f.value / assets) * 100).toFixed(1)}%</b>
+                {tx(f.label)}{" "}
+                <b className="font-mono font-semibold text-foreground">{tx(((f.value / assets) * 100).toFixed(1))}%</b>
               </span>
             ))}
           </div>
@@ -259,12 +259,12 @@ export function Franchise({
             <tbody>
               {stats.map((s) => (
                 <tr key={s.k}>
-                  <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{s.k}</td>
+                  <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{tx(s.k)}</td>
                   <td className="border-b border-hair py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-foreground">
-                    {s.v}
+                    {tx(s.v)}
                   </td>
                   <td className="border-b border-hair py-1.5 pl-3 text-right font-mono text-[10.5px] text-faint">
-                    {s.note ?? ""}
+                    {tx(s.note ?? "")}
                   </td>
                 </tr>
               ))}
@@ -272,8 +272,8 @@ export function Franchise({
           </table>
         </div>
         <div className="space-y-4">
-          {stages}
-          {chart}
+          {tx(stages)}
+          {tx(chart)}
         </div>
       </div>
     </section>
@@ -295,6 +295,7 @@ export function MoversAndFlags({
   movers: MoverRow[];
   flags: BriefFlag[];
 }) {
+  const tx = useText();
   if (movers.length === 0 && flags.length === 0) return null;
   const active = flags.filter((f) => f.kind !== "ok").length;
   const asDeskFlags: Flag[] = flags.map((f) => ({
@@ -302,7 +303,7 @@ export function MoversAndFlags({
     active: true,
     body: (
       <>
-        <b className="font-semibold">{f.title}.</b> {f.detail}
+        <b className="font-semibold">{tx(f.title)}.</b> {tx(f.detail)}
       </>
     ),
     rule: f.rule,
@@ -310,11 +311,11 @@ export function MoversAndFlags({
   return (
     <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
       <div>
-        <SecHead title="Movers" meta={`${from} → ${to}`} className="mb-2.5" />
+        <SecHead title={tx("Movers")} meta={tx(`${from} → ${to}`)} className="mb-2.5" />
         <Movers from={from} to={to} rows={movers} />
       </div>
       <div>
-        <SecHead title="Flags" meta={`rule-based — ${active} firing`} className="mb-2.5" />
+        <SecHead title={tx("Flags")} meta={tx("rule-based — {0} firing", {0: active})} className="mb-2.5" />
         {/* The Desk Flags component prints the rule under each body; an "ok" flag
             renders as the quiet no-flags line. */}
         {active > 0 ? (
@@ -329,8 +330,8 @@ export function MoversAndFlags({
               <div key={f.id} className="flex gap-3 border-b border-hair py-2">
                 <span className="min-w-5 pt-0.5 font-mono text-[10px] font-semibold text-positive">—</span>
                 <p className="text-[12px] leading-relaxed">
-                  <b className="font-semibold">{f.title}.</b> {f.detail}
-                  <span className="mt-0.5 block font-mono text-[8px] text-faint">{f.rule}</span>
+                  <b className="font-semibold">{tx(f.title)}.</b> {tx(f.detail)}
+                  <span className="mt-0.5 block font-mono text-[8px] text-faint">{tx(f.rule)}</span>
                 </p>
               </div>
             ))}
@@ -343,12 +344,13 @@ export { CAR_TARGET };
 
 /** The identity strip — the facts this bank actually has, nothing invented. */
 export function Identity({ items }: { items: Array<{ k: string; v: React.ReactNode }> }) {
+  const tx = useText();
   return (
     <div className="mt-3 flex gap-5 overflow-x-auto whitespace-nowrap border-y border-border py-2">
       {items.map((it) => (
         <div key={it.k} className="flex items-baseline gap-1.5">
-          <span className="font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint">{it.k}</span>
-          <span className="font-mono text-[11.5px] font-semibold tabular-nums text-foreground">{it.v}</span>
+          <span className="font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint">{tx(it.k)}</span>
+          <span className="font-mono text-[11.5px] font-semibold tabular-nums text-foreground">{tx(it.v)}</span>
         </div>
       ))}
     </div>

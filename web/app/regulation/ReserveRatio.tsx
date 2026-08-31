@@ -5,6 +5,7 @@
  * exemptions and maturity mix. Two lines, no stack: the lira and FX legs are
  * different rules on different bases and summing them would mean nothing.
  */
+import { useText } from "@/i18n/use-text";
 import type { RatioPoint } from "@/app/lib/regulation";
 
 const W = 560;
@@ -12,6 +13,7 @@ const H = 150;
 const PAD = { l: 4, r: 48, t: 12, b: 18 };
 
 export default function ReserveRatio({ series }: { series: RatioPoint[] }) {
+  const tx = useText();
   const pts = series.filter((p) => p.tl != null || p.fx != null);
   if (pts.length < 2) return null;
 
@@ -54,13 +56,13 @@ export default function ReserveRatio({ series }: { series: RatioPoint[] }) {
       viewBox={`0 0 ${W} ${H}`}
       className="mt-2.5 block h-[150px] w-full overflow-visible"
       role="img"
-      aria-label={`Required reserves as a share of deposits, weekly. Foreign currency is ${fxLast?.value.toFixed(1)} percent; lira is ${tlLast?.value.toFixed(1)} percent, up from ${first?.tl?.toFixed(2)} percent in ${first?.date.slice(0, 4)}.`}
+      aria-label={tx("Required reserves as a share of deposits, weekly. Foreign currency is {0} percent; lira is {1} percent, up from {2} percent in {3}.", {0: fxLast?.value.toFixed(1), 1: tlLast?.value.toFixed(1), 2: first?.tl?.toFixed(2), 3: first?.date.slice(0, 4)})}
     >
       {ticks.map((v) => (
         <g key={v}>
           <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} stroke="var(--hair)" strokeWidth="1" />
           <text x={W - PAD.r + 5} y={y(v) + 3} className={axis}>
-            {v}%
+            {tx(v)}%
           </text>
         </g>
       ))}
@@ -71,8 +73,7 @@ export default function ReserveRatio({ series }: { series: RatioPoint[] }) {
       {fxLast && (
         <>
           <circle cx={x(fxLast.date)} cy={y(fxLast.value)} r="2.6" fill="var(--data)" />
-          <text x={W - PAD.r + 5} y={y(fxLast.value) + 3} className="font-mono text-[10px] font-semibold fill-data">
-            FX {fxLast.value.toFixed(1)}%
+          <text x={W - PAD.r + 5} y={y(fxLast.value) + 3} className="font-mono text-[10px] font-semibold fill-data">{tx("FX ")}{tx(fxLast.value.toFixed(1))}%
           </text>
         </>
       )}
@@ -84,15 +85,14 @@ export default function ReserveRatio({ series }: { series: RatioPoint[] }) {
             y={y(tlLast.value) + 3}
             className="font-mono text-[10px] font-semibold"
             style={{ fill: "var(--chart-4)" }}
-          >
-            TL {tlLast.value.toFixed(1)}%
+          >{tx("TL ")}{tx(tlLast.value.toFixed(1))}%
           </text>
         </>
       )}
 
       {years.map((yr) => (
         <text key={yr} x={x(`${yr}-01-01`)} y={H - 4} className={axis} textAnchor="middle">
-          {yr}
+          {tx(yr)}
         </text>
       ))}
     </svg>

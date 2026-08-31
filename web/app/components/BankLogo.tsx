@@ -11,6 +11,7 @@
  * intrinsic dimensions come from the generated manifest, so the component never
  * guesses a size or points at a missing file.
  */
+import { useText } from "@/i18n/use-text";
 import Image from "next/image";
 import { BANK_LOGOS } from "@/app/lib/bank-logos.generated";
 import { cn } from "@/app/lib/cn";
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export default function BankLogo({ ticker, height = 20, name, maxWidth, className }: Props) {
+  const tx = useText();
   const t = ticker.toUpperCase();
   const dims = BANK_LOGOS[t];
   const chipH = height + 8;
@@ -48,10 +50,10 @@ export default function BankLogo({ ticker, height = 20, name, maxWidth, classNam
       <span
         className={cn(chip, "font-mono font-semibold text-neutral-400", className)}
         style={{ height: chipH, minWidth: chipH, paddingInline: 5, fontSize: Math.round(height * 0.34) }}
-        title={name ?? t}
+        title={tx(name ?? t)}
         aria-hidden
       >
-        {t.slice(0, 4)}
+        {tx(t.slice(0, 4))}
       </span>
     );
   }
@@ -61,7 +63,7 @@ export default function BankLogo({ ticker, height = 20, name, maxWidth, classNam
     <span className={cn(chip, className)} style={{ height: chipH, paddingInline: 5 }}>
       <Image
         src={`/logos/${t}.png`}
-        alt={name ? `${name} logo` : `${t} logo`}
+        alt={tx(name ? tx("{0} logo", {0: name}) : tx("{0} logo", {0: t}))}
         width={w}
         height={h}
         unoptimized

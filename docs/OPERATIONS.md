@@ -76,6 +76,18 @@ the incremental coverage table has no rows in the bulletin push window. See
 
 ## Manual operations (rare)
 
+### Website language preference
+
+The public UI supports English and Turkish through `next-intl`. No new Worker
+binding, secret, database migration or scheduled job is required. The TR/EN
+switcher stores `carthago-locale=en|tr` for one year (`HttpOnly`, `SameSite=Lax`,
+site-wide path; `Secure` in production). Without that cookie, Turkish is the
+default regardless of browser language. It is independent of
+analytics consent and never enters the data cache keys or API payloads. Clear the
+cookie to test the Turkish default. Existing URLs and query parameters do
+not change. The translation catalog and verification notes are in
+[`web/i18n/README.md`](../web/i18n/README.md).
+
 ### Force a fresh refresh outside the cron schedule
 ```
 GitHub → Actions → pick the workflow (refresh-bddk-bulletins / refresh-data /

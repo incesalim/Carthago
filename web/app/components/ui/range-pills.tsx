@@ -10,6 +10,7 @@
  * in with neighbouring outline buttons (e.g. the section-nav links on the
  * Economy hub). Renders nothing when there's at most one range to offer.
  */
+import { useText } from "@/i18n/use-text";
 import { cn } from "@/app/lib/cn";
 import type { RangeKey } from "@/app/lib/chart-range";
 
@@ -24,12 +25,13 @@ export function RangePills({
   onSelect: (r: RangeKey) => void;
   className?: string;
 }) {
+  const tx = useText();
   if (ranges.length <= 1) return null;
   return (
     <div
       data-chart-no-export=""
       role="group"
-      aria-label="Chart date range"
+      aria-label={tx("Chart date range")}
       className={cn(
         "inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]",
         className,
@@ -48,7 +50,7 @@ export function RangePills({
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
-          {r}
+          {tx(r)}
         </button>
       ))}
     </div>

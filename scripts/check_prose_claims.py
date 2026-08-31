@@ -65,10 +65,17 @@ _SKIP_FILES = ("lib/prose.ts",)
 
 # ── R1 ── `+{fmtBn(x)}` / `+{rollNow.net}` — a sign typed in front of a value.
 # Only in a JSX expression slot, so `a + {…}` in plain TS can't trip it.
-_R1 = re.compile(r">\s*\+\{|\+\{(?=[\w$][\w$.]*\s*[({])|(?<![\w$)])\+\{[\w$][\w$.]*\}")
+# Numbered translation slots ("+{0}") are string-template tokens, not JSX
+# identifiers. Keep detecting real JSX formatters after the display-text wrapper.
+_R1 = re.compile(
+    r">\s*\+\{|\+\{(?=(?!\d)[\w$][\w$.]*\s*[({])|(?<![\w$)])\+\{(?!\d)[\w$][\w$.]*\}"
+)
 
 # ── R2 ── a title= literal, no interpolation, asserting something about the data.
-_TITLE_LITERAL = re.compile(r'title=(?:"([^"]{12,})"|\{\s*"([^"]{12,})"\s*\}|\{`([^`${]{12,})`\})')
+_TITLE_LITERAL = re.compile(
+    r'title=(?:"([^"]{12,})"|\{\s*"([^"]{12,})"\s*\}|\{`([^`${]{12,})`\}'
+    r'|\{\s*tx\(\s*"([^"]{12,})"\s*\)\s*\})'
+)
 
 # The closed vocabulary of assertion. Narrow on purpose: these words state a
 # direction, a ranking or a universal — none of them belongs in an axis label.

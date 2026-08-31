@@ -1,4 +1,8 @@
+import { localizeMetadata } from "@/i18n/metadata";
+import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "./components/Nav";
@@ -16,16 +20,16 @@ import { Toaster } from "./components/ui/toaster";
 // the sans stack (the Desk has no serif register).
 const geistSans = Instrument_Sans({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
 });
 
 const geistMono = IBM_Plex_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600"],
 });
 
-export const metadata: Metadata = {
+const pageMetadata: Metadata = {
   metadataBase: new URL("https://carthago.app"),
   title: {
     default: "Carthago · Turkish Banking Sector",
@@ -53,6 +57,10 @@ export const metadata: Metadata = {
   },
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  return localizeMetadata(pageMetadata);
+}
+
 // Site-wide structured data. Organization + WebSite give search engines an
 // explicit identity for the site (name, publisher, canonical URL) instead of
 // inferring it — the same signals that help URL-categorization vendors and
@@ -72,30 +80,33 @@ const siteJsonLd = {
   "@type": "WebSite",
   name: "Carthago · Turkish Banking Sector",
   url: "https://carthago.app",
-  inLanguage: "en",
+  inLanguage: ["en", "tr"],
   about: "Turkish banking sector data and analytics",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const tx = await getText();
+  const locale = await getLocale();
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...orgJsonLd, description: tx(orgJsonLd.description) }) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...siteJsonLd, name: tx(siteJsonLd.name), about: tx(siteJsonLd.about) }) }}
         />
+        <NextIntlClientProvider locale={locale} messages={{}} timeZone="Europe/Istanbul">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -110,9 +121,7 @@ export default function RootLayout({
             <a
               href="#main"
               className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:border focus:border-border focus:bg-card focus:px-3 focus:py-2 focus:text-[13px] focus:font-medium focus:text-foreground focus:shadow-sheet"
-            >
-              Skip to content
-            </a>
+            >{tx("Skip to content")}</a>
             <div className="flex min-h-full flex-col lg:flex-row">
               <Nav />
               {/* The document sheet: page content renders on a white sheet
@@ -136,6 +145,7 @@ export default function RootLayout({
         </ThemeProvider>
         <Beacon />
         <GoogleAnalytics />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

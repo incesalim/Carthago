@@ -8,6 +8,7 @@
  *  - "both"        — the snapshot grid mixes directional + neutral columns.
  * Always includes the "no data" chip (transparent cell + muted "—").
  */
+import { useText } from "@/i18n/use-text";
 import { scoreToColor } from "@/app/lib/heatmap-normalize";
 
 type Mode = "directional" | "neutral" | "both";
@@ -27,25 +28,26 @@ function Ramp({ scores, neutral }: { scores: number[]; neutral?: boolean }) {
 }
 
 export default function HeatmapLegend({ mode }: { mode: Mode }) {
+  const tx = useText();
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
       {(mode === "directional" || mode === "both") && (
         <span className="flex items-center gap-1.5">
-          <span>Worse</span>
+          <span>{tx("Worse")}</span>
           <Ramp scores={[0, 0.2, 0.4, 0.5, 0.6, 0.8, 1]} />
-          <span>Better</span>
+          <span>{tx("Better")}</span>
         </span>
       )}
       {(mode === "neutral" || mode === "both") && (
         <span className="flex items-center gap-1.5">
-          <span>Low</span>
+          <span>{tx("Low")}</span>
           <Ramp scores={[0, 0.25, 0.5, 0.75, 1]} neutral />
-          <span>High</span>
+          <span>{tx("High")}</span>
         </span>
       )}
       <span className="flex items-center gap-1.5">
         <span className="h-3 w-4 rounded-sm border border-dashed border-border" />
-        <span>No data</span>
+        <span>{tx("No data")}</span>
       </span>
     </div>
   );

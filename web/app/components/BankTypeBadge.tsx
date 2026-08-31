@@ -8,6 +8,7 @@
  * server-side (from metrics.ts BANK_TYPE_LABELS) and passed in, keeping the
  * server-only metrics module out of the client bundle.
  */
+import { useText } from "@/i18n/use-text";
 import { useChartTheme, seriesColor } from "@/app/lib/chart-theme";
 
 export default function BankTypeBadge({
@@ -17,15 +18,16 @@ export default function BankTypeBadge({
   code: string;
   label: string;
 }) {
+  const tx = useText();
   const theme = useChartTheme();
   const hue = seriesColor(theme, code, 0);
   return (
     <span
       className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none whitespace-nowrap"
       style={{ color: hue, backgroundColor: `${hue}1f`, borderColor: `${hue}3d` }}
-      title={`BDDK group: ${label}`}
+      title={tx("BDDK group: {0}", {0: label})}
     >
-      {label}
+      {tx(label)}
     </span>
   );
 }
