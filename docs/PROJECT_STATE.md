@@ -29,14 +29,19 @@ respects the filing unit; semantically identified closing/net rows accept
 small whole amounts. Repairs remain scoped to affected bank/quarter/lane with
 the existing validation gates. Ziraat Dinamik's TTM ROE/NIM remain unavailable
 without a stored 2025Q2 YTD baseline; absence is not a zero.
-The first applied repairs restored 40 unconsolidated role maps and 15 banks'
+Applied repairs restored 81 role maps across both kinds and 16 banks'
 2026Q2 credit/stage partitions; all unaffected stage records were unchanged.
 Alternatif Bank's date-only NPL closing label also needs a contextual source
 mapping: it is accepted only inside the III/IV/V table with three balance
 cells followed by the matching provision row, excluding FX-only tables. The
-traceability gate remains enabled. That last repair and Akbank's stale equity
-labels are still being validated. Legacy single-P&L repairs also compare role
+traceability gate remains enabled, and that repair passed. Akbank's stale equity
+labels are still being repaired. Legacy single-P&L repairs also compare role
 content before including the role table in their D1 replacement.
+The final register sweep found a separate Hayat Katılım CAR gap: capital
+text repair joined adjacent one-decimal values (`25.6 23.1`) into one token.
+Only genuinely detached digits now join; the source gives 25.6% unconsolidated
+and 26.6% consolidated CAR, with unchanged capital amounts. Its targeted Q2
+capital repair is pending production validation.
 
 | Table | Source | Range | Latest |
 |---|---|---|---|

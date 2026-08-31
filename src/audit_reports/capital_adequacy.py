@@ -150,7 +150,11 @@ _RATIO_BAND = (0.0, 100.0)
 # to the numeric/decimal fragment that follows. Values on the rows we read are
 # never genuine bare single digits, so the join is unambiguous in practice.
 _SPLIT_SEP = re.compile(r"(\d)\s+([.,]\d)")               # "7 ,348,196" / "2 .500"
-_SPLIT_DIGIT = re.compile(r"\b(\d)\s+(?=\d[\d.,]*(?:\s|$))")  # "2 0.20" / "1 1,372,338"
+# A word boundary alone also matches the fractional digit in "25.6 23.1"
+# (HAYATK's one-decimal ratios), joining two valid columns into "25.623.1".
+# Only a detached digit may join; a digit following a numeric separator is
+# already part of the preceding value.
+_SPLIT_DIGIT = re.compile(r"(?<![\d.,])\b(\d)\s+(?=\d[\d.,]*(?:\s|$))")
 
 
 def _repair_split_digits(line: str) -> str:

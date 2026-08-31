@@ -11,6 +11,7 @@ pytest.importorskip("fitz")
 
 from src.audit_reports.capital_adequacy import (  # noqa: E402
     _parse_ratio,
+    _parse_section,
     _repair_split_digits,
     _trailing_two_tokens,
 )
@@ -82,12 +83,41 @@ def test_repair_split_digits_rejoins_tfkb_damage():
 def test_repair_split_digits_leaves_clean_lines_alone():
     for ln in [
         "Capital Adequacy Ratio (%) 18.76 21.85",
+        "Sermaye Yeterliliği Oranı (%) 25.6 23.1",  # HAYATK: one-decimal columns
+        "Sermaye Yeterliliği Oranı (%) 25,6 23,1",  # same shape, TR decimal comma
         "Total Risk Weighted Assets 3,154,771,905 2,645,600,330",
         "rates as of 31 December 2021.",            # date stays a date
         "Yönetmeliğin 9 uncu maddesinin (i) bendi",  # prose ordinals untouched
         "Tier 1 Capital Ratio (%) 14.08 16.61",      # label digit untouched
     ]:
         assert _repair_split_digits(ln) == ln
+
+
+@pytest.mark.parametrize("tier1,car,rwa", [(25.3, 25.6, "17,255"), (26.3, 26.6, "16,598")])
+def test_hayat_capital_section_keeps_one_decimal_ratio_columns_separate(tier1, car, rwa):
+    """HAYATK 2026Q2 unconsolidated p33 / consolidated p34, in native millions.
+
+    Amounts already parsed correctly; joining the fractional digit of each
+    current ratio to its prior value silently dropped all six ratio cells.
+    """
+    lines = [
+        "Çekirdek Sermaye Toplamı 4,371 2,510",
+        "Ana Sermaye Toplamı 4,371 2,510",
+        "Katkı Sermaye Toplamı 44 30",
+        "Toplam Özkaynak (Ana sermaye ve katkı sermaye toplamı) 4,415 2,540",
+        f"Toplam Risk Ağırlıklı Tutarlar {rwa} 11,000",
+        f"Çekirdek Sermaye Yeterliliği Oranı (%) {tier1} 22.8",
+        f"Ana Sermaye Yeterliliği Oranı (%) {tier1} 22.8",
+        f"Sermaye Yeterliliği Oranı (%) {car} 23.1",
+    ]
+    current, prior, totals = _parse_section(lambda _page: lines, 0, 1)
+    assert (current["cet1_ratio"], current["tier1_ratio"], current["capital_adequacy_ratio"]) == (
+        tier1, tier1, car)
+    assert (prior["cet1_ratio"], prior["tier1_ratio"], prior["capital_adequacy_ratio"]) == (
+        22.8, 22.8, 23.1)
+    assert totals == [(4415, 2540)]
+    assert current["total_rwa"] == int(rwa.replace(",", ""))
+    assert prior["total_rwa"] == 11000
 
 
 def test_ratio_labels_match_consolidated_prefixes():
