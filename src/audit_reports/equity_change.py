@@ -909,6 +909,59 @@ def _restore_equity_source_labels(
     return restored
 
 
+def _fitz_wrapped_digit_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
+    """Join a thousands-group digit wrapped immediately below its own cell.
+
+    TSKB prints ``2.071.47`` above ``7`` in a narrow revaluation column. Both
+    glyph runs are visible, their right edges align, and their boxes almost
+    touch vertically. Require a unique physical pair; the caller additionally
+    admits this reconstruction only when the statement's identities close.
+    """
+    if not _HAS_FITZ:
+        return []
+    try:
+        with _fitz.open(pdf_path) as doc:
+            page = doc[page_idx_0]
+            words = []
+            for word in page.get_text('words'):
+                rect = _fitz.Rect(word[:4]) * page.rotation_matrix
+                words.append([rect.x0, rect.y0, rect.x1, rect.y1, word[4]])
+    except Exception:
+        return []
+    pairs: list[tuple[int, int]] = []
+    for index, word in enumerate(words):
+        partial = re.fullmatch(r'\d{1,3}([.,])(?:\d{3}\1)*(\d{1,2})', word[4])
+        if partial is None:
+            continue
+        needed = 3 - len(partial[2])
+        tails = [i for i, tail in enumerate(words)
+                 if re.fullmatch(r'\d{' + str(needed) + '}', tail[4])
+                 and 0 <= tail[1] - word[3] <= 1
+                 and abs(tail[2] - word[2]) <= 1]
+        if len(tails) > 1:
+            return []
+        if tails:
+            pairs.append((index, tails[0]))
+    if not pairs or len({tail for _, tail in pairs}) != len(pairs):
+        return []
+    removed = set()
+    for head, tail in pairs:
+        words[tail][4] = words[head][4] + words[tail][4]
+        removed.add(head)
+    buckets: list[list[tuple[float, float, str]]] = []
+    last_y = 0.0
+    for index, word in sorted(enumerate(words), key=lambda item: (item[1][1], item[1][0])):
+        if index in removed:
+            continue
+        item = (word[0], word[2], word[4])
+        if buckets and word[1] - last_y <= 3:
+            buckets[-1].append(item)
+        else:
+            buckets.append([item])
+            last_y = word[1]
+    return [_join_equity_words(bucket) for bucket in buckets]
+
+
 def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
     """Require exact source identities before admitting a sparse PDF grid.
 
@@ -1203,6 +1256,16 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         if dense_lines:
             recons.append(dense_lines)
             candidates.append(_parse_with(dense_lines, n_cols))
+    if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
+        wrapped_lines = _fitz_wrapped_digit_page_lines(pdf_path, page_idx_1 - 1)
+        if wrapped_lines:
+            # Preserve the established template, including minority columns.
+            # Repair the visible glyph before considering a different width.
+            wrapped = _parse_with(wrapped_lines, n_cols)
+            if _eq_candidate_score(wrapped)[0] == 1:
+                recons.append(wrapped_lines)
+                candidates.append(wrapped)
+
     # Self-gated both-template search: if NO candidate's column chain validates at
     # the detected n_cols, the template may be wrong for this bank — also parse each
     # reconstruction with the OTHER template (14↔16) and let the scorer pick. This

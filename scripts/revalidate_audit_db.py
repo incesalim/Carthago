@@ -691,7 +691,8 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
                         else v.check_oci(oci, pl)),
         "cash_flow":   cf_result,
         "equity_change": v.check_equity_change(eq, oci_rows=oci,
-                                                liabilities=liab, period=period),
+                                                liabilities=liab, period=period,
+                                                bank_ticker=bank, kind=kind),
     }
 
     # Capital — skip known false-positive banks/partitions

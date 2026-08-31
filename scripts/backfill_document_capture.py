@@ -109,7 +109,7 @@ def main() -> int:
     ap.add_argument("--jsonl-gzip", action="store_true",
                     help="gzip each JSONL export (~85%% smaller; read with zgrep/zcat)")
     ap.add_argument("--limit", type=int, default=0, help="stop after N partitions")
-    ap.add_argument("--bank", help="only this ticker")
+    ap.add_argument("--bank", help="only these comma-separated tickers")
     ap.add_argument("--period", help="only this period, e.g. 2026Q1")
     ap.add_argument("--recent-hours", type=int, default=0,
                     help="only partitions whose extraction row in the audit DB "
@@ -136,7 +136,10 @@ def main() -> int:
 
     targets = _r2_targets() if args.from_r2 else _local_targets(args)
     if args.bank:
-        targets = [t for t in targets if t[0] == args.bank.upper()]
+        banks = {bank.strip().upper() for bank in args.bank.split(",") if bank.strip()}
+        if not banks:
+            ap.error("--bank must contain at least one ticker")
+        targets = [t for t in targets if t[0] in banks]
     if args.period:
         targets = [t for t in targets if t[1] == args.period.upper()]
     if args.recent_hours:

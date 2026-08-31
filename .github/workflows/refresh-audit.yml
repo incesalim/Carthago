@@ -269,13 +269,20 @@ jobs:
         # not take down a run whose extraction is already written — failing on
         # a side lane is what once discarded six days of good extraction.
         env:
+          BANK: ${{ inputs.bank }}
+          PERIOD: ${{ inputs.period }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
         run: |
+          args=(--from-r2 --recent-hours 168 --capture-db data/capture_run.db --no-jsonl)
+          # A manual one-bank repair must not recapture every other filing
+          # touched by earlier repairs this week. Scheduled runs retain their
+          # normal recent-filings window.
+          [ -n "$BANK" ] && args+=(--bank "$BANK")
+          [ -n "$PERIOD" ] && args+=(--period "$PERIOD")
           set +e
-          python scripts/backfill_document_capture.py --from-r2 --recent-hours 168 \
-            --capture-db data/capture_run.db --no-jsonl
+          python scripts/backfill_document_capture.py "${args[@]}"
           rc=$?
           set -e
           if [ "$rc" -ne 0 ]; then

@@ -66,6 +66,15 @@ exact identities, and retains unprinted cells as null. Historical ICBC FX roots
 2022Q4–2025Q4 are source-verified for chronological repair; unresolved source
 discrepancies remain visible.
 
+ICBC's coordinated unit repair completed in Actions run 33436777903; the report
+then contained 102 findings. A cancelled Denizbank apply will be rerun after
+narrowing manual follow-up capture to the requested bank/quarter (the old step
+recaptured 177 recently touched filings). Three exact source-reviewed equity/OCI
+scope comparisons (ING 2022Q1 both kinds, KUVEYT 2022Q1 consolidated) now reconcile
+classification and participant-fund effects without changing amounts or tolerances.
+Changed or missing operands retain the original failure. TSKB's split source digit
+recovery joins only adjacent, aligned glyphs and still requires statement identities.
+
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain
 financial-statement choices, and repeated or invalid URL controls are handled

@@ -1097,7 +1097,9 @@ def _prior_rows(stmt_rows) -> list[dict]:
             for r in stmt_rows]
 
 
-def validate_report(rep, period: str | None = None) -> dict[str, ValidationResult]:
+def validate_report(rep, period: str | None = None, *,
+                    bank_ticker: str | None = None,
+                    kind: str | None = None) -> dict[str, ValidationResult]:
     """Validate one extracted BankReport (all statement types)."""
     assets = rows_from_statement_rows(rep.bs_assets)
     liabilities = rows_from_statement_rows(rep.bs_liabilities)
@@ -1116,7 +1118,8 @@ def validate_report(rep, period: str | None = None) -> dict[str, ValidationResul
         "oci": check_oci(oci, pl),
         "cash_flow": check_cash_flow(cf),
         "equity_change": check_equity_change(eq_rows, oci_rows=oci,
-                                              liabilities=liabilities, period=period),
+                                              liabilities=liabilities, period=period,
+                                              bank_ticker=bank_ticker, kind=kind),
     }
     # Prior-period column: an independently-printed number set validated nowhere
     # else (the DB stores only the current column). Merge its row triplets and
@@ -2910,7 +2913,9 @@ def check_eq_paid_in_capital(cur_rows: list[dict],
 def check_equity_change(eq_rows: list[dict],
                         oci_rows: list[dict] | None = None,
                         liabilities: list[dict] | None = None,
-                        period: str | None = None) -> ValidationResult:
+                        period: str | None = None, *,
+                        bank_ticker: str | None = None,
+                        kind: str | None = None) -> ValidationResult:
     """Statement of changes in equity structural checks.
 
     Per page (current + prior):
@@ -3020,7 +3025,14 @@ def check_equity_change(eq_rows: list[dict],
         r4_total = _eq_grand(r4)
         if r4_total is not None and oci_iii is not None:
             tol = _tol(abs(oci_iii), base=3.0, rel=1e-4)
-            if abs(r4_total - oci_iii) <= tol:
+            comparison_total = r4_total
+            if abs(r4_total - oci_iii) > tol and bank_ticker and period and kind:
+                from .equity_oci_scope import reviewed_equity_oci_total
+                reviewed = reviewed_equity_oci_total(
+                    cur_rows, oci_rows, bank_ticker=bank_ticker, period=period, kind=kind)
+                if reviewed is not None:
+                    comparison_total = reviewed
+            if abs(comparison_total - oci_iii) <= tol:
                 res.add_pass()
             else:
                 res.add_fail("eq_oci_cross",
