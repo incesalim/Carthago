@@ -292,10 +292,12 @@ export default function Nav() {
       <aside className="sticky top-0 z-30 hidden h-screen w-52 shrink-0 flex-col bg-background lg:flex">
         <div className="px-6 pb-2 pt-5">
           <Brand />
+          <div className="mt-2">
+            <LanguageSwitcher />
+          </div>
         </div>
         <NavLinks pathname={pathname} />
-        <div className="mx-6 flex items-center justify-between border-t border-border px-0 py-3">
-          <LanguageSwitcher />
+        <div className="mx-6 border-t border-border px-0 py-3">
           <ThemeToggle />
         </div>
       </aside>

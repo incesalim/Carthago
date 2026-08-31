@@ -47,6 +47,8 @@ intact. Use `latin-ext` fonts for Turkish glyphs.
 Run `npm run lint`, `npx tsc --noEmit`, `npm run test`, and `npm run build`.
 Tests cover locale selection, cookie validation, per-locale isolation, interpolation,
 null versus zero, chart descriptions/exports, and unchanged analytical decisions.
-For browser QA, test EN/TR switching, reload, query/filter preservation, mobile
-navigation and long Turkish labels. Data routes require an up-to-date **local** D1
+The desktop switcher sits below the brand, and the mobile switcher in the top
+bar, so neither is covered by the analytics consent banner. For browser QA, test
+EN/TR switching before dismissing that banner, reload, query/filter preservation,
+mobile navigation and long Turkish labels. Data routes require an up-to-date **local** D1
 fixture; schema/data gaps in that fixture must not become fabricated UI values.

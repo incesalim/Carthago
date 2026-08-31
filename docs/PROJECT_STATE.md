@@ -1529,6 +1529,8 @@ English/Turkish display copy, financial labels, deterministic reads, chart label
 accessible chart summaries and metadata use a request-scoped locale. The desktop
 and mobile TR/EN switcher remembers the choice in a one-year preference cookie;
 otherwise Turkish is the default, regardless of browser language.
+The switcher stays at the top of the desktop sidebar/mobile header, clear of the
+analytics consent banner, so choosing a language never requires analytics consent.
 URLs and filters are preserved. Source documents/news/transcripts and stored
 research prose keep their original language; the operator-only admin tools remain
 English. English generated headlines keep their existing gates; Turkish uses the
@@ -1538,7 +1540,9 @@ Verification: web lint, TypeScript, 603 tests and the production webpack build;
 docs/prose/pipeline/contrast gates also pass. Local browser checks covered both
 languages, mobile navigation, persistence and filter retention. The local `/banks`
 fixture lacks `bank_audit_pl_roles`, so that page's browser QA was limited; no
-production or local data was changed to work around it.
+production or local data was changed to work around it. After deployment, live
+HTTP checks passed for the home, credit, bank register, Akbank detail and privacy
+pages; explicit English preferences and the Turkish default both rendered correctly.
 
 Next.js 16 (React 19, TypeScript 6) + OpenNext on Cloudflare Workers — live at
 <https://carthago.app>. D1 reads are cached
