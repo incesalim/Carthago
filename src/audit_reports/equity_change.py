@@ -301,6 +301,23 @@ def _parse_row_tokens(line: str,
         unmasked = _tokens_of(base)
         if len(unmasked) == n_cols:
             masked = unmasked
+        elif (n_cols in (14, 16) and len(unmasked) == n_cols + 1
+              and _FOOTNOTE_RX.match(_value_region(base))):
+            # A leading note reference can coexist with real short negatives:
+            # SKBNK's adjusted opening row is ``(13) 2,500 ... (6) ...``.
+            # Masking every short parenthesis drops both the note and the
+            # loss, then zero-insertion shifts the remaining columns. Remove
+            # only the leading reference when the complete printed values
+            # reconcile EXACTLY (including minority for a 16-column table).
+            # Keep the established read on any tie or residual; ordinary
+            # rounding slack is not evidence for discarding a numeric token.
+            candidate = unmasked[1:]
+            masked_fit = _try_fit(masked, n_cols)
+            if (all(value is not None for value in candidate)
+                    and _row_fit_residual(candidate, n_cols) == 0
+                    and (masked_fit is None
+                         or _row_fit_residual(masked_fit, n_cols) > 0)):
+                masked = candidate
         elif n_cols in (14, 16) and n_cols - 2 <= len(unmasked) < n_cols:
             # A real 1-2 digit negative can coexist with one genuinely blank
             # grid cell.  In that case neither token count equals the template:
@@ -799,6 +816,11 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
             marker, name = _eq_split(line)
             tokens = _parse_row_tokens(line, nc)
             if tokens is None:
+                # ANADOLU prints the closing label on its own line, followed
+                # by a date and the complete values. Keep that label attached
+                # to the next otherwise-unlabelled closing row.
+                if marker is None and name and _eq_is_closing(line):
+                    stranded = name
                 continue
             fitted = _try_fit(tokens, nc)
             if fitted is None:
@@ -826,6 +848,9 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                     continue
             if marker in _EQ_ROW_SEQ:        # reset on each block (second I. → 0)
                 last_ri = _EQ_ROW_SEQ.index(marker)
+                if marker == 'I.':
+                    closing_taken = False
+                    stranded = ''
             h = marker or ''
             order += 1
             cols = fitted

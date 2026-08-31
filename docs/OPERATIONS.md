@@ -1272,6 +1272,9 @@ the column genuinely holds a ratio.
 
 ### Source-verified anomaly repairs (2026-08-31)
 
+For a verified reporting-unit error affecting a whole filing, `refresh-audit.yml` supports `dry_run=true` only with one `bank`, one `period`, and `skip_scrape=true`. It re-extracts existing PDFs into runner-local SQLite and prints per-table changes and validation failures, without D1/R2 writes or notifications. Review this before a coordinated apply: ordinary single-lane repairs must not update the unit metadata before the rest of that filing has been rescaled. The existing unit-change guard replaces all affected lanes together; unchanged filing kinds retain their passing data.
+
+
 Migrations `0045_capital_deductions.sql` and `0046_npl_accrual_movement.sql` add nullable amounts; old rows remain null. Apply through the CI-gated deploy before capital/NPL repair pushes or the updated analyst queries. Capital uses `Tier1 + Tier2 - capital_deductions`; NPL accrual is a separate signed movement. Neither is filled from an unexplained residual.
 
 `data/audit_quality_reviews.json` records exact source PDF hashes, pages and values for verified liquidity outliers. Only the same partition, metric and value is treated as an observation; validator failures are never waived. Reconciled P&L sign changes remain printed observations, while incomplete or inconsistent signed statements still alert. The final empty quality scan also clears its R2 alert baseline and reports resolutions.

@@ -152,3 +152,79 @@ def test_dense_geometry_joins_same_row_without_borrowing_the_next_row(monkeypatc
     assert first == [0] * 12 + [100, 100]
     assert second == [0] * 14
     assert EC._row_gate(first, 14)
+
+
+@pytest.mark.parametrize(('values', 'expected'), [
+    (
+        '2,500 6 - 18 1,714 (231) - - (6) - 4,684 2,017 - 10,702',
+        [2500, 6, 0, 18, 1714, -231, 0, 0, -6, 0, 4684, 2017, 0, 10702],
+    ),
+    (
+        '2,500 6 - 18 2,386 (248) - - (11) - 6,576 2,071 - 13,298',
+        [2500, 6, 0, 18, 2386, -248, 0, 0, -11, 0, 6576, 2071, 0, 13298],
+    ),
+    (
+        '2,500 7 - (4) 4,709 (244) - 260 (6) - 5,104 3,663 - 15,989 2,191 18,180',
+        [2500, 7, 0, -4, 4709, -244, 0, 260, -6, 0, 5104, 3663, 0, 15989, 2191, 18180],
+    ),
+    (
+        '2,500 7 - (2) 5,773 (259) - 327 (10) - 7,410 3,617 - 19,363 2,408 21,771',
+        [2500, 7, 0, -2, 5773, -259, 0, 327, -10, 0, 7410, 3617, 0, 19363, 2408, 21771],
+    ),
+])
+def test_adjusted_opening_note_preserves_short_losses_and_column_positions(values, expected):
+    # SKBNK 2026Q2, p15 in both filings: III repeats I with a (13) note.
+    # Both rows must retain the SAME components, not merely the same total.
+    n_cols = len(expected)
+    opening = EC._parse_row_tokens('I. Balances at Beginning of Period ' + values, n_cols)
+    adjusted = EC._parse_row_tokens('III. Adjusted Balances (I+II) (13) ' + values, n_cols)
+    assert opening == adjusted == expected
+    assert EC._try_fit(adjusted, n_cols) == expected
+
+
+def test_note_and_short_loss_resolution_does_not_use_rounding_slack():
+    # One changed unit prevents the exact-identity disambiguation, even though
+    # the usual row gate's rounding tolerance would accept it.
+    line = ('III. Adjusted Balances (I+II) (13) '
+            '2,500 6 - 18 1,714 (231) - - (6) - 4,684 2,017 - 10,703')
+    tokens = EC._parse_row_tokens(line, 14)
+    assert len(tokens) == 13
+    assert -6 not in tokens
+
+
+def test_note_and_short_losses_also_require_the_minority_identity():
+    line = ('III. Adjusted Balances (I+II) (13) '
+            '2,500 7 - (4) 4,709 (244) - 260 (6) - 5,104 3,663 - 15,989 2,191 18,181')
+    tokens = EC._parse_row_tokens(line, 16)
+    assert len(tokens) == 14
+    assert -4 not in tokens
+    assert -6 not in tokens
+
+
+def test_both_period_blocks_keep_their_separate_label_and_dated_closing(monkeypatch):
+    def amounts(capital, profit=0):
+        vals = [capital] + [0] * 11 + [profit, capital + profit, 0, capital + profit]
+        return ' '.join(f'{v:,}' if v else '-' for v in vals)
+
+    def block(heading, capital, profit, year):
+        lines = [heading]
+        for marker in EC._EQ_ROW_SEQ:
+            values = (amounts(capital) if marker in ('I.', 'III.')
+                      else amounts(0, profit) if marker == 'IV.' else amounts(0))
+            lines.append(marker + ' Movement ' + values)
+        lines.extend([
+            'Dönem Sonu Bakiyesi (III+IV+…+X+XI)',
+            f'30 Haziran {year} ' + amounts(capital, profit),
+        ])
+        return lines
+
+    lines = block('Önceki Dönem', 1000, 100, 2025) + block('Cari Dönem', 2000, 200, 2026)
+    monkeypatch.setattr(EC, '_fitz_page_lines', lambda *_: lines)
+    monkeypatch.setattr(EC, '_fitz_page_text', lambda *_: '\n'.join(lines))
+    monkeypatch.setattr(EC, '_fitz_dense_page_lines', lambda *_: lines)
+    rows = EC._parse_equity_page('unused.pdf', 14, 'current', 16)
+    closing = [r for r in rows if not r.hierarchy]
+    assert [(r.period_type, r.total_equity) for r in closing] == [
+        ('prior', 1100), ('current', 2200),
+    ]
+    assert all('Dönem Sonu Bakiyesi' in r.name for r in closing)

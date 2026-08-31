@@ -76,9 +76,9 @@ _ROWS: list[tuple[str, list[str]]] = [
     # `assets\d` catches HAYATK's footnote-glued "Total Assets2" ("Assets2" is one
     # word, so \b never fires between the word and the digit).
     ("on_bs_assets", [r"^Total\s+assets\b", r"^Total\s+assets\d\b",
-                      r"^Toplam\s+Varlıklar\b", r"^Toplam\s+Aktifler\b"]),
+                      r"^Toplam\s+Varlıklar(?=\b|\d)", r"^Toplam\s+Aktifler\b"]),
     ("on_bs_liab", [r"^Total\s+liabilities\b", r"^Total\s+liabilities\d\b",
-                    r"^Toplam\s+Yükümlülükler\b"]),
+                    r"^Toplam\s+Yükümlülükler(?=\b|\d)"]),
     ("net_on_balance", [r"^Net\s+(?:on[\s-]?)?balance\s+sheet\s+position\b",
                         rf"^Net\s*{_Q}\s*On\s+Balance\s+Sheet{_Q}\s+Position\b",
                         r"^Net\s+Bilanço\s+(?:İçi\s+)?Pozisyonu?\b"]),
@@ -198,6 +198,25 @@ def _row_values(tokens: list[tuple[float, str]], ncols: int) -> list[str] | None
     separators, ≥3 digits) never match, and the repricing 7-column rows stay at
     7≠4 and remain correctly rejected."""
     vals = _value_tokens(tokens)
+    if len(vals) > ncols:
+        # TSKB 2026Q2 prints a negative as two very close text words:
+        # '- 50.651' (4.56pt apart). A true nil cell followed by the next
+        # currency is ~48pt apart. Join only an overfull row's adjacent sign,
+        # never a nil in an already correctly sized row or a different column.
+        joined: list[tuple[float, str]] = []
+        i = 0
+        while i < len(tokens):
+            x, token = tokens[i]
+            if i + 1 < len(tokens):
+                nx, nt = tokens[i + 1]
+                if (token == "-" and re.fullmatch(r"\d[\d.,]*", nt)
+                        and 0 < nx - x <= 8):
+                    joined.append((x, "-" + nt))
+                    i += 2
+                    continue
+            joined.append((x, token))
+            i += 1
+        vals = _value_tokens(joined)
     if len(vals) > ncols:
         stripped = [x for x in vals if not _FOOTNOTE_RX.match(x)]
         if len(stripped) == ncols:

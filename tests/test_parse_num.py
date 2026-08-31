@@ -87,12 +87,12 @@ def test_format_detection(text, expected):
 
 # --- nil and unparseable ---------------------------------------------------
 
-@pytest.mark.parametrize("text", ["-", "", "  ", " - "])
+@pytest.mark.parametrize("text", ["-", "--", "---", "", "  ", " - "])
 def test_lone_dash_and_blank_are_nil(text):
     assert parse_num(text) == 0.0
 
 
-@pytest.mark.parametrize("text", ["--", "abc", "n/a", "(", "-.", "1.2.3.4.5x"])
+@pytest.mark.parametrize("text", ["abc", "n/a", "(", "-.", "1.2.3.4.5x"])
 def test_unparseable_is_none_not_zero(text):
     """None and 0.0 mean different things downstream: a validator SKIPS a NULL
     field and CHECKS a zero, so a mis-parse that returned 0.0 would foot."""
@@ -108,7 +108,7 @@ def test_whitespace_is_tolerated():
 
 @pytest.mark.parametrize("text", ["", "  ", "-", "--", "---", "—", "–", "–—"])
 def test_parse_amount_reads_a_dash_run_as_nil(text):
-    """The note-table nil form. parse_num only knows the single '-'."""
+    """The note-table reader also recognizes typographic dash variants."""
     assert parse_amount(text) == 0.0
 
 

@@ -224,6 +224,9 @@ _HEADING_RX = re.compile(
     # "Information on non-performing loans (net)" sub-category table; GROUPS +
     # the flow-row labels in _extract_from_block screen out any false hit.
     r"information\s+on\s+total\s+non[-\s]?performing\s+loans?|"
+    # COLENDI's h.2 heading omits 'movement'. The colon immediately after loans
+    # keeps this distinct from its subsequent foreign-currency subset heading.
+    r"information\s+related\s+to\s+non[-\s]?performing\s+loans\s*:|"
     r"(?:toplam\s+)?donuk\s+alacak\s+hareketlerine|"
     r"takipteki\s+kredilerin\s+hareketleri)",
     re.IGNORECASE,

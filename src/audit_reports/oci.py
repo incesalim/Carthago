@@ -20,12 +20,15 @@ from .extractor import (
     _HAS_FITZ,
     StatementRow,
     _detect_pl_ncols,
+    _fitz_merge_rows,
+    _fitz_page_line_tokens,
     _fitz_page_text,
     _fitz_visual_rows,
+    _parse_rows,
     _parse_with_chain,
     _split_label,
 )
-from .validator import _roman_to_int, _tol, check_hierarchy_sums
+from .validator import _roman_to_int, _tol, check_hierarchy_sums, check_oci
 from .units import UnitContext
 
 _OCI_MIN_REAL_ROWS = 3
@@ -77,7 +80,47 @@ def _rows_from_parsed(parsed: list[tuple[str, list[float | None]]], n_cols: int)
 
 def _parse_oci_with(text: str, n_cols: int) -> list[StatementRow]:
     """One candidate: parse a text reconstruction at a column template."""
-    return _rows_from_parsed(_parse_with_chain(text, n_cols, "oci"), n_cols)
+    original = _rows_from_parsed(_parse_with_chain(text, n_cols, "oci"), n_cols)
+    candidate = _rows_from_parsed(_parse_rows(
+        _fitz_merge_rows(text, n_cols), n_cols, keep_small_negatives=True), n_cols)
+
+    def validate(rows: list[StatementRow]):
+        # The page title's IV/date artefact is not part of the OCI template.
+        # Validate after the same filter used for final candidate selection, or
+        # that artefact blocks recovery of real '(49)' / '(5)' amounts (ALNTF).
+        return check_oci([{"hierarchy": r.hierarchy, "item_name": r.name,
+                           "amount": r.cur_amount} for r in _drop_offtemplate(rows)])
+
+    before, after = validate(original), validate(candidate)
+    if (after.failed == 0 and after.passed > 0
+            and (before.failed > 0 or after.passed > before.passed)):
+        return candidate
+    return original
+
+
+def _signed_oci_text(pdf_path: str, oci_page: int) -> str:
+    """Join a detached minus glyph only when it is next to its numeric token.
+
+    TSKB prints '- 480' within one value cell; a nil current cell followed by
+    a prior-period value has a full column gap and must remain two cells.
+    The resulting candidate still needs the chain and hierarchy checks.
+    """
+    lines = []
+    for row in _fitz_page_line_tokens(pdf_path, oci_page - 1):
+        tokens: list[str] = []
+        i = 0
+        while i < len(row):
+            _, right, token = row[i]
+            if (token == "-" and i + 1 < len(row)
+                    and 0 <= row[i + 1][0] - right <= 4
+                    and re.fullmatch(r"\d[\d.,]*", row[i + 1][2])):
+                tokens.append("-" + row[i + 1][2])
+                i += 2
+            else:
+                tokens.append(token)
+                i += 1
+        lines.append(" ".join(tokens))
+    return "\n".join(lines)
 
 
 def _oci_romans(rows: list[StatementRow]) -> dict[int, float]:
@@ -217,8 +260,25 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
     n_templates = sorted({n0, 2, 4})
 
     def _cands_from(text: str) -> list[list[StatementRow]]:
+        widths: dict[str, int] = {}
+        for line in _fitz_merge_rows(text, 2).splitlines():
+            marker = re.match(r"^\s*(I{1,3})\.?\s+", line)
+            if marker is None:
+                continue
+            count = 0
+            for token in reversed(line.split()):
+                if not (_COORD_VAL.fullmatch(token) or _COORD_NIL.fullmatch(token)):
+                    break
+                count += 1
+            if count in (2, 4):
+                widths[marker.group(1)] = count
+        # HAYATK has four columns, cumulative then quarter-only. Both pairs foot,
+        # so arithmetic cannot choose the period. When all three printed spine
+        # rows agree on width, retain that width and its first current column.
+        templates = ([widths["I"]] if set(widths) == {"I", "II", "III"}
+                     and len(set(widths.values())) == 1 else n_templates)
         return [c for c in (_drop_offtemplate(_parse_oci_with(text, n))
-                            for n in n_templates) if c]
+                            for n in templates) if c]
 
     # FITZ-FIRST: read the page once with fitz and try each column template; the
     # validation-guided selection (below) picks the right one. fitz reads the
@@ -243,6 +303,9 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
     # effectively impossible — so it can never displace a correct parse or corrupt
     # the proven-passing partitions; at worst it changes nothing.
     if not any(_oci_candidate_score(c)[1] == 1 for c in candidates):
+        for c in _cands_from(_signed_oci_text(pdf_path, oci_page)):
+            if _oci_candidate_score(c)[1] == 1:
+                candidates.append(c)
         for c in _cands_from(_coord_oci_text(pdf_path, oci_page)):
             if _oci_candidate_score(c)[1] == 1:
                 candidates.append(c)

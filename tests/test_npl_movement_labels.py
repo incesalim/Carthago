@@ -171,3 +171,31 @@ def test_sparse_flow_recovery_abstains_on_uncertain_evidence(defect):
         tokens = tokens[:-2]  # no provision/net anchors or independent net identity
     rows = _parse_sparse(tokens)
     assert all(r.transfers_in is None and r.transfers_out is None and r.sold is None for r in rows)
+
+
+def test_colendi_related_to_heading_reaches_the_real_movement_reader(monkeypatch):
+    from src.audit_reports import npl_movement as npl
+
+    # COLENDI 2026Q1 p50: previously curated rows hid the page-locator omission.
+    # Test extract_from_pdf, not only _extract_from_block, so it cannot recur.
+    text = "\n".join([
+        "h.2) Information related to non-performing loans:",
+        "31 March 2026 Group III Group IV Group V",
+        "Prior Period end balance - - -", "Additions (+) 26,725 - -",
+        "Transfers from other categories of loans under follow-up (+) - - -",
+        "Transfers to other categories of loans under follow-up (-) - - -",
+        "Collections (-) - - -", "Write-offs (-) - - -", "Sold (-) - - -",
+        "Balance at the end of period 26,725 - -", "Provision (-) 5,345 - -",
+        "Net balance on balance sheet 21,380 - -",
+    ])
+    monkeypatch.setattr(npl, "_fitz_page_count", lambda _: 50)
+    monkeypatch.setattr(npl, "_fitz_page_text", lambda _, i: text if i == 49 else "")
+    monkeypatch.setattr(npl, "_fitz_page_line_tokens", lambda *_: [])
+    rows = npl.extract_from_pdf("synthetic.pdf").rows
+    assert len(rows) == 3
+    assert rows[0].page == 50 and rows[0].opening_balance == 0
+    assert rows[0].additions == rows[0].closing_balance == 26725
+    assert rows[0].provision == 5345 and rows[0].net_balance == 21380
+    assert all(r.fx_diff is None and r.accrual_movement is None for r in rows)
+    assert not npl._HEADING_RX.search(
+        "Information related to non-performing loans in foreign currencies:")

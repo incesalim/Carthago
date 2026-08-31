@@ -37,6 +37,10 @@ on:
         description: "Re-extract a single quarter, e.g. 2024Q4 (forces re-extraction of the existing R2 PDF; pair with bank)."
         type: string
         default: ""
+      dry_run:
+        description: "Preview one bank/quarter from existing PDFs; no D1, R2, or notification writes"
+        type: boolean
+        default: false
 
 # Read-only on git — the audit snapshot lives in R2, not git.
 permissions:
@@ -64,6 +68,18 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
+
+      - name: Validate dry-run scope
+        if: inputs.dry_run
+        env:
+          BANK: ${{ inputs.bank }}
+          PERIOD: ${{ inputs.period }}
+          SKIP_SCRAPE: ${{ inputs.skip_scrape }}
+        run: |
+          [[ "$BANK" =~ ^[A-Z0-9]+$ && "$PERIOD" =~ ^[0-9]{4}Q[1-4]$ && "$SKIP_SCRAPE" == true ]] || {
+            echo 'Dry-run requires one bank, one quarter, and skip_scrape=true.'
+            exit 1
+          }
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -107,6 +123,10 @@ jobs:
               print("No snapshot in R2 at all — starting from empty audit DB. "
                     "sync_audit_reports will extract every PDF found in R2.")
           PY
+
+      - name: Preserve dry-run comparison snapshot
+        if: inputs.dry_run
+        run: cp data/bank_audit.db data/bank_audit.before.db
 
       - name: Sync audit reports (scrape new PDFs → R2 → extract → audit DB)
         id: sync
@@ -197,8 +217,41 @@ jobs:
         # of these steps.
         run: python scripts/sync_audit_expected.py --db data/bank_audit.db
 
+      - name: Review dry-run financial changes
+        if: inputs.dry_run
+        env:
+          BANK: ${{ inputs.bank }}
+          PERIOD: ${{ inputs.period }}
+        run: |
+          python - <<'PY'
+          import json, os, sqlite3
+          from src.audit_reports.units import MONEY_COLUMNS
+          old = sqlite3.connect('data/bank_audit.before.db')
+          new = sqlite3.connect('data/bank_audit.db')
+          bank, period = os.environ['BANK'], os.environ['PERIOD']
+          for kind in ('consolidated', 'unconsolidated'):
+              key = (bank, period, kind)
+              unit_sql = 'SELECT source_unit FROM bank_audit_extractions WHERE bank_ticker=? AND period=? AND kind=?'
+              print('UNIT', key, old.execute(unit_sql, key).fetchone(), '->', new.execute(unit_sql, key).fetchone())
+              for table, money in MONEY_COLUMNS.items():
+                  cols = [r[1] for r in old.execute(f'PRAGMA table_info({table})')]
+                  if not cols:
+                      continue
+                  cols = [c for c in cols if c not in {'extracted_at', 'validated_at'}]
+                  query = f"SELECT {','.join(cols)} FROM {table} WHERE bank_ticker=? AND period=? AND kind=?"
+                  before = sorted(old.execute(query, key).fetchall(), key=repr)
+                  after = sorted(new.execute(query, key).fetchall(), key=repr)
+                  if before != after:
+                      scale = all(tuple(v * 1000 if c in money and v is not None else v for c, v in zip(cols, a)) == b
+                                  for a, b in zip(before, after)) if len(before) == len(after) else False
+                      print('CHANGED', key, table, 'rows', len(before), '->', len(after), 'exact_1000x', scale)
+              print('BS_TOTALS', key, new.execute('SELECT statement,MAX(amount_total) FROM bank_audit_balance_sheet WHERE bank_ticker=? AND period=? AND kind=? GROUP BY statement', key).fetchall())
+              failures = new.execute('SELECT statement,failed_detail FROM bank_audit_validation WHERE bank_ticker=? AND period=? AND kind=? AND checks_failed>0', key).fetchall()
+              print('FAILURES', key, json.dumps(failures, ensure_ascii=False))
+          PY
+
       - name: Capture this run's filings + reconcile stored vs printed (alert-only)
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true' && !inputs.dry_run
         # Full-document capture of every filing extracted in the push window:
         # rows, columns, cells and notes into a RUN-LOCAL ledger, plus the
         # compact bank_audit_document_manifest into the audit DB — the single
@@ -233,7 +286,7 @@ jobs:
           fi
 
       - name: Cross-period unit watch (alert-only)
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true' && !inputs.dry_run
         # The ONLY check in this pipeline that can see a reporting-unit error.
         # Every validator the audit lane runs argues INSIDE one filing —
         # TL+FC=Total, parent=Σchildren, closing=opening+flows — and a uniform
@@ -254,7 +307,7 @@ jobs:
         run: python scripts/watch_cross_period.py --db data/bank_audit.db --alert
 
       - name: Audit data-quality check (alert-only)
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true' && !inputs.dry_run
         # Flags silent extraction errors — a quarter whose lines are identical to
         # the prior one (period-shift, the Eximbank fingerprint), a balance sheet
         # that doesn't balance, or missing rows — and pings Telegram/Discord.
@@ -266,13 +319,13 @@ jobs:
         run: python scripts/check_audit_quality.py --db data/bank_audit.db --alert
 
       - name: Setup Node (for wrangler)
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true' && !inputs.dry_run
         uses: actions/setup-node@v7
         with:
           node-version: "22"
 
       - name: Push the complete audit batch to Cloudflare D1 once
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true' && !inputs.dry_run
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         # 168h window — a new quarter's reports trickle in over weeks, so a wide
@@ -298,7 +351,7 @@ jobs:
           --table-set audit-refresh --skip-unchanged-partitions
 
       - name: Upload audit snapshot back to R2
-        if: steps.sync.outputs.changed == 'true'
+        if: steps.sync.outputs.changed == 'true' && !inputs.dry_run
         # Package only after the single D1 call succeeds, so the durable snapshot
         # includes both the new rows and push_to_d1's confirmed digest/row state.
         run: |
@@ -322,7 +375,7 @@ jobs:
           PY
 
       - name: Notify on newly acquired reports
-        if: steps.sync.outputs.new != '0' && success()
+        if: steps.sync.outputs.new != '0' && success() && !inputs.dry_run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -346,7 +399,7 @@ jobs:
           exit 1
 
       - name: Alert on failure
-        if: failure()
+        if: failure() && !inputs.dry_run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

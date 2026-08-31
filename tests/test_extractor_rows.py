@@ -359,6 +359,14 @@ def test_section_reference_with_trailing_dot_and_simple_roman_note():
     assert rows[1][1] == [40, 3, -15, 3]
 
 
+def test_letter_suffix_section_note_never_becomes_a_balance_amount():
+    from src.audit_reports.extractor import _parse_rows
+    rows = _parse_rows("7.1 Ertelenmiş Vergi Borcu (5.II.b) 83 23.755 23.838 50 100 150\n"
+                       "16.3 Yedekler (178.162) - (178.162) - - -", 6)
+    assert rows[0][1] == [83, 23755, 23838, 50, 100, 150]
+    assert rows[1][1][0] == -178162
+
+
 def test_small_cash_flow_negative_requires_complete_chain():
     from src.audit_reports.extractor import _parse_with_chain
     text = (

@@ -47,11 +47,13 @@ def _fitz_page_count(pdf_path: str) -> int | None:
 # Match a numeric token. Handles both EN and TR thousands/decimal conventions:
 #   EN:  1,234,567.89
 #   TR:  1.234.567,89
-# Also bare integers and "-" for zero. Negatives may be wrapped in parens.
+# Also bare integers and standalone dash runs ("-"/"--") for disclosed zero.
+# Negatives may be wrapped in parens. DENIZ uses "--" for each nil cell; losing
+# those cells shifts a complete triplet into the short-row recovery path.
 # The bare-dash alternative is anchored to whitespace on both sides so the
 # dash inside a label decoration like "Expected Credit Losses (-)" — or a
 # hyphenated word ("Held-for-Sale") — is never counted as a value column.
-NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|(?<!\S)-(?!\S))'
+NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|(?<!\S)-+(?!\S))'
 
 # Hierarchy marker at line start. The bare-roman alternative
 # (`[IVX]+(?=\s+[A-ZÇĞİÖŞÜ])`) matches a Roman numeral with NO trailing dot
@@ -96,7 +98,7 @@ _FOOTNOTE_RX = re.compile(r'\(\s*\d{1,2}\s*\)')
 # "(5.I.16)", "(5.II.10)"; (b) digit-only with every dotted group 1-2 digits —
 # "(5.1.14)". A 3-digit dotted group means thousands (a value), never a ref.
 _SECTION_REF_RX = re.compile(
-    r'\(\s*\d+\.[IVXivx][0-9IVXivx.]*\s*\)'      # roman part present
+    r'\(\s*\d+\.[IVXivx]+(?:\.[0-9A-Za-z]+)*\.?\s*\)'  # roman section, optional letter
     r'|\(\s*\d+(?:\.\d{1,2}){1,3}\.?\s*\)')       # all groups 1-2 digits
 # A label that is nothing but a hierarchy marker — the row's text label wrapped
 # onto an adjacent line, leaving "<marker> <values>". Such a row is real data.
@@ -151,6 +153,7 @@ def _value_matches(line: str) -> list:
 
 def _count_values(line: str) -> int:
     """How many true value columns a line carries (no marker, no dipnot refs)."""
+    line = _ROMAN_FN_RX.sub(" ", _SECTION_REF_RX.sub(" ", line))
     return sum(1 for m in _value_matches(line) if not _FOOTNOTE_RX.fullmatch(m.group()))
 
 
@@ -268,7 +271,7 @@ def _recover_current_triplet(tokens: list[float | None]) -> list[float | None] |
 
 def parse_num(s: str) -> float | None:
     s = s.strip()
-    if s == '-' or s == '':
+    if s == '' or re.fullmatch(r'-+', s):
         return 0.0
     # The SIGN is stripped before the format sniff below, and must be, because
     # the sniff is anchored (`^\d{1,3}…$`) — a leading '-' failed it, so a
@@ -1037,6 +1040,94 @@ def _parse_page(pdf_path: str, page_idx_1: int, n_cols: int) -> list[tuple[str, 
     return _parse_rows(_fitz_merge_rows(text, n_cols), n_cols)
 
 
+def _parse_bs_with_checks(text: str) -> list[tuple[str, list[float | None]]]:
+    """Repair displaced BS labels/cells only when the whole statement reconciles."""
+    from .validator import validate_statement, _statement_total
+    original = _parse_rows(_fitz_merge_rows(text, 6), 6)
+    replaced: set[str] = set()
+    renamed: dict[str, str] = {}
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for i in range(1, len(lines)):
+        match = HIERARCHY_PAT.match(lines[i])
+        if not match:
+            continue
+        # EXIM wraps the hierarchy below its label and all three period triplets.
+        if (_count_values(lines[i]) == 0 and _count_values(lines[i - 1]) >= 6
+                and not HIERARCHY_PAT.match(lines[i - 1])
+                and not (i >= 2 and HIERARCHY_PAT.match(lines[i - 2])
+                         and _count_values(lines[i - 2]) < 6)):
+            previous = lines[i - 1]
+            values = _value_matches(previous)
+            start = values[0].start() if values else len(previous)
+            label, cells = previous[:start], previous[start:]
+            replaced.add(match.group('h').rstrip('.'))
+            lines[i] = f"{match.group('h')} {label} {match.group('rest')} {cells}"
+            lines[i - 1] = ""
+        # EMLAK's wrapped label has a stray three-dash fragment above a complete
+        # six-cell row. Never select a later triplet on a normal multiperiod row.
+        elif (i + 1 < len(lines) and _count_values(lines[i]) == 3
+              and re.search(r"(?:\s[-–—]){3}$", lines[i])
+              and not HIERARCHY_PAT.match(lines[i + 1])):
+            cleaned = _SECTION_REF_RX.sub("", lines[i + 1])
+            values = [parse_num(m.group()) for m in _value_matches(cleaned)
+                      if not _FOOTNOTE_RX.fullmatch(m.group())]
+            if len(values) == 6 and _triplets_foot(values, 6):
+                replaced.add(match.group('h').rstrip('.'))
+                lines[i] = re.sub(r"(?:\s[-–—]){3}$", "", lines[i]) + " " + lines[i + 1]
+                lines[i + 1] = ""
+    candidate = _parse_rows(_fitz_merge_rows("\n".join(lines), 6), 6)
+    for i in range(1, len(candidate) - 1):
+        label, values = candidate[i]
+        h, _, _ = _split_label(label)
+        prev = _split_label(candidate[i - 1][0])[0].rstrip('.').split('.')
+        nxt = _split_label(candidate[i + 1][0])[0].rstrip('.').split('.')
+        parts = h.rstrip('.').split('.')
+        if (len(parts) < 2 or len(prev) != len(parts) or len(nxt) != len(parts)
+                or prev[:-1] != nxt[:-1] or not all(p.isdigit() for p in prev + nxt + parts)):
+            continue
+        if int(prev[-1]) + 1 != int(parts[-1]) or int(nxt[-1]) - 1 != int(parts[-1]):
+            continue
+        expected = '.'.join([*prev[:-1], parts[-1]])
+        actual = h.rstrip('.')
+        # A single omitted digit in an otherwise uniquely bracketed sibling,
+        # e.g. source 1.5.3 between 15.5.2 and 15.5.4. No value is inferred.
+        if len(expected) == len(actual) + 1 and any(
+                expected[:j] + expected[j + 1:] == actual for j in range(len(expected))):
+            renamed[actual] = expected
+            candidate[i] = (expected + label[len(h):], values)
+
+    # Reattaching a value line must never steal a preceding row's continuation.
+    # Preserve every original hierarchy and its values, except the explicit
+    # dash-fragment replacement or digit-typo rename identified above.
+    remaining = [(_split_label(label)[0].rstrip('.'), values) for label, values in candidate]
+    for label, values in original:
+        h = _split_label(label)[0].rstrip('.')
+        if h in replaced:
+            index = next((j for j, item in enumerate(remaining) if item[0] == h), None)
+            if index is None:
+                return original
+            remaining.pop(index)
+            continue
+        item = (renamed.get(h, h), values)
+        if item not in remaining:
+            return original
+        remaining.remove(item)
+
+    def validate(rows):
+        adapted = [
+            {"hierarchy": _split_label(label)[0], "item_name": _split_label(label)[1],
+             "amount_tl": v[0], "amount_fc": v[1], "amount_total": v[2]}
+            for label, v in rows]
+        return validate_statement(adapted), _statement_total(adapted)
+
+    (before, _), (after, (total, romans)) = validate(original), validate(candidate)
+    if (before.failed > 0 and after.failed == 0 and after.passed > 0
+            and total is not None and romans is not None
+            and len(candidate) >= len(original)):
+        return candidate
+    return original
+
+
 def _parse_with_chain(text: str, n_cols: int, lane: str) -> list[tuple[str, list[float | None]]]:
     """Resolve small parenthesized amounts only when the statement proves them.
 
@@ -1194,11 +1285,13 @@ def _locate_oci_page(pdf_path: str, pl_page_idx_1: int | None) -> int | None:
     # The equity-change statement carries the OCI keyword in a COLUMN header but
     # is not the OCI statement — exclude it (EXIM's equity page would otherwise win
     # over the real OCI page, whose rows aren't roman-prefixed; see below).
-    _EQ_NORMS = ("OZKAYNAKDEGISIM", "CHANGESINEQUITY", "CHANGESINSHAREHOLDERS",
+    _EQ_NORMS = ("OZKAYNAKDEGISIM", "OZKAYNAKLARDEGISIM", "CHANGESINEQUITY", "CHANGESINSHAREHOLDERS",
                  "BALANCESATBEGINNING", "BALANCESATENDOF")
 
     def _is_oci_page(text: str) -> bool:
-        norm = _norm(text)
+        # DUNYAK's separate prior P&L prints 'KÂR PAYI GELİRLERİ'; fold that
+        # circumflex locally so its income anchor still excludes the P&L page.
+        norm = _norm(text.replace("Â", "A").replace("â", "a"))
         if not any(kw in norm for kw in _OCI_NORMS):
             return False
         # A P&L (or its quarter-only twin) carries an income anchor — not OCI.
@@ -1214,7 +1307,15 @@ def _locate_oci_page(pdf_path: str, pl_page_idx_1: int | None) -> int | None:
             1 for ln in text.split("\n")
             if re.search(r'\d{3,}', ln) and re.search(r'[A-Za-zÇĞİÖŞÜçğıöşü]{3,}', ln)
         )
-        return data_rows >= 2
+        # Million-TL filers can have an entire valid OCI spine below 100 (HAYATK:
+        # I=90, II=-37, III=53). Requiring three digit tokens skipped the actual
+        # statement and selected the following wide equity matrix instead.
+        small_oci_rows = sum(
+            1 for ln in text.splitlines()
+            if re.match(r"^\s*(?:I{1,3}\.?\s+|2(?:\.\d+){1,2}\.?\s+)", ln)
+            and _value_matches(ln)
+        )
+        return data_rows >= 2 or small_oci_rows >= 2
 
     lo, hi = pl_page_idx_1 + 1, min(pl_page_idx_1 + 7, (_fitz_page_count(pdf_path) or 0) + 1)
     # fitz reads the OCI anchor for every bank — including the wide-interleaved
@@ -1367,7 +1468,8 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             rep.repricing = None
     loc = _locate_pages(pdf_path)
     if 'bs_assets' in loc and _want('bs_assets'):
-        for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
+        rows = _parse_bs_with_checks(_fitz_page_text(pdf_path, loc['bs_assets'] - 1))
+        for order, (label, vals) in enumerate(rows, 1):
             h, name, fn = _split_label(label)
             rep.bs_assets.append(StatementRow(
                 order=order, hierarchy=h, name=name, footnote=fn,
@@ -1375,7 +1477,8 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                 pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
             ))
     if 'bs_liab' in loc and _want('bs_liabilities'):
-        for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_liab'], 6), 1):
+        rows = _parse_bs_with_checks(_fitz_page_text(pdf_path, loc['bs_liab'] - 1))
+        for order, (label, vals) in enumerate(rows, 1):
             h, name, fn = _split_label(label)
             rep.bs_liabilities.append(StatementRow(
                 order=order, hierarchy=h, name=name, footnote=fn,
