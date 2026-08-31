@@ -1015,7 +1015,7 @@ def _fitz_wrapped_digit_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
     return [_join_equity_words(bucket) for bucket in buckets]
 
 
-def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
+def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]], n_cols: int = 16) -> bool:
     """Require exact source identities before admitting a sparse PDF grid.
 
     Blank positions stay None. Summing the printed operands can establish the
@@ -1023,7 +1023,7 @@ def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
     Unlike the ordinary parser, this recovery has no rounding allowance.
     """
     starts = [i for i, (label, _) in enumerate(rows) if _eq_split(label)[0] == 'I.']
-    if len(starts) != 2:
+    if n_cols not in (14, 16) or len(starts) not in (1, 2) or starts[0] != 0:
         return False
     for start, end in zip(starts, starts[1:] + [len(rows)]):
         block = rows[start:end]
@@ -1035,10 +1035,11 @@ def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
                    if marker is None and _eq_is_closing(label)]
         if (len(block) < 8 or len(closing) != 1
                 or not {'I.', 'III.', 'IV.', 'XI.'} <= by_marker.keys()
-                or any(value is None for value in closing[0])):
+                or any(value is None for value in closing[0])
+                or abs(closing[0][13]) <= 1):
             return False
         for marker, values in marked:
-            if len(values) != 16:
+            if len(values) != n_cols:
                 return False
             total = values[13]
             components = sum(value for value in values[:13] if value is not None)
@@ -1050,13 +1051,13 @@ def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
                     return False
             elif components != total:
                 return False
-            if values[15] is not None and (total is None
+            if n_cols == 16 and values[15] is not None and (total is None
                     or total + (values[14] or 0) != values[15]):
                 return False
-        for col in range(16):
+        for col in range(n_cols):
             opening = by_marker['I.'][col]
             adjusted = by_marker['III.'][col]
-            correction = by_marker.get('II.', [None] * 16)[col]
+            correction = by_marker.get('II.', [None] * n_cols)[col]
             if (opening or 0) + (correction or 0) != (adjusted or 0):
                 return False
             printed_sum = sum(by_marker[marker][col] or 0 for marker in _EQ_ROW_SEQ[2:]
@@ -1066,14 +1067,14 @@ def _sparse_grid_closes(rows: list[tuple[str, list[float | None]]]) -> bool:
     return True
 
 
-def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
+def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int, n_cols: int = 16
                            ) -> tuple[list[str], dict[int, list[float | None]]] | None:
-    """Read sparse 16-column tables using two complete closing rows as anchors.
+    """Read sparse tables using complete opening/closing rows as column anchors.
 
     ISCTR leaves unused cells physically blank, so a positional token list loses
-    their column positions. Two independently footing closing rows must expose
-    all 16 aligned column edges. Every other printed number must align uniquely
-    with one edge, and both blocks must reconcile in every component column.
+    their column positions. At least two independently footing balance rows must
+    expose every aligned column edge. Every other printed number must align
+    uniquely with one edge, and each block must reconcile in every component.
     This fallback neither guesses a missing amount nor fills a blank with zero.
     """
     if not _HAS_FITZ:
@@ -1082,9 +1083,29 @@ def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
         with _fitz.open(pdf_path) as doc:
             page = doc[page_idx_0]
             words = []
+            characters = None
             for word in page.get_text('words'):
-                rect = _fitz.Rect(word[:4]) * page.rotation_matrix
-                words.append((rect.x0, rect.y0, rect.x1, word[4]))
+                rect = _fitz.Rect(word[:4])
+                text = word[4]
+                note = re.fullmatch(r'(.+?)\(\*+\)', text)
+                if note and _NUM_RX.fullmatch(note[1]):
+                    # A superscript (*) belongs to the note, not the numeric
+                    # cell's right edge. Remove it only when its exact source
+                    # character boxes recover the entire printed word uniquely.
+                    if characters is None:
+                        characters = [char for block in page.get_text('rawdict')['blocks']
+                                      for line in block.get('lines', [])
+                                      for span in line['spans'] for char in span['chars']]
+                    chars = [char for char in characters
+                             if rect.contains(_fitz.Rect(char['bbox']))]
+                    chars.sort(key=lambda char: char['bbox'][0])
+                    if ''.join(char['c'] for char in chars) == text:
+                        rect = _fitz.Rect(chars[0]['bbox'])
+                        for char in chars[1:len(note[1])]:
+                            rect |= _fitz.Rect(char['bbox'])
+                        text = note[1]
+                rect = rect * page.rotation_matrix
+                words.append((rect.x0, rect.y0, rect.x1, text))
     except Exception:
         return None
     buckets: list[list[tuple[float, float, float, str]]] = []
@@ -1096,22 +1117,91 @@ def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
     for bucket in buckets:
         bucket.sort(key=lambda value: value[0])
     lines = [' '.join(word[3] for word in bucket) for bucket in buckets]
+    # The formula/reference is the unambiguous continuation of these fixed rows,
+    # even when the following value grid is sparse and cannot supply n_cols tokens.
+    for index in range(1, len(lines)):
+        marker, _ = _eq_split(lines[index])
+        previous_marker, _ = _eq_split(lines[index - 1])
+        if marker is None and ((previous_marker == 'III.'
+                                and _EQ_ADJUSTED_FORMULA_RX.search(lines[index]))
+                               or (previous_marker == 'II.'
+                                   and _STD_REF_RX.search(lines[index]))):
+            lines[index] = lines[index - 1] + ' ' + lines[index]
+            buckets[index] = buckets[index - 1] + buckets[index]
+            lines[index - 1], buckets[index - 1] = '', []
+    # Carry a label-only BRSA row over at most two following physical lines,
+    # using the same full-vector/identity gate as the text reconstruction.
+    # Partial numeric rows cannot consume a separate unknown movement here.
+    for index, line in enumerate(lines):
+        marker, name = _eq_split(line)
+        closing = marker is None and name and _eq_is_closing(line)
+        if (marker is None and not closing) or _parse_row_tokens(line, n_cols) is not None:
+            continue
+        for end in range(index + 1, min(index + 3, len(lines))):
+            next_marker, next_name = _eq_split(lines[end])
+            if next_marker is not None or (next_name and _eq_is_closing(lines[end])
+                                          and not closing):
+                break
+            combined = ' '.join(lines[index:end + 1])
+            tokens = _parse_row_tokens(combined, n_cols)
+            if (tokens is not None and len(tokens) == n_cols
+                    and all(value is not None for value in tokens)
+                    and _row_fit_residual(tokens, n_cols) == 0):
+                lines[index] = combined
+                buckets[index] = [word for bucket in buckets[index:end + 1] for word in bucket]
+                for consumed in range(index + 1, end + 1):
+                    lines[consumed], buckets[consumed] = '', []
+                break
+    for index in range(1, len(lines)):
+        marker, _ = _eq_split(lines[index])
+        previous_marker, previous_name = _eq_split(lines[index - 1])
+        previous_values = _value_region(lines[index - 1])
+        previous_label = (lines[index - 1].split(previous_values, 1)[0]
+                          if previous_values else lines[index - 1])
+        if (marker is None and previous_marker == 'X.'
+                and previous_label.rstrip().endswith(',')
+                and re.match(r'^equity\b', lines[index], re.I)):
+            # YKBNK splits the values as well as the label over two baselines.
+            # Keep the words' x positions: concatenating text would reorder cells.
+            lines[index] = lines[index - 1] + ' ' + lines[index]
+            buckets[index] = buckets[index - 1] + buckets[index]
+            lines[index - 1], buckets[index - 1] = '', []
     anchors = []
+    complete_rows = []
+    inside_block = False
     for line, bucket in zip(lines, buckets):
         marker, name = _eq_split(line)
-        if marker is not None or not name or not _eq_is_closing(line):
+        if marker == 'I.':
+            inside_block = True
+        closing = marker is None and name and _eq_is_closing(line)
+        if not inside_block or (marker is None and not closing):
             continue
-        numeric = [word for word in bucket if _NUM_RX.fullmatch(word[3])]
-        if len(numeric) == 16:
+        numeric = sorted((word for word in bucket if _NUM_RX.fullmatch(word[3])),
+                         key=lambda word: word[0])
+        if len(numeric) == n_cols:
             values = [parse_num(word[3]) for word in numeric]
             if (all(value is not None for value in values)
-                    and _row_fit_residual(values, 16) == 0):
-                anchors.append([word[2] for word in numeric])
-    if len(anchors) != 2 or any(abs(a - b) > 1 for a, b in zip(*anchors)):
+                    and _row_fit_residual(values, n_cols) == 0):
+                complete_rows.append([word[2] for word in numeric])
+                if marker == 'I.' or closing:
+                    anchors.append(complete_rows[-1])
+        if closing:
+            inside_block = False
+    if len(anchors) < 2:
         return None
     edges = anchors[0]
     if min(b - a for a, b in zip(edges, edges[1:])) < 8:
         return None
+    # Bold balances and dash glyphs can have different right edges. Learn that
+    # bounded variation from complete, independently footing source rows; do
+    # not widen the tolerance around a sparse cell we are trying to recover.
+    ranges = [(min(row[col] for row in complete_rows),
+               max(row[col] for row in complete_rows)) for col in range(n_cols)]
+    for col, (left, right) in enumerate(ranges):
+        spacing = min(edges[col] - edges[col - 1] if col else float('inf'),
+                      edges[col + 1] - edges[col] if col + 1 < n_cols else float('inf'))
+        if left < edges[col] - spacing / 4 or right > edges[col] + spacing / 4:
+            return None
     grid: dict[int, list[float | None]] = {}
     source_rows = []
     inside_block = False
@@ -1119,13 +1209,15 @@ def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
         marker, name = _eq_split(line)
         if marker == 'I.':
             inside_block = True
+        if not inside_block:
+            continue
         if marker is None and not (name and _eq_is_closing(line)):
             # Unknown movements can cancel each other in every identity.
             # Never omit a numeric source row inside an admitted period block.
             if inside_block and any(_NUM_RX.fullmatch(word[3]) for word in bucket):
                 return None
             continue
-        prefix = ' '.join(word[3] for word in bucket if word[2] < edges[0] - 2)
+        prefix = ' '.join(word[3] for word in bucket if word[2] < ranges[0][0] - 2)
         prefix = re.sub(r'^(?:[IVX]{1,5}\.?(?=\s)|\d{1,2}\.\d{1,2}\.?)\s*',
                         '', _mask_label_refs(prefix))
         # A misaligned first-column zero cannot be silently treated as label
@@ -1133,16 +1225,19 @@ def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
         # Only known label references and the row marker may contain numbers.
         if _NUM_RX.search(prefix):
             return None
-        values: list[float | None] = [None] * 16
+        values: list[float | None] = [None] * n_cols
         for word in bucket:
-            if word[2] < edges[0] - 2:
+            if word[2] < ranges[0][0] - 2:
                 continue
             if not _NUM_RX.fullmatch(word[3]):
                 return None
-            column = min(range(16), key=lambda i: abs(edges[i] - word[2]))
+            columns = [i for i, (left, right) in enumerate(ranges)
+                       if left - 1 <= word[2] <= right + 1]
             value = parse_num(word[3])
-            if (abs(edges[column] - word[2]) > 1 or values[column] is not None
-                    or value is None):
+            if len(columns) != 1 or value is None:
+                return None
+            column = columns[0]
+            if values[column] is not None:
                 return None
             values[column] = value
         if any(value is not None for value in values):
@@ -1150,7 +1245,7 @@ def _fitz_sparse_page_grid(pdf_path: str, page_idx_0: int
             source_rows.append((line, values))
         if marker is None:
             inside_block = False
-    if not _sparse_grid_closes(source_rows):
+    if not _sparse_grid_closes(source_rows, n_cols):
         return None
     return lines, grid
 
@@ -1339,10 +1434,12 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                        if _eq_candidate_score(candidate)[0] == 1]
 
     if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
-        sparse = _fitz_sparse_page_grid(pdf_path, page_idx_1 - 1)
-        if sparse is not None:
-            lines, grid = sparse
-            candidates.append(_parse_with(lines, 16, grid))
+        for width in (16, 14):
+            sparse = _fitz_sparse_page_grid(pdf_path, page_idx_1 - 1, width)
+            if sparse is not None:
+                lines, grid = sparse
+                candidates.append(_parse_with(lines, width, grid))
+                break
 
     # Hybrid selection: prefer the reconstruction whose column chain VALIDATES
     # (closing ≈ Σ romans III..XI), falling back to most-rows when none clearly

@@ -340,6 +340,17 @@ def _mapped_key(
     lane: str,
     dynamic_mappings: Iterable[tuple[str, str]] = (),
 ) -> str | None:
+    if lane == "equity_change":
+        # A printed BRSA row marker is stronger than a short label substring.
+        # Without this, ``X. ... other changes`` matched the later ``11.3 Other``
+        # mapping first. Restrict the shortcut to keys present in this report.
+        marker_match = re.match(r"^\s*([IVX]{1,5}|\d{1,2}\.\d{1,2})\.?\s+", line_text)
+        if marker_match:
+            marker = (marker_match[1] + "." if marker_match[1].isalpha()
+                      else marker_match[1])
+            if marker in {key for key, _ in [*_dynamic_mappings(report, lane),
+                                              *dynamic_mappings]}:
+                return marker
     if lane == "credit_quality" and _fold(line_text).startswith((
             "12 aylik beklenen zarar karsiligi", "12 month expected credit loss")):
         return "loans_ecl_brsa.stage1"
@@ -590,6 +601,14 @@ def _capture_lane(
                 if prefix:
                     mapped = _mapped_key(" ".join([*prefix, clean]), report,
                                          lane, dynamic_mappings)
+                # YKBNK prints row X over two numeric baselines: the explicit
+                # marker and first cells above, then ``equity`` and the remaining
+                # cells. Both lines are one source row; only inherit the explicit
+                # immediately preceding marker, never an inferred label match.
+                if (mapped is None and _fold(clean).startswith("equity ")
+                        and order >= 2
+                        and re.match(r"^\s*X\.?\s+", page_lines[order - 2])):
+                    mapped = "X."
             if is_data and mapped is None:
                 mapped = context_mappings.get(order)
             captured.append(CapturedLine(

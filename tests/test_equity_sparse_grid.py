@@ -1,11 +1,13 @@
 """Sparse source cells retain their positions and null disclosure semantics."""
 from copy import deepcopy
+from types import SimpleNamespace
 
 import pytest
 
 fitz = pytest.importorskip("fitz")
 
 from src.audit_reports import equity_change as EC  # noqa: E402
+from src.audit_reports.source_capture import _capture_lane  # noqa: E402
 from src.audit_reports.validator import (  # noqa: E402
     check_equity_change,
     rows_from_equity_rows,
@@ -150,3 +152,89 @@ def test_explicit_periods_override_coincident_closing_and_opening(tmp_path):
     opening = {row.period_type: row for row in report.rows if row.hierarchy == 'I.'}
     assert opening['current'].paid_in_capital == 1000
     assert opening['prior'].paid_in_capital == 1045
+
+
+def _source_pdf14_wrapped(tmp_path):
+    """A one-block 14-column source with real-world physical line splits."""
+    path = tmp_path / "sparse14.pdf"
+    document = fitz.open()
+    page = document.new_page(width=860, height=500)
+    edges = [270 + column * 38 for column in range(14)]
+    rows = [(label, values[:14]) for label, values in _block()]
+    rows[3][1][:13] = [0] * 13
+    rows[3][1][10], rows[3][1][11] = 15, -15
+    rows[-1][1][10], rows[-1][1][11] = 40, 155
+
+    def insert_values(y, values, *, first=0, last=14, shifted=False, note=False):
+        for column in range(first, last):
+            value = values[column]
+            if value is None:
+                continue
+            text = f"{value:,}"
+            if note and column == 11:
+                # The exact numeric glyph is right-aligned; its superscript note
+                # follows it and must not become part of the cell position/value.
+                numeric = f"({abs(value):,})"
+                x = edges[column] - fitz.get_text_length(numeric, fontsize=6)
+                page.insert_text((x, y), numeric + "(**)", fontsize=6)
+                continue
+            edge = edges[column] + (3 if shifted and column >= 3 else 0)
+            page.insert_text((edge - fitz.get_text_length(text, fontsize=6), y),
+                             text, fontsize=6)
+
+    page.insert_text((15, 18),
+                     "STATEMENT OF CHANGES IN EQUITY - Paid-in capital Profit reserves",
+                     fontsize=7)
+    top = 35
+    page.insert_text((15, top), "CURRENT PERIOD", fontsize=7)
+    for row_index, (label, values) in enumerate(rows):
+        y = top + 20 + row_index * 42
+        if label.startswith("II."):
+            page.insert_text((15, y), "II. Corrections Made", fontsize=6)
+            page.insert_text((15, y + 8), "According to TAS 8", fontsize=6)
+            insert_values(y + 16, values)
+        elif label.startswith("III."):
+            page.insert_text((15, y), "III. Adjusted Balances at Beginning of", fontsize=6)
+            page.insert_text((15, y + 8), "Period (I+II)", fontsize=6)
+            insert_values(y + 8, values)
+        elif label.startswith("X."):
+            page.insert_text((15, y), "X. Increase through other changes,", fontsize=6)
+            insert_values(y, values, last=6)
+            page.insert_text((15, y + 8), "equity", fontsize=6)
+            insert_values(y + 8, values, first=6)
+        elif label.startswith("Ending"):
+            page.insert_text((15, y), "Ending Balance 30.09.2026", fontsize=6)
+            page.insert_text((15, y + 8), "(III+IV+X+XI)", fontsize=6)
+            insert_values(y + 8, values, shifted=True)
+        else:
+            page.insert_text((15, y), label, fontsize=6)
+            insert_values(y, values)
+    document.save(path)
+    document.close()
+    return str(path)
+
+
+def test_sparse_grid_supports_single_14_column_wrapped_source(tmp_path):
+    path = _source_pdf14_wrapped(tmp_path)
+    grid = EC._fitz_sparse_page_grid(path, 0, 14)
+    assert grid is not None
+    lines, positions = grid
+    parsed = EC._parse_equity_page(path, 1, "current", 14)
+    assert len(parsed) == 9
+    by_hierarchy = {row.hierarchy: row for row in parsed}
+    assert by_hierarchy["III."].share_cancellation_profits is None
+    assert by_hierarchy["X."].prior_period_profit_loss == -15
+    assert by_hierarchy[""].total_equity == 1245
+    assert len(positions) == 9
+    assert any("Ending Balance" in line for line in lines)
+    assert not check_equity_change(rows_from_equity_rows(
+        EC.EquityChangeReport("source.pdf", parsed))).failures
+    report = EC.EquityChangeReport(path, parsed)
+    with fitz.open(path) as document:
+        capture = _capture_lane(document, [EC._fitz_page_text(path, 0)],
+                                "equity_change", (1,),
+                                SimpleNamespace(equity_change=report))
+    x_lines = [line for line in capture.lines
+               if "other changes" in line.line_text or line.line_text.startswith("equity ")]
+    assert len(x_lines) == 2
+    assert {line.mapped_key for line in x_lines} == {"X."}
