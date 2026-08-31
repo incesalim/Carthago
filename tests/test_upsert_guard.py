@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip("fitz")  # CI installs minimal deps; extractor/loader need fitz (PyMuPDF)
 
-from src.audit_reports.extractor import BankReport  # noqa: E402
+from src.audit_reports.extractor import BankReport, StatementRow  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 # Pre-2026Q2 (`bin`) fixtures, so the canonical context is the honest one:
@@ -171,3 +171,52 @@ def test_a_first_extraction_is_not_treated_as_a_unit_change():
     assert c.execute(
         "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
         (B,)).fetchone()[0] == 2
+
+
+def test_roles_follow_retained_pl_even_when_an_unrelated_validator_crashes(monkeypatch):
+    """A standalone partition load must not erase the map used by TTM ROE.
+
+    The incoming report is empty, but the protected stored P&L remains. Roles
+    must come from that P&L, independently of best-effort validation, and a
+    repeated refresh must not create a new D1 write timestamp.
+    """
+    from scripts import revalidate_audit_db
+
+    def broken_validator(*args, **kwargs):
+        raise RuntimeError("unrelated lane failed")
+
+    monkeypatch.setattr(revalidate_audit_db, "revalidate_partition", broken_validator)
+    c = _conn()
+    c.execute(
+        "INSERT INTO bank_audit_profit_loss "
+        "(bank_ticker, period, kind, item_order, hierarchy, item_name, amount) "
+        "VALUES (?,?,?,?,?,?,?)", (B, P, K, 1, "XXV.", "DÖNEM NET KARI", 42))
+    c.execute(
+        "INSERT INTO bank_audit_validation "
+        "(bank_ticker, period, kind, statement, checks_passed, checks_failed) "
+        "VALUES (?,?,?,?,?,?)", (B, P, K, "profit_loss", 1, 0))
+
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
+    assert c.execute(
+        "SELECT p.amount FROM bank_audit_profit_loss p JOIN bank_audit_pl_roles r "
+        "ON r.bank_ticker=p.bank_ticker AND r.period=p.period AND r.kind=p.kind "
+        "AND r.hierarchy=p.hierarchy WHERE r.role='period_net'").fetchone() == (42,)
+
+    c.execute("UPDATE bank_audit_pl_roles SET derived_at='2026-01-01 00:00:00'")
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
+    assert c.execute("SELECT derived_at FROM bank_audit_pl_roles").fetchone() == (
+        "2026-01-01 00:00:00",)
+
+
+def test_roles_follow_a_fresh_pl_and_are_removed_with_its_source():
+    c = _conn()
+    rep = BankReport(pdf_path="x.pdf", profit_loss=[StatementRow(
+        order=1, hierarchy="XXV.", name="DÖNEM NET KARI", footnote=None,
+        cur_amount=42)])
+    upsert_report(c, B, P, K, rep, "x.pdf", unit=UnitContext.canonical())
+    assert c.execute("SELECT hierarchy, role FROM bank_audit_pl_roles").fetchall() == [
+        ("XXV.", "period_net")]
+
+    upsert_report(c, B, P, K, _empty(), "x.pdf", force=True,
+                  unit=UnitContext.canonical())
+    assert c.execute("SELECT COUNT(*) FROM bank_audit_pl_roles").fetchone() == (0,)

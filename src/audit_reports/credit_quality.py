@@ -38,7 +38,7 @@ from pathlib import Path
 
 import fitz  # PyMuPDF — ~85× faster than pdfplumber for text; credit_quality is fitz-only
 
-from .units import UnitContext
+from .units import FRONT_PAGES, UNIT_SCALE, UnitContext, regex_unit
 from .extractor import NUM_PAT as _NUM_PAT_STR
 from .extractor import parse_num
 
@@ -204,7 +204,7 @@ def _nonnull_sum(*vals: float | None) -> float | None:
     return sum(clean) if clean else None
 
 
-def _merge_split_digits(line: str) -> str:
+def _merge_split_digits(line: str, *, unit_scale: int = 1) -> str:
     """Reattach a leading digit that pdfplumber separated from its number.
 
     pdfplumber sometimes splits the leading 1-2 digits off a large number with
@@ -229,7 +229,13 @@ def _merge_split_digits(line: str) -> str:
         lead, seg = m.group(1), m.group(2)
         return lead + seg if len(lead) + len(seg) <= 3 else m.group(0)
 
-    line = re.sub(r"(?<!\d)(\d{1,2})\s+(\d{1,3})(?=[.,]\d{3})", _join, line)
+    # In million-denominated filings these are routinely TWO real columns:
+    # TSKB 2026Q2 NPL gross "48 3.834 1.805" became "483.834 1.805",
+    # losing the whole row. Keep the historical repair for thousands filings;
+    # only the unambiguous space-before-separator repair below is safe at the
+    # new scale. Never alter the returned figures' denomination here.
+    if unit_scale == 1:
+        line = re.sub(r"(?<!\d)(\d{1,2})\s+(\d{1,3})(?=[.,]\d{3})", _join, line)
     # '1 ,553,507'   -> '1,553,507'    (standalone digit, leading-separator)
     line = re.sub(r"(?<!\d)(\d{1,2})\s+([.,]\d{3})", r"\1\2", line)
     return line
@@ -690,6 +696,8 @@ _NPL_PROVISION_ROW = re.compile(
     # 'Özel Karşılık Tutarı (-)'); without it the regex fallback misses
     # every Turkish bank whose template path also failed.
     r"|(?:Özel\s+)?Karşılık(?:\s+Tutarı)?\s*\(\s*-\s*\)"
+    r"|(?:Özel\s+)?Karşılık(?:\s+Tutarı)?\s+(?=\(\s*\d)"
+    r"|Özel\s+Kredi\s+Karşılığı\s*\(\s*3\.?\s*Aşama\s*\)\s*\(\s*-\s*\)"
     r"|Beklenen\s+Zarar\s+Karşılığı"
     r"\s*\(\s*(?:3\.?|Üçüncü)\s*Aşama\s*\)\s*\(\s*-\s*\)"
     r")",
@@ -704,9 +712,18 @@ _NPL_HEADER_LINE = re.compile(
     r"\s+(?:Group\s*V[.,]?|V\.?\s*(?:Group|Grup|Aşama):?)",
     re.IGNORECASE,
 )
-# A row qualifies as "data" if it has at least 3 numeric tokens with thousands
-# separators (filters out short administrative rows like "Sold (-)").
+# Unlabelled candidate rows need a thousands separator to exclude small
+# administrative entries. Recognised closing/net balances do not: from 2026Q2
+# reports print millions, so even an entire NPL book can be three small integers.
 _NPL_DATA_ROW_FILTER = re.compile(r"\d{1,3}[.,]\d{3}")
+# ALNTF labels the closing balance with its date only. It is accepted only
+# immediately above the provision row, never as an arbitrary dated opening row.
+_NPL_DATE_BALANCE_ROW = re.compile(
+    r"^\s*\d{1,2}\s+(?:Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|"
+    r"Eylül|Ekim|Kasım|Aralık|January|February|March|April|May|June|July|August|"
+    r"September|October|November|December)\s+\d{4}\s+",
+    re.IGNORECASE,
+)
 
 # FC-only NPL sub-tables (e.g. ALBRK h.3, AKBNK iii) report only the FC-
 # denominated subset and are MUCH smaller than the total NPL classification.
@@ -772,7 +789,7 @@ def _is_fc_only_block(lines: list[str], header_idxs: list[int], anchor_idx: int)
 
 
 def _extract_npl_brsa_via_template(
-    page_num: int, page_text: str, template: dict,
+    page_num: int, page_text: str, template: dict, *, unit_scale: int = 1,
 ) -> list[StageRow]:
     """Template-driven NPL/III-IV-V extractor.
 
@@ -789,7 +806,8 @@ def _extract_npl_brsa_via_template(
     if not (gross_labels and prov_labels):
         return []  # bank not configured for npl_brsa
 
-    lines = [_merge_split_digits(ln) for ln in page_text.split("\n")]
+    lines = [_merge_split_digits(ln, unit_scale=unit_scale)
+             for ln in page_text.split("\n")]
     out: list[StageRow] = []
     header_idxs = [i for i, ln in enumerate(lines) if _NPL_HEADER_LINE.match(ln.strip())]
     if not header_idxs:
@@ -876,7 +894,9 @@ def _extract_npl_brsa_via_template(
     return out
 
 
-def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]:
+def _extract_npl_brsa_from_page(
+    page_num: int, page_text: str, *, unit_scale: int = 1,
+) -> list[StageRow]:
     """Find the BRSA NPL classification table on this page and emit gross /
     provision / net rows. Each row carries Group III/IV/V in stage1/2/3 and
     III+IV+V sum in total.
@@ -886,7 +906,8 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
     if not page_text or not _NPL_HEADER_PAT.search(page_text):
         return []
     # Pre-normalize every line to repair pdfplumber's split-digit numbers.
-    lines = [_merge_split_digits(ln) for ln in page_text.split("\n")]
+    lines = [_merge_split_digits(ln, unit_scale=unit_scale)
+             for ln in page_text.split("\n")]
     out: list[StageRow] = []
 
     # Pre-locate every III/IV/V header on the page — period detection is
@@ -992,7 +1013,9 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         # the orphan's bare values can't be mistaken for the gross row.
         for j in range(prov_top - 1, block_lo - 1, -1):
             cand = lines[j].strip()
-            if not _NPL_DATA_ROW_FILTER.search(cand):
+            if (not _NPL_DATA_ROW_FILTER.search(cand)
+                    and not _END_ROW_PAT.match(cand)
+                    and not (j == prov_top - 1 and _NPL_DATE_BALANCE_ROW.match(cand))):
                 continue
             if re.search(r"\b(?:Net|Provisions?|Karşılık|Beklenen\s+Zarar)\b",
                          cand, re.IGNORECASE):
@@ -1015,8 +1038,6 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         net_candidates: list[list[float | None]] = []
         for j in range(i + 1, block_hi):
             cand = lines[j].strip()
-            if not _NPL_DATA_ROW_FILTER.search(cand):
-                continue
             if not re.search(r"\bNet\b|Bilançodaki", cand, re.IGNORECASE):
                 continue
             cnums = _NUM.findall(cand)
@@ -1042,7 +1063,8 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
             _target = _prov_tot + _net_tot
             _best = min(gross_candidates,
                         key=lambda c: abs(sum(x for x in c if x is not None) - _target))
-            if abs(sum(x for x in _best if x is not None) - _target) <= max(1000.0, 0.01 * abs(_target)):
+            if abs(sum(x for x in _best if x is not None) - _target) <= max(
+                    1000.0 / unit_scale, 0.01 * abs(_target)):
                 gross = _best
 
         if gross is not None:
@@ -1213,6 +1235,7 @@ def _fitz_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
 def _extract_loans_by_stage_from_page(
     page_num: int, page_text: str, allow_total_drop: bool = False,
     require_section_title: bool = False, min_stage1: float = 1_000_000,
+    *, unit_scale: int = 1,
 ) -> list[StageRow]:
     """Capture Stage 1 / Stage 2 loan AMOUNTS from BRSA section 7.2.
 
@@ -1306,7 +1329,8 @@ def _extract_loans_by_stage_from_page(
                 current_period = pt
             if not _STAGE12_TOTAL_ROW.match(stripped):
                 continue
-            nums = re.findall(_NUM_PAT_STR, _merge_split_digits(stripped))
+            nums = re.findall(
+                _NUM_PAT_STR, _merge_split_digits(stripped, unit_scale=unit_scale))
             # A real BRSA 7.2 Toplam row carries 3-5 numeric columns: Stage 1
             # + 2-4 Yakın İzlemedeki sub-types (Yeniden Yapılandırma /
             # Sözleşme Koşullarında Değişiklik / Yeniden Finansman). 2-column
@@ -1337,7 +1361,8 @@ def _extract_loans_by_stage_from_page(
             if (allow_total_drop and len(rest) >= 2
                     and rest[-1] is not None and stage1 is not None):
                 body_sum = sum(v for v in rest[:-1] if v is not None)
-                if abs(rest[-1] - (stage1 + body_sum)) <= max(1000.0, 0.005 * abs(rest[-1])):
+                if abs(rest[-1] - (stage1 + body_sum)) <= max(
+                        1000.0 / unit_scale, 0.005 * abs(rest[-1])):
                     rest = rest[:-1]
             stage2 = sum(v for v in rest if v is not None) or None
             if stage2 is not None and stage1 <= stage2:
@@ -1390,7 +1415,7 @@ def _extract_loans_by_stage_from_page(
             ctx = "\n".join(lines[max(0, s1_line_idx - 10):s1_line_idx])
             period_type = "prior" if _PRIOR_PAT.search(ctx) else "current"
             key = (page_num, period_type)
-            if key not in seen and stage1 and stage1 >= 1_000_000:
+            if key not in seen and stage1 and stage1 >= min_stage1:
                 seen.add(key)
                 out.append(StageRow(
                     section="loans_by_stage",
@@ -1578,6 +1603,18 @@ def extract_from_pdf(
     page_texts: list[tuple[int, str]] = []  # for the loans_by_stage fallback
     doc = fitz.open(pdf_path)
     try:
+        # Admission thresholds are economic amounts, while the parser returns
+        # numbers in the filing's printed unit (normalisation happens at upsert).
+        # Keeping the old 1,000,000 floor in a Milyon TL filing silently rejects
+        # a book below TRY 1 trillion. Reuse the authoritative unit detector so
+        # contradictory/stale headers cannot choose a different interpretation.
+        # Unknown units keep the conservative old threshold here; upsert's
+        # UnitContext still refuses an unestablished reporting denomination.
+        unit = regex_unit([
+            p.get_text() for p in doc.pages(0, min(FRONT_PAGES, doc.page_count))
+        ])
+        unit_scale = UNIT_SCALE.get(unit, 1)
+        min_stage1 = 1_000_000 / unit_scale
         for i, page in enumerate(doc, 1):
             text = "\n".join(_fitz_clustered_lines(page))
             page_texts.append((i, text))
@@ -1598,14 +1635,16 @@ def extract_from_pdf(
             # III/IV/V header. This guarantees we never regress a bank to zero NPL
             # rows just because its template entry is stale.
             if template is not None:
-                npl_tmpl.extend(_extract_npl_brsa_via_template(i, text, template))
-            npl_regex.extend(_extract_npl_brsa_from_page(i, text))
+                npl_tmpl.extend(_extract_npl_brsa_via_template(
+                    i, text, template, unit_scale=unit_scale))
+            npl_regex.extend(_extract_npl_brsa_from_page(i, text, unit_scale=unit_scale))
             # BRSA section 7.2 "Standart Nitelikli ve Yakın İzlemedeki" loan
             # amounts — Stage 1 + Stage 2 portfolio balances (combined with
             # npl_brsa_gross's Stage 3 = full stage breakdown). The y-clustered
             # fitz text already rebuilds the İşbank-style column-split rows that
             # used to need a separate coordinate fallback.
-            rep.rows.extend(_extract_loans_by_stage_from_page(i, text))
+            rep.rows.extend(_extract_loans_by_stage_from_page(
+                i, text, min_stage1=min_stage1, unit_scale=unit_scale))
             # Stage 1 + Stage 2 ECL provisions from the same section 7.2.
             rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
     finally:
@@ -1620,7 +1659,9 @@ def extract_from_pdf(
     if not any(r.section == "loans_by_stage" for r in rep.rows):
         for i, text in page_texts:
             rep.rows.extend(
-                _extract_loans_by_stage_from_page(i, text, allow_total_drop=True)
+                _extract_loans_by_stage_from_page(
+                    i, text, allow_total_drop=True, min_stage1=min_stage1,
+                    unit_scale=unit_scale)
             )
 
     # Small-bank fallback: still nothing, so no Toplam row cleared the ₺1bn
@@ -1635,7 +1676,7 @@ def extract_from_pdf(
         for i, text in page_texts:
             rep.rows.extend(_extract_loans_by_stage_from_page(
                 i, text, allow_total_drop=True,
-                require_section_title=True, min_stage1=1,
+                require_section_title=True, min_stage1=1, unit_scale=unit_scale,
             ))
 
     # Choose the NPL source. Prefer the template (precise, label-anchored) — but

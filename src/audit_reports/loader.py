@@ -192,6 +192,15 @@ def upsert_report(
             )
         counts[ckey] = len(rows)
 
+    # A partition replacement carries the role table as well as its P&L. Build
+    # the map here, from the rows actually retained/stored above, rather than
+    # waiting for a separate fleet revalidation. Otherwise standalone loads can
+    # publish a complete P&L with no period-net role and blank every TTM return.
+    # This is persistence, so an unrelated best-effort validator failure below
+    # must not prevent it. Unchanged maps keep their original derived_at.
+    from .validator import upsert_pl_roles
+    upsert_pl_roles(conn, bank_ticker, period, kind)
+
     # Footnote / §4 sub-statements. Each extractor module exposes the same
     # contract — upsert(conn, bank, period, kind, report) -> int|None — and the
     # report rides along on the BankReport (a rows list or a full report object).

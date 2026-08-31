@@ -19,6 +19,7 @@ from reextract_statement import (  # noqa: E402
 )
 from src.audit_reports import registry  # noqa: E402
 from src.audit_reports.free_provision import FreeProvision  # noqa: E402
+from src.audit_reports.extractor import StatementRow  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports.validator import ValidationResult  # noqa: E402
@@ -124,3 +125,57 @@ def test_targeted_upsert_does_not_commit_away_candidate_savepoint():
     conn.execute("ROLLBACK TO candidate")
     conn.execute("RELEASE candidate")
     assert conn.execute("SELECT COUNT(*) FROM bank_audit_free_provision").fetchone()[0] == 0
+
+
+def test_targeted_pl_rebuilds_roles_inside_the_candidate_savepoint():
+    """A rejected numbering change must roll back both P&L and its role map."""
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+
+    def report(hierarchy, amount):
+        return SimpleNamespace(profit_loss=[StatementRow(
+            order=1, hierarchy=hierarchy, name="DÖNEM NET KARI", footnote=None,
+            cur_amount=amount)])
+
+    _upsert(conn, "profit_loss", "TEST", "2026Q2", "unconsolidated",
+            report("XXV.", 42), unit=UnitContext.canonical())
+    conn.execute("UPDATE bank_audit_pl_roles SET derived_at='2026-01-01 00:00:00'")
+    conn.commit()
+    before = _partition_snapshot(
+        conn, "bank_audit_pl_roles", "TEST", "2026Q2", "unconsolidated")
+    conn.execute("SAVEPOINT candidate")
+    _upsert(conn, "profit_loss", "TEST", "2026Q2", "unconsolidated",
+            report("XXIV.", 99), unit=UnitContext.canonical())
+    assert conn.execute("SELECT hierarchy, role FROM bank_audit_pl_roles").fetchall() == [
+        ("XXIV.", "period_net")]
+    conn.execute("ROLLBACK TO candidate")
+    conn.execute("RELEASE candidate")
+    assert _partition_snapshot(
+        conn, "bank_audit_pl_roles", "TEST", "2026Q2", "unconsolidated") == before
+    assert conn.execute("SELECT amount FROM bank_audit_profit_loss").fetchone() == (42,)
+
+
+def test_role_only_repair_leaves_the_source_facts_and_role_timestamp_unchanged():
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    conn.execute(
+        "INSERT INTO bank_audit_profit_loss "
+        "(bank_ticker, period, kind, item_order, hierarchy, item_name, amount) "
+        "VALUES ('TEST','2026Q2','unconsolidated',1,'XXV.','DÖNEM NET KARI',42)")
+    report = SimpleNamespace(profit_loss=[StatementRow(
+        order=1, hierarchy="XXV.", name="DÖNEM NET KARI", footnote=None,
+        cur_amount=42)])
+    source_before = _partition_content(
+        conn, "bank_audit_profit_loss", "TEST", "2026Q2", "unconsolidated")
+    _upsert(conn, "profit_loss", "TEST", "2026Q2", "unconsolidated",
+            report, unit=UnitContext.canonical())
+    assert _partition_content(
+        conn, "bank_audit_profit_loss", "TEST", "2026Q2", "unconsolidated") == source_before
+    assert conn.execute("SELECT hierarchy, role FROM bank_audit_pl_roles").fetchall() == [
+        ("XXV.", "period_net")]
+
+    conn.execute("UPDATE bank_audit_pl_roles SET derived_at='2026-01-01 00:00:00'")
+    _upsert(conn, "profit_loss", "TEST", "2026Q2", "unconsolidated",
+            report, unit=UnitContext.canonical())
+    assert conn.execute("SELECT derived_at FROM bank_audit_pl_roles").fetchone() == (
+        "2026-01-01 00:00:00",)

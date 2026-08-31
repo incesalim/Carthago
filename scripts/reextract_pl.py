@@ -1,9 +1,9 @@
 """Re-extract ONE PDF and replace ONLY its profit_loss rows in the prod DB + D1.
 
-No fleet loop, no other tables touched — for P&L pages the old extractor garbled
+No fleet loop; only P&L and its derived role map change — for pages the old extractor garbled
 (e.g. letter-spaced ISCTR 2024Q4 unconsolidated, fixed by the _detect_pl_ncols
 fitz-fallback). The balance sheet / off-balance / credit-quality rows of the
-partition are left exactly as they are; only bank_audit_profit_loss is rewritten.
+partition are left exactly as they are.
 
   python scripts/reextract_pl.py --bank ISCTR --period 2024Q4 --kind unconsolidated
   python scripts/reextract_pl.py ... --dry-run     # local DB only, no D1/snapshot
@@ -25,6 +25,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.units import UnitContext  # noqa: E402
+from src.audit_reports.validator import upsert_pl_roles  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
     _guard_against_ci_writers, replace_partitions,
 )
@@ -80,6 +81,7 @@ def main() -> int:
                  "item_name", "footnote", "amount"],
                 [(b, p, k, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
                  for r in pl]))
+        upsert_pl_roles(conn, b, p, k)
         conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP, "
                      "source_unit=? "
                      "WHERE bank_ticker=? AND period=? AND kind=?",
@@ -93,7 +95,8 @@ def main() -> int:
 
     # One atomic replace, not clear-then-push (see audit_d1.replace_partitions).
     print(f"[pl] replacing {b} {p} {k} profit_loss in D1")
-    replace_partitions([(b, p, k)], DB, ["bank_audit_profit_loss"])
+    replace_partitions([(b, p, k)], DB,
+                       ["bank_audit_profit_loss", "bank_audit_pl_roles"])
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
     with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:

@@ -1005,11 +1005,20 @@ def check_profit_loss(pl_rows: list[dict], liabilities: list[dict] | None = None
 
 
 def upsert_pl_roles(conn, bank: str, period: str, kind: str,
-                    pl_rows: list[dict]) -> int:
+                    pl_rows: list[dict] | None = None) -> int:
     """Persist the derived P&L role map for one partition; replaces it
     idempotently. Rebuilt from stored rows wherever validation is (the two are
     derived from the same rows and must never disagree about a partition), so a
-    consumer joining bank_audit_pl_roles always sees the current resolution."""
+    consumer joining bank_audit_pl_roles always sees the current resolution.
+
+    Omit ``pl_rows`` at persistence boundaries to resolve the actual stored P&L,
+    including a statement retained by the non-destructive extraction guard."""
+    if pl_rows is None:
+        pl_rows = [dict(zip(("hierarchy", "item_name", "amount"), row))
+                   for row in conn.execute(
+                       "SELECT hierarchy, item_name, amount FROM bank_audit_profit_loss "
+                       "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY item_order",
+                       (bank, period, kind))]
     roles = pl_roles(pl_rows)
     # Same rule as upsert_validation: an unchanged role map keeps its
     # `derived_at`, so the windowed push does not ship it again. The map is
@@ -1019,7 +1028,7 @@ def upsert_pl_roles(conn, bank: str, period: str, kind: str,
     cur = sorted(tuple(r) for r in conn.execute(
         "SELECT hierarchy, role FROM bank_audit_pl_roles "
         "WHERE bank_ticker=? AND period=? AND kind=?", (bank, period, kind)))
-    if cur and cur == new:
+    if cur == new:
         return len(roles)
     conn.execute(
         "DELETE FROM bank_audit_pl_roles WHERE bank_ticker=? AND period=? AND kind=?",

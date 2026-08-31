@@ -1,0 +1,69 @@
+name: Repair audit P&L roles
+
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "Affected tickers, comma-separated (explicit scope; no ALL)"
+        type: string
+        required: true
+      periods:
+        description: "Quarters, comma-separated YYYYQn; blank = all stored quarters"
+        type: string
+        default: ""
+      kind:
+        type: choice
+        options: [unconsolidated, consolidated]
+        default: unconsolidated
+      dry_run:
+        description: "Compare against live D1 without writing anything"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Pull authoritative audit snapshot (read-only)
+        run: |
+          python - <<'PY'
+          from scripts.audit_d1 import pull_snapshot
+          pull_snapshot(guard=False)  # serialized by bddk-audit above
+          PY
+      - name: Compare, repair only differing roles, and verify
+        env:
+          BANKS: ${{ inputs.banks }}
+          PERIODS: ${{ inputs.periods }}
+          KIND: ${{ inputs.kind }}
+          APPLY: ${{ !inputs.dry_run && '--apply' || '' }}
+        run: |
+          args=(--banks "$BANKS" --kind "$KIND")
+          [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
+          [ -n "$APPLY" ] && args+=("$APPLY")
+          python scripts/repair_audit_roles.py "${args[@]}"

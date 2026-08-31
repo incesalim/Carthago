@@ -16,6 +16,21 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
+**Bank-ratio gaps (2026-08-31; code fixed, production recovery pending):**
+ROE gaps in otherwise complete filings came from missing `bank_audit_pl_roles`,
+not missing profit figures. P&L persistence now rebuilds that map immediately
+from the stored statement, and targeted P&L repairs include it in their
+transaction and D1 push without re-stamping unchanged maps. The new manual
+`repair-audit-roles.yml` restores only maps that differ from D1 after verifying
+the underlying P&L agrees with the snapshot. Q2 NPL gaps also exposed two
+million-TL parser assumptions: the Stage-1 admission floor was in thousands of
+TL, and the generic NPL reader required a thousands separator. The floor now
+respects the filing unit; semantically identified closing/net rows accept
+small whole amounts. Repairs remain scoped to affected bank/quarter/lane with
+the existing validation gates. Ziraat Dinamik's TTM ROE/NIM remain unavailable
+without a stored 2025Q2 YTD baseline; absence is not a zero.
+
+
 | Table | Source | Range | Latest |
 |---|---|---|---|
 | `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | BDDK monthly bulletin | 2020-01 → present | 2026-06 |

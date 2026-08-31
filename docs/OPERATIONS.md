@@ -15,6 +15,7 @@ machine involvement is required for routine refreshes.
 
 | When | Workflow | What it does |
 |---|---|---|
+| Manual only | `repair-audit-roles.yml` | Restore missing/stale `bank_audit_pl_roles` after a targeted reload omitted the role map. Pulls the current audit snapshot, compares semantic role content with live D1, and requires identical underlying P&L rows before replacing **only differing role partitions**. No PDF extraction or financial-row writes. Inputs: explicit `banks` (no ALL), optional `periods`, `kind`, `dry_run=true` by default. `--apply` is Actions-only; a repeat run writes nothing. Uses existing R2 and `CLOUDFLARE_API_TOKEN` secrets; serialized with the `bddk-audit` lane |
 | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS **daily/workday series only** (FX, policy/funding rates, sterilization, …) → D1. Weekly/monthly/quarterly series are polled by Saturday's full refresh. A run with no changed observation performs no D1 or R2 write |
 | Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
 | First + last 5 days 13:00 UTC; Fri 13:30/15:30 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins only. The 13:00 runs probe the **monthly** bulletin around month-end; the Friday runs bracket the **weekly** publication window. The redundant Saturday 02:00 run is gone because `refresh-data.yml` follows at 03:00. A byte-stable SQLite result skips VACUUM, gzip, D1 and R2 entirely |

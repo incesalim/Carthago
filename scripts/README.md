@@ -23,6 +23,7 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 ## Shared / infrastructure
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
+| `repair_audit_roles.py` | Compare P&L role maps with live D1, require identical source P&L, and restore only differing role partitions. Read-only by default; `--apply` runs only in Actions. No financial-row writes or PDF extraction. | `repair-audit-roles.yml` | operational |
 | `push_to_d1.py` | Incremental SQLite→D1 sync (`INSERT OR REPLACE` rows newer than `--hours`); `--db`, `--only-tables`, `--table-set`. The one D1 writer every lane uses. **Full-rebuild tables (`api_series`, the audit spine) are skipped when their content hash is unchanged** — D1 bills rows written and those are ~20k-row DELETE+INSERT cycles; `--force-rebuild` overrides after direct D1 edits. See OPERATIONS §D1 write budget. | every refresh workflow | pipeline |
 | `notify.py` | Telegram/Discord alert (lib + CLI). | called by workflows + scripts on failure | pipeline |
 | `healthcheck.py` | Daily D1 freshness check + audit-failure count. | `healthcheck.yml` | pipeline |

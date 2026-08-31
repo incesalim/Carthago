@@ -110,7 +110,7 @@ def _partition_content(conn: sqlite3.Connection, table: str,
     billing D1 for a partition replacement whose facts did not change.
     """
     columns = [row[1] for row in conn.execute(f'PRAGMA table_info("{table}")')
-               if row[1] != "extracted_at"]
+               if row[1] not in {"extracted_at", "derived_at"}]
     if not columns:
         raise ValueError(f"table {table!r} does not exist or has no comparable columns")
     quoted = [f'"{name.replace(chr(34), chr(34) * 2)}"' for name in columns]
@@ -339,6 +339,7 @@ def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
                  for r in rows])
+        _validator.upsert_pl_roles(conn, bank, period, kind)
         return len(rows)
     if statement == "prose":
         report = getattr(rep, "prose", None) or ProseResult()
@@ -470,6 +471,8 @@ def main() -> int:
                 candidate_tables = [table]
                 if statement == "credit_quality":
                     candidate_tables.append("bank_audit_stages")
+                elif statement == "profit_loss":
+                    candidate_tables.append("bank_audit_pl_roles")
                 candidate_tables = list(dict.fromkeys(candidate_tables))
                 before = {
                     candidate_table: _partition_content(

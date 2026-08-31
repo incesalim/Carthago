@@ -108,6 +108,13 @@ must **rebuild stages**. The routine audit workflow rebuilds afterward; targeted
 re-extraction rebuilds the affected partition inside the candidate savepoint,
 before acceptance, so source and derived rows cannot disagree after a repair.
 
+The P&L role map (`bank_audit_pl_roles`) is derived too: every P&L persistence
+path rebuilds it from the stored statement, and targeted P&L repair includes
+the map in its transaction and table-scoped push. The manual
+`repair-audit-roles.yml` compares maps with live D1 and restores only differing
+partitions after checking source agreement; it never re-extracts or writes a
+financial figure. A repeat run is read-only when D1 and the snapshot agree.
+
 ### Daily — `.github/workflows/refresh-evds-daily.yml`
 Sun–Fri 05:00 UTC. Polls only EVDS series declared daily/workday, keeping FX,
 policy/funding rates and sterilization current within 24h. Weekly, monthly and
