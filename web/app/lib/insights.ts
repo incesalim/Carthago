@@ -315,6 +315,7 @@ export function assetQualityInsights(d: {
   stage2?: SeriesPoint[]; // sector Stage-2 share of gross loans (audited quarterly)
   /** The audited staging ladder — the iceberg the ratio does not print. */
   ladder?: {
+    n: number;
     stage2Share: number;
     stage3Share: number;
     problemShare: number;
@@ -412,8 +413,10 @@ export function assetQualityInsights(d: {
   }
 
   const headline = L
-    ? tx("The {0} NPL ratio is the tip: loans classified as deteriorated are {1}, ", {0: pct(n, 2), 1: pct(L.problemShare)}) +
-      tx("{0}× what the headline prints, and {1} of the book sits on a ", {0: L.multipleOfPrinted.toFixed(1), 1: pct(L.stage2Share)}) +
+    // The multiple uses the audited reporting-bank book on BOTH sides. The
+    // monthly published NPL ratio above belongs in its own labelled bullet.
+    ? tx("The audited Stage-3 share is {0} for {1} reporting banks in {2}; Stage 2 + 3 is {3}, ", {0: pct(L.stage3Share), 1: L.n, 2: L.period, 3: pct(L.problemShare)}) +
+      tx("{0}× that Stage-3 share, and {1} of the book sits on a ", {0: L.multipleOfPrinted.toFixed(1), 1: pct(L.stage2Share)}) +
       tx("watchlist carrying {0} cover", {0: pct(L.cov2)}) +
       (d.roll && d.formationMultiple
         ? tx(" — with formation running {0}× and exits that are collections, not write-offs.", {0: d.formationMultiple.toFixed(1)})

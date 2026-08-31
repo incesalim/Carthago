@@ -33,6 +33,10 @@ export function formatDateLabel(value: string, locale: string): string {
     July: "Temmuz", August: "Ağustos", September: "Eylül", October: "Ekim", November: "Kasım", December: "Aralık",
   };
   const monthName = (s: string) => months[s[0].toUpperCase() + s.slice(1).toLowerCase()];
+  const dayRange = /^([A-Za-z]+) (\d{1,2})–(\d{1,2})$/.exec(value);
+  if (dayRange && monthName(dayRange[1])) return `${dayRange[2]}–${dayRange[3]} ${monthName(dayRange[1])}`;
+  const monthRange = /^([A-Za-z]+ \d{1,2}) – ([A-Za-z]+ \d{1,2})$/.exec(value);
+  if (monthRange) return `${formatDateLabel(monthRange[1], locale)} – ${formatDateLabel(monthRange[2], locale)}`;
   const monthDay = /^([A-Za-z]+) (\d{1,2})(?:,? (\d{4}))?$/.exec(value);
   if (monthDay && monthName(monthDay[1])) return [monthDay[2], monthName(monthDay[1]), monthDay[3]].filter(Boolean).join(" ");
   const written = /^(?:(\d{1,2}) )?([A-Za-z]+)(?: (\d{4}))?$/.exec(value);

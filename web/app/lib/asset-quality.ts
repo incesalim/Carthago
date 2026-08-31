@@ -21,8 +21,9 @@
  * TWO NPL RATIOS, NEVER MIXED:
  *   - published  — BDDK `financial_ratios` t15, monthly. The official figure.
  *   - implied    — takipteki 2.0.1 ÷ krediler 1.0.1, weekly. Fresher and denser.
- *   They differ by a STABLE ~0.10pp (definitional, not noise). Quote one per
- *   statement; show the other as labelled context. Never divide across them.
+ *   They can differ in reporting date and basis. Quote each with its date and
+ *   source; do not attribute the latest gap to definitions alone or divide
+ *   across them. The audited staging ladder is a third, reporting-bank basis.
  */
 import { baseFor, growthSeries, toMap, type Pt } from "./series";
 

@@ -88,10 +88,12 @@ export async function GET(request: Request) {
   }
   const limit = Math.min(Math.floor(limitRaw), MAX_LIMIT);
   const offsetRaw = Number(p.get("offset") ?? 0);
-  if (!Number.isFinite(offsetRaw) || offsetRaw < 0) {
-    return errorResponse("`offset` must be zero or a positive number.");
+  // SQLite OFFSET requires an integer. Finite but oversized JS numbers (1e30)
+  // otherwise reach D1 and return an unhandled datatype-mismatch HTTP 500.
+  if (!Number.isSafeInteger(offsetRaw) || offsetRaw < 0) {
+    return errorResponse("`offset` must be a non-negative safe integer.");
   }
-  const offset = Math.floor(offsetRaw);
+  const offset = offsetRaw;
 
   const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const [rows, counted] = await Promise.all([

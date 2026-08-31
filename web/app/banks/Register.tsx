@@ -23,6 +23,7 @@ import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import BankLogo from "@/app/components/BankLogo";
 import { median } from "@/app/lib/heatmap-normalize";
+import { normalizeSearchText } from "@/app/lib/search-text";
 import { ScrollX } from "@/app/components/ui/scroll-x";
 
 export interface RegisterRow {
@@ -102,15 +103,16 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
     r.excluded || r.assets == null || !total ? null : r.assets / total;
 
   const hits = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     if (!q) return rows;
     return rows.filter(
       (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.ticker.toLowerCase().includes(q) ||
-        r.groupLabel.toLowerCase().includes(q),
+        normalizeSearchText(r.name).includes(q) ||
+        normalizeSearchText(r.ticker).includes(q) ||
+        normalizeSearchText(r.groupLabel).includes(q) ||
+        normalizeSearchText(tx(r.groupLabel)).includes(q),
     );
-  }, [rows, query]);
+  }, [rows, query, tx]);
 
   const sort = (list: RegisterRow[]) =>
     [...list].sort((x, y) => {
@@ -222,7 +224,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
   const GroupRule = ({ label, list }: { label: string; list: RegisterRow[] }) => {
     const lend = list.filter((r) => !r.excluded);
     const a = lend.reduce((s, r) => s + (r.assets ?? 0), 0);
-    const m = (k: "roe" | "npl" | "nim" | "car") => median(list.map((r) => r[k]));
+    const m = (k: "roe" | "npl" | "nim" | "car") => median(lend.map((r) => r[k]));
     const med = "border-b border-hair px-2.5 pb-1 pt-4 text-right font-mono text-[10px] tabular-nums text-muted-foreground";
     return (
       <tr>

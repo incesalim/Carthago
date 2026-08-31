@@ -95,7 +95,7 @@ GET /api/v1/series?series=<CODES>&startDate=<D>&endDate=<D>&type=<FMT>
 | Parameter | Required | Notes |
 |---|---|---|
 | `series` | yes | one or more codes joined by `-`, **max 20** |
-| `startDate` | no | `DD-MM-YYYY` or `YYYY-MM-DD` |
+| `startDate` | no | valid calendar date in `DD-MM-YYYY` or `YYYY-MM-DD`; impossible dates return `400` |
 | `endDate` | no | same; omit both for the full history |
 | `type` | no | `json` (default) or `csv` |
 
@@ -134,7 +134,8 @@ GET /api/v1/serieList?q=<TERM>&dataset=<DS>&bankType=<CODE>&limit=<N>
 | `dataset` | `T01`…`T17`, `WLOAN`… |
 | `bankType` | see §8 |
 | `frequency` | `monthly` or `weekly` |
-| `limit` / `offset` | default 500, max 25000 (the whole catalog) |
+| `limit` | default 500, max 25000 (the whole catalog) |
+| `offset` | default 0; non-negative integer up to 9007199254740991; invalid values return `400` |
 | `type` | `json` or `csv` |
 
 Three ways to work:

@@ -16,6 +16,7 @@ import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { firstQueryValue, type QueryValue } from "@/app/lib/query-params";
 import {
   bankActions,
   type ActionsData,
@@ -46,7 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 interface Props {
-  searchParams: Promise<{ ticker?: string }>;
+  searchParams: Promise<{ ticker?: QueryValue }>;
 }
 
 // ── formatting ──────────────────────────────────────────────────────────
@@ -218,7 +219,7 @@ function buildSeason(events: EarningsEvent[]): { rows: SeasonBank[]; season: str
 export default async function ActionsPage({ searchParams }: Props) {
   const tx = await getText();
   const sp = await searchParams;
-  const ticker = sp.ticker?.toUpperCase();
+  const ticker = firstQueryValue(sp.ticker)?.trim().toUpperCase() || undefined;
 
   const [data, earnings] = await Promise.all([
     bankActions({ ticker }),

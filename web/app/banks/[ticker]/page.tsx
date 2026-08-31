@@ -130,7 +130,9 @@ import { heatmapPanel } from "@/app/lib/heatmap";
 import { evdsSeries } from "@/app/lib/metrics";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
 import { bankMarketRiskDetail } from "@/app/lib/market-risk";
-import { BankTabs, type BankTab } from "./BankTabs";
+import { BankTabs, bankTabHref, type BankTab } from "./BankTabs";
+import { bankPeriodWindow } from "./period-window";
+import { queryChoice, type QueryValue } from "@/app/lib/query-params";
 import { MarginBridgeChart, MarketShareChart } from "./BankCharts";
 import MarketRiskSection from "./MarketRiskSection";
 import AnalystSection from "./AnalystSection";
@@ -164,7 +166,7 @@ export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ ticker: string }>;
-  searchParams: Promise<{ view?: string; kind?: string; statement?: string; mode?: string; tab?: string }>;
+  searchParams: Promise<{ view?: QueryValue; kind?: QueryValue; statement?: QueryValue; mode?: QueryValue; tab?: QueryValue }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -221,14 +223,6 @@ function periodToDate(period: string): string {
     "4": `12/31/${year}`,
   };
   return endDate[q] ?? period;
-}
-
-/** Pick the periods to display based on view mode. */
-function pickPeriods(allPeriods: string[], view: "annual" | "quarterly", count = 4): string[] {
-  if (view === "annual") {
-    return allPeriods.filter((p) => p.endsWith("Q4")).slice(0, count);
-  }
-  return allPeriods.slice(0, count);
 }
 
 /** One rendered table cell. The lens decides both the text AND its tone —
@@ -418,16 +412,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const allPeriodMeta = await bankPeriods(ticker);
   if (allPeriodMeta.length === 0) notFound();
 
-  const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
-  const view = (sp.view as "annual" | "quarterly") ?? "quarterly";
-  const statement = (sp.statement as "bs" | "is" | "cf") ?? "bs";
+  const kind = queryChoice(sp.kind, ["consolidated", "unconsolidated"], "unconsolidated");
+  const view = queryChoice(sp.view, ["annual", "quarterly"], "quarterly");
+  const statement = queryChoice(sp.statement, ["bs", "is", "cf"], "bs");
   // Each tab IS the page: the server renders one view, not all of them stacked.
   // (The old jump-nav anchored into a single 6,700px document that stated most
   // numbers twice — the brief said them, then the legacy cards said them again.)
   const TAB_IDS: BankTab[] = ["desk", "financials", "risk", "ownership", "news"];
-  const tab: BankTab = TAB_IDS.includes(sp.tab as BankTab) ? (sp.tab as BankTab) : "desk";
+  const tab = queryChoice(sp.tab, TAB_IDS, "desk");
 
-  const rawMode = (sp.mode as StatementMode) ?? "abs";
+  const rawMode = queryChoice(sp.mode, ["abs", "yoy", "real", "size"], "abs");
   // Common-size needs a denominator with meaning: total assets (balance sheet)
   // or interest income (income statement). The cash-flow statement has neither —
   // a % of "net change in cash" is noise, not a lens — so the Size option is not
@@ -455,23 +449,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const allPeriods = Array.from(
     new Set(allPeriodMeta.filter((p) => p.kind === kind).map((p) => p.period)),
   ).sort().reverse();
-  const periods = pickPeriods(allPeriods, view, 4);
-  // YoY needs each displayed period's prior-year same quarter; TTM needs the
-  // trailing quarters (incl. one before the earliest for de-cumulation), and
-  // a YoY-of-TTM needs another year back. Query a generous trailing window —
-  // 8 quarters before the oldest displayed period covers all of them — but
-  // never ask for a period the bank doesn't have. Display still uses `periods`.
-  const dispOrds = periods.map(ordOf).filter((o): o is number => o != null);
-  const latestOrd = dispOrds.length ? Math.max(...dispOrds) : null;
-  const floorOrd = (dispOrds.length ? Math.min(...dispOrds) : 0) - 8;
-  const queryPeriods = allPeriods.filter((p) => {
-    const o = ordOf(p);
-    return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
-  });
+  const { periods, currentPeriod, queryPeriods, balanceSheetPeriods } = bankPeriodWindow(allPeriods, view);
+  const latestOrd = periods[0] ? ordOf(periods[0]) : null;
 
   const [bsPivot, bsNames, plPivot, plRows, plRoles, cfPivot, kapItems, profile, stages, validation, ownership, heatmap, sharePanel, earnings, calls, mrDetail, bankNews, cpiRaw, sectorShares] =
     await Promise.all([
-      balanceSheetMultiPeriod(ticker, kind, queryPeriods),
+      balanceSheetMultiPeriod(ticker, kind, balanceSheetPeriods),
       balanceSheetLineNames(ticker, kind, periods),
       profitLossMultiPeriod(ticker, kind, queryPeriods),
       statement === "is"
@@ -805,9 +788,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       ? (stages.stage2_amount / stages.total_amount) * 100
       : null;
 
-  // Funding mix + productivity, from the balance sheet the Financials section
-  // already pivots. Deposits first — the mix bar's hero.
-  const latestBsPeriod = periods[0] ?? null;
+  // Match funding/equity/loans to the Desk's asset period, independently of
+  // the saved Financials view (annual selects older year-end columns).
+  const latestBsPeriod = perfLatest?.period ?? currentPeriod;
   const liabAt = (hierarchy: string): number | null =>
     latestBsPeriod ? (bsPivot.get(`liabilities::${hierarchy}`)?.get(latestBsPeriod) ?? null) : null;
   const depositsTl = liabAt(isParticipation ? "I." : "I.");
@@ -1446,7 +1429,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         {tabIndex.map((d) => (
           <Link
             key={d.id}
-            href={d.id === "financials" ? `/banks/${ticker}?tab=financials&${finQuery}` : `/banks/${ticker}?tab=${d.id}`}
+            href={bankTabHref(ticker, d.id, finQuery)}
             className="grid items-baseline gap-4 border-b border-hair py-2.5 lg:grid-cols-[minmax(110px,2fr)_minmax(200px,7fr)_auto]"
           >
             <h4 className="text-[12.5px] font-semibold text-primary">{tx(d.h)}</h4>

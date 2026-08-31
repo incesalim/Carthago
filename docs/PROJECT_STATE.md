@@ -16,6 +16,21 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
+**Website debugging (2026-08-31):** The bank register and product matrix now
+match Turkish names from Turkish or ASCII keyboards. Bank-section links retain
+financial-statement choices, and repeated or invalid URL controls are handled
+safely. Public-series dates must be real calendar dates; unsafe pagination
+offsets return a client error rather than reaching SQLite. Bank FX headlines
+use the signed reported total and its matching capital period; comparative
+exposure remains absolute. Asset-quality prose separates the published monthly,
+weekly implied and audited-bank measures instead of mixing their denominators
+or asserting a fixed gap. Turkish homepage labels and calendar ranges were
+corrected. A scoped ODEA 2026Q2 unconsolidated credit repair passed the existing
+gates: Stage 3 is 1,164 million TL on 67,051 million TL of loans (NPL 1.74%,
+coverage 71.65%), replacing the corrupt 91.63% NPL. Its reported CAR remains
+10.31%. The current parser already read the source correctly; no new extraction
+rule or absent-to-zero substitution was needed.
+
 **Bank-ratio gaps (2026-08-31; repaired and verified live):**
 ROE gaps in otherwise complete filings came from missing `bank_audit_pl_roles`,
 not missing profit figures. P&L persistence now rebuilds that map immediately

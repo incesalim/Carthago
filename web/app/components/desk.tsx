@@ -781,9 +781,9 @@ export function ChartFoot({
   if (heroNow != null) items.push({ k: labels[heroCode] ?? "Sector", v: f(heroNow) });
   if (delta != null)
     items.push({ k: `Δ ${deltaLabel}`, v: `${delta >= 0 ? "+" : "−"}${f(Math.abs(delta))}` });
-  if (top) items.push({ k: "High", v: `${labels[top.code] ?? top.code} ${f(top.value)}` });
+  if (top) items.push({ k: "High", v: `${tx(labels[top.code] ?? top.code)} ${f(top.value)}` });
   if (bottom && bottom !== top)
-    items.push({ k: "Low", v: `${labels[bottom.code] ?? bottom.code} ${f(bottom.value)}` });
+    items.push({ k: "Low", v: `${tx(labels[bottom.code] ?? bottom.code)} ${f(bottom.value)}` });
 
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">

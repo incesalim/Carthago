@@ -11,6 +11,7 @@
 import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
+import { normalizeSearchText } from "@/app/lib/search-text";
 import type { CellValue, ProductBenchmark, ProductBank } from "@/app/lib/products";
 
 const STATE_LABEL: Record<CellValue, string> = {
@@ -67,10 +68,10 @@ export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
   );
 
   const banks = React.useMemo(() => {
-    const query = q.trim().toLowerCase();
+    const query = normalizeSearchText(q);
     return data.banks.filter((b) => {
       if (cluster !== "all" && b.cluster !== cluster) return false;
-      if (query && !b.ticker.toLowerCase().includes(query) && !b.name.toLowerCase().includes(query))
+      if (query && !normalizeSearchText(b.ticker).includes(query) && !normalizeSearchText(b.name).includes(query))
         return false;
       return true;
     });

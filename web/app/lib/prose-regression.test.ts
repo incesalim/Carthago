@@ -185,3 +185,24 @@ describe("regime flip — no sentence may contradict its data", () => {
     expect(UP.filter((w) => DOWN.includes(w))).toEqual([]);
   });
 });
+
+describe("asset-quality reporting bases", () => {
+  it.each(["en", "tr"])("keeps the audited multiplier separate from the published ratio in %s", (locale) => {
+    const result = assetQualityInsights({
+      npl: [{ period: "2026-06", value: 2.77 }],
+      coverage: [], grossNpl: [], cardsNpl: [], smeNpl: [],
+      ladder: {
+        period: "2026Q2", n: 37,
+        stage2Share: 9.5, stage3Share: 5.7, problemShare: 15.2,
+        cov2: 9.3, cov3: 35.3, multipleOfPrinted: 15.2 / 5.7,
+      },
+    }, locale);
+    expect(result.headline).toContain("5.7%");
+    expect(result.headline).toContain("15.2%");
+    expect(result.headline).toContain("2.7");
+    expect(result.headline).toContain("37");
+    expect(result.headline).not.toContain("2.77%");
+    expect(result.items.some((item) => item.text.includes("2.77%"))).toBe(true);
+    expect(result.headline).toContain(locale === "tr" ? "2026 2.Ç" : "2026Q2");
+  });
+});

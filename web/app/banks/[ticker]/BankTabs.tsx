@@ -7,8 +7,8 @@
  * again). Each tab now *is* the page — the server renders only the active view, so
  * the payload and the scroll both collapse.
  *
- * Plain <a> links, not next/link: a tab must preserve the ?statement/?mode/?view/
- * ?kind params the Financials controls set, and carry the tab in the URL so a view
+ * Each link preserves the ?statement/?mode/?view/?kind params the Financials
+ * controls set, and carries the tab in the URL so a view
  * is shareable and back/forward work.
  */
 import { useText } from "@/i18n/use-text";
@@ -24,6 +24,15 @@ export const BANK_TABS: Array<{ id: BankTab; label: string }> = [
   { id: "ownership", label: "Ownership" },
   { id: "news", label: "News & Filings" },
 ];
+
+/** Shared by the tab strip and the Desk's links into each section. */
+export function bankTabHref(ticker: string, tab: BankTab, query = ""): string {
+  const params = new URLSearchParams(query);
+  if (tab === "desk") params.delete("tab");
+  else params.set("tab", tab);
+  const qs = params.toString();
+  return `/banks/${ticker}${qs ? `?${qs}` : ""}`;
+}
 
 export function BankTabs({
   ticker,
@@ -46,10 +55,7 @@ export function BankTabs({
       className="sticky top-0 z-20 -mx-4 flex gap-1 overflow-x-auto border-b border-border bg-card/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
     >
       {tabs.map((t) => {
-        const href =
-          t.id === "financials" && query
-            ? `/banks/${ticker}?tab=financials&${query}`
-            : `/banks/${ticker}${t.id === "desk" ? "" : `?tab=${t.id}`}`;
+        const href = bankTabHref(ticker, t.id, query);
         const on = t.id === active;
         return (
           <Link

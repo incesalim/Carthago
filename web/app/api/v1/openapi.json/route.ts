@@ -80,7 +80,7 @@ export async function GET() {
               name: "startDate",
               in: "query",
               required: false,
-              description: "Inclusive start, DD-MM-YYYY or YYYY-MM-DD.",
+              description: "Inclusive start, a valid calendar date in DD-MM-YYYY or YYYY-MM-DD format.",
               schema: { type: "string" },
               example: "01-01-2024",
             },
@@ -89,7 +89,7 @@ export async function GET() {
               in: "query",
               required: false,
               description:
-                "Inclusive end, DD-MM-YYYY or YYYY-MM-DD. Omit both dates for " +
+                "Inclusive end, a valid calendar date in DD-MM-YYYY or YYYY-MM-DD format. Omit both dates for " +
                 "the full available history.",
               schema: { type: "string" },
               example: "31-12-2025",
@@ -186,7 +186,7 @@ export async function GET() {
               name: "offset",
               in: "query",
               required: false,
-              schema: { type: "integer", default: 0 },
+              schema: { type: "integer", default: 0, minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
             },
             {
               name: "type",

@@ -71,6 +71,9 @@ describe("display translation", () => {
     expect(formatDateLabel("Q1 2026", "tr")).toBe("2026 1.Ç");
     expect(formatDateLabel("APR", "tr")).toBe("Nis");
     expect(formatDateLabel("SEP 10", "tr")).toBe("10 Eyl");
+    expect(formatDateLabel("OCT 24 – NOV 14", "tr")).toBe("24 Eki – 14 Kas");
+    expect(formatDateLabel("AUG 4–7", "tr")).toBe("4–7 Ağu");
+    expect(formatDateLabel("OCT 24 – NOV 14", "en")).toBe("OCT 24 – NOV 14");
     expect(formatDateLabel("2026-02-31", "tr")).toBe("2026-02-31");
     expect(formatUnitLabel("−₺1,234.50bn", "tr")).toBe("−₺1,234.50 milyar");
     expect(formatUnitLabel("+4.4pp/yr", "tr")).toBe("+4.4 yüzde puan/yıl");

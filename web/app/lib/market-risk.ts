@@ -264,8 +264,9 @@ export interface MarketRiskDetail {
   period: string | null;
   /** Diverging repricing-gap ladder (5 rate buckets) + cumulative ≤1y gap %. */
   repricing: { buckets: RepricingBucket[]; gap1yPct: number | null };
-  /** FX net open position by currency (signed). */
-  fx: { items: FxPositionItem[] };
+  /** FX net open position (signed), at its own reported quarter. The peer
+   * heatmap's absolute exposure is not a substitute for this direction. */
+  fx: { items: FxPositionItem[]; totalPct: number | null; period: string | null };
   hasData: boolean;
 }
 
@@ -324,9 +325,14 @@ export async function bankMarketRiskDetail(
         .reduce((s, r) => s + (r.total_capital ?? 0), 0)
     : 0;
   const byCcy = new Map<string, number>();
+  let totalNop: number | null = null;
   if (fxPeriod) {
     for (const r of myFx) {
-      if (r.period !== fxPeriod || r.currency === "TOTAL" || r.net_position == null) continue;
+      if (r.period !== fxPeriod || r.net_position == null) continue;
+      if (r.currency === "TOTAL") {
+        totalNop = (totalNop ?? 0) + r.net_position;
+        continue;
+      }
       const key = r.currency === "EUR" ? "EUR" : r.currency === "USD" ? "USD" : "Other";
       byCcy.set(key, (byCcy.get(key) ?? 0) + r.net_position);
     }
@@ -342,7 +348,7 @@ export async function bankMarketRiskDetail(
   return {
     period: [rpPeriod, fxPeriod].filter(Boolean).sort().at(-1) ?? null,
     repricing: { buckets, gap1yPct },
-    fx: { items },
-    hasData: buckets.length > 0 || items.length > 0,
+    fx: { items, totalPct: totalNop != null && capV > 0 ? (totalNop / capV) * 100 : null, period: fxPeriod },
+    hasData: buckets.length > 0 || items.length > 0 || totalNop != null,
   };
 }

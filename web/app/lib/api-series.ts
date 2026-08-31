@@ -76,11 +76,18 @@ export function parseSeriesParam(raw: string): string[] {
 export function parseDate(raw: string | null): string | null {
   if (!raw) return null;
   const s = raw.trim();
-  let m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m) return s;
-  return null;
+  const evds = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  const iso = evds ? `${evds[3]}-${evds[2]}-${evds[1]}` : s;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+
+  // A correctly shaped string can still describe no calendar date. Passing
+  // e.g. February 31 to the lexical SQL bounds silently changes the requested
+  // window instead of telling the caller their input is invalid.
+  const [year, month, day] = iso.split("-").map(Number);
+  if (year < 1 || month < 1 || month > 12 || day < 1) return null;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= days[month - 1] ? iso : null;
 }
 
 /** Look up catalog rows for the requested codes, in the order requested. */

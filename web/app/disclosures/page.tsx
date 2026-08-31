@@ -5,14 +5,15 @@
  * route stays served so the /pipeline graph check passes. See docs/PROJECT_STATE.md.
  */
 import { redirect } from "next/navigation";
+import { firstQueryValue, type QueryValue } from "@/app/lib/query-params";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
-  searchParams: Promise<{ ticker?: string }>;
+  searchParams: Promise<{ ticker?: QueryValue }>;
 }
 
 export default async function DisclosuresRedirect({ searchParams }: Props) {
-  const { ticker } = await searchParams;
+  const ticker = firstQueryValue((await searchParams).ticker)?.trim();
   redirect(ticker ? `/actions?ticker=${encodeURIComponent(ticker.toUpperCase())}` : "/actions");
 }

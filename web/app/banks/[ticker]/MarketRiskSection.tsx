@@ -5,7 +5,9 @@
  * the liquidity-coverage ratio), the interest-rate repricing gap as a diverging
  * ladder, and the FX net open position by currency. Magnitude ratios are derived
  * in heatmap.ts (identical to Compare); the per-bucket / per-currency detail
- * comes from market-risk.ts. Renders nothing when the bank discloses no §4
+ * comes from market-risk.ts. The FX headline uses that signed detail too;
+ * the heatmap carries an absolute magnitude for comparing exposure. Renders
+ * nothing when the bank discloses no §4
  * market-risk data.
  */
 import { useText } from "@/i18n/use-text";
@@ -78,7 +80,7 @@ export default function MarketRiskSection({
 }) {
   const tx = useText();
   const latest = rows[rows.length - 1] ?? null;
-  const fxNop = latest?.fx_nop ?? null;
+  const fxNop = detail.fx.totalPct;
   const lcr = latest?.lcr ?? null;
   const gap1y = detail.repricing.gap1yPct;
 
@@ -97,8 +99,9 @@ export default function MarketRiskSection({
           value={signedPct(fxNop)}
           hint={
             fxNop == null ? undefined : (
-              <span className={toneClass(fxNop >= 0)}>
-                {tx(fxNop >= 0 ? "net long FX" : "net short FX")}
+              <span className={toneClass(fxNop === 0 ? null : fxNop > 0)}>
+                {fxNop !== 0 && <>{tx(fxNop > 0 ? "net long FX" : "net short FX")} · </>}
+                {tx(detail.fx.period)}
               </span>
             )
           }

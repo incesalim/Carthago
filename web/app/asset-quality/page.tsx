@@ -184,12 +184,14 @@ export default async function AssetQualityPage() {
   const stockRealNow = lastVal(stockRealYoY as TimeSeriesRow[]);
   const loanRealNow = lastVal(loanRealYoY as TimeSeriesRow[]);
 
-  // The two NPL ratios. NEVER mixed inside one calculation — the published one is
-  // the official figure, the implied one is fresher; they differ by a stable
-  // ~0.10pp (definitional). Each is quoted with its basis named.
+  // The monthly and weekly ratios can have different reporting dates as well
+  // as different bases. Label each observation; do not call the latest gap a
+  // fixed definition effect or mix either with the audited staging multiple.
   const impliedSeries = impliedRatio(gross, loansTotal);
   const impliedNow = lastVal(impliedSeries as TimeSeriesRow[]);
   const publishedNow = lastVal(nplSector);
+  const publishedPeriod = nplSector.filter((r) => r.value != null).at(-1)?.period;
+  const impliedPeriod = impliedSeries.at(-1)?.period;
   const publishedRun = risingRun(nplSector);
 
   // ---- segments -------------------------------------------------------------
@@ -354,7 +356,7 @@ export default async function AssetQualityPage() {
         <div className="self-center">
           {ladder ? (
             <>
-              <p className="text-[19px] leading-snug tracking-tight text-foreground">{tx("The headline NPL ratio is the")}{" "}
+              <p className="text-[19px] leading-snug tracking-tight text-foreground">{tx("The audited Stage-3 share is the")}{" "}
                 <b className="font-mono font-semibold text-negative">{tx(fmtPct(ladder.stage3Share))}</b>{" "}{tx("tip. Loans the banks themselves classify as deteriorated are")}{" "}
                 <b className="font-mono font-semibold text-negative">{tx(fmtPct(ladder.problemShare))}</b> —{" "}
                 <b className="font-semibold text-negative">{tx(ladder.multipleOfPrinted.toFixed(1))}×</b>{tx(" as much.")}</p>
@@ -399,7 +401,7 @@ export default async function AssetQualityPage() {
               <>
                 <em className="font-semibold not-italic text-negative">
                   {tx(ladder.multipleOfPrinted.toFixed(1))}×
-                </em>{" "}{tx("the Stage-3 ratio the headline prints — ")}{tx(fmtTrnFromBn(ladder.problemBn))}{tx(" of loans (")}{tx(ladder.period)})
+                </em>{" "}{tx("the audited Stage-3 share — ")}{tx(fmtTrnFromBn(ladder.problemBn))}{tx(" of loans (")}{tx(ladder.period)})
               </>
             ) : undefined
           }
@@ -578,9 +580,12 @@ export default async function AssetQualityPage() {
             <b className="text-muted-foreground">{tx("0.1pp")}</b>{tx(", not the ~1pp a nominally-frozen-book counterfactual would suggest. A real bias does exist — the numerator is stale (a loan that defaulted two years ago sits at its origination principal) while the denominator reprices — but sizing it needs origination-vintage data we do not have, so we put no number on it.")}</p>
         </div>
         <div>
-          <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("Two NPL ratios, one page")}</h4>
-          <p className="text-[10px] leading-relaxed text-faint">{tx("The published ratio (BDDK monthly,")}{" "}
-            <b className="text-muted-foreground">{tx(fmtPct(publishedNow, 2))}</b>{tx(") and the ratio implied by the weekly bulletin (")}<b className="text-muted-foreground">{tx(fmtPct(impliedNow, 2))}</b>{tx(") differ by a stable ")}<b className="text-muted-foreground">{tx("~0.10pp")}</b>{tx(" — definitional, not noise. They are never mixed inside one calculation; the vitals quote the published figure and say so, while the stock and its segments come from the weekly feed.")}</p>
+          <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("NPL measures and reporting dates")}</h4>
+          <p className="text-[10px] leading-relaxed text-faint">
+            {tx("The published monthly NPL ratio is {0} ({1}); the weekly stock-to-loan ratio is {2} (week ending {3}).", {0: fmtPct(publishedNow, 2), 1: monthLabel(publishedPeriod), 2: fmtPct(impliedNow, 2), 3: weekLabel(impliedPeriod)})}{" "}
+            {tx("Different reporting dates and bases mean the latest gap cannot be attributed to definitions alone.")}{" "}
+            {ladder && tx("The audited staging comparison above uses only the same {0} reporting banks in {1}; its multiple is Stage 2 + 3 divided by Stage 3 on that same book.", {0: ladder.n, 1: ladder.period})}
+          </p>
         </div>
       </div>
 

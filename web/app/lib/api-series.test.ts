@@ -74,6 +74,20 @@ describe("parseDate", () => {
     expect(parseDate("2025-12-31")).toBe("2025-12-31");
   });
 
+  it("validates leap days in both accepted formats", () => {
+    expect(parseDate("29-02-2024")).toBe("2024-02-29");
+    expect(parseDate("2000-02-29")).toBe("2000-02-29");
+    expect(parseDate("29-02-2025")).toBeNull();
+    expect(parseDate("1900-02-29")).toBeNull();
+  });
+
+  it.each([
+    "2026-02-31", "31-04-2026", "2026-13-01", "2026-00-01",
+    "00-01-2026", "2026-01-32", "0000-01-01",
+  ])("rejects impossible calendar date %s", (raw) => {
+    expect(parseDate(raw)).toBeNull();
+  });
+
   it("returns null for junk or absent input", () => {
     expect(parseDate(null)).toBeNull();
     expect(parseDate("December 2025")).toBeNull();
