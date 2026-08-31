@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from .extractor import (
     HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _SECTION_REF_RX,
@@ -184,6 +184,9 @@ def _modal_ncols(lines: list[str], min_tokens: int = 10) -> int:
 # of the label ("Correction made as per TAS 8"), where the last-letter cut below
 # would leave it on the value side.
 _STD_REF_RX = re.compile(r'\b(?:TMS|TAS|TFRS|IFRS|IAS|UFRS)\s*\d{1,2}\b', re.I)
+_CALENDAR_DATE_RX = re.compile(
+    r'\b(?:0?[1-9]|[12]\d|3[01])([/.-])(?:0?[1-9]|1[0-2])\1(?:19|20)\d{2}\b'
+)
 
 
 def _mask_label_refs(text: str) -> str:
@@ -195,6 +198,10 @@ def _mask_label_refs(text: str) -> str:
     dashes look like a complete value grid.
     """
     text = _STD_REF_RX.sub(lambda m: " " * len(m.group()), text)
+    # ICBC's closing label includes 30/06/2026 immediately before the values.
+    # Treat its calendar date as metadata before counting columns, otherwise
+    # the surplus date tokens hide genuine short parenthesised losses.
+    text = _CALENDAR_DATE_RX.sub(lambda m: " " * len(m.group()), text)
     return _SECTION_REF_RX.sub(lambda m: " " * len(m.group()), text)
 
 
@@ -589,6 +596,20 @@ _EQ_ROW_SEQ = tuple(r + '.' for r in _EQ_ROMANS)
 # e.g. "(III+IV+…+X+XI)" / "(I+II+III+…+X+XI)". This must NOT match the new-balance
 # row III's "(I+II)" — so the formula is required to reach XI.
 _EQ_CLOSING_FORMULA_RX = re.compile(r'\(\s*[IVX][IVX0-9.+\s…]*XI')
+_EQ_ADJUSTED_FORMULA_RX = re.compile(r'\(\s*I\s*\+\s*II\s*\)')
+_EQ_CLIPPED_SUB_LABELS = (
+    ('2.1', re.compile(r'^(?:Hatalar|Effects? of Errors?)', re.I)),
+    ('2.2', re.compile(r'^(?:Muhasebe|Effects? of (?:the )?Changes? in Accounting)', re.I)),
+    ('11.1', re.compile(r'^(?:Dağıtılan\s+Temettü|Dividends?)', re.I)),
+    ('11.2', re.compile(r'^(?:Yedeklere|Transfers? to Reserves?)', re.I)),
+    ('11.3', re.compile(r'^(?:Diğer|Diger|Other)\b', re.I)),
+)
+_EQ_CLIPPED_ROMAN_LABELS = (
+    ('VI', re.compile(r'^(?:İç Kaynaklardan|Capital Increase by Internal Sources)', re.I)),
+    ('VII', re.compile(r'^(?:Ödenmiş Sermaye Enflasyon|Effect of Inflation on Paid-in Capital)', re.I)),
+    ('VIII', re.compile(r'^(?:Hisse Senedine Dönüştürülebilir|Convertible Bonds)', re.I)),
+    ('XI', re.compile(r'^(?:K[aâ]r Dağıtımı|Profit Distribution)', re.I)),
+)
 
 
 def _eq_is_closing(line: str) -> bool:
@@ -632,6 +653,27 @@ def _eq_split(line: str) -> tuple[str | None, str]:
         clean = _mask_label_refs(line)
         return None, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
 
+    # A clipped roman marker can turn III into II (ZIRAATK). The adjusted
+    # balance's explicit I+II formula is unambiguous, just like the closing
+    # formula above; preserve its figures and canonicalise only the marker.
+    if (_EQ_ADJUSTED_FORMULA_RX.search(line[:100])
+            and re.search(r'BAK[Iİ]YE|BALANCE', line[:100], re.I)):
+        clean = _mask_label_refs(line)
+        hier_m = _LINE_HIER_RX.match(clean)
+        if hier_m:
+            clean = clean[hier_m.end():]
+        return 'III.', _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+
+    # The same clipped marker column can lose the last digit of 2.x / 11.x.
+    # These five BRSA subrows have distinct labels. Resolve only those labels;
+    # an unknown line must not be guessed into the next main roman instead.
+    clipped = re.match(r'^(2|11)\.?\s+(.+)', line)
+    if clipped:
+        for marker, label_rx in _EQ_CLIPPED_SUB_LABELS:
+            if marker.startswith(clipped[1] + '.') and label_rx.search(clipped[2]):
+                clean = _mask_label_refs(clipped[2])
+                return marker, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+
     toks = line.split()
     for i, tok in enumerate(toks[:6]):
         marker_core, rest = None, ''
@@ -645,8 +687,12 @@ def _eq_split(line: str) -> tuple[str | None, str]:
                 marker_core, rest = m.group(1), m.group(2)
         if marker_core is None:
             continue
-        marker = marker_core + '.' if marker_core in _EQ_ROMANS else marker_core
         after = _mask_label_refs((rest + ' ' + ' '.join(toks[i + 1:])).strip())
+        for canonical, label_rx in _EQ_CLIPPED_ROMAN_LABELS:
+            if canonical.startswith(marker_core) and label_rx.search(after):
+                marker_core = canonical
+                break
+        marker = marker_core + '.' if marker_core in _EQ_ROMANS else marker_core
         label = _NUM_RX.sub('', after).rstrip('()-, ').strip()
         return marker, label
     if _eq_is_closing(line):
@@ -809,12 +855,22 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         last_ri = -1            # index in _EQ_ROW_SEQ of the last main roman seen
         stranded = ''           # label left over from the previous row's line
         closing_taken = False   # at most one label-less closing row per block
+        source_line = 0
+        dated_values = None
+        pending_opening = None
+        zero_adjustment = False
+        opening_candidates = []
         for line in lines:
             line = line.strip()
             if not line:
                 continue
+            source_line += 1
             marker, name = _eq_split(line)
-            tokens = _parse_row_tokens(line, nc)
+            years = list(_YEAR_RX.finditer(line))
+            date_range_values = (line[years[1].end():]
+                                 if marker is None and not name and len(years) >= 2
+                                 and years[1].end() <= 60 else None)
+            tokens = _parse_row_tokens(date_range_values or line, nc)
             if tokens is None:
                 # ANADOLU prints the closing label on its own line, followed
                 # by a date and the complete values. Keep that label attached
@@ -824,6 +880,15 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 continue
             fitted = _try_fit(tokens, nc)
             if fitted is None:
+                continue
+            # TAKAS prints its opening values on the date-range line directly
+            # above the I label. Retain that complete, exactly-footing source
+            # row for a later component-by-component match to III. A single
+            # dated closing row (ANADOLU) is not a date range.
+            if (date_range_values is not None and len(tokens) >= nc
+                    and all(value is not None for value in fitted)
+                    and fitted[0] > 0 and _row_fit_residual(fitted, nc) == 0):
+                dated_values = (source_line, fitted)
                 continue
             # Checklist walk: a wide data row that fits but carries no marker AND no
             # label is a row whose marker the text layer dropped (GARAN prints its
@@ -874,8 +939,33 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 minority_interest=cols[14] if nc == 16 else None,
                 total_equity_incl_minority=cols[15] if nc == 16 else None,
             )
+            if marker == 'I.':
+                pending_opening = None
+                zero_adjustment = False
+                if (dated_values and dated_values[0] == source_line - 1
+                        and all(value == 0 for value in cols)):
+                    pending_opening = (len(result), dated_values[1])
+                dated_values = None
+            elif marker == 'II.':
+                zero_adjustment = all(value == 0 for value in cols)
+            elif marker == 'III.' and pending_opening:
+                opening_index, header_cols = pending_opening
+                if zero_adjustment and cols == header_cols:
+                    original = result[opening_index]
+                    opening_candidates.append((opening_index, replace(
+                        row, order=original.order, hierarchy=original.hierarchy,
+                        name=original.name)))
+                pending_opening = None
             stranded = _trailing_text(line)
             result.append(row)
+        for opening_index, replacement in opening_candidates:
+            end = next((i for i in range(opening_index + 1, len(result))
+                        if result[i].hierarchy == 'I.'), len(result))
+            block = [replacement] + result[opening_index + 1:end]
+            # Do not apply a label-placement recovery to an incomplete or
+            # inconsistent table. No value is inferred or rounded here.
+            if _eq_chain_closes(_eq_score_dicts(block)):
+                result[opening_index] = replacement
         return result
 
     # The line reconstructions, kept so we can re-parse with the other column

@@ -1,5 +1,5 @@
 {
-  "_README": "Source-reviewed liquidity outliers. Exact partition, metric and source value only; changed values alert again. This does not override data or waive validation. Source page numbers are one-based. TOMK2023Q4 acknowledgment only matches the printed3768, never the old stored3768.83.",
+  "_README": "Source-reviewed liquidity outliers and impairment-basis changes. Exact partition and supporting source values only; changed or missing values alert again. This does not override data or waive validation. Source page numbers are one-based. TOMK2023Q4 acknowledgment only matches the printed3768, never the old stored3768.83.",
   "reviewed_on": "2026-08-31",
   "liquidity": [
     {
@@ -155,6 +155,31 @@
       "source_line": "3LİKİDİTE KARŞILAMA ORANI (%) - - 3,768 399,37",
       "pdf_sha256": "8739e9093b72478b044b02ef064d9ffca781b7bd85b2dc0a5827f6b565c838a9",
       "r2_key": "tomk/TOMK_2023Q4_unconsolidated.pdf"
+    }
+  ],
+  "ecl_basis": [
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "source_page": 20,
+      "policy_summary": "PDF p20 (printed p14), section VIII: the bank states BDDK approved its exemption from TFRS 9 impairment provisions through 31 December 2025. It uses general and specific provisions under the non-TFRS-9 rules instead of the expected-credit-loss model. No ECL row is disclosed in the current balance sheet.",
+      "pdf_sha256": "38bd9e45a8b71673b951596d7d756596d83ac9d70ad7d3c1f7833a10f55f467b",
+      "r2_key": "tomk/TOMK_2024Q2_unconsolidated.pdf",
+      "specific_provision": {
+        "source_page": 9,
+        "hierarchy": "2.5",
+        "item_name": "Özel Karşılıklar (-)",
+        "source_value": 0,
+        "source_line": "2.5 Özel Karşılıklar (-) - - - - - -"
+      },
+      "general_provision": {
+        "source_page": 10,
+        "hierarchy": "8.1",
+        "item_name": "Genel Karşılıklar",
+        "source_value": 26538,
+        "source_line": "8.1 Genel Karşılıklar 21.605 4.933 26.538 - - -"
+      }
     }
   ]
 }

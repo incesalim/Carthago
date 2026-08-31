@@ -228,3 +228,83 @@ def test_both_period_blocks_keep_their_separate_label_and_dated_closing(monkeypa
         ('prior', 1100), ('current', 2200),
     ]
     assert all('Dönem Sonu Bakiyesi' in r.name for r in closing)
+
+
+@pytest.mark.parametrize(('label', 'marker'), [
+    ('II Yeni Bakiye (I+II)', 'III.'),
+    ('2. Hataların Düzeltilmesinin Etkisi', '2.1'),
+    ('2. Muhasebe Politikasında Yapılan Değişikliklerin Etkisi', '2.2'),
+    ('V İç Kaynaklardan Gerçekleştirilen Sermaye Artırımı', 'VI.'),
+    ('VI Ödenmiş Sermaye Enflasyon Düzeltme Farkı', 'VII.'),
+    ('VI Hisse Senedine Dönüştürülebilir Tahviller', 'VIII.'),
+    ('X Kar Dağıtımı', 'XI.'),
+    ('11 Dağıtılan Temettü', '11.1'),
+    ('11 Yedeklere Aktarılan Tutarlar', '11.2'),
+    ('11 Diğer', '11.3'),
+])
+def test_clipped_equity_markers_follow_their_unambiguous_source_labels(label, marker):
+    # ZIRAATK 2023Q1's narrow marker column clips both roman and subrow digits.
+    assert EC._eq_split(label + ' ' + '- ' * 14)[0] == marker
+
+
+def test_clipped_marker_recovery_does_not_relabel_unknown_or_different_rows():
+    assert EC._eq_split('II TMS 8 Uyarınca Yapılan Düzeltmeler ' + '- ' * 14)[0] == 'II.'
+    assert EC._eq_split('2. Unknown disclosure ' + '- ' * 14) == (None, '')
+    assert EC._eq_split('V Nakden Gerçekleştirilen Sermaye Artırımı ' + '- ' * 14)[0] == 'V.'
+
+
+@pytest.mark.parametrize('case', [
+    'faithful', 'header_mismatch', 'nonzero_adjustment', 'not_adjacent', 'missing_closing',
+])
+def test_displaced_opening_requires_all_independent_source_checks(monkeypatch, case):
+    # TAKAS 2026Q2 p15: these figures print on the date range immediately above
+    # the all-dash I row, and III independently repeats every figure.
+    opening = '600 33 - 3 - (23) - - - - 8.956 11.711 - 21.280 - 21.280'
+    header = opening
+    if case == 'header_mismatch':
+        header = header.replace('600', '601').replace('21.280', '21.281')
+    zeros = '- ' * 16
+    adjustment = ('1 ' + '- ' * 12 + '1 - 1') if case == 'nonzero_adjustment' else zeros
+    lines = ['Cari Dönem', '1 Ocak 2026-30 Haziran 2026 ' + header]
+    if case == 'not_adjacent':
+        lines.append('Unrelated source line')
+    lines += [
+        'I. Önceki dönem sonu bakiyesi ' + zeros,
+        'II. TMS 8 uyarınca yapılan düzeltmeler ' + adjustment,
+        '2.1 Hataların düzeltilmesinin etkisi ' + zeros,
+        '2.2 Muhasebe politikasındaki değişikliklerin etkisi ' + zeros,
+        'III. Yeni bakiye (I+II) ' + opening,
+        'IV. Toplam kapsamlı gelir ' + '- ' * 12 + '8.300 8.300 - 8.300',
+    ]
+    lines += [marker + ' Movement ' + zeros for marker in EC._EQ_ROW_SEQ[4:10]]
+    lines.append('XI. Kar dağıtımı ' + '- ' * 10 + '5.844 (11.688) - (5.844) - (5.844)')
+    if case != 'missing_closing':
+        lines.append('Dönem sonu bakiyesi (III+IV+…+X+XI) '
+                     '600 33 - 3 - (23) - - - - 14.800 23 8.300 23.736 - 23.736')
+    monkeypatch.setattr(EC, '_fitz_page_lines', lambda *_: lines)
+    monkeypatch.setattr(EC, '_fitz_page_text', lambda *_: '\n'.join(lines))
+    monkeypatch.setattr(EC, '_fitz_dense_page_lines', lambda *_: lines)
+    rows = EC._parse_equity_page('unused.pdf', 15, 'current', 16)
+    first = next(row for row in rows if row.hierarchy == 'I.')
+    assert first.total_equity == (21280 if case == 'faithful' else 0)
+    if case == 'faithful':
+        assert first.paid_in_capital == 600
+        assert first.oci_not_reclassified_2 == -23
+        assert EC._eq_chain_closes(EC._eq_score_dicts(rows))
+
+
+@pytest.mark.parametrize('date', ['30/06/2026', '30.06.2026', '30-06-2026'])
+def test_closing_date_is_metadata_and_small_losses_keep_their_columns(date):
+    # ICBC 2026Q2 consolidated p15: the source prints the date and all 16
+    # values on one closing line. A date is not four extra amount columns.
+    line = (f'Dönem Sonu Bakiyesi (III+IV+…+X+XI) {date} '
+            '860 (1) - - 100 (49) - - (1) - 3,688 112 1,834 6,543 - 6,543')
+    expected = [860, -1, 0, 0, 100, -49, 0, 0, -1, 0, 3688, 112, 1834, 6543, 0, 6543]
+    assert EC._parse_row_tokens(line, 16) == expected
+    assert EC._try_fit(expected, 16) == expected
+    assert date not in EC._eq_split(line)[1]
+
+
+def test_date_metadata_rule_does_not_mask_monetary_thousands_groups():
+    amounts = '1.234.567 30.006.026 30,006,026 (54)'
+    assert EC._mask_label_refs(amounts) == amounts

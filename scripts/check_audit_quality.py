@@ -35,7 +35,9 @@ Checks (each yields offending (bank, period, kind)):
                     ("…Losses(") or a tiny |amount| on a large bank are
                     fingerprints of the dipnot-ref "(6)" being read as the value
                     (the ALBRK -6 bug); a quarter that LOSES its ECL rows while
-                    the prior quarter had them is the row-drop variant.
+                    the prior quarter had them is the row-drop variant. Reviewed
+                    impairment-basis changes with both replacement disclosures
+                    still present remain observations, without inventing ECL.
   9. pl_sign     — template-aware P&L deduction sign changes. Complete signed
                     statements that reconcile remain observations; incomplete
                     or inconsistent statements still require investigation.
@@ -354,7 +356,26 @@ ECL_TINY_MAX = 100            # thousand TL
 ECL_MIN_BANK_TOTAL = 10_000_000  # only apply the tiny test to large banks
 
 
-def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
+def _ecl_basis_reviews() -> dict[tuple[str, str, str], dict]:
+    """Source-reviewed impairment-basis changes, never a blanket bank waiver."""
+    try:
+        data = json.loads((REPO / "data" / "audit_quality_reviews.json").read_text(encoding="utf-8"))
+        return {
+            (row["bank_ticker"], row["period"], row["kind"]): row
+            for row in data.get("ecl_basis", [])
+            if re.fullmatch(r"[a-f0-9]{64}", row.get("pdf_sha256", ""))
+            and row.get("source_page", 0) > 0 and row.get("policy_summary")
+            and all(row[role].get("source_page", 0) > 0
+                    and row[role].get("item_name") and row[role].get("hierarchy")
+                    and isinstance(row[role].get("source_value"), (int, float))
+                    for role in ("specific_provision", "general_provision"))
+        }
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}
+
+
+def _ecl_sanity(conn: sqlite3.Connection, *,
+                reviewed: list[str] | None = None) -> list[str]:
     """Fingerprints of the ECL parse bug (ALBRK -6 / row-drop class):
        a) truncated label '…Losses(' — the label boundary landed inside '(-)';
        b) ALL of a large bank's ECL rows implausibly tiny — dipnot ref read as
@@ -364,8 +385,11 @@ def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
           flagged: some banks print the value itself in parens, so a large
           negative ECL is the faithful reading (ING/KLNMA/PASHA/TFKB);
        c) a quarter whose ECL rows vanish while the prior quarter had them —
-          the silent row-drop variant."""
+          the silent row-drop variant. A source-reviewed switch to legacy
+          impairment rules is an observation only while BOTH the replacement
+          asset-specific and liability-general provisions match the source."""
     out = []
+    basis_reviews = _ecl_basis_reviews()
     rows = conn.execute(
         "SELECT bank_ticker, period, kind, item_name, amount_total "
         "FROM bank_audit_balance_sheet WHERE statement='assets' AND ("
@@ -414,6 +438,22 @@ def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
                     "AND period=? AND kind=? AND statement='assets'",
                     (bank, p1, kind)).fetchone()[0]
                 if n >= MIN_ASSET_ROWS:
+                    basis = basis_reviews.get((bank, p1, kind))
+                    if basis and all(conn.execute(
+                        "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=? "
+                        "AND period=? AND kind=? AND statement=? AND hierarchy=? "
+                        "AND item_name=? AND amount_total=?",
+                        (bank, p1, kind, statement, basis[role]["hierarchy"],
+                         basis[role]["item_name"], basis[role]["source_value"]),
+                    ).fetchone()[0] == 1 for role, statement in (
+                        ("specific_provision", "assets"), ("general_provision", "liabilities"),
+                    )):
+                        if reviewed is not None:
+                            reviewed.append(f"ecl       {bank} {p1} {kind}: source-reviewed "
+                                            f"impairment-basis change (PDF p{basis['source_page']}); "
+                                            "specific and general provisions match the source; "
+                                            "undisclosed ECL remains null")
+                        continue
                     out.append(f"ecl       {bank} {p1} {kind}: ECL rows present at {p0} "
                                f"but missing here — row likely dropped by the parser")
     return out
@@ -626,7 +666,7 @@ def check(db: Path, *, reviewed: list[str] | None = None) -> list[str]:
                 + _npl_collapse(conn) + _capital_consistency(conn)
                 + _liquidity_bands(conn) + _liquidity_outliers(conn, reviewed=reviewed)
                 + _off_balance_consistency(conn)
-                + _structure(conn) + _ecl_sanity(conn)
+                + _structure(conn) + _ecl_sanity(conn, reviewed=reviewed)
                 + _pl_sign_convention(conn, reviewed=reviewed) + _free_provision(conn))
     finally:
         conn.close()

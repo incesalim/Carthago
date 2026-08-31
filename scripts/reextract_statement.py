@@ -235,6 +235,15 @@ def _worker(args):
     return (ticker, period, kind, True, n, time.time() - t0, "", rep, str(dest), unit)
 
 
+def _unit_change_requires_refresh(conn, bank, period, kind, unit) -> bool:
+    """A changed filing denomination requires all monetary lanes together."""
+    previous = conn.execute(
+        "SELECT source_unit FROM bank_audit_extractions "
+        "WHERE bank_ticker=? AND period=? AND kind=?", (bank, period, kind),
+    ).fetchone()
+    return bool(previous and previous[0] and previous[0] != unit.source_unit)
+
+
 def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
     if statement == "equity_change":
         report = getattr(rep, "equity_change", None) or EquityChangeReport(pdf_path=rep.pdf_path)
@@ -252,8 +261,12 @@ def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
                 'INSERT INTO bank_audit_cash_flow '
                 '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
-                 for r in rows])
+                unit.scale_rows(
+                    "bank_audit_cash_flow",
+                    ["bank_ticker", "period", "kind", "item_order", "hierarchy",
+                     "item_name", "footnote", "amount"],
+                    [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+                     for r in rows]))
         return len(rows)
     if statement == "npl_movement":
         report = NplMovementReport(pdf_path=rep.pdf_path,
@@ -326,8 +339,12 @@ def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
                 "(bank_ticker, period, kind, statement, item_order, hierarchy, item_name, "
                 " footnote, amount_tl, amount_fc, amount_total) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [(bank, period, kind, stmt_name, r.order, r.hierarchy, r.name, r.footnote,
-                  r.cur_tl, r.cur_fc, r.cur_total) for r in rows])
+                unit.scale_rows(
+                    "bank_audit_balance_sheet",
+                    ["bank_ticker", "period", "kind", "statement", "item_order", "hierarchy",
+                     "item_name", "footnote", "amount_tl", "amount_fc", "amount_total"],
+                    [(bank, period, kind, stmt_name, r.order, r.hierarchy, r.name, r.footnote,
+                      r.cur_tl, r.cur_fc, r.cur_total) for r in rows]))
         return len(rows)
     if statement == "profit_loss":
         rows = getattr(rep, "profit_loss", []) or []
@@ -338,8 +355,12 @@ def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
                 "INSERT INTO bank_audit_profit_loss "
                 "(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
-                 for r in rows])
+                unit.scale_rows(
+                    "bank_audit_profit_loss",
+                    ["bank_ticker", "period", "kind", "item_order", "hierarchy",
+                     "item_name", "footnote", "amount"],
+                    [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+                     for r in rows]))
         _validator.upsert_pl_roles(conn, bank, period, kind)
         return len(rows)
     if statement == "prose":
@@ -490,6 +511,14 @@ def main() -> int:
                 if not ok:
                     counts["fail"] += 1
                     print(f"  [FAIL] {t:<8} {p} {k:<14} {err}", flush=True)
+                    continue
+                if _unit_change_requires_refresh(conn, t, p, k, unit):
+                    # Stamping the new unit after repairing just one lane would
+                    # hide the old scale from the full loader's unit-change guard.
+                    # Even --force cannot safely make that partial conversion.
+                    counts["reject"] += 1
+                    print(f"  [REJECT] {t:<8} {p} {k:<14} source unit changed; "
+                          "use a scoped whole-filing refresh", flush=True)
                     continue
                 # Non-destructive: never overwrite data that already validates
                 # (--only-failing already excludes these, but the guard makes a

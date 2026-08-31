@@ -3,7 +3,10 @@
 These exercise scripts/check_audit_quality.py against a synthetic in-memory DB —
 no PDF parsing, so they run under CI's minimal dependency set (sqlite + stdlib).
 """
+import json
 import sqlite3
+
+import pytest
 
 import check_audit_quality as q  # scripts/ is on pythonpath (see pyproject.toml)
 from src.audit_reports.schema import init_schema
@@ -271,6 +274,69 @@ def test_ecl_flags_vanished_rows():
     _big_bank_quarter(c, "F", "2026Q1", [])  # rows dropped by the parser
     issues = q._ecl_sanity(c)
     assert any("F 2026Q1" in i and "missing" in i for i in issues)
+
+
+def _tomk_legacy_ecl_quarters(c):
+    _big_bank_quarter(c, "TOMK", "2024Q1", [("Beklenen Zarar Karşılıkları (-)", 0)])
+    _big_bank_quarter(c, "TOMK", "2024Q2", [("Özel Karşılıklar (-)", 0)])
+    _ins_bs(c, "TOMK", "2024Q2", [("Genel Karşılıklar", 26538)], statement="liabilities")
+    c.execute("UPDATE bank_audit_balance_sheet SET hierarchy='2.5' "
+              "WHERE item_name='Özel Karşılıklar (-)'")
+    c.execute("UPDATE bank_audit_balance_sheet SET hierarchy='8.1' "
+              "WHERE item_name='Genel Karşılıklar'")
+
+
+def test_ecl_reviewed_legacy_basis_requires_both_source_disclosures():
+    # TOMK Q2 explicitly adopts general/specific provision rules (policy PDF p20),
+    # replacing Q1's ECL label. Specific provisions are a printed nil, not an ECL.
+    c = _conn()
+    _tomk_legacy_ecl_quarters(c)
+    changes = c.total_changes
+    reviewed = []
+    assert q._ecl_sanity(c, reviewed=reviewed) == []
+    assert len(reviewed) == 1 and "PDF p20" in reviewed[0]
+    assert "ECL remains null" in reviewed[0]
+    assert c.total_changes == changes
+    assert c.execute("SELECT COUNT(*) FROM bank_audit_balance_sheet "
+                     "WHERE period='2024Q2' AND item_name LIKE 'Beklenen%'").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("change", [
+    "DELETE FROM bank_audit_balance_sheet WHERE hierarchy='2.5'",
+    "DELETE FROM bank_audit_balance_sheet WHERE hierarchy='8.1'",
+    "UPDATE bank_audit_balance_sheet SET amount_total=NULL WHERE hierarchy='2.5'",
+    "UPDATE bank_audit_balance_sheet SET amount_total=1 WHERE hierarchy='2.5'",
+    "UPDATE bank_audit_balance_sheet SET amount_total=26539 WHERE hierarchy='8.1'",
+    "UPDATE bank_audit_balance_sheet SET statement='assets', item_order=999 WHERE hierarchy='8.1'",
+    "UPDATE bank_audit_balance_sheet SET kind='consolidated'",
+])
+def test_ecl_legacy_basis_missing_changed_or_other_kind_still_alerts(change):
+    c = _conn()
+    _tomk_legacy_ecl_quarters(c)
+    c.execute(change)
+    reviewed = []
+    assert any("missing" in issue for issue in q._ecl_sanity(c, reviewed=reviewed))
+    assert reviewed == []
+
+
+def test_ecl_legacy_labels_without_reviewed_policy_still_alert(monkeypatch):
+    c = _conn()
+    _tomk_legacy_ecl_quarters(c)
+    monkeypatch.setattr(q, "_ecl_basis_reviews", dict)
+    assert any("missing" in issue for issue in q._ecl_sanity(c))
+
+
+@pytest.mark.parametrize("field,value", [("pdf_sha256", "invalid"), ("source_page", 0),
+                                         ("policy_summary", "")])
+def test_ecl_basis_review_requires_source_evidence(tmp_path, monkeypatch, field, value):
+    data = json.loads((q.REPO / "data" / "audit_quality_reviews.json").read_text(encoding="utf-8"))
+    data["ecl_basis"][0][field] = value
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "audit_quality_reviews.json").write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr(q, "REPO", tmp_path)
+    c = _conn()
+    _tomk_legacy_ecl_quarters(c)
+    assert any("missing" in issue for issue in q._ecl_sanity(c))
 
 
 # --- delta-alert fingerprint ------------------------------------------------
