@@ -16,7 +16,7 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
-**Bank-ratio gaps (2026-08-31; production recovery in progress):**
+**Bank-ratio gaps (2026-08-31; repaired and verified live):**
 ROE gaps in otherwise complete filings came from missing `bank_audit_pl_roles`,
 not missing profit figures. P&L persistence now rebuilds that map immediately
 from the stored statement, and targeted P&L repairs include it in their
@@ -31,17 +31,22 @@ the existing validation gates. Ziraat Dinamik's TTM ROE/NIM remain unavailable
 without a stored 2025Q2 YTD baseline; absence is not a zero.
 Applied repairs restored 81 role maps across both kinds and 16 banks'
 2026Q2 credit/stage partitions; all unaffected stage records were unchanged.
-Alternatif Bank's date-only NPL closing label also needs a contextual source
+Alternatif Bank's date-only NPL closing label now has a contextual source
 mapping: it is accepted only inside the III/IV/V table with three balance
 cells followed by the matching provision row, excluding FX-only tables. The
-traceability gate remains enabled, and that repair passed. Akbank's stale equity
-labels are still being repaired. Legacy single-P&L repairs also compare role
+traceability gate remains enabled, and that repair passed. Akbank 2026Q1 had
+79 stale labels restored across both kinds, including equity; every amount,
+hierarchy and row order stayed unchanged. Legacy single-P&L repairs also compare role
 content before including the role table in their D1 replacement.
 The final register sweep found a separate Hayat Katılım CAR gap: capital
 text repair joined adjacent one-decimal values (`25.6 23.1`) into one token.
 Only genuinely detached digits now join; the source gives 25.6% unconsolidated
-and 26.6% consolidated CAR, with unchanged capital amounts. Its targeted Q2
-capital repair is pending production validation.
+and 26.6% consolidated CAR. Targeted Q2 repair restored all 12 current/prior
+CAR/CET1/Tier1 ratio cells across both kinds; every other capital field stayed
+unchanged. All repairs passed their existing validation gates in Actions and
+were verified in D1 and the public bank API. At the common 2026Q2 quarter,
+every lending bank now has NPL and CAR; only Ziraat Dinamik lacks TTM ROE/NIM
+because its 2025Q2 baseline is not stored. No absent value was changed to zero.
 
 | Table | Source | Range | Latest |
 |---|---|---|---|
