@@ -10,6 +10,10 @@
     "the same commit."
   ],
   "workflows": {
+    "repair-missing-audit-rows.yml": {
+      "state": "active",
+      "reason": "Manual only; dry-run by default. Restore only source-proven missing D1 rows from the authoritative audit snapshot; conflicting facts abort before writes."
+    },
     "repair-audit-roles.yml": {
       "state": "active",
       "reason": "Manual only; dry-run by default. Restore differing P&L role maps after checking snapshot/D1 source agreement; never re-extract or change figures."
