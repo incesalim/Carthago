@@ -894,6 +894,93 @@ def _extract_npl_brsa_via_template(
     return out
 
 
+def _category_gross_fallback(page_num: int, lines: list[str],
+                             existing: list[StageRow]) -> list[StageRow]:
+    """Fill a missing gross from a complete, independently-footing borrower note.
+
+    Small '(Brüt)' rows cannot simply bypass the magnitude filter: one borrower
+    category is not the bank total. Require all three BRSA categories, each
+    gross/provision/net identity, their printed net parent, and agreement with
+    the existing provision/net output before summing the printed gross cells.
+    """
+    category_rx = re.compile(
+        r"^\s*(?:(?P<people>Gerçek\s+ve\s+Tüzel\s+Kişilere\s+Kullandırılan\s+Krediler)"
+        r"|(?P<banks>Bankalar)|(?P<other>Diğer\s+Kredi\s+ve\s+Alacaklar))"
+        r"\s*\((?P<kind>Brüt|Net)\)\s*(?P<values>.*)$", re.I)
+    periods = [i for i, line in enumerate(lines)
+               if _detect_period_type(line.strip()) is not None
+               and re.search(r"\(\s*Net\s*\)", line, re.I)]
+    headers = [i for i, line in enumerate(lines) if _NPL_HEADER_LINE.match(line.strip())]
+    by_key = {}
+    for row in existing:
+        by_key.setdefault((row.section, row.period_type), row)
+
+    def cells(text: str, *, magnitude: bool = False) -> list[float] | None:
+        tokens = _NUM.findall(text)
+        if len(tokens) != 3:
+            return None
+        values = [parse_num(token) for token in tokens]
+        if any(value is None for value in values):
+            return None
+        return [abs(value) if magnitude else value for value in values]
+
+    out = []
+    for start in periods:
+        period_type = _detect_period_type(lines[start].strip())
+        if ("npl_brsa_gross", period_type) in by_key:
+            continue
+        parent_match = re.search(r"\(\s*Net\s*\)", lines[start], re.I)
+        parent = cells(lines[start][parent_match.end():])
+        if parent is None:
+            continue
+        stop = min((i for i in periods + headers if i > start), default=len(lines))
+        categories: dict[str, dict[str, list[float]]] = {}
+        active = None
+        valid = True
+        for line in lines[start + 1:stop]:
+            match = category_rx.match(line)
+            provision = _NPL_PROVISION_ROW.match(line.strip())
+            if match:
+                active = next(key for key in ("people", "banks", "other") if match[key])
+                kind = "gross" if match["kind"].casefold() == "brüt" else "net"
+                values = cells(match["values"])
+            elif provision and active is not None:
+                kind = "provision"
+                values = cells(line.strip()[provision.end():], magnitude=True)
+            else:
+                continue
+            entry = categories.setdefault(active, {})
+            if values is None or kind in entry:
+                valid = False
+                break
+            entry[kind] = values
+        if (not valid or set(categories) != {"people", "banks", "other"}
+                or any(set(row) != {"gross", "provision", "net"}
+                       for row in categories.values())):
+            continue
+        if any(row["gross"][col] - row["provision"][col] != row["net"][col]
+               for row in categories.values() for col in range(3)):
+            continue
+        totals = {kind: [sum(row[kind][col] for row in categories.values())
+                         for col in range(3)] for kind in ("gross", "provision", "net")}
+        if totals["net"] != parent:
+            continue
+        anchors_match = True
+        for kind in ("provision", "net"):
+            anchor = by_key.get((f"npl_brsa_{kind}", period_type))
+            if anchor is None or [anchor.stage1, anchor.stage2, anchor.stage3] != totals[kind]:
+                anchors_match = False
+        if not anchors_match:
+            continue
+        gross = totals["gross"]
+        out.append(StageRow(
+            section="npl_brsa_gross", period_type=period_type, page=page_num,
+            stage1=gross[0], stage2=gross[1], stage3=gross[2], total=sum(gross),
+            heading="III/IV/V groups (complete borrower categories)",
+        ))
+    return out
+
+
 def _extract_npl_brsa_from_page(
     page_num: int, page_text: str, *, unit_scale: int = 1,
 ) -> list[StageRow]:
@@ -1084,6 +1171,7 @@ def _extract_npl_brsa_from_page(
                 stage1=net[0], stage2=net[1], stage3=net[2],
                 total=_sum_or_none(net), heading="",
             ))
+    out.extend(_category_gross_fallback(page_num, lines, out))
     return out
 
 

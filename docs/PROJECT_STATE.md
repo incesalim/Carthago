@@ -52,7 +52,13 @@ Single-statement repair now refuses a changed filing denomination, even with for
 all monetary lanes must change together. TOMK's disclosed legacy impairment basis
 is an observation only while both replacement provision disclosures match the source.
 TAKAS/ZIRAATK/ICBC equity row-label repairs preserve the printed figures. Equity
-production repair is running; unresolved source discrepancies remain visible.
+production repair passed 54 candidates (21 financial and 33 capture-only); 47
+were rejected without overwriting their data. All eight remaining P&L repairs
+passed next, including HAYATK's EPS-boundary correction. Capital repairs match
+all 460 reviewed fields in D1. ICBC's missing prior gross credit stock is now
+recovered only from all three complete borrower-category disclosures, their
+printed parent total, and matching provision/net anchors. Its coordinated unit
+repair remains pending; unresolved source discrepancies remain visible.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain
