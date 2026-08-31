@@ -187,6 +187,7 @@ _STD_REF_RX = re.compile(r'\b(?:TMS|TAS|TFRS|IFRS|IAS|UFRS)\s*\d{1,2}\b', re.I)
 _CALENDAR_DATE_RX = re.compile(
     r'\b(?:0?[1-9]|[12]\d|3[01])([/.-])(?:0?[1-9]|1[0-2])\1(?:19|20)\d{2}\b'
 )
+_UNCLOSED_NEGATIVE_RX = re.compile(r'\((\d{1,3}(?:[.,]\d{3})+)(?=\s|$)')
 
 
 def _mask_label_refs(text: str) -> str:
@@ -338,6 +339,17 @@ def _parse_row_tokens(line: str,
                          or _row_fit_residual(unmasked_fit, n_cols)
                          < _row_fit_residual(masked_fit, n_cols))):
                 masked = unmasked
+    if n_cols in (14, 16) and _UNCLOSED_NEGATIVE_RX.search(_value_region(base)):
+        # A visibly printed opening parenthesis can lose its closing glyph
+        # (ANADOLU/HALKB). Keep that negative sign only when the complete source
+        # row, without padding or derived amounts, reconciles exactly and the
+        # established read does not. A label reference cannot pass this gate.
+        repaired = _tokens_of(_UNCLOSED_NEGATIVE_RX.sub(lambda m: '-' + m[1], base))
+        original_fit = _try_fit(masked, n_cols)
+        if (len(repaired) == n_cols and all(value is not None for value in repaired)
+                and _row_fit_residual(repaired, n_cols) == 0
+                and (original_fit is None or _row_fit_residual(original_fit, n_cols) > 0)):
+            masked = repaired
     return masked if len(masked) >= 2 else None
 
 
@@ -801,6 +813,18 @@ def _eq_chain_closes(d: list[dict]) -> bool:
     """True iff closing.total_equity ≈ Σ(romans III..XI) — the self-contained
     eq_col_chain identity, computed on candidate dicts (no DB). Guards against a
     degenerate parse: the closing total must be a REAL number (>1.0), not 0==0."""
+    starts = [i for i, row in enumerate(d) if row.get('hierarchy') == 'I.']
+    if starts and starts[0] != 0:
+        # A surviving current matrix cannot validate an incomplete prior matrix
+        # that precedes it but lost its opening marker (ATBANK's wrapped I.).
+        return False
+    if len(starts) > 1:
+        # Before period labels are assigned, a page may contain both matrices.
+        # Comparing its first III with its last closing mixes different years
+        # and incorrectly rejects a complete 16-column reconstruction.
+        return starts[0] == 0 and all(
+            _eq_chain_closes(d[start:end])
+            for start, end in zip(starts, starts[1:] + [len(d)]))
     closing = _v_eq_closing(d)
     r3 = _v_eq_roman(d, 3)
     if closing is None or r3 is None:
@@ -907,6 +931,35 @@ def _restore_equity_source_labels(
         if len(complete) == 1:
             restored[index] = replace(row, hierarchy=marker, name=complete.pop())
     return restored
+
+
+def _join_split_equity_labels(lines: list[str], n_cols: int) -> list[str]:
+    """Attach an explicit source marker to its immediately following value row."""
+    joined = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        marker, _ = _eq_split(line)
+        if marker and _parse_row_tokens(line, n_cols) is None:
+            candidate = line
+            for end in range(index + 1, min(index + 3, len(lines))):
+                following = lines[end]
+                if (_eq_split(following)[0] is not None
+                        or _EQ_CLOSING_FORMULA_RX.search(following[:100])):
+                    break
+                candidate += ' ' + following
+                values = _parse_row_tokens(candidate, n_cols)
+                if (values is not None and len(values) == n_cols
+                        and all(value is not None for value in values)
+                        and _row_fit_residual(values, n_cols) == 0):
+                    line = candidate
+                    index = end
+                    break
+                if _parse_row_tokens(following, n_cols) is not None:
+                    break
+        joined.append(line)
+        index += 1
+    return joined
 
 
 def _fitz_wrapped_digit_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
@@ -1249,6 +1302,14 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         recons.append([])
 
     candidates: list[list[EquityChangeRow]] = [_parse_with(lines, n_cols) for lines in recons]
+    if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
+        for lines in list(recons):
+            joined = _join_split_equity_labels(lines, n_cols)
+            if joined != lines:
+                candidate = _parse_with(joined, n_cols)
+                if _eq_candidate_score(candidate)[0] == 1:
+                    recons.append(joined)
+                    candidates.append(candidate)
     # Only expand the geometry search when neither established reconstruction
     # closes the statement. In particular, keep already valid page reads stable.
     if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
@@ -1273,7 +1334,9 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
     # clean set; it can only turn a chain-failure into a chain-closing parse.
     if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
         other = 16 if n_cols == 14 else 14
-        candidates += [_parse_with(lines, other) for lines in recons]
+        alternatives = [_parse_with(lines, other) for lines in recons]
+        candidates += [candidate for candidate in alternatives
+                       if _eq_candidate_score(candidate)[0] == 1]
 
     if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
         sparse = _fitz_sparse_page_grid(pdf_path, page_idx_1 - 1)

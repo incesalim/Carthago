@@ -181,5 +181,43 @@
         "source_line": "8.1 Genel Karşılıklar 21.605 4.933 26.538 - - -"
       }
     }
+  ],
+  "liquidity_low_nsfr": [
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q1",
+      "kind": "unconsolidated",
+      "source_value": 44.15,
+      "source_page": 41,
+      "source_line": "34 Net İstikrarlı Fonlama Oranı (%) 44.15%",
+      "basis_page": 42,
+      "basis_text": "(31 Aralık 2023: %43.44) Bankamızın da dahil olduğu kalkınma ve yatırım bankaları NİFO yasal sınırı olan asgari %100 oranını sağlamaktan muaftır.",
+      "pdf_sha256": "8dba5809690e4d095ed6130749bc30a2e203d685e37d764549d728e35f4e0313",
+      "r2_key": "takas/TAKAS_2024Q1_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "source_value": 49.16,
+      "source_page": 41,
+      "source_line": "34 Net İstikrarlı Fonlama Oranı (%) 49.16%",
+      "basis_page": 42,
+      "basis_text": "(31 Aralık 2023: %38.39). Bankamızın da dahil olduğu kalkınma ve yatırım bankaları NİFO yasal sınırı olan asgari %100 oranını sağlamaktan muaftır.",
+      "pdf_sha256": "ebdd3e9d1bc1fe73717d883a02f903bc9e3c7274320e131174db8b7b72f636e1",
+      "r2_key": "takas/TAKAS_2024Q3_unconsolidated.pdf"
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "source_value": 46.49,
+      "source_page": 40,
+      "source_line": "34 Net İstikrarlı Fonlama Oranı (%) 46.49%",
+      "basis_page": 41,
+      "basis_text": "gerçekleşmiştir (31 Aralık 2024: %54,72). Bankamızın da dahil olduğu kalkınma ve yatırım bankaları NİFO yasal sınırı olan asgari %100 oranını sağlamaktan muaftır.",
+      "pdf_sha256": "2be26374f405cd7f2fb71b4501b44347b2ecbc1ecefe274a5badfa26929b3367",
+      "r2_key": "takas/TAKAS_2025Q2_unconsolidated.pdf"
+    }
   ]
 }

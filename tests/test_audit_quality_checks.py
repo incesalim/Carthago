@@ -136,6 +136,32 @@ def test_review_never_bypasses_liquidity_validation(monkeypatch):
     assert q._liquidity_bands(c)
 
 
+def test_source_reviewed_nsfr_exemption_does_not_hide_other_failures():
+    c = _conn()
+    _ins_liquidity(c, bank_ticker="TAKAS", period="2024Q1", kind="unconsolidated",
+                   period_type="current", nsfr=44.15, lcr_total=30, leverage_ratio=100)
+    reviewed = []
+    issues = q._liquidity_bands(c, reviewed=reviewed)
+    assert len(issues) == 2
+    assert any("LCR" in issue for issue in issues)
+    assert any("leverage" in issue for issue in issues)
+    assert len(reviewed) == 1 and "NSFR" in reviewed[0]
+    c.execute("UPDATE bank_audit_liquidity SET nsfr=44.16")
+    assert len(q._liquidity_bands(c)) == 3
+    c.execute("UPDATE bank_audit_liquidity SET nsfr=44.15,kind='consolidated'")
+    assert len(q._liquidity_bands(c)) == 3
+
+
+def test_nsfr_review_requires_disclosure_evidence(tmp_path, monkeypatch):
+    (tmp_path / "data").mkdir()
+    data = {"liquidity_low_nsfr": [{"bank_ticker": "TAKAS", "period": "2024Q1",
+            "kind": "unconsolidated", "source_value": 44.15, "pdf_sha256": "a" * 64,
+            "source_page": 41, "source_line": "NSFR 44.15%"}]}
+    (tmp_path / "data" / "audit_quality_reviews.json").write_text(json.dumps(data))
+    monkeypatch.setattr(q, "REPO", tmp_path)
+    assert q._low_nsfr_reviews() == {}
+
+
 def test_pl_reversal_requires_complete_signed_reconciliation():
     from test_audit_validator import _clean_pl
     c = _conn()

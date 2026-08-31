@@ -838,6 +838,16 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         if touched_now:
             stale[table] = sorted(touched_now)
     if partition_mode:
+        if replace is None:
+            # A timestamp selects PARTITIONS to inspect, not the rows that may
+            # survive a partition replacement. Idempotent derived-table writers
+            # can update one current row while preserving an older prior row.
+            # Hashing/inserting only that window would DELETE both and restore
+            # just the current row. Always compare and ship the complete local
+            # partition once any of its rows enters the window.
+            key_columns = ", ".join(_PART_KEY)
+            where = (f"WHERE ({key_columns}) IN "
+                     f"(SELECT {key_columns} FROM {table} {where})")
         current = partition_digests(conn, table, where)
         stored = stored_partition_digests(conn, table)
         stored_rows = stored_partition_rows(conn, table)
@@ -857,14 +867,20 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
             # now holds zero rows locally and one the log has never heard of.
             emptied = sorted(p for p in replace if p not in current)
         else:
-            # Partitions the log says were re-extracted, which now hold NO rows:
-            # D1 still has their old contents and nothing local can point at
-            # them. Scoped to the window via the log, so historical partitions
-            # that are merely out of window are never touched.
+            # Only actual absence from the WHOLE local table proves emptiness.
+            # Another lane can bump the filing's extraction log while this
+            # table keeps valid, older-stamped rows. Absence from ``current``
+            # merely means no row entered this table's timestamp window; treating
+            # it as deletion erased intact capital/stages/P&L roles in D1.
             touched = touched_partitions(conn, hours)
+            present = {
+                "|".join("" if v is None else str(v) for v in row)
+                for row in conn.execute(
+                    f"SELECT DISTINCT {', '.join(_PART_KEY)} FROM {table}")
+            }
             emptied = sorted(
                 k for k in stored
-                if k not in current and (touched is None or k in touched)
+                if k not in present and k in touched
             ) if touched is not None else []
 
         if not changed and not emptied:

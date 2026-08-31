@@ -3080,7 +3080,14 @@ def check_equity_change(eq_rows: list[dict],
             cl = cl_pri.get("total_equity")
             if op is not None and cl is not None:
                 tol = _tol(abs(cl), base=100.0, rel=1e-4)
-                if abs(op - cl) <= tol:
+                comparison_opening = op
+                if abs(op - cl) > tol and bank_ticker and kind:
+                    from .equity_opening_scope import reviewed_adjusted_opening
+                    reviewed = reviewed_adjusted_opening(
+                        cur_rows, cl_pri, bank_ticker=bank_ticker, period=period, kind=kind)
+                    if reviewed is not None:
+                        comparison_opening = reviewed
+                if abs(comparison_opening - cl) <= tol:
                     res.add_pass()
                 else:
                     res.add_fail("eq_open_close",

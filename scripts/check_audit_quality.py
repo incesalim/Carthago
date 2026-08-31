@@ -268,7 +268,7 @@ def _capital_consistency(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
-def _liquidity_bands(conn: sqlite3.Connection) -> list[str]:
+def _liquidity_bands(conn: sqlite3.Connection, *, reviewed: list[str] | None = None) -> list[str]:
     """Plausibility bands on bank_audit_liquidity (current period). Ratios are
     percentages; banks must run LCR/NSFR >= 100% in steady state, so a very low
     LCR is the fingerprint of a mis-grabbed value."""
@@ -285,8 +285,29 @@ def _liquidity_bands(conn: sqlite3.Connection) -> list[str]:
             "lcr_total": lcr, "nsfr": nsfr,
         }])
         for failure in result.failures:
-            out.append(f"{tag} {failure['node']} (reported {failure['actual']:g})")
+            detail = f"{tag} {failure['node']} (reported {failure['actual']:g})"
+            if (failure["check"] == "liq_ratio_low" and failure["node"].startswith("NSFR ")
+                    and _low_nsfr_reviews().get((bank, period, kind)) == nsfr):
+                if reviewed is not None:
+                    reviewed.append(detail + " — matches source; disclosed NSFR exemption")
+            else:
+                out.append(detail)
     return out
+
+
+def _low_nsfr_reviews() -> dict[tuple[str, str, str], float]:
+    """Exact source-reviewed low NSFRs with a separately cited disclosure basis."""
+    try:
+        data = json.loads((REPO / "data" / "audit_quality_reviews.json").read_text(encoding="utf-8"))
+        return {
+            (r["bank_ticker"], r["period"], r["kind"]): r["source_value"]
+            for r in data.get("liquidity_low_nsfr", [])
+            if re.fullmatch(r"[a-f0-9]{64}", r.get("pdf_sha256", ""))
+            and r.get("source_page", 0) > 0 and r.get("source_line")
+            and r.get("basis_page", 0) > 0 and r.get("basis_text")
+        }
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}
 
 
 # A liquidity ratio is reconciliation-free (the table stores no components), so
@@ -664,7 +685,7 @@ def check(db: Path, *, reviewed: list[str] | None = None) -> list[str]:
     try:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
                 + _npl_collapse(conn) + _capital_consistency(conn)
-                + _liquidity_bands(conn) + _liquidity_outliers(conn, reviewed=reviewed)
+                + _liquidity_bands(conn, reviewed=reviewed) + _liquidity_outliers(conn, reviewed=reviewed)
                 + _off_balance_consistency(conn)
                 + _structure(conn) + _ecl_sanity(conn, reviewed=reviewed)
                 + _pl_sign_convention(conn, reviewed=reviewed) + _free_provision(conn))

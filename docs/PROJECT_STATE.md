@@ -16,64 +16,36 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
-**Anomaly repair (2026-08-31; in progress):** All 51 failed audit-opinion
-partitions have been repaired in Actions (run 33431870133), with all gates
-passing. The 36 source-verified reserve repairs completed in run 33431875000;
-all 72 reserve values and 102 opinion fields match the source-reviewed targets in live D1. These correct historical-opinion
-misclassification, missing later signatures, and reserve stocks confused with
-reversals, prior amounts or deferred-tax assets. Missing values remain distinct
-from explicit zero.
+**Anomaly repair (2026-08-31–2026-09-01; in progress):** Source-reviewed
+repairs have reduced the snapshot quality report from 431 to 92 findings.
+Completed repairs include 51 audit-opinion and 36 reserve partitions, capital
+and NPL disclosures, bank profiles, P&L/OCI, equity labels, Denizbank 2026Q2
+balance sheets, and ICBC 2026Q2 units plus eight historical FX roots. Capital
+and reserve/opinion targets were independently checked in live D1. The exact
+run logs, PDF hashes/pages and remaining source discrepancies are retained in
+`docs/knowledge/2026-08-31-anomaly-repair/`.
 
-The deployed parser batch fixes source-row boundaries, rotated and sparse tables,
-small signed amounts and footnote references. Capital deductions and NPL accrual
-movements now have separate nullable fields (migrations 0045/0046); deploy these
-before repair pushes. Source-capture refresh can target only failed capture
-checks without re-extracting any financial facts. Extreme liquidity values
-verified against the exact PDF are retained as observations bound to the exact
-partition/metric/value; changed values alert again. P&L sign changes are only
-observations when every signed deduction block is complete and the full
-statement reconciles. Genuine reversals must not be blindly made positive.
-A separate ICBC 2026Q2 consolidated unit error is confirmed: abbreviated
-Milyon TL headers were ignored. Correct unit detection is prepared; coordinated
-financial repair is still pending. A scoped whole-filing dry run is now available before applying that correction.
-Internal evidence: `docs/knowledge/2026-08-31-anomaly-repair/`.
+The repair writer converts each monetary lane to canonical units and refuses a
+single-lane change of filing denomination. Whole-filing unit corrections get an
+Actions dry-run comparison first. Manual follow-up capture now follows the
+requested bank/quarter. Sparse/rotated tables, wrapped row labels, split digits,
+footnotes and signed amounts have bounded parser repairs with regression tests;
+source errors remain visible rather than being filled from residuals. Capital
+deductions and NPL accrual movements use separate nullable fields (0045/0046).
 
-The latest parser batch repairs double-dash nil cells, displaced BS rows,
-OCI page/period selection, and sparse equity signs. Candidate BS repairs require
-a labelled grand total, all statement identities, and preservation of row ownership.
-After capital, NPL, 16 bank-profile and 15 OCI repairs, the quality report is at
-173 raw findings (from 431). Two accepted P&L partitions were replayed after fixing
-canonical unit conversion in the targeted writer; a remaining HAYATK unconsolidated
-replay awaits the EPS-boundary fix. All seven other rejected P&L candidates now
-pass source probes, including an exact-PDF-bound transcription of FIBA's image-only
-2023Q3 consolidated table. Every transcribed column reconciles; current net income
-also agrees with the independently read balance sheet.
-Single-statement repair now refuses a changed filing denomination, even with force;
-all monetary lanes must change together. TOMK's disclosed legacy impairment basis
-is an observation only while both replacement provision disclosures match the source.
-TAKAS/ZIRAATK/ICBC equity row-label repairs preserve the printed figures. Equity
-production repair passed 54 candidates (21 financial and 33 capture-only); 47
-were rejected without overwriting their data. All eight remaining P&L repairs
-passed next, including HAYATK's EPS-boundary correction. Capital repairs match
-all 460 reviewed fields in D1. ICBC's missing prior gross credit stock is now
-recovered only from all three complete borrower-category disclosures, their
-printed parent total, and matching provision/net anchors. Its coordinated unit
-repair is running after its reviewed preview; Denizbank's paired balance-sheet
-preview also has zero failed checks and changes no other monetary lane. Eight
-wrapped equity-label repairs preserve every financial value. A sparse-grid
-recovery for ISCTR 2026Q1 consolidated uses two complete closing-row anchors,
-exact identities, and retains unprinted cells as null. Historical ICBC FX roots
-2022Q4–2025Q4 are source-verified for chronological repair; unresolved source
-discrepancies remain visible.
+Exact source-reviewed ING/KUVEYT equity–OCI comparisons and Eximbank's explicit
+prior-period restatement use matching accounting scopes without changing facts
+or tolerances. Reviewed liquidity outliers and Takasbank's disclosed low-NSFR
+exemption remain observations tied to exact values; changed values alert again.
 
-ICBC's coordinated unit repair completed in Actions run 33436777903; the report
-then contained 102 findings. A cancelled Denizbank apply will be rerun after
-narrowing manual follow-up capture to the requested bank/quarter (the old step
-recaptured 177 recently touched filings). Three exact source-reviewed equity/OCI
-scope comparisons (ING 2022Q1 both kinds, KUVEYT 2022Q1 consolidated) now reconcile
-classification and participant-fund effects without changing amounts or tolerances.
-Changed or missing operands retain the original failure. TSKB's split source digit
-recovery joins only adjacent, aligned glyphs and still requires statement identities.
+**Live-sync incident:** Browser verification exposed missing D1 ratio inputs
+after the whole-filing refresh. Timestamp-window selection incorrectly treated
+intact older-stamped partitions as empty and could omit older sibling rows from
+a changed partition. The source snapshot is intact. The sync fix selects keys
+by timestamp, then hashes and sends complete partitions; deletion requires true
+absence from the whole source table. Further repair dispatches are paused while
+an exact missing-row recovery is prepared and independently verified. Recovery
+must preserve source timestamps and refuse conflicting live facts.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain

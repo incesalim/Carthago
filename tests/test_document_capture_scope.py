@@ -48,4 +48,3 @@ def test_capture_reads_only_requested_recent_partitions(tmp_path, monkeypatch,
     monkeypatch.setattr(capture.sys, "argv", argv)
     assert capture.main() == 0
     assert reads == [target[3] for i, target in enumerate(targets) if i in expected]
-
