@@ -16,36 +16,44 @@ coverage or known issues change.
 
 ## Data coverage in D1
 
-**Anomaly repair (2026-08-31–2026-09-01; in progress):** Source-reviewed
-repairs have reduced the snapshot quality report from 431 to 92 findings.
-Completed repairs include 51 audit-opinion and 36 reserve partitions, capital
-and NPL disclosures, bank profiles, P&L/OCI, equity labels, Denizbank 2026Q2
-balance sheets, and ICBC 2026Q2 units plus eight historical FX roots. Capital
-and reserve/opinion targets were independently checked in live D1. The exact
-run logs, PDF hashes/pages and remaining source discrepancies are retained in
-`docs/knowledge/2026-08-31-anomaly-repair/`.
+**Anomaly repair (2026-08-31–2026-09-01; completed):** The current-code
+snapshot quality report fell from 431 findings to 45. Scoped source-reviewed
+repairs covered audit opinion, reserves, capital, NPL, profiles, P&L/OCI,
+equity, cash flow, FX, liquidity, balance sheets and unit corrections. Every
+candidate still had to pass its lane gate; candidates that reproduced a broken
+identity were rolled back rather than filled from a residual.
 
-The repair writer converts each monetary lane to canonical units and refuses a
-single-lane change of filing denomination. Whole-filing unit corrections get an
-Actions dry-run comparison first. Manual follow-up capture now follows the
-requested bank/quarter. Sparse/rotated tables, wrapped row labels, split digits,
-footnotes and signed amounts have bounded parser repairs with regression tests;
-source errors remain visible rather than being filled from residuals. Capital
-deductions and NPL accrual movements use separate nullable fields (0045/0046).
+The 45 retained findings are active disclosure/identity diagnostics, not missing
+bank-list ratios: 6 historical TEB off-balance total/roman gaps; 38 structural
+findings (22 equity-change, 3 cash-flow, 9 FX-position, 1 repricing, 2 profile,
+1 capital); and 1 ICBC P&L sign-convention finding. Source-reviewed extreme
+liquidity values and Takasbank's disclosed NSFR exemption remain separately
+labelled observations. Exact run logs and PDF evidence are retained in the
+internal `docs/knowledge/2026-08-31-anomaly-repair/` ledger.
 
-Exact source-reviewed ING/KUVEYT equity–OCI comparisons and Eximbank's explicit
-prior-period restatement use matching accounting scopes without changing facts
-or tolerances. Reviewed liquidity outliers and Takasbank's disclosed low-NSFR
-exemption remain observations tied to exact values; changed values alert again.
+**Live-sync incident (repaired):** Incremental audit sync selected recent rows,
+deleted their whole D1 partitions, then reinserted only the recent rows. It also
+mistook a recent extraction-log row for proof that older-stamped tables were
+empty. The R2 source snapshot remained intact. Sync now uses timestamps only to
+select partition keys, hashes and sends each complete partition, and treats a
+partition as deleted only when it is absent from the whole source table.
 
-**Live-sync incident:** Browser verification exposed missing D1 ratio inputs
-after the whole-filing refresh. Timestamp-window selection incorrectly treated
-intact older-stamped partitions as empty and could omit older sibling rows from
-a changed partition. The source snapshot is intact. The sync fix selects keys
-by timestamp, then hashes and sends complete partitions; deletion requires true
-absence from the whole source table. Further repair dispatches are paused while
-the `repair-missing-audit-rows.yml` recovery is prepared and independently verified. Recovery
-must preserve source timestamps and refuse conflicting live facts.
+Production recovery restored 3,418 rows across 1,001 table partitions, then 410
+stage rows across 232 partitions. It replayed 21 source-verified equity
+partitions and removed 1 stale KUVEYT OCI row plus 5 obsolete HALKB repricing
+aliases. The recovery path preflights every selected table before writing,
+preserves null versus zero and source timestamps, refuses conflicting facts,
+post-verifies exact D1 parity, and requires a no-op replay. Remote-extra cleanup
+requires exact partition triples and compare-and-deletes the full preflight row.
+
+A second ordering bug let manual mutation workflows upload R2 before their
+coverage refresh changed validation rows. Reextract, purge and source-capture
+workflows now save the snapshot again only after the coverage/validation D1 push
+succeeds. The final R2 snapshot and production D1 therefore carry the same 45
+findings. Live `/api/app/v1/banks` verification has NPL and CAR for all 37 peer
+banks and ROE, NIM and cost/income for 36; Ziraat Dinamik alone lacks the stored
+prior-year quarter required for trailing ratios. Takasbank remains intentionally
+excluded from peer ratios.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
 match Turkish names from Turkish or ASCII keyboards. Bank-section links retain
@@ -1582,6 +1590,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-calendar.yml` — 1st of month 06:00 UTC. `python -m src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published "MPC Meeting and Reports Calendar" (rate decisions + minutes + Inflation Report + Financial Stability Report) so the **Ahead** strips fill themselves; retires the hand-typed `MPC_DATES` (now a render-time fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser — same `www.tcmb.gov.tr` host the news lane scrapes. Bulletin lane (`bddk-pipeline` group), re-gzips the snapshot explicitly. Migration 0025 applies via the `web/**` deploy that ships it.
 - `.github/workflows/refresh-audit.yml` — daily during earnings windows (Jan 20–all February, Mar 1–15, Apr/Jul/Oct 20 through May/Aug/Nov 20) plus manual dispatch. It discovers and validates new PDFs, extracts pending partitions immediately, rebuilds stages/validation/coverage locally, sends one registry-derived audit batch to D1, then uploads the snapshot. A no-change run stops before all writes. Own DB/snapshot/group remain `data/bank_audit.db`, `state/bank_audit.db.gz`, `bddk-audit`; targeted `/admin` re-extraction is unchanged.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → resolve the registry lane → re-extract its source disclosure → rebuild any dependent derived rows → inline-validate the complete relationship gate → push only factually changed tables to D1 → snapshot → refresh coverage. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects a partition when any required non-conditional gate is not a proven pass), `require_passing` (default true — rolls source + derived + validation back together unless the whole gate passes), and `dry_run` (pulls the authoritative snapshot, then performs no D1/R2 writes). No-op tables retain their timestamps and are not pushed. This is the lane used to fix OCI/CF/NPL fleet-wide.
+- `.github/workflows/repair-missing-audit-rows.yml` — manual dispatch, `dry_run=true` by default. Repairs narrowly proven D1 drift from the authoritative R2 audit snapshot without extraction or re-stamping. Missing-row mode accepts only named tables and requires live facts to be an exact subset before replacing affected partitions; remote-extra mode requires exact partition triples and compare-and-deletes only excess full primary keys. Both modes preflight every target, preserve null versus zero and source timestamps, post-verify D1 parity, require a no-op replay, and abort before writes on any source/live conflict. Shares the `bddk-audit` group.
 - `.github/workflows/audit-triage.yml` — manual dispatch, **read-only**. Diagnoses the failing partitions rather than re-extracting them: `scripts/triage_partitions.py` assigns each a deterministic CAUSE from the PDF (`dropped_cell` / `missing_row` / `column_slip` / `wrapped_cell` / `anchor_miss` / `drawn_page` / `rotated_page` / `wrong_pdf` / `unit_switch` / `source_defect` / `unclassified`), with the page and the printed token behind it; `scripts/watch_cross_period.py` compares each partition to the same bank a quarter earlier. No model is called, no figure is produced, and nothing is written anywhere — no D1, no row update, no snapshot re-upload — so it is unaffected by the write freeze. Reports come back as a build artifact. Engine + taxonomy in `src/audit_reports/triage.py`, pinned by `tests/test_triage.py`; findings in [knowledge/2026-08-02-audit-triage-engine.md](knowledge/2026-08-02-audit-triage-engine.md). First full run over all 212: `column_slip` 61, `dropped_cell` 46, `anchor_miss` 45, `unclassified` 26, `missing_row` 26, `rotated_page` 7, `drawn_page` 1 — and `source_defect` **zero**, so nothing in the corpus currently qualifies as "the filing itself doesn't foot". **Two extractor fixes recorded, neither applied** (they change the extractor, and re-extraction writes rows): `audit_opinion.extract_opinion_from_pdf`'s `max_pages=6` misses the signature on pp7–9 for **43** partitions (6→10 clears all of them), and §4 capital never reads the prior `additional_tier1_capital` column for **9** (EMLAK + QNBFB). The ~114 equity_change failures are grouped but **not** diagnosed — the obvious "missing closing row" theory is refuted at corpus scale (absent from 37% of failing and 36% of passing partitions).
 - `.github/workflows/analyst-daily.yml` — **manual dispatch only, no `schedule:` yet** (the freeze that originally forced artifacts-only has lifted; the workflow now carries a D1 push step gated on its `push` input, off by default — without it, everything leaves as run artifacts). The analyst layer over the audit snapshot: `scripts/analyst/detect.py` runs the deterministic detectors (reporting-unit switch, cross-period restatements — the ones the validators deliberately skip-list get *reported* here with `documented: true` — opinion type/category changes via the bilingual basis-text classifier at 95% non-other coverage, `disc_net`/cons-gap perimeter changes, and the two feasibility-verdict divergences CAR−CET1 and NPL-vs-coverage), stages signals + basis metadata into `data/analyst.db`, then `web/scripts/analyst-run.ts --memo` assembles the 11-section deterministic view (`web/app/lib/analyst/` — coverage mix-vs-erosion decomposition precomputed), writes memos with the free-model chain and drops any paragraph whose figures aren't in the data block it was shown (`unsupportedFigures`). `banks=CALIBRATE` = the ALBRK+SKBNK feasibility pair. Corpus run 2026-08-04: 455 signals in 0.2s — unit-change silent fleet-wide, cross-period 69 (fx anchor reproduces the validator skip-list 7/7 comparable), divergence 287, opinion 67, perimeter 32. Migration `0037_analyst_signals.sql` **applied** — `analyst_signals` (455), `analyst_basis_metadata` (1,050) and `analyst_notes` (2) are live in D1; the cron remains a decision not yet taken. Build plan + as-built corrections: [knowledge/2026-08-04-analyst-build-plan.md](knowledge/2026-08-04-analyst-build-plan.md). Same-day evolution into a **full 13-section research report** (~2,400 words, tables; benchmarked figure-for-figure against an external GARAN deep-research doc): ranked STORY GATES (a deterministic editorial layer — six stories ruled LIVE/DEAD with numeric reasons; the LEAD must headline), precomputed comparisons/growth-%/totals (every hand-derivation the model attempted became a supplied figure), a relation verifier (drops a wrong direction word between two right numbers), named peer table + BDDK sector aggregates, per-stage GROSS ECL expense (sums reproduce disclosed figures), verbatim management commentary from `bank_call_transcripts` (executive turns only, claims-not-data framing), **per-bank stage definitions extracted from the prose corpus** (24/38 banks' own disclosed thresholds, generated module `web/app/lib/analyst/stage-definitions.ts` — the feasibility test's #1 missing dataset), hash-gated regeneration (`data_hash` per note; staging `data/analyst.db` persists via R2 `state/analyst.db.gz`), and `scripts/analyst/score_reports.py` (structure/lead/coverage scoring over run artifacts). Memo lane LLM: PAID `deepseek/deepseek-v4-flash` (user-authorized, Baidu-pinned, seeded) → free OSS fallbacks; nemotron excluded (reasoning-leak).
 - `.github/workflows/analyst-research.yml` — **manual dispatch only, ARTIFACT-ONLY, evaluation phase** (Analyst V2, [ANALYST_V2.md](ANALYST_V2.md)). Scout → typed-tool research loop → deterministic verifier; structured findings with stable evidence ids; abstention first-class; no D1 writes, no schedule, no automatic publishing; V1 (`analyst-daily.yml`) remains the regression baseline. First cold scout run on ALBRK 2025Q1 surfaced the free-provision fingerprint (Other Provisions −6.7bn, Other Operating Income +6.1bn, the −7.7bn equity movement) with zero bank-specific logic.
