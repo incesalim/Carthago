@@ -1,0 +1,75 @@
+name: Repair missing audit rows
+
+on:
+  workflow_dispatch:
+    inputs:
+      tables:
+        description: "Explicit comma-separated bank_audit_* tables (CLI allowlist; no ALL)"
+        type: string
+        required: true
+      banks:
+        description: "Optional comma-separated tickers; blank = all banks"
+        type: string
+        default: ""
+      periods:
+        description: "Optional comma-separated YYYYQn; blank = all quarters"
+        type: string
+        default: ""
+      kind:
+        type: choice
+        options: [both, unconsolidated, consolidated]
+        default: both
+      dry_run:
+        description: "Compare live D1 with the authoritative snapshot without writes"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Pull latest authoritative audit snapshot
+        run: |
+          python - <<'PY'
+          from scripts.audit_d1 import pull_snapshot
+          pull_snapshot(guard=False)  # every audit writer shares bddk-audit
+          PY
+      - name: Preflight all tables, restore only missing rows, verify no-op replay
+        env:
+          TABLES: ${{ inputs.tables }}
+          BANKS: ${{ inputs.banks }}
+          PERIODS: ${{ inputs.periods }}
+          KIND: ${{ inputs.kind }}
+          APPLY: ${{ !inputs.dry_run && '--apply' || '' }}
+        run: |
+          args=(--tables "$TABLES" --kind "$KIND")
+          [ -n "$BANKS" ] && args+=(--banks "$BANKS")
+          [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
+          [ -n "$APPLY" ] && args+=("$APPLY")
+          python scripts/repair_missing_audit_rows.py "${args[@]}"

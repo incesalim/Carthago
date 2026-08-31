@@ -115,6 +115,15 @@ the map in its transaction and table-scoped push. The manual
 partitions after checking source agreement; it never re-extracts or writes a
 financial figure. A repeat run is read-only when D1 and the snapshot agree.
 
+The manual `repair-missing-audit-rows.yml` recovers rows lost from D1 while the
+authoritative R2 audit snapshot still retains them. It preflights every selected
+table before writing, requires live facts to be an exact subset of source facts,
+and replaces only the affected table partitions. It preserves source timestamps,
+verifies restored values and a no-op second comparison, then saves updated push
+digests. It does not extract PDFs or resolve conflicting figures. Incremental
+sync selects partition keys by timestamp but hashes and sends each complete
+partition; an absent timestamp-window entry never proves that a partition is empty.
+
 ### Daily — `.github/workflows/refresh-evds-daily.yml`
 Sun–Fri 05:00 UTC. Polls only EVDS series declared daily/workday, keeping FX,
 policy/funding rates and sterilization current within 24h. Weekly, monthly and

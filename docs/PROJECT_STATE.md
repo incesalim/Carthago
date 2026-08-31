@@ -44,7 +44,7 @@ intact older-stamped partitions as empty and could omit older sibling rows from
 a changed partition. The source snapshot is intact. The sync fix selects keys
 by timestamp, then hashes and sends complete partitions; deletion requires true
 absence from the whole source table. Further repair dispatches are paused while
-an exact missing-row recovery is prepared and independently verified. Recovery
+the `repair-missing-audit-rows.yml` recovery is prepared and independently verified. Recovery
 must preserve source timestamps and refuse conflicting live facts.
 
 **Website debugging (2026-08-31):** The bank register and product matrix now
