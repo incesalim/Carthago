@@ -148,7 +148,7 @@ jobs:
 
       - name: Upload bench result
         if: inputs.task == 'unit'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bench-unit-detection
           path: bench_unit_detection.json
@@ -178,7 +178,7 @@ jobs:
 
       - name: Upload vision bench result
         if: inputs.task == 'vision'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bench-vision-extract
           path: bench_vision_extract.json
@@ -239,7 +239,7 @@ jobs:
 
       - name: Upload cells bench result
         if: inputs.task == 'cells'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bench-text-cells
           path: bench_text_cells.json

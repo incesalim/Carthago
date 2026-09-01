@@ -83,7 +83,7 @@ jobs:
 
       - name: Upload the diff
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: free-provision-change
           path: free_provision_change.json
