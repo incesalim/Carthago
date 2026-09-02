@@ -30,6 +30,7 @@ import {
 } from "@/app/lib/metrics";
 import {
   Ahead,
+  CadenceBand,
   ChartFoot,
   ChartRow,
   Colophon,
@@ -259,6 +260,9 @@ export default async function DepositsPage() {
     PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR && c !== BANK_TYPES.DEV_INV),
   );
   const ldrGroups = [...latestByGroup(ldr)].filter(([code]) => depositTaking.has(code));
+  const ldrDisplayed = ldr.filter(
+    (row) => row.bank_type_code === BANK_TYPES.SECTOR || depositTaking.has(row.bank_type_code),
+  );
   const ldrBreach = ldrGroups
     .filter(([, v]) => v.value >= 100)
     .map(([code]) => BANK_TYPE_LABELS[code] ?? code);
@@ -323,7 +327,7 @@ export default async function DepositsPage() {
   const repriceQuarter =
     demandPct != null && m1Pct != null && m13Pct != null ? demandPct + m1Pct + m13Pct : null;
 
-  // Real growth: the nominal print minus CPI — the twin the page already builds.
+  // Real growth: Fisher-deflated by the published CPI print — never g − π.
   const realNow = lastVal(realVsNominal.filter((r) => r.bank_type_code === "REAL"));
   const cpiImplied = depYoYNow != null && realNow != null ? depYoYNow - realNow : null;
 
@@ -359,7 +363,8 @@ export default async function DepositsPage() {
       v: repriceQuarter.toFixed(1),
       unit: "%",
       effect: (
-        <>{tx("Demand ")}{tx(fmtPct(demandPct))} + ≤1m {tx(fmtPct(m1Pct))} + 1–3m {tx(fmtPct(m13Pct))}{tx(" of the book. The sector lends long and ")}<b>{tx("funds itself inside a quarter")}</b>{tx(" — a policy move reaches the deposit cost almost at once. ")}<Go href="/liquidity">{tx("/liquidity")}</Go>
+        <>{tx("Demand deposits are {0}, maturities up to one month {1}, and one-to-three months {2}. The sector lends long but funds itself within a quarter, so policy changes reach deposit costs quickly.",
+          {0: fmtPct(demandPct), 1: fmtPct(m1Pct), 2: fmtPct(m13Pct)})}{" "}<Go href="/liquidity">{tx("/liquidity")}</Go>
         </>
       ),
     });
@@ -389,8 +394,11 @@ export default async function DepositsPage() {
       unit: "%",
       effect: (
         <>
-          {tx(fmtPct(depYoYNow))}{tx(" nominal against ")}{tx(fmtPct(cpiImplied))}{tx(" CPI:")}{" "}
-          <b>{tx("the deposit base is ")}{tx(realNow < 0 ? "shrinking" : "growing")}{tx(" in real terms")}</b>{" "}{tx("even as it swells in lira. ")}<Go href="/economy">{tx("/economy")}</Go>
+          {tx(realNow < 0
+            ? "Deposits grow {0} nominally against {1} CPI, but contract {2} in real terms."
+            : "Deposits grow {0} nominally against {1} CPI and expand {2} in real terms.",
+          {0: fmtPct(depYoYNow), 1: fmtPct(cpiImplied), 2: fmtPct(Math.abs(realNow))})}{" "}
+          <Go href="/economy">{tx("/economy")}</Go>
         </>
       ),
     });
@@ -423,8 +431,8 @@ export default async function DepositsPage() {
       active: repriceQuarter != null && repriceQuarter > 85,
       body: (
         <>
-          <b className="font-semibold">{tx("Repricing cliff")}</b> — {tx(fmtPct(repriceQuarter))}{tx(" of deposits mature within three months (demand ")}{tx(fmtPct(demandPct))} + ≤3m{" "}
-          {tx(fmtPct(m1Pct != null && m13Pct != null ? m1Pct + m13Pct : null))}{tx("). Funding cost tracks the policy rate with almost no lag.")}</>
+          <b className="font-semibold">{tx("Repricing cliff")}</b>{tx(" — {0} of deposits reprice within three months: {1} demand deposits and {2} with maturity up to three months. Funding costs therefore follow the policy rate with very little delay.",
+          {0: fmtPct(repriceQuarter), 1: fmtPct(demandPct), 2: fmtPct(m1Pct != null && m13Pct != null ? m1Pct + m13Pct : null)})}</>
       ),
       rule: "share(demand + ≤3m) > 85%",
       clear: <>{tx("Maturity ladder — ")}{tx(fmtPct(repriceQuarter))}{tx(" of the book reprices inside a quarter")}</>,
@@ -434,8 +442,8 @@ export default async function DepositsPage() {
       active: fundingGap != null && fundingGap > 3,
       body: (
         <>
-          <b className="font-semibold">{tx("Funding gap")}</b>{tx(" — loans ")}{tx(fmtPct(loansYoYNow))}{tx(" vs deposits")}{" "}
-          {tx(fmtPct(depYoYNow))}{tx(" y/y: the loan book grows ")}{tx(Math.abs(fundingGap ?? 0).toFixed(1))}{tx("pp faster than the base that funds it.")}</>
+          <b className="font-semibold">{tx("Funding gap")}</b>{tx(" — Loans grew {0} and deposits {1} over 52 weeks. The loan book is growing {2}pp faster than its deposit base.",
+          {0: fmtPct(loansYoYNow), 1: fmtPct(depYoYNow), 2: Math.abs(fundingGap ?? 0).toFixed(1)})}</>
       ),
       rule: "loans_52w − deposits_52w > 3pp",
       clear: <>{tx("Funding gap — loans ")}{tx(fmtPct(loansYoYNow))}{tx(" vs deposits ")}{tx(fmtPct(depYoYNow))}</>,
@@ -516,19 +524,34 @@ export default async function DepositsPage() {
       <DeskHeader
         title={tx("Deposits")}
         record={
-          <>{tx("Record ")}<b className="font-normal text-foreground">W/E {tx(recWeek)}</b>{tx(" · vs ")}{tx(vsWeek)}
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx("week ending {0}", {0: recWeek})}</b>{tx(" · vs ")}{tx(vsWeek)}
           </>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "weekly",
+            role: "current",
+            asOf: depSector.at(-1)?.period,
+            window: "4w and 52w",
+            basis: "BDDK weekly sector bulletin",
+          },
+          {
+            cadence: "monthly",
+            role: "structure",
+            asOf: ldrSector.at(-1)?.period,
+            basis: "published TL+FC funding ratio",
+          },
+        ]}
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
         title={tx("The vitals")}
-        meta={tx("equal weight · trailing 26 weeks")}
+        meta={tx("weekly funding pulse · trailing 26 weeks")}
         className="mb-2.5 mt-6"
       />
-      <Vitals>
+      <Vitals cols={5}>
         <Vital
           label={tx("Deposit growth, 52w")}
           value={depYoYNow != null ? depYoYNow.toFixed(1) : "—"}
@@ -545,7 +568,10 @@ export default async function DepositsPage() {
                       : "not-italic font-semibold text-positive"
                   }
                 >
-                  {tx(fundingGap > 0 ? "outrun" : "trail")}{tx(" deposits by ")}{tx(Math.abs(fundingGap).toFixed(1))}{tx("pp")}</em>{" "}
+                  {tx(fundingGap > 0
+                    ? "Loans are growing {0}pp faster than deposits."
+                    : "Deposits are growing {0}pp faster than loans.",
+                  {0: Math.abs(fundingGap).toFixed(1)})}</em>{" "}
                 <Link href="/credit" className="font-semibold text-primary">{tx("/credit")}</Link>
               </>
             ) : undefined
@@ -575,8 +601,10 @@ export default async function DepositsPage() {
           note={
             tlYoYNow != null && depYoYNow != null ? (
               <>
-                {tx(signedPp(tlYoYNow - depYoYNow, 1))}{tx(" vs the total book — the TL leg")}{" "}
-                {tx(tlYoYNow >= depYoYNow ? "outpaces" : "lags")}{tx(" the headline")}</>
+                {tx(tlYoYNow >= depYoYNow
+                  ? "TL deposits are growing {0}pp faster than total deposits."
+                  : "TL deposits are growing {0}pp slower than total deposits.",
+                {0: Math.abs(tlYoYNow - depYoYNow).toFixed(1)})}</>
             ) : undefined
           }
         />
@@ -610,6 +638,18 @@ export default async function DepositsPage() {
             ) : undefined
           }
         />
+      </Vitals>
+
+      <CadenceBand
+        title={tx("Monthly funding structure")}
+        observation={{
+          cadence: "monthly",
+          role: "structure",
+          asOf: ldrSector.at(-1)?.period,
+          basis: LDR_PUBLISHED.basis,
+        }}
+      >
+        <Vitals cols={3} rule="hair">
         <Vital
           label={tx(LDR_PUBLISHED.label)}
           value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
@@ -619,16 +659,17 @@ export default async function DepositsPage() {
           note={
             <>
               {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
-                ? tx("below the {0}% line", {0: LDR_PUBLISHED.line})
-                : tx("above the {0}% line", {0: LDR_PUBLISHED.line}))}{" "}
-              — {tx(LDR_PUBLISHED.basis)}. {tx(LDR_PUBLISHED.elsewhere.what)}{tx(" on")}{" "}
+                ? "Below the {0}% line. This is the BDDK-published monthly sector ratio for all currencies. The weekly TL-only public/private comparison is on"
+                : "Above the {0}% line. This is the BDDK-published monthly sector ratio for all currencies. The weekly TL-only public/private comparison is on",
+              {0: LDR_PUBLISHED.line})}{" "}
               <Link href={LDR_PUBLISHED.elsewhere.href} className="font-semibold text-primary">
                 {tx(LDR_PUBLISHED.elsewhere.href)}
               </Link>
             </>
           }
         />
-      </Vitals>
+        </Vitals>
+      </CadenceBand>
 
       {/* ── Movers | The base → the balance sheet ──────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
@@ -703,7 +744,7 @@ export default async function DepositsPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth collapsed action={<GlobalRangeSelector />}>
         <Takeaway data={readData} variant="desk" />
 
         {/* The base — the sizes the ratios are ratios of. */}
@@ -953,10 +994,10 @@ export default async function DepositsPage() {
             meta={tx("published ratio · monthly · by ownership group · TL-only weekly on /liquidity")}
             className="mb-2.5"
           />
-          <ChartRow data={ldr} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(0)}%`}>
+          <ChartRow data={ldrDisplayed} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(0)}%`}>
             <TrendChart
               plain
-              data={ldr}
+              data={ldrDisplayed}
               seriesLabels={BANK_TYPE_LABELS}
               title={
                 tx(firstClaim(

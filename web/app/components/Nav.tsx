@@ -29,6 +29,7 @@ const SECTIONS: NavSection[] = [
       { href: "/asset-quality", label: "Asset Quality" },
       { href: "/capital", label: "Capital" },
       { href: "/profitability", label: "Profitability" },
+      { href: "/market-risk", label: "Market Risk" },
     ],
   },
   {
@@ -48,7 +49,6 @@ const SECTIONS: NavSection[] = [
     label: "Markets & Macro",
     items: [
       { href: "/rates", label: "Rates" },
-      { href: "/market-risk", label: "Market Risk" },
       { href: "/funds", label: "Funds" },
       { href: "/digital", label: "Digital" },
       {

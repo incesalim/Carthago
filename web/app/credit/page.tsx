@@ -47,8 +47,9 @@ import {
   type MoverRow,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
-import { VERBS, claim, direction, runPhrase, toneClass } from "@/app/lib/prose";
+import { claim, runPhrase, toneClass } from "@/app/lib/prose";
 import {
+  annualizeGrowth,
   contributions,
   creditBridge,
   deflate,
@@ -196,6 +197,7 @@ export default async function CreditPage() {
 
   // ---- the bridge: nominal → −currency → −inflation → real ------------------
   const fxAdjSeries = fxAdjustedGrowth(tlSec, fxSec, usdTry);
+  const fxAdj13w = annualizeGrowth(fxAdjustedGrowth(tlSec, fxSec, usdTry, 13 * 7), 13 * 7);
   const realFxAdjSeries = deflate(fxAdjSeries, cpiYoY);
   const bridge = creditBridge(yoySector, fxAdjSeries, cpiYoY);
 
@@ -293,6 +295,7 @@ export default async function CreditPage() {
   const yoyNow = lastVal(yoySector);
   const mom4Now = lastVal(mom4Sector);
   const realFxNow = bridge.realFxAdj;
+  const fxAdj13Now = lastVal(fxAdj13w);
 
   const fxShareNow = lastVal(fxShare);
   const fxShare52 = valAgo(fxShare, 52);
@@ -331,8 +334,8 @@ export default async function CreditPage() {
       active: realNegRun > 0 && realFxNow != null && realFxNow < 0,
       rule: `real_fxadj(52w) < 0 for ${realNegRun}w`,
       body: (
-        <>{tx("Real, constant-FX credit is ")}<b className="font-semibold text-negative">{tx("contracting")}</b> —{" "}
-          {tx(fmtPct(realFxNow))}{tx(" for ")}{tx(realNegRun)}{tx(" consecutive weeks. The ")}{tx(fmtPct(yoyNow))}{tx(" nominal print is lira and CPI.")}</>
+        <>{tx("Real, constant-FX credit has contracted {0} for {1} consecutive weeks. The published {2} nominal rate includes lira and inflation effects.",
+          {0: fmtPct(Math.abs(realFxNow ?? 0)), 1: realNegRun, 2: fmtPct(yoyNow)})}</>
       ),
       clear: <>{tx("Real, constant-FX growth is positive at ")}{tx(fmtPct(realFxNow))}.</>,
     },
@@ -341,7 +344,8 @@ export default async function CreditPage() {
       active: autoNegRun >= 8 && autoNow != null && autoNow < 0,
       rule: `auto_yoy < 0 for ${autoNegRun}w`,
       body: (
-        <>{tx("Auto loans in sustained contraction — ")}{tx(fmtPct(autoNow))}{tx(", negative for ")}{tx(autoNegRun)}{" "}{tx("consecutive weeks. The book is small (")}{tx(autoLvl.at(-1)?.value != null ? `₺${((autoLvl.at(-1)!.value as number) / 1_000).toFixed(0)}bn` : "—")}{tx("), so it drags the headline by little.")}</>
+        <>{tx("Auto loans have contracted {0} and remained negative for {1} consecutive weeks. The book is small ({2}), so its effect on total growth is limited.",
+          {0: fmtPct(Math.abs(autoNow ?? 0)), 1: autoNegRun, 2: autoLvl.at(-1)?.value != null ? `₺${((autoLvl.at(-1)!.value as number) / 1_000).toFixed(0)}bn` : "—"})}</>
       ),
       clear: <>{tx("Auto loans are growing at ")}{tx(fmtPct(autoNow))}.</>,
     },
@@ -350,8 +354,8 @@ export default async function CreditPage() {
       active: unsecuredHotRun >= 8,
       rule: `cards_yoy > sector AND gpl_yoy > sector for ${unsecuredHotRun}w`,
       body: (
-        <>{tx("Unsecured retail is running above the sector — cards ")}{tx(fmtPct(cardsNow))}{tx(" and general-purpose")}{" "}
-          {tx(fmtPct(gplNow))}{tx(" vs ")}{tx(fmtPct(yoyNow))}{tx(", for ")}{tx(unsecuredHotRun)}{tx(" consecutive weeks. Watch it in")}{" "}
+        <>{tx("Cards ({0}) and general-purpose loans ({1}) have both outgrown the sector ({2}) for {3} consecutive weeks. Follow the asset-quality implications in",
+          {0: fmtPct(cardsNow), 1: fmtPct(gplNow), 2: fmtPct(yoyNow), 3: unsecuredHotRun})}{" "}
           <Link href="/asset-quality" className="font-semibold text-primary">{tx("/asset-quality")}</Link>
           .
         </>
@@ -412,10 +416,25 @@ export default async function CreditPage() {
       <DeskHeader
         title={tx("Credit")}
         record={
-          <>{tx("Record ")}<b className="font-normal text-foreground">W/E {tx(recWeek)}</b>{tx(" · vs ")}{tx(vsWeek)}
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx("week ending {0}", {0: recWeek})}</b>{tx(" · vs ")}{tx(vsWeek)}
           </>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "weekly",
+            role: "current",
+            asOf: loansSector.at(-1)?.period,
+            window: "13w annualized and 52w",
+            basis: "BDDK sector lending, constant FX where stated",
+          },
+          {
+            cadence: "monthly",
+            role: "structure",
+            asOf: bridge.asOfReal,
+            basis: "CPI deflator only; never nowcast",
+          },
+        ]}
       />
 
       {/* ── The bridge — what the headline is worth ─────────────────────── */}
@@ -432,17 +451,14 @@ export default async function CreditPage() {
       <div className="grid grid-cols-1 gap-8 border-t-2 border-foreground pt-4 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
         <Bridge bridge={bridge} />
         <div className="self-center">
-          <p className="text-[19px] leading-snug tracking-tight text-foreground">{tx("Nominal credit grew")}{" "}
+          <p className="text-[19px] leading-snug tracking-tight text-foreground">
             {/* nominalAtReal, NOT nominal: this sentence then subtracts the legs, which
                 are read at the real week. Pairing the latest nominal with June legs made
                 the sentence stop adding up (36.2% − 7.1 − 31.4 ≠ −2.1%). */}
-            <b className="font-mono font-semibold">{tx(fmtPct(bridge.nominalAtReal))}</b>{tx(". Strip the lira and the price level and the loan book")}{" "}
-            {realFxNow != null && realFxNow < 0 ? (
-              <b className="font-semibold text-negative">{tx("shrank ")}{tx(fmtPct(Math.abs(realFxNow)))}</b>
-            ) : (
-              <b className="font-semibold text-positive">{tx("grew ")}{tx(fmtPct(realFxNow))}</b>
-            )}
-            .
+            {tx(realFxNow != null && realFxNow < 0
+              ? "Nominal loan growth is {0}. After removing currency and price effects, the book contracts {1} in real terms."
+              : "Nominal loan growth is {0}. After removing currency and price effects, the book expands {1} in real terms.",
+            {0: fmtPct(bridge.nominalAtReal), 1: fmtPct(Math.abs(realFxNow ?? 0))})}
           </p>
           <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
             {bridge.currencyPp != null && bridge.inflationPp != null ? (
@@ -465,27 +481,25 @@ export default async function CreditPage() {
       <SecHead title={tx("The vitals")} meta={tx("equal weight · trailing 26 weeks")} className="mb-2.5 mt-8" />
       <Vitals>
         <Vital
-          label={tx("Real growth, constant FX")}
+          label={tx("FX-adjusted momentum, 13w ann.")}
           value={
-            realFxNow != null
-              ? `${realFxNow < 0 ? "−" : ""}${Math.abs(realFxNow).toFixed(1)}` // typographic minus, as the gap vital
+            fxAdj13Now != null
+              ? `${fxAdj13Now < 0 ? "−" : ""}${Math.abs(fxAdj13Now).toFixed(1)}`
               : "—"
           }
           unit="%"
-          series={realFxAdjSeries.slice(-26)}
+          series={fxAdj13w.slice(-26)}
           decimals={1}
           note={
-            realFxNow != null ? (
-              <>{tx("the book")}{" "}
-                {/* The verb branched on the sign; the colour did not — a book
-                    GROWING in real terms rendered "grew" in red. */}
+            fxAdj13Now != null ? (
+              <>{tx("lira valuation stripped; the 52w real, constant-FX rate is ")}
                 <em className={`font-semibold not-italic ${toneClass(realFxNow, "up")}`}>
-                  {tx(direction(realFxNow, VERBS.size))}
-                </em>{" "}{tx("once lira and CPI are stripped")}{tx(realNegRun > 0 ? tx(" — {0}w negative", {0: realNegRun}) : "")}
-                {bridge.lagged ? tx(" · at W/E {0}", {0: realWeek}) : ""}
+                  {tx(fmtPct(realFxNow))}
+                </em>
+                {bridge.lagged ? tx(" · real rate at W/E {0}", {0: realWeek}) : ""}
               </>
             ) : (
-              "awaits the CPI print"
+              "awaits a 13-week comparison base"
             )
           }
         />
@@ -527,9 +541,10 @@ export default async function CreditPage() {
           decimals={1}
           note={
             stateNow != null && privNow != null && gapNow != null ? (
-              <>{tx("state ")}{tx(fmtPct(stateNow))}{tx(" vs private ")}{tx(fmtPct(privNow))} —{" "}
-                {tx(gapNow >= 0 ? "state banks lead the cycle" : "private banks lead the cycle")}
-              </>
+              <>{tx(gapNow >= 0
+                ? "State-bank growth is {0}, versus {1} for private banks; state banks lead the cycle."
+                : "State-bank growth is {0}, versus {1} for private banks; private banks lead the cycle.",
+              {0: fmtPct(stateNow), 1: fmtPct(privNow)})}</>
             ) : undefined
           }
         />
@@ -541,10 +556,8 @@ export default async function CreditPage() {
           decimals={1}
           note={
             smeNow != null && commNow != null && smeContrib ? (
-              <>
-                {tx(signedPp(smeContrib.pp, 1))}{tx(" of the ")}{tx(headlinePct)}{tx(" headline —")}{" "}
-                {tx(smeNow >= commNow ? "outpaces" : "trails")}{tx(" commercial ")}{tx(fmtPct(commNow))}
-              </>
+              <>{tx("SME contributes {0} to the sector's {1} growth; the commercial book including SME grows {2}.",
+                {0: signedPp(smeContrib.pp, 1), 1: headlinePct, 2: fmtPct(commNow)})}</>
             ) : undefined
           }
         />
@@ -556,8 +569,8 @@ export default async function CreditPage() {
           decimals={1}
           note={
             unsecLevel != null ? (
-              <>{tx("cards + GPL as one book (₺")}{tx((unsecLevel / 1_000_000).toFixed(2))}{tx("trn) —")}{" "}
-                {tx(unsecuredHotRun)}{tx("w above the sector")}</>
+              <>{tx("Cards and general-purpose loans total ₺{0}trn and have jointly outgrown the sector for {1} weeks.",
+                {0: (unsecLevel / 1_000_000).toFixed(2), 1: unsecuredHotRun})}</>
             ) : undefined
           }
         />
@@ -611,6 +624,7 @@ export default async function CreditPage() {
 
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth
+        collapsed
         meta={tx("carried over, reordered by question — nothing removed")}
         action={<GlobalRangeSelector />}
       >

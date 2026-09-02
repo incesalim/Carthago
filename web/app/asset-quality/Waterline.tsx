@@ -98,7 +98,7 @@ export default function Waterline({ ladder }: { ladder: StageLadder | null }) {
         </div>
 
         <div className="mt-2.5 font-mono text-[9px] leading-relaxed text-faint">
-          <span className="mr-1 inline-block h-2 w-2.5 align-[-1px] bg-foreground/40" />{tx(" provisions held (")}{tx(bnf(l.provisionsBn))} · {tx(pct(l.problemCov))}{tx(" of the problem book)")}<span className="mx-1.5">·</span>
+          <span className="mr-1 inline-block h-2 w-2.5 align-[-1px] bg-foreground/40" />{tx("Provisions held: {0}, covering {1} of the problem book", {0: bnf(l.provisionsBn), 1: pct(l.problemCov)})}<span className="mx-1.5">·</span>
           <span className="mr-1 inline-block h-2 w-2.5 align-[-1px] bg-warning" />{tx(" carrying amount")}</div>
       </div>
     </div>

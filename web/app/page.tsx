@@ -534,6 +534,21 @@ export default async function OverviewPage({
           </>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "monthly",
+            role: "current",
+            asOf: sNpl.at(-1)?.period,
+            window: "13m context",
+            basis: "BDDK published sector aggregate",
+          },
+          {
+            cadence: "quarterly",
+            role: "audited",
+            asOf: league.period,
+            basis: "bank-level standings only",
+          },
+        ]}
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
@@ -695,7 +710,7 @@ export default async function OverviewPage({
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth collapsed action={<GlobalRangeSelector />}>
         <Takeaway data={read} variant="desk" />
 
         {/* The scorecard IS the vitals band — one group at a time. */}

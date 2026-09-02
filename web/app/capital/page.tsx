@@ -1,8 +1,8 @@
 /**
  * Capital tab — "The Desk" two-layer page.
  *
- * Layer 1 (the brief): the vitals band — CAR + buffer over the 12% regulatory
- * minimum, audited Tier-1 / CET1, equity growth vs asset growth (the capital
+ * Layer 1 (the brief): the vitals band — CAR + buffer over BDDK's 12% target
+ * (the statutory floor is 8%), audited Tier-1 / CET1, equity growth vs asset growth (the capital
  * generation gap), RWA density and leverage — every note computed from the
  * same series the charts read.
  *
@@ -43,6 +43,7 @@ import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   Ahead,
+  CadenceBand,
   ChartFoot,
   ChartRow,
   Colophon,
@@ -271,13 +272,10 @@ export default async function CapitalPage() {
       v: step.delta.toFixed(2),
       unit: "pp",
       effect: (
-        <>{tx("Capital adequacy moved ")}<b>{tx(step.delta.toFixed(2))}{tx("pp in a single month")}</b>{tx(" — against a typical monthly move of ")}{tx(step.typical.toFixed(2))}{tx("pp")}{together ? (
-            <>{tx(", and ")}<b>{tx("every ownership group ")}{tx(sw.verb)}{tx(" together")}</b>
-            </>
-          ) : (
-            <>{tx(", though ")}<b>{tx("the groups did not all move with it")}</b>
-            </>
-          )}{tx(". This is a ")}<b>{tx("step")}</b>{tx(", not a trend.")}</>
+        <>{tx(together
+          ? "Capital adequacy changed {0}pp in one month, versus a typical monthly move of {1}pp. Every ownership group moved in the same direction. This is a level shift, not a trend."
+          : "Capital adequacy changed {0}pp in one month, versus a typical monthly move of {1}pp. Ownership groups did not all move in the same direction. This is a level shift, not a trend.",
+        {0: step.delta.toFixed(2), 1: step.typical.toFixed(2)})}</>
       ),
     });
     transmission.push({
@@ -285,8 +283,10 @@ export default async function CapitalPage() {
       v: signedPp(split.rest, 2).replace("pp", ""),
       unit: "pp",
       effect: (
-        <>{tx("The 12-month change is ")}{tx(signedPp(split.total, 2))}{tx(" = the step (")}{tx(signedPp(split.step, 2))}{tx(") plus everything else (")}<b>{tx(signedPp(split.rest, 2))}</b>{tx("). Strip the step and the sector")}{" "}
-          <b>{tx(split.rest >= 0 ? "added" : "lost")}{tx(" capital")}</b>{tx(" over the rest of the year.")}</>
+        <>{tx(split.rest >= 0
+          ? "The 12-month change is {0}: {1} from the level shift and {2} from the other months. Excluding the shift, the sector capital ratio increased over the rest of the year."
+          : "The 12-month change is {0}: {1} from the level shift and {2} from the other months. Excluding the shift, the sector capital ratio decreased over the rest of the year.",
+        {0: signedPp(split.total, 2), 1: signedPp(split.step, 2), 2: signedPp(split.rest, 2)})}</>
       ),
     });
   }
@@ -296,14 +296,10 @@ export default async function CapitalPage() {
       v: auditBuffer.toFixed(2),
       unit: tx("pp · audited {0}", {0: auditQ}),
       effect: (
-        <>{tx("Over BDDK’s ")}{tx(CAR_TARGET)}{tx("% target ratio (the statutory floor is ")}{tx(CAR_LEGAL_MIN)}{tx("%). The AT1 + Tier-2 stack is ")}<b>{tx(hybrids.toFixed(2))}{tx("pp")}</b> —{" "}
-          {hybrids > auditBuffer ? (
-            <>
-              <b>{tx("larger than the buffer itself")}</b>{tx(". Strip the instruments and total capital falls to")}{" "}
-              {tx(fmtPct(stackNow?.cet1, 2))}{tx(" — still clear of the ")}{tx(CET1_TARGET)}{tx("% conservation-buffer level, but the target is met with instruments rather than equity.")}</>
-          ) : (
-            <>{tx("the cushion is more common equity than instruments.")}</>
-          )}{" "}{tx("Both figures are audited — the monthly bulletin’s CAR (")}{tx(fmtPct(carNow, 2))}{tx(") is a different basis.")}</>
+        <>{tx(hybrids > auditBuffer
+          ? "The audited buffer above BDDK's {0}% target is {1}pp; the statutory floor is {2}%. AT1 and Tier-2 total {3}pp, more than the buffer itself. Without those instruments, total capital falls to {4}. The monthly bulletin's {5} CAR uses a different basis."
+          : "The audited buffer above BDDK's {0}% target is {1}pp; the statutory floor is {2}%. AT1 and Tier-2 total {3}pp, so common equity is larger than the instrument-funded part of the cushion. The monthly bulletin's {5} CAR uses a different basis.",
+        {0: CAR_TARGET, 1: auditBuffer.toFixed(2), 2: CAR_LEGAL_MIN, 3: hybrids.toFixed(2), 4: fmtPct(stackNow?.cet1, 2), 5: fmtPct(carNow, 2)})}</>
       ),
     });
   }
@@ -313,8 +309,8 @@ export default async function CapitalPage() {
       v: `${drift >= 0 ? "+" : "−"}${Math.abs(drift).toFixed(2)}`,
       unit: "pp/yr",
       effect: (
-        <>{tx("Measured ")}<b>{tx(driftBasis)}</b>{tx(". At this pace the buffer reaches the floor in")}{" "}
-          <b>~{tx(Math.round(qtrsToFloor))}{tx(" quarters")}</b>{tx(" — a sizing device, ")}<b>{tx("not a forecast")}</b>{tx(", and not the 12-month average a step would poison.")}</>
+        <>{tx("Measured on a {0} basis. At this pace the buffer reaches the target in about {1} quarters. This is a sizing exercise, not a forecast; the level shift is excluded from the run rate.",
+        {0: driftBasis, 1: Math.round(qtrsToFloor)})}</>
       ),
     });
   }
@@ -324,13 +320,10 @@ export default async function CapitalPage() {
       v: "—",
       effect: (
         <>
-          <b>{tx("We cannot source the step.")}</b>{" "}
-          {rwaHeld ? (
-            <>{tx("RWA density barely moved (")}{tx(fmtPct(rwaNow))}{tx("), so it arrived through the")}{" "}
-              <b>{tx("capital")}</b>{tx(" numerator rather than the risk mix")}</>
-          ) : (
-            <>{tx("RWA density ")}{tx(rwaStepMove)} {tx(signedPp(rwaStepDelta ?? 0, 1))}{tx(" through the same month, so the ")}<b>{tx("risk mix")}</b>{tx(" moved with it")}</>
-          )}{" "}{tx("— but no rule in our window explains it. The page says so rather than guessing.")}{" "}
+          {tx(rwaHeld
+            ? "The level shift cannot be attributed from the available data. RWA density barely moved ({0}), pointing to the capital numerator rather than the risk mix; no regulation in the available window explains the change."
+            : "The level shift cannot be attributed from the available data. RWA density moved {0} in the same month, so the risk mix moved as well; no regulation in the available window explains the change.",
+          {0: rwaHeld ? fmtPct(rwaNow) : signedPp(rwaStepDelta ?? 0, 1)})}{" "}
           <Go href="/regulation">{tx("/regulation")}</Go>
         </>
       ),
@@ -344,8 +337,8 @@ export default async function CapitalPage() {
       active: !!step?.isBreak,
       body: (
         <>
-          <b className="font-semibold">{tx("Structural break")}</b>{tx(" — CAR moved")}{" "}
-          {tx(step ? step.delta.toFixed(2) : "—")}{tx("pp in one month (")}{tx(monthLabel(step?.period ?? null))}{tx("), against a typical ")}{tx(step ? step.typical.toFixed(2) : "—")}{tx("pp. A 12-month “drift” that spans it is a step in disguise.")}</>
+          <b className="font-semibold">{tx("Structural break")}</b>{tx(" — In {0}, CAR changed {1}pp in one month, versus a typical move of {2}pp. A 12-month trend spanning this break would mainly describe the level shift.",
+          {0: monthLabel(step?.period ?? null), 1: step ? step.delta.toFixed(2) : "—", 2: step ? step.typical.toFixed(2) : "—"})}</>
       ),
       rule: "|Δ1m| > 3 × mean(|Δ1m|, 13m)",
       clear: <>{tx("Trend — the largest monthly move is within 3× the typical one")}</>,
@@ -355,10 +348,8 @@ export default async function CapitalPage() {
       active: hybrids != null && auditBuffer != null && hybrids > auditBuffer,
       body: (
         <>
-          <b className="font-semibold">{tx("Hybrid-funded buffer")}</b>{tx(" — AT1 + Tier-2 =")}{" "}
-          {tx(hybrids?.toFixed(2))}{tx("pp of RWA against a ")}{tx(auditBuffer?.toFixed(2))}{tx("pp buffer over the")}{" "}
-          {tx(CAR_TARGET)}{tx("% target (both audited ")}{tx(auditQ)}{tx("). Strip them and total capital is")}{" "}
-          {tx(fmtPct(stackNow?.cet1, 2))}{tx(" — the target is met with instruments, not equity.")}</>
+          <b className="font-semibold">{tx("Hybrid-funded buffer")}</b>{tx(" — AT1 and Tier-2 equal {0}pp of RWA, versus a {1}pp buffer above the {2}% target. Both are audited for {3}. Without those instruments, total capital is {4}; the target is met with instruments rather than common equity.",
+          {0: hybrids?.toFixed(2) ?? "—", 1: auditBuffer?.toFixed(2) ?? "—", 2: CAR_TARGET, 3: auditQ, 4: fmtPct(stackNow?.cet1, 2)})}</>
       ),
       rule: `at1 + tier2 > car_audited − ${CAR_TARGET}`,
       clear: <>{tx("Buffer — more common equity than instruments")}</>,
@@ -368,8 +359,8 @@ export default async function CapitalPage() {
       active: thinCet1 > 0,
       body: (
         <>
-          <b className="font-semibold">{tx("Into the conservation buffer")}</b> — {tx(thinCet1)}{tx(" of")}{" "}
-          {tx(byBankCap.rows.length)}{tx(" banks hold CET1 below ")}{tx(CET1_TARGET)}% ({tx(CET1_MIN)}{tx("% minimum + 2.5pp conservation buffer). That is ")}<b>{tx("not a breach")}</b>{tx(": the ")}{tx(CET1_MIN)}{tx("% minimum is the hard floor, and a bank inside the buffer faces restrictions on distributions, not sanction. Systemic banks owe a D-SIB buffer on top — we do not hold BDDK’s designations, so this is a floor, not the full test.")}</>
+          <b className="font-semibold">{tx("Into the conservation buffer")}</b>{tx(" — {0} of {1} banks report CET1 below {2}% ({3}% minimum plus a 2.5pp conservation buffer). This is not a breach: {3}% is the hard minimum, while entering the buffer restricts distributions. The test excludes additional systemic-bank buffers because BDDK designations are unavailable.",
+          {0: thinCet1, 1: byBankCap.rows.length, 2: CET1_TARGET, 3: CET1_MIN})}</>
       ),
       rule: `count(cet1 < ${CET1_TARGET}%) > 0`,
       clear: (
@@ -388,7 +379,8 @@ export default async function CapitalPage() {
       rule: "equity_yoy − assets_yoy < 0",
       clear:
         genGap != null ? (
-          <>{tx("Capital generation — equity ")}{tx(fmtPct(eqG))} y/y, {tx(signedPp(genGap, 1))}{tx(" vs assets")}</>
+          <>{tx("Capital generation — equity grew {0}, assets {1}; the gap is {2}.",
+          {0: fmtPct(eqG), 1: fmtPct(asG), 2: signedPp(genGap, 1)})}</>
         ) : (
           <>{tx("Capital generation — equity or asset growth not published this month")}</>
         ),
@@ -398,11 +390,12 @@ export default async function CapitalPage() {
       active: buffer != null && buffer < 2,
       body: (
         <>
-          <b className="font-semibold">{tx("Thin buffer")}</b> — {tx(buffer?.toFixed(2))}{tx("pp over BDDK’s")}{" "}
-          {tx(CAR_TARGET)}{tx("% target ratio.")}</>
+          <b className="font-semibold">{tx("Thin buffer")}</b>{tx(" — CAR is {0}pp above BDDK's {1}% target.",
+          {0: buffer?.toFixed(2) ?? "—", 1: CAR_TARGET})}</>
       ),
       rule: `car − ${CAR_TARGET} < 2pp`,
-      clear: <>{tx("Buffer — ")}{tx(buffer?.toFixed(2))}{tx("pp over the ")}{tx(CAR_TARGET)}{tx("% target ratio")}</>,
+      clear: <>{tx("Buffer — CAR is {0}pp above the {1}% target.",
+        {0: buffer?.toFixed(2) ?? "—", 1: CAR_TARGET})}</>,
     },
   ];
   const activeFlags = flags.filter((f) => f.active).length;
@@ -447,15 +440,30 @@ export default async function CapitalPage() {
           </>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "monthly",
+            role: "current",
+            asOf: carSector.at(-1)?.period,
+            window: "13m context",
+            basis: "BDDK published sector ratios",
+          },
+          {
+            cadence: "quarterly",
+            role: "audited",
+            asOf: auditQ,
+            basis: "sum of reporting banks' BRSA filings",
+          },
+        ]}
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title={tx("The vitals")}
-        meta={tx("sector aggregate · monthly + audited quarterly")}
+        title={tx("Current capital position")}
+        meta={tx("published monthly sector aggregate")}
         className="mb-2.5 mt-6"
       />
-      <Vitals>
+      <Vitals cols={4}>
         <Vital
           label={tx("Capital adequacy")}
           value={carNow != null ? carNow.toFixed(1) : "—"}
@@ -463,38 +471,11 @@ export default async function CapitalPage() {
           series={carSector.slice(-13)}
           decimals={1}
           note={
-            <>{tx("buffer")}{" "}
-              <b
-                className={
-                  buffer != null && buffer >= 2
-                    ? "font-semibold text-positive"
-                    : "font-semibold text-negative"
-                }
-              >
-                {tx(buffer != null ? signedPp(buffer, 1) : "—")}
-              </b>{" "}{tx("over the 12% min")}{drift != null && <>{tx(" · drifting ")}{tx(signedPp(drift, 1))}{tx("/yr")}</>}
-            </>
+            <>{buffer != null
+              ? tx("CAR is {0}pp above the 12% target{1}.",
+                {0: buffer.toFixed(1), 1: drift != null ? tx("; annualized drift is {0}", {0: signedPp(drift, 1)}) : ""})
+              : tx("The current CAR buffer is unavailable.")}</>
           }
-        />
-        <Vital
-          label={tx("Tier-1 (audited)")}
-          value={t1Now != null ? t1Now.toFixed(1) : "—"}
-          unit="%"
-          series={t1Series.slice(-8)}
-          decimals={1}
-          note={
-            <>
-              {tx(t1Delta4q != null ? tx("{0} over 4 audited qtrs", {0: signedPp(t1Delta4q, 1)}) : tx("audited {0}", {0: auditQ}))}
-            </>
-          }
-        />
-        <Vital
-          label={tx("CET1 (audited)")}
-          value={cet1Now != null ? cet1Now.toFixed(1) : "—"}
-          unit="%"
-          series={cet1Series.slice(-8)}
-          decimals={1}
-          note={<>{tx("audited ")}{tx(auditQ)}{tx(" · Σ capital ÷ Σ RWA")}</>}
         />
         <Vital
           label={tx("Equity growth, y/y")}
@@ -503,16 +484,17 @@ export default async function CapitalPage() {
           series={equityYoYSec.slice(-13)}
           decimals={1}
           note={
-            <>{tx("vs assets")}{" "}
-              <b
-                className={
-                  genGap != null && genGap >= 0
-                    ? "font-semibold text-positive"
-                    : "font-semibold text-negative"
-                }
-              >
-                {tx(genGap != null ? signedPp(genGap, 1) : "—")}
-              </b>{" "}{tx("generation gap ")}<Go href="/profitability">{tx("/profitability")}</Go>
+            <>{genGap != null ? (
+              <b className={genGap >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
+                {tx(
+                  genGap >= 0
+                    ? "Equity growth is {0}pp above asset growth."
+                    : "Equity growth is {0}pp below asset growth.",
+                  { 0: Math.abs(genGap).toFixed(1) },
+                )}
+              </b>
+            ) : tx("Asset-growth comparison is unavailable.")} {" "}
+              <Go href="/profitability">{tx("Profitability detail")}</Go>
             </>
           }
         />
@@ -527,12 +509,47 @@ export default async function CapitalPage() {
         <Vital
           label={tx("Liabilities / equity")}
           value={levNow != null ? levNow.toFixed(0) : "—"}
-          unit="%"
+          unit={levNow != null ? "%" : undefined}
           series={levSector.slice(-13)}
           decimals={0}
-          note={<>≈ {tx(levX != null ? `${levX.toFixed(1)}×` : "—")}{tx(" assets / equity")}</>}
+          note={levX != null
+            ? <>≈ {tx(`${levX.toFixed(1)}×`)}{tx(" assets / equity")}</>
+            : <>{tx("The current bulletin does not provide this ratio.")}</>}
         />
       </Vitals>
+
+      <CadenceBand
+        title={tx("Audited capital composition")}
+        observation={{
+          cadence: "quarterly",
+          role: "audited",
+          asOf: auditQ,
+          basis: "sum of reporting banks' capital and RWA",
+        }}
+      >
+        <Vitals cols={2} rule="hair">
+          <Vital
+            label={tx("Tier-1 (audited)")}
+            value={t1Now != null ? t1Now.toFixed(1) : "—"}
+            unit="%"
+            series={t1Series.slice(-8)}
+            decimals={1}
+            note={
+              <>
+                {tx(t1Delta4q != null ? tx("{0} over 4 audited qtrs", {0: signedPp(t1Delta4q, 1)}) : tx("audited {0}", {0: auditQ}))}
+              </>
+            }
+          />
+          <Vital
+            label={tx("CET1 (audited)")}
+            value={cet1Now != null ? cet1Now.toFixed(1) : "—"}
+            unit="%"
+            series={cet1Series.slice(-8)}
+            decimals={1}
+            note={<>{tx("audited ")}{tx(auditQ)}{tx(" · Σ capital ÷ Σ RWA")}</>}
+          />
+        </Vitals>
+      </CadenceBand>
 
       {/* ── Movers | The step → the ratio ──────────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
@@ -605,7 +622,7 @@ export default async function CapitalPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth collapsed action={<GlobalRangeSelector />}>
         <Takeaway data={await withLlmHeadline("capital", read, tx.locale)} variant="desk" />
 
         {/* The step — what the page had been calling an "easing". */}

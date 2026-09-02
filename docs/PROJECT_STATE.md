@@ -1858,6 +1858,25 @@ verified by sabotage), **`check_prose_claims.py`** (a hardcoded sign, an asserti
 **`check_calendar_fresh.py`** (fails under 90 days of MPC runway). Full writeup:
 [docs/knowledge/prose-claims-audit.md](knowledge/prose-claims-audit.md).
 
+**Sector presentation contract refreshed (2026-09-02):** Overview, Credit,
+Deposits, Liquidity, Asset Quality, Capital and Profitability now print their
+observation clocks explicitly (`ObservationRail` / `CadenceBand`: cadence,
+date, window, basis and analytical role). Daily, weekly, monthly and quarterly
+figures are split into separate bands instead of reading as one current
+snapshot; `app/lib/cadence.ts` supplies common-cutoff alignment for calculations
+that legitimately combine unlike frequencies. Credit leads with 13-week
+annualized FX-adjusted momentum while retaining the slower 52-week real measure;
+Deposits separates the published monthly TL+FC LDR from weekly funding; Liquidity
+separates daily TCMB funding, weekly TL funding and quarterly audited buffers;
+Capital separates monthly published ratios from quarterly audited Tier-1/CET1.
+Profitability uses exact Fisher-deflated real ROE and puts the reconciled,
+de-cumulated monthly P&L bridge in the main flow. Development/investment banks no
+longer enter the deposit-funded LDR comparison. Secondary analysis stays
+reachable through lazy-mounted disclosures, and the Turkish reading path uses
+sentence-level translations for analytical prose and chart labels. This is a
+presentation/data-contract change only: no ingestion, D1 rows or source coverage
+changed.
+
 **/asset-quality rebuilt — the ratio prints the tip (2026-07-13):** the page led
 with "NPL ratio 2.69%", which is calm, and is the **tip**. What the ratio prints is
 Stage 3 (3.1% of the book); loans the banks themselves classify as deteriorated are

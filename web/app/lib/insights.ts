@@ -1,6 +1,7 @@
 import { createText } from "../../i18n/text";
 import { VERBS, direction } from "./prose";
 import { seriesFinding } from "./chart-findings";
+import { realRate } from "./real-terms";
 
 /**
  * Minimal series shape the engine needs — structurally satisfied by
@@ -506,10 +507,10 @@ export function profitabilityInsights(d: {
 
   const roe = last(d.roe);
   const cpi = last(d.cpi);
-  const real = roe != null && cpi != null ? roe - cpi : null;
+  const real = realRate(roe, cpi);
   if (roe != null) {
     items.push({
-      text: tx("ROE {0} nominal{1}.", {0: pct(roe), 1: real != null ? tx(" — {0}{1}pp vs 12m-avg CPI, so {2} in real terms", {0: real >= 0 ? "+" : "", 1: real.toFixed(1), 2: real > 5 ? "solidly positive" : real > 0 ? "barely positive" : "negative"}) : ""}),
+      text: tx("ROE {0} nominal{1}.", {0: pct(roe), 1: real != null ? tx(" — Fisher-deflated by 12m-avg CPI: {0}{1}% real, so {2}", {0: real >= 0 ? "+" : "", 1: real.toFixed(1), 2: real > 5 ? "solidly positive" : real > 0 ? "barely positive" : "negative"}) : ""}),
       tone: real != null && real < 0 ? "warn" : real != null && real > 5 ? "positive" : "neutral",
     });
   }

@@ -59,8 +59,9 @@ import {
   type StandingsGroup,
   type TransmissionItem,
 } from "@/app/components/desk";
-import { monthLabel, signedPp, streak, valAgo, windowExtremes } from "@/app/lib/desk";
+import { monthLabel, signedPct, signedPp, streak, valAgo, windowExtremes } from "@/app/lib/desk";
 import { firstClaim } from "@/app/lib/prose";
+import { realRate } from "@/app/lib/real-terms";
 import { bridge, costIncome, engine } from "@/app/lib/profitability";
 import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
@@ -183,7 +184,7 @@ export default async function ProfitabilityPage() {
   const feesNow = latest(sectorRows.fees);
   const cpiAvgNow = cpiAvg.at(-1)?.value ?? null;
 
-  const roeReal = roeNow != null && cpiAvgNow != null ? roeNow - cpiAvgNow : null;
+  const roeReal = realRate(roeNow, cpiAvgNow);
   const roeDupont = roaNow != null && levX != null ? roaNow * levX : null;
   const nimExt = windowExtremes(sectorRows.nim, 24);
   const opexAgo = yearAgo(sectorRows.opex);
@@ -260,9 +261,9 @@ export default async function ProfitabilityPage() {
       v: E.demandShare.toFixed(1),
       unit: "%",
       effect: (
-        <>{tx("of the deposit base is ")}<b>{tx("demand money that pays nothing")}</b>{tx(". The sector pays")}{" "}
-          <b>{tx(fmtPct(E.paidOnTime))}</b>{tx(" on the deposits it does pay for, so the blended cost is only")}{" "}
-          <b>{tx(fmtPct(E.blended))}</b>. <Go href="/deposits">{tx("/deposits")}</Go>
+        <>{tx("{0} of deposits pay no interest. The sector pays {1} on interest-bearing deposits; the blended cost is {2}.",
+          {0: fmtPct(E.demandShare), 1: fmtPct(E.paidOnTime), 2: fmtPct(E.blended)})}{" "}
+          <Go href="/deposits">{tx("/deposits")}</Go>
         </>
       ),
     });
@@ -271,9 +272,8 @@ export default async function ProfitabilityPage() {
       v: `₺${E.worth.toFixed(2)}`,
       unit: "trn",
       effect: (
-        <>{tx("Priced at that same ")}{tx(fmtPct(E.paidOnTime))}{tx(", the demand book would cost")}{" "}
-          <b>{tx(fmtTrn(E.worth))}{tx(" a year")}</b>{tx(" — against a total sector profit of")}{" "}
-          <b>{tx(fmtTrn(E.profit))}</b>{tx(". The free money is worth ")}<b>{tx(E.ratio.toFixed(1))}×</b>{tx(" the profit it produces.")}</>
+        <>{tx("At the sector's paid rate, pricing demand deposits would cost {0} a year, versus {1} of sector profit. That equals {2}× the profit.",
+          {0: fmtTrn(E.worth), 1: fmtTrn(E.profit), 2: E.ratio.toFixed(1)})}</>
       ),
     });
     transmission.push({
@@ -281,7 +281,8 @@ export default async function ProfitabilityPage() {
       v: roeIfPaid != null ? roeIfPaid.toFixed(0) : "—",
       unit: "%",
       effect: (
-        <>{tx("ROE prints ")}<b>{tx(fmtPct(roeNow))}</b>{tx(". Paying the demand book at the sector’s own rate costs ")}<b>{tx(E.roeCost.toFixed(0))}{tx("pp")}</b>{tx(" of it (")}{tx(fmtTrn(E.worth))}{tx(" against ")}{tx(fmtTrn(E.equity))}{" "}{tx("of equity), leaving ")}<b>{tx(fmtPct(roeIfPaid))}</b>. A <b>{tx("sizing device, not a forecast")}</b>{tx(" — but it says where the return lives.")}</>
+        <>{tx("Published ROE is {0}. Pricing demand deposits at the paid rate would reduce it by {1}pp to {2}. This is a sizing exercise, not a forecast.",
+          {0: fmtPct(roeNow), 1: E.roeCost.toFixed(0), 2: fmtPct(roeIfPaid)})}</>
       ),
     });
   }
@@ -291,9 +292,10 @@ export default async function ProfitabilityPage() {
       v: cpiAvgNow.toFixed(1),
       unit: "%",
       effect: (
-        <>{tx("ROE ")}{tx(fmtPct(roeNow))}{tx(" against a ")}{tx(fmtPct(cpiAvgNow))}{tx(" CPI 12-month average:")}{" "}
-          <b>{tx(signedPp(roeNow - cpiAvgNow, 1))}{tx(" real")}</b>{tx(". The sector earns its profit and still")}{" "}
-          {tx(roeReal != null && roeReal < 0 ? "compounds a real loss" : "clears the hurdle")}.{" "}
+        <>{tx(roeReal != null && roeReal < 0
+          ? "Published ROE is {0}; deflated by {1} 12m-average CPI, it is {2} in real terms. The sector remains below the inflation hurdle."
+          : "Published ROE is {0}; deflated by {1} 12m-average CPI, it is {2} in real terms. The sector clears the inflation hurdle.",
+        {0: fmtPct(roeNow), 1: fmtPct(cpiAvgNow), 2: roeReal != null ? signedPct(roeReal, 1) : "—"})}{" "}
           <Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
         </>
       ),
@@ -305,8 +307,8 @@ export default async function ProfitabilityPage() {
       v: E.blended.toFixed(1),
       unit: "%",
       effect: (
-        <>{tx("is what the average depositor gets, against ")}{tx(fmtPct(cpiAvgNow))}{tx(" inflation —")}{" "}
-          <b>{tx(signedPp(E.blended - cpiAvgNow, 1))}{tx(" a year in real terms")}</b>{tx(". That gap is the engine.")}</>
+        <>{tx("The blended deposit cost is {0}, versus {1} inflation: a {2}pp nominal gap. That gap supports the margin.",
+          {0: fmtPct(E.blended), 1: fmtPct(cpiAvgNow), 2: Math.abs(E.blended - cpiAvgNow).toFixed(1)})}</>
       ),
     });
   }
@@ -318,8 +320,8 @@ export default async function ProfitabilityPage() {
       active: E != null && E.ratio > 1,
       body: (
         <>
-          <b className="font-semibold">{tx("Free-funding dependence")}</b>{tx(" — the demand book, priced at the")}{" "}
-          {tx(fmtPct(E?.paidOnTime))}{tx(" the sector pays everyone else, is worth ")}<b>{tx(fmtTrn(E?.worth))}</b>{" "}{tx("against ")}<b>{tx(fmtTrn(E?.profit))}</b>{tx(" of profit: ")}<b>{tx(E?.ratio.toFixed(1))}×</b>{tx(". The return is a funding artefact, not a lending one.")}</>
+          <b className="font-semibold">{tx("Free-funding dependence")}</b>{tx(" — Pricing demand deposits at the sector's {0} paid-deposit rate would cost {1}, equal to {2}× the sector's {3} profit. The return relies heavily on the funding mix.",
+          {0: fmtPct(E?.paidOnTime), 1: fmtTrn(E?.worth), 2: E?.ratio.toFixed(1) ?? "—", 3: fmtTrn(E?.profit)})}</>
       ),
       rule: "demand_book_at_paid_rate / net_profit > 1",
       clear: <>{tx("Funding — the free deposits are worth less than the profit they produce")}</>,
@@ -329,12 +331,11 @@ export default async function ProfitabilityPage() {
       active: roeReal != null && roeReal < 0,
       body: (
         <>
-          <b className="font-semibold">{tx("Real returns")}</b>{tx(" — ROE ")}{tx(fmtPct(roeNow))}{tx(" against")}{" "}
-          {tx(fmtPct(cpiAvgNow))}{tx(" 12m-avg CPI: equity compounds a")}{" "}
-          {tx(roeReal != null ? Math.abs(roeReal).toFixed(1) : "—")}{tx("pp real loss.")}</>
+          <b className="font-semibold">{tx("Real returns")}</b>{tx(" — Published ROE is {0}; after Fisher deflation with {1} average CPI, the real return is {2}.",
+          {0: fmtPct(roeNow), 1: fmtPct(cpiAvgNow), 2: signedPct(roeReal ?? 0, 1)})}</>
       ),
-      rule: "roe − cpi_12m_avg < 0",
-      clear: <>{tx("Real returns — ROE clears the CPI hurdle by ")}{tx(signedPp(roeReal ?? 0, 1))}</>,
+      rule: "(1+roe)/(1+cpi_12m_avg) − 1 < 0",
+      clear: <>{tx("Real returns — Fisher-deflated ROE is ")}{tx(signedPct(roeReal ?? 0, 1))}</>,
     },
     {
       code: "cost-income",
@@ -353,10 +354,8 @@ export default async function ProfitabilityPage() {
       active: E != null && cpiAvgNow != null && E.blended < cpiAvgNow,
       body: (
         <>
-          <b className="font-semibold">{tx("Savers below inflation")}</b>{tx(" — the blended deposit cost is")}{" "}
-          {tx(fmtPct(E?.blended))}{tx(" against ")}{tx(fmtPct(cpiAvgNow))}{tx(" CPI: depositors lose")}{" "}
-          <b>
-            {tx(E != null && cpiAvgNow != null ? Math.abs(E.blended - cpiAvgNow).toFixed(1) : "—")}{tx("pp a year")}</b>{tx(". This is the source of the margin.")}</>
+          <b className="font-semibold">{tx("Savers below inflation")}</b>{tx(" — The blended deposit cost is {0}, versus {1} inflation. The {2}pp nominal gap supports the margin; it is not itself a real-return calculation.",
+          {0: fmtPct(E?.blended), 1: fmtPct(cpiAvgNow), 2: E != null && cpiAvgNow != null ? Math.abs(E.blended - cpiAvgNow).toFixed(1) : "—"})}</>
       ),
       rule: "blended_deposit_cost − cpi_12m_avg < 0",
       clear: <>{tx("Savers — the blended deposit cost clears inflation")}</>,
@@ -375,9 +374,8 @@ export default async function ProfitabilityPage() {
       ),
       rule: "|bridge − reported_net| > ₺0.001trn",
       clear: (
-        <>{tx("P&L reconciles — bridge vs the reported net-profit line:")}{" "}
-          {tx(br ? tx("₺{0}trn", {0: Math.abs(br.gap).toFixed(4)}) : "—")}
-        </>
+        <>{tx("P&L reconciles — the gap between the bridge and reported net profit is {0}.",
+          {0: br ? tx("₺{0}trn", {0: Math.abs(br.gap).toFixed(4)}) : "—"})}</>
       ),
     },
   ];
@@ -428,6 +426,22 @@ export default async function ProfitabilityPage() {
           </>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "monthly",
+            role: "current",
+            asOf: sectorRows.roe.at(-1)?.period,
+            window: "YTD ratios, annualized",
+            basis: "BDDK published sector ratios",
+          },
+          {
+            cadence: "monthly",
+            role: "current",
+            asOf: br?.period,
+            window: "month alone, de-cumulated",
+            basis: "reported P&L reconciled before display",
+          },
+        ]}
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
@@ -444,7 +458,7 @@ export default async function ProfitabilityPage() {
           series={spark(sectorRows.roe)}
           decimals={1}
           note={
-            <>{tx("− CPI ≈")}{" "}
+            <>{tx("Fisher-deflated ≈")}{" "}
               <em
                 className={
                   roeReal != null && roeReal < 0
@@ -452,7 +466,7 @@ export default async function ProfitabilityPage() {
                     : "not-italic font-semibold text-positive"
                 }
               >
-                {tx(roeReal != null ? signedPp(roeReal, 1) : "—")}{tx(" real")}</em>
+                {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}{tx(" real")}</em>
             </>
           }
         />
@@ -462,10 +476,11 @@ export default async function ProfitabilityPage() {
           unit="%"
           series={spark(sectorRows.roa)}
           note={
-            <>
-              × {tx(levX != null ? `${levX.toFixed(1)}×` : "—")}{tx(" leverage ≈ ROE")}{" "}
-              {tx(roeDupont != null ? `${roeDupont.toFixed(1)}%` : "—")}
-            </>
+            roeDupont != null && levX != null ? (
+              <>× {tx(`${levX.toFixed(1)}×`)}{tx(" leverage ≈ ROE")}{" "}{tx(`${roeDupont.toFixed(1)}%`)}</>
+            ) : (
+              <>{tx("Leverage is unavailable; the ROE decomposition cannot be computed.")}</>
+            )
           }
         />
         <Vital
@@ -475,7 +490,8 @@ export default async function ProfitabilityPage() {
           series={spark(sectorRows.nim)}
           note={
             nimExt != null && nimNow != null && nimNow - nimExt.min > 0.5 ? (
-              <>{tx("rebuilt from ")}{tx(nimExt.min.toFixed(1))}% ({tx(monthLabel(nimExt.minPeriod, false))}{tx(" low)")}</>
+              <>{tx("Recovered from the {0}% low recorded in {1}.",
+                {0: nimExt.min.toFixed(1), 1: monthLabel(nimExt.minPeriod, false)})}</>
             ) : (
               <>{tx("within its 24m range")}</>
             )
@@ -505,7 +521,7 @@ export default async function ProfitabilityPage() {
           unit="%"
           series={spark(sectorRows.fees)}
           decimals={1}
-          note={<>{tx(feesDelta != null ? `${signedPp(feesDelta, 1)} y/y` : "—")}{tx(" share of revenue")}</>}
+          note={<>{tx(feesDelta != null ? signedPp(feesDelta, 1) : "—")} {tx("y/y share of revenue")}</>}
         />
         <Vital
           label={tx("CPI, 12m-avg")}
@@ -516,16 +532,38 @@ export default async function ProfitabilityPage() {
           note={
             cpiFallStreak >= 3 ? (
               <>
-                <b className="font-semibold text-positive">{tx(cpiFallStreak)}{tx(" straight declines")}</b>{tx(" — the real-return hurdle ")}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
+                <b className="font-semibold text-positive">{tx("CPI has declined for {0} consecutive months.", {0: cpiFallStreak})}</b>{" "}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
               </>
             ) : (
               <>
-                {tx(cpiDelta12 != null ? `${signedPp(cpiDelta12, 1)} y/y` : "—")}{tx(" — the real-return hurdle ")}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
+                {tx(cpiDelta12 != null ? signedPp(cpiDelta12, 1) : "—")} {tx("y/y — the real-return hurdle ")}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
               </>
             )
           }
         />
       </Vitals>
+
+      {br?.reconciles && (
+        <div className="mt-8">
+          <SecHead
+            title={tx("What produced this month's profit")}
+            meta={tx("month alone · de-cumulated from YTD · reconciled")}
+            className="mb-2.5"
+          />
+          <ProfitBridge
+            bridge={br}
+            prior={brPrior}
+            title={
+              tx(brPrior && br.nii > brPrior.nii && br.net < brPrior.net
+                ? tx("{0} — net interest income rose, and the profit still fell", {0: monthLabel(br.period)})
+                : tx("{0} — the month in one line each", {0: monthLabel(br.period)}))
+            }
+            description={tx("₺ trn, the month alone · not the year to date")}
+            source={tx("Source: BDDK monthly income statement · bridge reconciles to reported net profit")}
+            height={280}
+          />
+        </div>
+      )}
 
       {/* ── Movers | The engine → the return ───────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
@@ -603,7 +641,7 @@ export default async function ProfitabilityPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth collapsed action={<GlobalRangeSelector />}>
         <Takeaway data={await withLlmHeadline("profitability", read, tx.locale)} variant="desk" />
 
         {/* The engine — where the return actually comes from. */}

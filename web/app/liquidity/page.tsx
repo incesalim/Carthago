@@ -41,6 +41,7 @@ import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-r
 import { FWD_YEARS_BACK, RESERVE_CODES, reserveBuffer } from "@/app/lib/reserves";
 import {
   Ahead,
+  CadenceBand,
   ChartFoot,
   ChartRow,
   Colophon,
@@ -391,7 +392,7 @@ export default async function LiquidityPage() {
   }
   if (fundNow != null) {
     transmission.push({
-      k: "TL deficit",
+      k: fundNow < 0 ? "TL deficit" : "TL surplus",
       v: `₺${fundNow.toFixed(0)}`,
       unit: "bn · daily",
       effect: (
@@ -421,9 +422,10 @@ export default async function LiquidityPage() {
           {reerMove === VERBS.noun.flat ? (
             <>{tx("The real exchange rate is flat over 12 months — the lira carry is unchanged.")}</>
           ) : (
-            <>{tx("Real ")}{tx(reerMove)}{tx(" of ")}<b>{tx(Math.abs(reerD).toFixed(1))}</b>{tx(" over 12 months")}{" "}
-              {tx(reerD > 0 ? "is what makes holding lira pay" : "works against the lira carry")}{tx(" — TL deposits run at ")}<b>{tx(fmtPct(tl13w, 0))}{tx(" annualized")}</b>.
-            </>
+            <>{tx(reerD > 0
+              ? "The real exchange rate appreciated {0} points over 12 months; TL deposits are running at {1} annualized."
+              : "The real exchange rate depreciated {0} points over 12 months; TL deposits are running at {1} annualized.",
+            {0: Math.abs(reerD).toFixed(1), 1: fmtPct(tl13w, 0)})}</>
           )}{" "}
           <Link href="/economy" className="font-semibold text-primary">{tx("/economy")}</Link>
         </>
@@ -472,7 +474,7 @@ export default async function LiquidityPage() {
       body: (
         <>
           <b className="font-semibold">{tx("Private LDR at the line")}</b>{tx(" — private TL loan/deposit")}{" "}
-          {tx(fmtPct(privNow))}{tx(", within ")}{tx(privNow != null ? (100 - privNow).toFixed(1) : "—")}{tx("pp of 100%. New lending has to be funded, not recycled. This is the TL book alone; the published TL+FC sector ratio, judged against 100%, is on")}{" "}
+          {tx("{0}; {1}pp below 100%. New lending requires additional funding. This is the TL book; the published TL+FC sector ratio is on", {0: fmtPct(privNow), 1: privNow != null ? (100 - privNow).toFixed(1) : "—"})}{" "}
           <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>.
         </>
       ),
@@ -533,18 +535,46 @@ export default async function LiquidityPage() {
       <DeskHeader
         title={tx("Liquidity")}
         record={
-          <>{tx("Record ")}<b className="font-normal text-foreground">W/E {tx(recWeek)}</b> · {tx(auditQ)}{tx(" filings + weekly")}</>
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx("week ending {0}", {0: recWeek})}</b> · {tx(auditQ)}{tx(" filings + weekly")}</>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "daily",
+            role: "current",
+            asOf: netFundingBn.at(-1)?.period,
+            basis: "TCMB system liquidity",
+          },
+          {
+            cadence: "weekly",
+            role: "current",
+            asOf: tlLdrPriv.at(-1)?.period,
+            window: "52w context",
+            basis: "BDDK TL funding",
+          },
+          {
+            cadence: "monthly",
+            role: "structure",
+            asOf: reer.at(-1)?.period_date,
+            window: "12m change",
+            basis: "TCMB real effective exchange rate",
+          },
+          {
+            cadence: "quarterly",
+            role: "audited",
+            asOf: auditQ,
+            basis: "BRSA LCR and NSFR filings",
+          },
+        ]}
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
-        title={tx("The vitals")}
-        meta={tx("weekly bulletin + evds + audited §4")}
+        title={tx("Regulatory buffers")}
+        meta={tx("audited quarterly · not a live weekly measure")}
         className="mb-2.5 mt-6"
       />
-      <Vitals>
+      <Vitals cols={2}>
         <Vital
           label={tx("LCR")}
           value={lcrNow != null ? lcrNow.toFixed(0) : "—"}
@@ -585,6 +615,19 @@ export default async function LiquidityPage() {
             ) : undefined
           }
         />
+      </Vitals>
+
+      <CadenceBand
+        title={tx("Weekly funding pressure")}
+        observation={{
+          cadence: "weekly",
+          role: "current",
+          asOf: tlLdrPriv.at(-1)?.period,
+          window: "52w context",
+          basis: LDR_WEEKLY_TL.basis,
+        }}
+      >
+        <Vitals cols={3} rule="hair">
         <Vital
           label={tx("{0} — public", {0: LDR_WEEKLY_TL.label})}
           value={pubNow != null ? pubNow.toFixed(1) : "—"}
@@ -629,26 +672,42 @@ export default async function LiquidityPage() {
                 >
                   {tx(signedPp(dollYoY, 1))}
                 </b>{" "}
-                y/y{" "}
+                {tx("y/y")} {" "}
                 <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
               </>
             ) : undefined
           }
         />
+        </Vitals>
+      </CadenceBand>
+
+      <CadenceBand
+        title={tx("Daily system liquidity")}
+        observation={{
+          cadence: "daily",
+          role: "current",
+          asOf: netFundingBn.at(-1)?.period,
+          basis: "TCMB net funding balance",
+        }}
+      >
+        <Vitals cols={3} rule="hair">
         <Vital
           label={tx("Net CBRT funding")}
           value={fundNow != null ? fundNow.toFixed(0) : "—"}
-          unit="₺bn"
+          unit={tx.locale === "tr" ? "milyar ₺" : "₺bn"}
           series={lastYearWindow(netFundingBn)}
           format="raw"
           decimals={0}
           note={
             fundNow != null ? (
-              <>{tx(fundNow >= 0 ? "+ excess" : "− lack")}{tx(" of TL liquidity in the system")}</>
+              <>{tx(fundNow >= 0
+                ? "The system has a TL surplus; banks place the excess at the CBRT."
+                : "The system has a TL shortage; banks borrow from the CBRT.")}</>
             ) : undefined
           }
         />
-      </Vitals>
+        </Vitals>
+      </CadenceBand>
 
       {/* ── Movers | The buffer → the system ───────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
@@ -708,8 +767,10 @@ export default async function LiquidityPage() {
               ahead.mpc && {
                 when: ahead.mpc.when,
                 what: (
-                  <>{tx("TCMB MPC — the rate the")}{" "}
-                    {tx(fundNow != null ? `₺${Math.abs(fundNow).toFixed(0)}bn` : "")}{tx(" deficit is funded at")}</>
+                  <>{tx(fundNow != null && fundNow < 0
+                    ? "TCMB MPC — the rate applied to the ₺{0}bn system funding shortfall"
+                    : "TCMB MPC — the rate paid on the ₺{0}bn system liquidity surplus",
+                  {0: fundNow != null ? Math.abs(fundNow).toFixed(0) : "—"})}</>
                 ),
               },
               ahead["brsa-filings"] && {
@@ -727,7 +788,7 @@ export default async function LiquidityPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth collapsed action={<GlobalRangeSelector />}>
         <Takeaway data={await withLlmHeadline("liquidity", read, tx.locale)} variant="desk" />
 
         {/* The buffer — the page's own arithmetic, finally read out. */}

@@ -93,6 +93,18 @@ export function fxAdjustedGrowth(
   return out;
 }
 
+/** Annualize a growth series measured over a fixed day window. */
+export function annualizeGrowth(rows: Pt[], elapsedDays: number): Pt[] {
+  if (elapsedDays <= 0) return [];
+  return rows.flatMap((row) => {
+    if (row.value == null || row.value <= -100) return [];
+    return [{
+      period: row.period,
+      value: (Math.pow(1 + row.value / 100, 364 / elapsedDays) - 1) * 100,
+    }];
+  });
+}
+
 export interface CreditBridge {
   /** The latest nominal print — the vitals' headline. May LEAD the real legs. */
   nominal: number | null;
@@ -165,4 +177,3 @@ export function creditBridge(
     lagged: !!(nomPt && asOfReal && nomPt.period > asOfReal),
   };
 }
-

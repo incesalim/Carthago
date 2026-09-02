@@ -37,8 +37,8 @@ export function ChartCard({
   if (plain) {
     return (
       <div data-chart-card="" className={cn("group min-w-0", className)}>
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-start gap-3">
+          <div className="min-w-0 flex-[1_1_14rem]">
             {title && (
               <div
                 data-chart-title=""
@@ -53,7 +53,7 @@ export function ChartCard({
               </div>
             )}
           </div>
-          <div className="flex shrink-0 items-start gap-2">
+          <div className="flex max-w-full flex-[0_1_auto] flex-wrap items-start gap-2 sm:ml-auto sm:justify-end">
             {action}
             <ChartExport />
           </div>
@@ -72,8 +72,8 @@ export function ChartCard({
       data-chart-card=""
       className={cn("group p-4 transition-colors hover:border-primary/40", className)}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-0.5">
+      <div className="mb-3 flex flex-wrap items-start gap-3">
+        <div className="min-w-0 flex-[1_1_14rem] space-y-0.5">
           {title && (
             <div
               data-chart-title=""
@@ -87,7 +87,7 @@ export function ChartCard({
           )}
         </div>
         {/* Existing header action (toggle/filter…) sits beside the export pills. */}
-        <div className="flex shrink-0 items-start gap-2">
+        <div className="flex max-w-full flex-[0_1_auto] flex-wrap items-start gap-2 sm:ml-auto sm:justify-end">
           {action}
           <ChartExport />
         </div>

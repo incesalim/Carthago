@@ -2,7 +2,9 @@ import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import Link from "next/link";
 import Sparkline from "@/app/components/Sparkline";
+import DeskDisclosure from "@/app/components/DeskDisclosure";
 import { cn } from "@/app/lib/cn";
+import { cadenceLabel, type ObservationMeta } from "@/app/lib/cadence";
 
 /**
  * "The Desk" briefing layer — the shared skeleton every tab's brief is built
@@ -24,28 +26,124 @@ export function DeskHeader({
   title,
   record,
   right,
+  observations,
 }: {
   title: React.ReactNode;
   /** Mono record line, e.g. "Record May 2026 · vs Apr". */
   record?: React.ReactNode;
   /** Right-aligned mono note, e.g. the automation-honesty line. */
   right?: React.ReactNode;
+  /** The page's observation clocks, ordered primary to contextual. */
+  observations?: ObservationMeta[];
 }) {
   const tx = useText();
   return (
-    <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-      <h1 className="text-[24px] font-bold tracking-tight text-foreground">{tx(title)}</h1>
-      {record && (
-        <span className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-muted-foreground">
-          {tx(record)}
-        </span>
-      )}
-      {right && (
-        <span className="ml-auto hidden font-mono text-[9px] uppercase tracking-[0.05em] text-faint sm:inline">
-          {tx(right)}
-        </span>
+    <header>
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <h1 className="text-[24px] font-bold tracking-tight text-foreground">{tx(title)}</h1>
+        {record && (
+          <span className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-muted-foreground">
+            {tx(record)}
+          </span>
+        )}
+        {right && (
+          <span className="ml-auto hidden font-mono text-[9px] uppercase tracking-[0.05em] text-faint sm:inline">
+            {tx(right)}
+          </span>
+        )}
+      </div>
+      {observations && observations.length > 0 && (
+        <ObservationRail items={observations} className="mt-2.5" />
       )}
     </header>
+  );
+}
+
+function ObservationText({ item }: { item: ObservationMeta }) {
+  const tx = useText();
+  return (
+    <>
+      <b className="font-semibold text-foreground">{tx(cadenceLabel(item.cadence))}</b>
+      {item.role && <span>{tx(item.role)}</span>}
+      {item.asOf && <span>{tx("as of {0}", { 0: item.asOf })}</span>}
+      {item.window && <span>{tx(item.window)}</span>}
+      {item.basis && <span>{tx(item.basis)}</span>}
+      {item.source && <span>{tx(item.source)}</span>}
+    </>
+  );
+}
+
+/** Visible page-level clock hand-off: cadence, freshness, window and basis. */
+export function ObservationRail({
+  items,
+  className,
+}: {
+  items: ObservationMeta[];
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-wrap border-y border-hair", className)}>
+      {items.map((item, index) => (
+        <div
+          key={`${item.cadence}-${item.role ?? ""}-${item.asOf ?? ""}-${index}`}
+          className="flex flex-wrap items-baseline gap-x-1.5 border-r border-hair px-2.5 py-1.5 font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint first:pl-0 last:border-r-0"
+        >
+          <ObservationText item={item} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Section-level cadence hand-off for pages that legitimately use several clocks. */
+export function CadenceBand({
+  title,
+  observation,
+  children,
+  className,
+}: {
+  title: React.ReactNode;
+  observation: ObservationMeta;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const tx = useText();
+  return (
+    <section className={cn("mt-8 border-t border-hair pt-2.5", className)}>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 className="text-[13.5px] font-bold text-foreground">{tx(title)}</h2>
+        <span className="flex flex-wrap items-baseline gap-x-1.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-faint">
+          <ObservationText item={observation} />
+        </span>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Quiet, secondary disclosure inside the brief; evidence stays one action away. */
+export function Disclosure({
+  title,
+  meta,
+  children,
+  open = false,
+}: {
+  title: React.ReactNode;
+  meta?: React.ReactNode;
+  children: React.ReactNode;
+  open?: boolean;
+}) {
+  const tx = useText();
+  return (
+    <DeskDisclosure
+      kind="secondary"
+      title={tx(title)}
+      closedLabel={tx("open")}
+      meta={meta ? tx(meta) : undefined}
+      initiallyOpen={open}
+    >
+      {children}
+    </DeskDisclosure>
   );
 }
 
@@ -123,6 +221,7 @@ export function SecHead({
 // ---------------------------------------------------------------------------
 
 const VITALS_COLS: Record<number, string> = {
+  2: "sm:grid-cols-2 xl:grid-cols-2",
   3: "sm:grid-cols-3 xl:grid-cols-3",
   4: "sm:grid-cols-2 xl:grid-cols-4",
   5: "sm:grid-cols-3 xl:grid-cols-5",
@@ -139,14 +238,14 @@ export function Vitals({
 }: {
   children: React.ReactNode;
   /** Cell count at xl (default 6) — pass the number of <Vital> children. */
-  cols?: 3 | 4 | 5 | 6;
+  cols?: 2 | 3 | 4 | 5 | 6;
   rule?: "ink" | "hair";
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2 border-b border-border",
+        "grid grid-cols-2 border-b border-border [&>*:only-child]:col-span-full",
         rule === "ink" ? "border-t-2 border-t-foreground" : "border-t border-t-hair",
         VITALS_COLS[cols] ?? VITALS_COLS[6],
         className,
@@ -166,6 +265,7 @@ export function Vital({
   series,
   format = "pct",
   decimals = 2,
+  observation,
 }: {
   label: string;
   value: string;
@@ -177,6 +277,7 @@ export function Vital({
   series?: { period: string; value: number | null }[];
   format?: "pct" | "trn" | "raw";
   decimals?: number;
+  observation?: ObservationMeta;
 }) {
   const tx = useText();
   return (
@@ -197,6 +298,11 @@ export function Vital({
       )}
       {tx(peer)}
       {note && <div className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
+      {observation && (
+        <div className="mt-1.5 flex flex-wrap gap-x-1.5 border-t border-hair pt-1 font-mono text-[7.5px] uppercase tracking-[0.05em] text-faint">
+          <ObservationText item={observation} />
+        </div>
+      )}
     </div>
   );
 }
@@ -803,15 +909,31 @@ export function ChartFoot({
 
 /** "In depth" — the evidence layer below the brief. */
 export function Depth({
-  meta = "carried over from the current page — restyled, not removed",
+  meta = "full evidence remains available on demand",
   action,
   children,
+  collapsed = false,
 }: {
   meta?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
+  /** Keep specialist depth reachable without making it the default reading path. */
+  collapsed?: boolean;
 }) {
   const tx = useText();
+  if (collapsed) {
+    return (
+      <DeskDisclosure
+        kind="depth"
+        title={tx("Evidence and methods")}
+        closedLabel={tx("open the full analysis")}
+        meta={tx(meta)}
+        action={action}
+      >
+        {children}
+      </DeskDisclosure>
+    );
+  }
   return (
     <section className="mt-9 border-t-2 border-foreground pt-2">
       <div className="flex flex-wrap items-baseline gap-2.5">

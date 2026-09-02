@@ -160,25 +160,33 @@ transforms) in `app/lib/desk.ts`. The reference implementation is `app/page.tsx`
 
 ```
 <main class="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
-  <DeskHeader title record="Record May 2026 · vs Apr" right="every figure computed…" />
+  <DeskHeader title record="Record May 2026 · vs Apr" observations={[…]} />
+                                            ← observation rail: cadence + date + window + basis
   <Tape items={…} />                      ← Overview only
   <SecHead title="The vitals" meta … />
   <Vitals> <Vital … /> ×4–6 </Vitals>     ← the signature: type-only cells,
                                             mono value + sparkline + computed note
+  <CadenceBand observation={…}>…</CadenceBand>
+                                            ← a separate band when the clock changes
   [Movers | Transmission]                 ← grid lg:grid-cols-[5fr_7fr]
   [Flags | Standings | Ahead]             ← grid lg:grid-cols-3 (what the page's data supports)
-  <Depth action={<GlobalRangeSelector/>}> ← "In depth — carried over, restyled, not removed"
+  <Depth collapsed action={<GlobalRangeSelector/>}>
+                                            ← evidence is reachable, not the default reading path
     …the page's full pre-Desk chart/table library…
   </Depth>
   <Colophon />
 </main>
 ```
 
-**Carry-over contract:** converting a page to the Desk NEVER deletes analytical
-content. Existing charts, tables and sections move under `<Depth>`, keep their
-data wiring (range selector, bank-type filters, findings-titles), and only lose
-chrome. Vitals notes and flags must be **computed from series the page already
-fetches** — no hand-written claims, no forecasts.
+**Carry-over contract:** converting a page to the Desk preserves analytical
+reachability, not default visibility. Existing charts, tables and sections may
+move under `<Depth collapsed>` or a quieter `<Disclosure>` when they are method,
+scenario or specialist evidence rather than part of the first decision path.
+They keep their data wiring (range selector, bank-type filters, finding titles)
+and only lose chrome. Closed disclosures mount their contents only when opened,
+so a hidden responsive chart never measures a zero-width parent. Vitals notes
+and flags must be **computed from series the page already fetches** — no
+hand-written claims, no forecasts.
 
 **The evidence layer speaks the brief's language** (shipped 2026-07-12 on
 Overview; the pattern the other tabs follow). Below the `<Depth>` rule a page
@@ -213,10 +221,26 @@ three lines (gross / net / net-excl-swaps) with the two gaps shaded and a zero
 line (`app/liquidity/ReserveBuffer.tsx`, Recharts range areas). Check the range
 of every component before choosing a stack.
 
-**Never mix cadences in one Δ column.** A weekly Movers table takes weekly rows
-only; a daily series (net CBRT funding) goes to the transmission, where its basis
-is stated. And pair the "prev" row off a SINGLE-series array — long-form rows
-(`{period, bank_type_code, value}`) put another group at `.at(-2)`, not last week.
+**Every figure has an observation contract.** At page level, `<DeskHeader>`
+prints an `ObservationRail`; whenever the clock changes inside the page,
+`<CadenceBand>` repeats the hand-off. An observation names at least its cadence
+and date, and adds the relevant window and basis. Role labels (`current`,
+`structure`, `audited`, `early-warning`) say why several clocks legitimately
+coexist. Daily, weekly, monthly and quarterly figures must never look like one
+simultaneous snapshot merely because they fit in one row.
+
+When unlike-frequency series enter one calculation, use `alignLatest()` from
+`app/lib/cadence.ts`: cut all inputs at the earliest latest observation, then
+take each input's last value at or before that common cutoff. Preserve `null`;
+never convert missing data to zero or nowcast a slower series merely to fill the
+latest weekly date.
+
+**Never mix cadences in one Δ column or vital band.** A weekly Movers table takes
+weekly rows only; a daily series (net CBRT funding) gets its own daily band. A
+monthly published funding ratio and a weekly computed TL ratio are separate
+bands even when both are loan-to-deposit measures. Pair the "prev" row off a
+SINGLE-series array — long-form rows (`{period, bank_type_code, value}`) put
+another group at `.at(-2)`, not last week.
 
 **Compare like with like — the same BASIS, not just the same cadence.** The same
 quantity often exists twice: sector CAR is 16.34% in the BDDK monthly bulletin and

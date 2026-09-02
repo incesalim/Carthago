@@ -38,6 +38,7 @@ import {
   Colophon,
   Depth,
   DeskHeader,
+  Disclosure,
   Flags,
   Movers,
   SecHead,
@@ -258,7 +259,8 @@ export default async function AssetQualityPage() {
         ? `stage2 ÷ stage3 = ${s2OverS3?.toFixed(1)}× AND cov2 < cov3 ÷ 5`
         : "stage2 ÷ stage3 AND cov2 < cov3 ÷ 5",
       body: ladder ? (
-        <>{tx("The watchlist is ")}<b className="font-semibold text-foreground">{tx(fmtTrnFromBn(ladder.stage2Bn))}</b>{" "}{tx("against Stage 3's ")}{tx(fmtTrnFromBn(ladder.stage3Bn))}{tx(", and carries ")}{tx(fmtPct(ladder.cov2))}{" "}{tx("cover versus ")}{tx(fmtPct(ladder.cov3))}{tx(". Stage 2 is ")}<em>{tx("not")}</em>{tx(" impaired, so lower cover is expected — the migration sizing is what it would cost, not a shortfall owed.")}</>
+        <>{tx("Stage 2 totals {0}, versus {1} in Stage 3. Coverage is {2} and {3}, respectively. Stage 2 is a watchlist rather than an impaired-loan classification, so lower coverage is expected; the migration scenario sizes a possible cost, not a current shortfall.",
+          {0: fmtTrnFromBn(ladder.stage2Bn), 1: fmtTrnFromBn(ladder.stage3Bn), 2: fmtPct(ladder.cov2), 3: fmtPct(ladder.cov3)})}</>
       ) : null,
       clear: ladder ? (
         <>{tx("Stage-2 cover is ")}{tx(fmtPct(ladder.cov2))}{tx(" against Stage 3's ")}{tx(fmtPct(ladder.cov3))}.</>
@@ -269,12 +271,8 @@ export default async function AssetQualityPage() {
       active: !!(formationMultiple && formationMultiple >= 1.5 && rollNow && rollNow.net > 0),
       rule: rollNow && rollPrev ? `formation(${rollNow.year}) ÷ formation(${rollPrev.year}) = ${formationMultiple?.toFixed(1)}×` : "formation ÷ prior year ≥ 1.5×",
       body: rollNow ? (
-        <>{tx("New NPLs of ")}<b className="font-semibold text-foreground">{tx(fmtBn(rollNow.additions))}</b>{tx(" against")}{" "}
-          {tx(fmtBn(rollNow.exits))}{tx(" of exits — net")}{" "}
-          <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
-            {tx(signed(rollNow.net, fmtBn))}
-          </b>{tx(". And the exits are")}{" "}
-          <b className="font-semibold text-foreground">{tx(rollNow.collectionShare.toFixed(0))}{tx("% collections")}</b>{tx(", not write-offs or sales: the ratio is not being managed down, the book is genuinely deteriorating.")}</>
+        <>{tx("New NPL formation was {0}, versus {1} of exits, leaving net formation of {2}. Collections account for {3} of exits; write-offs or sales are not driving the ratio down, so the deterioration is in the book itself.",
+          {0: fmtBn(rollNow.additions), 1: fmtBn(rollNow.exits), 2: signed(rollNow.net, fmtBn), 3: fmtPct(rollNow.collectionShare)})}</>
       ) : null,
       clear: rollNow ? <>{tx("Formation of ")}{tx(fmtBn(rollNow.additions))}{tx(" is not outrunning the prior year.")}</> : undefined,
     },
@@ -286,9 +284,8 @@ export default async function AssetQualityPage() {
           ? `npl_stock_real (${fmtPct(stockRealNow)}) > 3× loan_book_real (${fmtPct(loanRealNow)})`
           : "npl_stock_real > 3× loan_book_real",
       body: (
-        <>{tx("Like for like, both CPI-deflated: the bad-loan stock grew")}{" "}
-          <b className="font-semibold text-negative">{tx(fmtPct(stockRealNow))}</b>{tx(" in real terms against a loan book growing ")}<b className="font-semibold text-foreground">{tx(fmtPct(loanRealNow))}</b>.
-        </>
+        <>{tx("On the same CPI-deflated basis, the NPL stock grew {0} in real terms, versus {1} real growth in the loan book.",
+          {0: fmtPct(stockRealNow), 1: fmtPct(loanRealNow)})}</>
       ),
       clear: <>{tx("The NPL stock is growing ")}{tx(fmtPct(stockRealNow))}{tx(" in real terms.")}</>,
     },
@@ -298,7 +295,8 @@ export default async function AssetQualityPage() {
       rule: tx("npl_ratio rising for {0} consecutive months", {0: publishedRun}),
       body: (
         <>
-          {tx(fmtPct(nplSector.at(-1 - publishedRun)?.value, 2))} → {tx(fmtPct(publishedNow, 2))}{tx(". The ratio is registering the deterioration — slowly. It is the ")}<em>{tx("level")}</em>{tx(" that misleads, not the direction.")}</>
+          {tx("The published NPL ratio rose from {0} to {1}. It is registering the deterioration, but slowly: the direction is informative even when the level looks low.",
+          {0: fmtPct(nplSector.at(-1 - publishedRun)?.value, 2), 1: fmtPct(publishedNow, 2)})}</>
       ),
       clear: <>{tx("The NPL ratio has not risen for six months straight.")}</>,
     },
@@ -337,6 +335,33 @@ export default async function AssetQualityPage() {
           <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(nplSector.at(-1)?.period))}</b>{" "}{tx("· stock to W/E ")}{tx(asOf ? weekLabel(asOf) : "—")}{tx(" · stages quarterly")}</>
         }
         right="every figure computed from source series"
+        observations={[
+          {
+            cadence: "quarterly",
+            role: "audited",
+            asOf: ladder?.period,
+            basis: "same-bank TFRS-9 staging ladder",
+          },
+          {
+            cadence: "monthly",
+            role: "current",
+            asOf: publishedPeriod,
+            basis: "BDDK published NPL ratio",
+          },
+          {
+            cadence: "weekly",
+            role: "early-warning",
+            asOf,
+            window: "52w",
+            basis: "stock and segment signals",
+          },
+          {
+            cadence: "annual",
+            role: "audited",
+            asOf: rollNow?.year,
+            basis: "NPL roll-forward",
+          },
+        ]}
       />
 
       {/* ── The waterline — what the ratio doesn't print ─────────────────── */}
@@ -356,27 +381,24 @@ export default async function AssetQualityPage() {
         <div className="self-center">
           {ladder ? (
             <>
-              <p className="text-[19px] leading-snug tracking-tight text-foreground">{tx("The audited Stage-3 share is the")}{" "}
-                <b className="font-mono font-semibold text-negative">{tx(fmtPct(ladder.stage3Share))}</b>{" "}{tx("tip. Loans the banks themselves classify as deteriorated are")}{" "}
-                <b className="font-mono font-semibold text-negative">{tx(fmtPct(ladder.problemShare))}</b> —{" "}
-                <b className="font-semibold text-negative">{tx(ladder.multipleOfPrinted.toFixed(1))}×</b>{tx(" as much.")}</p>
+              <p className="text-[19px] leading-snug tracking-tight text-foreground">
+                {tx("Audited Stage 3 is {0} of loans. Including the Stage-2 watchlist, the problem book reaches {1} — {2}× the visible tip.",
+                {0: fmtPct(ladder.stage3Share), 1: fmtPct(ladder.problemShare), 2: ladder.multipleOfPrinted.toFixed(1)})}
+              </p>
               <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
-                <b className="font-semibold text-foreground">
-                  {tx(((ladder.stage2Bn / ladder.problemBn) * 100).toFixed(0))}%
-                </b>{" "}{tx("of that problem book is Stage 2 — the watchlist that never reaches the ratio. It carries ")}<b className="font-semibold text-foreground">{tx(fmtPct(ladder.cov2))}</b>{tx(" cover against Stage 3's ")}{tx(fmtPct(ladder.cov3))}.
+                {tx("Stage 2 accounts for {0} of the problem book but never enters the published NPL ratio. Its coverage is {1}, versus {2} for Stage 3.",
+                {0: fmtPct((ladder.stage2Bn / ladder.problemBn) * 100), 1: fmtPct(ladder.cov2), 2: fmtPct(ladder.cov3)})}
               </p>
               {rollNow && formationMultiple && (
-                <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">{tx("Stage 2 is ")}<em>{tx("not")}</em>{tx(" impaired, so its lower cover is expected rather than a shortfall. What matters is that the pipeline behind the tip is still filling: formation ran")}{" "}
-                  <b className="font-semibold text-foreground">{tx(formationMultiple.toFixed(1))}×</b>{tx(" last year, net")}{" "}
-                  <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
-                    {tx(signed(rollNow.net, fmtBn))}
-                  </b>
-                  .
+                <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+                  {tx("Stage 2 is a watchlist, not an impaired-loan classification; lower coverage is therefore expected, not automatically a shortfall. The stronger warning is the flow: new NPL formation ran at {0}× last year's level and net formation was {1}.",
+                  {0: formationMultiple.toFixed(1), 1: signed(rollNow.net, fmtBn)})}
                 </p>
               )}
-              <p className="mt-3 border-t border-hair pt-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.06em] text-faint">{tx("problem loans = stage2 + stage3, both from the audited TFRS-9 filings · the")}{" "}
-                {tx(ladder.multipleOfPrinted.toFixed(1))}{tx("× is ")}{tx(fmtPct(ladder.problemShare))} ÷{" "}
-                {tx(fmtPct(ladder.stage3Share))}{tx(", same source — never divided by the published ratio")}</p>
+              <p className="mt-3 border-t border-hair pt-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.06em] text-faint">
+                {tx("Problem loans = Stage 2 + Stage 3, both from the same audited TFRS-9 filings. The {0}× multiple is {1} ÷ {2}; it never mixes in the monthly published ratio.",
+                {0: ladder.multipleOfPrinted.toFixed(1), 1: fmtPct(ladder.problemShare), 2: fmtPct(ladder.stage3Share)})}
+              </p>
             </>
           ) : (
             <p className="text-[12px] text-faint">{tx("The staging ladder awaits an audited quarter.")}</p>
@@ -385,7 +407,7 @@ export default async function AssetQualityPage() {
       </div>
 
       {/* ── The vitals ──────────────────────────────────────────────────── */}
-      <SecHead title={tx("The vitals")} meta={tx("stock · pipeline · cover")} className="mb-2.5 mt-8" />
+      <SecHead title={tx("The risk ladder and its signals")} meta={tx("each figure carries its own observation clock")} className="mb-2.5 mt-8" />
       <Vitals>
         <Vital
           label={tx("Problem loans, S2+S3")}
@@ -396,6 +418,7 @@ export default async function AssetQualityPage() {
             value: (r.value ?? 0) + (stage3[i]?.value ?? 0),
           }))}
           decimals={1}
+          observation={{ cadence: "quarterly", role: "audited", asOf: ladder?.period, basis: "TFRS-9 Stage 2 + Stage 3" }}
           note={
             ladder ? (
               <>
@@ -415,6 +438,7 @@ export default async function AssetQualityPage() {
           // of gross loans (~10%) — a different quantity on a different axis.
           series={problemCov.map((r) => ({ period: r.period, value: r.value }))}
           decimals={1}
+          observation={{ cadence: "quarterly", role: "audited", asOf: ladder?.period, basis: "same-bank problem-loan book" }}
           note={
             ladder ? (
               <>{tx("Stage 2 at ")}<b className="font-semibold text-foreground">{tx(fmtPct(ladder.cov2))}</b>{tx(" vs Stage 3 at ")}<b className="font-semibold text-foreground">{tx(fmtPct(ladder.cov3))}</b> —{" "}
@@ -428,6 +452,7 @@ export default async function AssetQualityPage() {
           unit="%"
           series={(stockRealYoY as TimeSeriesRow[]).slice(-26)}
           decimals={1}
+          observation={{ cadence: "weekly", role: "early-warning", asOf: stockRealYoY.at(-1)?.period, window: "52w real", basis: "weekly stock; published CPI only" }}
           note={
             stockRealNow != null && loanRealNow != null ? (
               <>{tx("bad loans compounding — the loan book grew just ")}{tx(fmtPct(loanRealNow))}{tx(" real ·")}{" "}
@@ -447,6 +472,7 @@ export default async function AssetQualityPage() {
           series={roll.map((y) => ({ period: y.year, value: y.net }))}
           format="raw"
           decimals={0}
+          observation={{ cadence: "annual", role: "audited", asOf: rollNow?.year, window: "year flow", basis: "NPL roll-forward" }}
           note={
             rollNow && formationMultiple ? (
               <>{tx("formation ")}<b className="font-semibold text-foreground">{tx(formationMultiple.toFixed(1))}×</b>{" "}{tx("last year · exits are")}{" "}
@@ -462,6 +488,7 @@ export default async function AssetQualityPage() {
           unit="%"
           series={nplSector.slice(-24)}
           decimals={2}
+          observation={{ cadence: "monthly", role: "current", asOf: publishedPeriod, basis: "BDDK published ratio" }}
           note={
             publishedRun >= 3 ? (
               <>
@@ -478,6 +505,7 @@ export default async function AssetQualityPage() {
           unit="%"
           series={(sme?.series ?? []).slice(-26) as TimeSeriesRow[]}
           decimals={2}
+          observation={{ cadence: "weekly", role: "early-warning", asOf: sme?.series.at(-1)?.period, window: "52w", basis: "SME loan and NPL stock" }}
           note={
             sme && attrib.memo ? (
               <>
@@ -488,11 +516,16 @@ export default async function AssetQualityPage() {
         />
       </Vitals>
 
+      <Disclosure
+        title={tx("Flows, scenarios and attribution")}
+        meta={tx("annual audited flow · scenario sizing · 52w attribution")}
+      >
+        <div>
       {/* ── The pipeline behind the tip ─────────────────────────────────── */}
       <SecHead
         title={tx("The pipeline behind the tip")}
         meta={tx("audited NPL roll-forward · annual · ₺bn")}
-        className="mb-2.5 mt-8"
+        className="mb-2.5"
       />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div>
@@ -567,15 +600,21 @@ export default async function AssetQualityPage() {
           <Movers from="52w ago" to="Now" rows={moverRows} />
         </div>
       </div>
+        </div>
+      </Disclosure>
 
       {/* ── Flags ───────────────────────────────────────────────────────── */}
       <SecHead title={tx("Flags")} meta={tx("each prints the rule that raised it")} className="mb-2.5 mt-8" />
       <Flags flags={flags} showCleared quietNote="No asset-quality rule fired this month." />
 
       {/* ── The two honesty footnotes ───────────────────────────────────── */}
-      <div className="mt-7 grid grid-cols-1 gap-7 border-t border-hair pt-3.5 sm:grid-cols-2">
+      <Disclosure
+        title={tx("Basis and method notes")}
+        meta={tx("why the dates and ratio definitions differ")}
+      >
+      <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
         <div>
-          <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("Why we do ")}<em>{tx("not")}</em>{tx(" claim inflation flatters the ratio")}</h4>
+          <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("Why we do not claim that inflation flatters the ratio")}</h4>
           <p className="text-[10px] leading-relaxed text-faint">{tx("An NPL ratio is ")}<b className="text-muted-foreground">{tx("NPL ÷ loans")}</b>{tx(". Deflate both legs by CPI and it is ")}<b className="text-muted-foreground">{tx("unchanged")}</b>{tx(" — a ratio is deflator-invariant. Only ")}<b className="text-muted-foreground">{tx("real")}</b>{tx(" book growth dilutes it, and that was ")}{tx(fmtPct(loanRealNow))}{tx(": worth about")}{" "}
             <b className="text-muted-foreground">{tx("0.1pp")}</b>{tx(", not the ~1pp a nominally-frozen-book counterfactual would suggest. A real bias does exist — the numerator is stale (a loan that defaulted two years ago sits at its origination principal) while the denominator reprices — but sizing it needs origination-vintage data we do not have, so we put no number on it.")}</p>
         </div>
@@ -588,9 +627,11 @@ export default async function AssetQualityPage() {
           </p>
         </div>
       </div>
+      </Disclosure>
 
       {/* ── In depth — the evidence layer ───────────────────────────────── */}
       <Depth
+        collapsed
         meta={tx("carried over, reordered by question — nothing removed")}
         action={<GlobalRangeSelector />}
       >

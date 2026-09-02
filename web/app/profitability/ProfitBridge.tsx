@@ -63,7 +63,7 @@ export default function ProfitBridge({
     run += v;
     const yoy = prior ? v - (prior[s.key] as number) : null;
     return {
-      name: s.name,
+      name: tx(s.name),
       range: [Math.min(from, run), Math.max(from, run)] as [number, number],
       value: v,
       yoy,
@@ -71,7 +71,7 @@ export default function ProfitBridge({
     };
   });
   data.push({
-    name: "= Net profit",
+    name: tx("= Net profit"),
     range: [0, bridge.net] as [number, number],
     value: bridge.net,
     yoy: prior ? bridge.net - prior.net : null,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  annualizeGrowth,
   baseFor,
   contributions,
   creditBridge,
@@ -85,6 +86,19 @@ describe("fxAdjustedGrowth", () => {
     // Nominal would print (100+400)/(100+200) - 1 = +66.7%. Held at the base
     // rate the FX book is unchanged, so real volume growth is 0.
     expect(last.value).toBeCloseTo(0, 6);
+  });
+});
+
+describe("annualizeGrowth", () => {
+  it("turns a 13-week move into a comparable annualized rate", () => {
+    const [point] = annualizeGrowth([{ period: "2026-07-03", value: 5 }], 91);
+    expect(point.value).toBeCloseTo((Math.pow(1.05, 4) - 1) * 100, 10);
+  });
+
+  it("refuses impossible or missing growth", () => {
+    expect(annualizeGrowth([{ period: "2026-07-03", value: -100 }], 91)).toEqual([]);
+    expect(annualizeGrowth([{ period: "2026-07-03", value: null }], 91)).toEqual([]);
+    expect(annualizeGrowth([{ period: "2026-07-03", value: 5 }], 0)).toEqual([]);
   });
 });
 
