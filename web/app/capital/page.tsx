@@ -622,7 +622,7 @@ export default async function CapitalPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth collapsed action={<GlobalRangeSelector />}>
+      <Depth action={<GlobalRangeSelector />}>
         <Takeaway data={await withLlmHeadline("capital", read, tx.locale)} variant="desk" />
 
         {/* The step — what the page had been calling an "easing". */}

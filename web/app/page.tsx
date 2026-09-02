@@ -710,7 +710,7 @@ export default async function OverviewPage({
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth collapsed action={<GlobalRangeSelector />}>
+      <Depth action={<GlobalRangeSelector />}>
         <Takeaway data={read} variant="desk" />
 
         {/* The scorecard IS the vitals band — one group at a time. */}

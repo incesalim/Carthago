@@ -641,7 +641,7 @@ export default async function ProfitabilityPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth collapsed action={<GlobalRangeSelector />}>
+      <Depth action={<GlobalRangeSelector />}>
         <Takeaway data={await withLlmHeadline("profitability", read, tx.locale)} variant="desk" />
 
         {/* The engine — where the return actually comes from. */}

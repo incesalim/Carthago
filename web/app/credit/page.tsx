@@ -624,7 +624,6 @@ export default async function CreditPage() {
 
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth
-        collapsed
         meta={tx("carried over, reordered by question — nothing removed")}
         action={<GlobalRangeSelector />}
       >

@@ -38,7 +38,7 @@ import {
   Colophon,
   Depth,
   DeskHeader,
-  Disclosure,
+  EvidenceSection,
   Flags,
   Movers,
   SecHead,
@@ -516,7 +516,7 @@ export default async function AssetQualityPage() {
         />
       </Vitals>
 
-      <Disclosure
+      <EvidenceSection
         title={tx("Flows, scenarios and attribution")}
         meta={tx("annual audited flow · scenario sizing · 52w attribution")}
       >
@@ -601,14 +601,14 @@ export default async function AssetQualityPage() {
         </div>
       </div>
         </div>
-      </Disclosure>
+      </EvidenceSection>
 
       {/* ── Flags ───────────────────────────────────────────────────────── */}
       <SecHead title={tx("Flags")} meta={tx("each prints the rule that raised it")} className="mb-2.5 mt-8" />
       <Flags flags={flags} showCleared quietNote="No asset-quality rule fired this month." />
 
       {/* ── The two honesty footnotes ───────────────────────────────────── */}
-      <Disclosure
+      <EvidenceSection
         title={tx("Basis and method notes")}
         meta={tx("why the dates and ratio definitions differ")}
       >
@@ -627,11 +627,10 @@ export default async function AssetQualityPage() {
           </p>
         </div>
       </div>
-      </Disclosure>
+      </EvidenceSection>
 
       {/* ── In depth — the evidence layer ───────────────────────────────── */}
       <Depth
-        collapsed
         meta={tx("carried over, reordered by question — nothing removed")}
         action={<GlobalRangeSelector />}
       >

@@ -1871,9 +1871,9 @@ separates daily TCMB funding, weekly TL funding and quarterly audited buffers;
 Capital separates monthly published ratios from quarterly audited Tier-1/CET1.
 Profitability uses exact Fisher-deflated real ROE and puts the reconciled,
 de-cumulated monthly P&L bridge in the main flow. Development/investment banks no
-longer enter the deposit-funded LDR comparison. Secondary analysis stays
-reachable through lazy-mounted disclosures, and the Turkish reading path uses
-sentence-level translations for analytical prose and chart labels. This is a
+longer enter the deposit-funded LDR comparison. Secondary analysis remains
+visible in the normal reading flow, and the Turkish reading path uses sentence-
+level translations for analytical prose and chart labels. This is a
 presentation/data-contract change only: no ingestion, D1 rows or source coverage
 changed.
 

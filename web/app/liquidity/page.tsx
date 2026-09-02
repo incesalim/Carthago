@@ -788,7 +788,7 @@ export default async function LiquidityPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth collapsed action={<GlobalRangeSelector />}>
+      <Depth action={<GlobalRangeSelector />}>
         <Takeaway data={await withLlmHeadline("liquidity", read, tx.locale)} variant="desk" />
 
         {/* The buffer — the page's own arithmetic, finally read out. */}

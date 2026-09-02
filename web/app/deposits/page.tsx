@@ -744,7 +744,7 @@ export default async function DepositsPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth collapsed action={<GlobalRangeSelector />}>
+      <Depth action={<GlobalRangeSelector />}>
         <Takeaway data={readData} variant="desk" />
 
         {/* The base — the sizes the ratios are ratios of. */}

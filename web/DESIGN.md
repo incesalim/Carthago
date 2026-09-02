@@ -170,23 +170,21 @@ transforms) in `app/lib/desk.ts`. The reference implementation is `app/page.tsx`
                                             ← a separate band when the clock changes
   [Movers | Transmission]                 ← grid lg:grid-cols-[5fr_7fr]
   [Flags | Standings | Ahead]             ← grid lg:grid-cols-3 (what the page's data supports)
-  <Depth collapsed action={<GlobalRangeSelector/>}>
-                                            ← evidence is reachable, not the default reading path
+  <Depth action={<GlobalRangeSelector/>}>  ← full evidence remains in the reading flow
     …the page's full pre-Desk chart/table library…
   </Depth>
   <Colophon />
 </main>
 ```
 
-**Carry-over contract:** converting a page to the Desk preserves analytical
-reachability, not default visibility. Existing charts, tables and sections may
-move under `<Depth collapsed>` or a quieter `<Disclosure>` when they are method,
-scenario or specialist evidence rather than part of the first decision path.
-They keep their data wiring (range selector, bank-type filters, finding titles)
-and only lose chrome. Closed disclosures mount their contents only when opened,
-so a hidden responsive chart never measures a zero-width parent. Vitals notes
-and flags must be **computed from series the page already fetches** — no
-hand-written claims, no forecasts.
+**Carry-over contract:** converting a page to the Desk preserves both analytical
+content and default visibility. Existing charts, tables and sections may move
+under `<Depth>` or a visible `<EvidenceSection>` when they are method, scenario
+or specialist evidence, but they remain in the normal reading flow. They keep
+their data wiring (range selector, bank-type filters, finding titles) and only
+lose chrome. Do not put analytical evidence behind a disclosure merely to reduce
+page density. Vitals notes and flags must be **computed from series the page
+already fetches** — no hand-written claims, no forecasts.
 
 **The evidence layer speaks the brief's language** (shipped 2026-07-12 on
 Overview; the pattern the other tabs follow). Below the `<Depth>` rule a page

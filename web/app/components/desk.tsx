@@ -2,7 +2,6 @@ import { useText } from "@/i18n/use-text";
 import * as React from "react";
 import Link from "next/link";
 import Sparkline from "@/app/components/Sparkline";
-import DeskDisclosure from "@/app/components/DeskDisclosure";
 import { cn } from "@/app/lib/cn";
 import { cadenceLabel, type ObservationMeta } from "@/app/lib/cadence";
 
@@ -121,29 +120,29 @@ export function CadenceBand({
   );
 }
 
-/** Quiet, secondary disclosure inside the brief; evidence stays one action away. */
-export function Disclosure({
+/** Visible evidence grouping inside the brief. */
+export function EvidenceSection({
   title,
   meta,
   children,
-  open = false,
 }: {
   title: React.ReactNode;
   meta?: React.ReactNode;
   children: React.ReactNode;
-  open?: boolean;
 }) {
   const tx = useText();
   return (
-    <DeskDisclosure
-      kind="secondary"
-      title={tx(title)}
-      closedLabel={tx("open")}
-      meta={meta ? tx(meta) : undefined}
-      initiallyOpen={open}
-    >
-      {children}
-    </DeskDisclosure>
+    <section className="mt-8 border-t border-hair pt-2.5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-[13.5px] font-bold text-foreground">{tx(title)}</h2>
+        {meta && (
+          <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+            {tx(meta)}
+          </span>
+        )}
+      </div>
+      <div className="mt-4 space-y-8">{children}</div>
+    </section>
   );
 }
 
@@ -909,31 +908,15 @@ export function ChartFoot({
 
 /** "In depth" — the evidence layer below the brief. */
 export function Depth({
-  meta = "full evidence remains available on demand",
+  meta = "carried over from the current page — restyled, not removed",
   action,
   children,
-  collapsed = false,
 }: {
   meta?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
-  /** Keep specialist depth reachable without making it the default reading path. */
-  collapsed?: boolean;
 }) {
   const tx = useText();
-  if (collapsed) {
-    return (
-      <DeskDisclosure
-        kind="depth"
-        title={tx("Evidence and methods")}
-        closedLabel={tx("open the full analysis")}
-        meta={tx(meta)}
-        action={action}
-      >
-        {children}
-      </DeskDisclosure>
-    );
-  }
   return (
     <section className="mt-9 border-t-2 border-foreground pt-2">
       <div className="flex flex-wrap items-baseline gap-2.5">
