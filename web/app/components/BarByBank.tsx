@@ -54,7 +54,7 @@ export default function BarByBank({
   const fmt = formatters[format];
   const ordered = data
     .filter((r) => labels[r.bank_type_code] && r.value != null && !Number.isNaN(r.value))
-    .map((r) => ({ ...r, label: labels[r.bank_type_code], value: Number(r.value) }))
+    .map((r) => ({ ...r, label: tx(labels[r.bank_type_code]), value: Number(r.value) }))
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
 
   // Domain padding so even small bars stay visible.

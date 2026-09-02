@@ -38,6 +38,7 @@ import {
   Colophon,
   Depth,
   DeskHeader,
+  LayerHead,
   EvidenceSection,
   Flags,
   Movers,
@@ -54,6 +55,7 @@ import { lastVal, monthLabel, signedPp } from "@/app/lib/desk";
 import { signed, toneClass } from "@/app/lib/prose";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
+import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { assetQualityInsights } from "@/app/lib/insights";
@@ -364,6 +366,13 @@ export default async function AssetQualityPage() {
         ]}
       />
 
+      <LayerHead
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
       {/* ── The waterline — what the ratio doesn't print ─────────────────── */}
       <SecHead
         title={tx("What the ratio doesn't print")}
@@ -515,6 +524,13 @@ export default async function AssetQualityPage() {
           }
         />
       </Vitals>
+
+      <LayerHead
+        index="02"
+        title="Drivers"
+        description="The mechanisms and comparisons behind the current reading."
+        className="mt-10"
+      />
 
       <EvidenceSection
         title={tx("Flows, scenarios and attribution")}
@@ -758,7 +774,7 @@ export default async function AssetQualityPage() {
         <Section index="04" title={tx("Who holds it?")} description={tx("NPL by ownership group.")}>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <TrendChart
+              <SmallMultiplesTrend
                 data={nplAll}
                 seriesLabels={BANK_TYPE_LABELS}
                 title={
@@ -769,6 +785,10 @@ export default async function AssetQualityPage() {
                 source={tx("Source: BDDK monthly bulletin")}
                 yFormat="pct"
                 decimals={2}
+                deltaPeriods={12}
+                deltaLabel="12m"
+                height={108}
+                columns={3}
                 plain
               />
             </div>

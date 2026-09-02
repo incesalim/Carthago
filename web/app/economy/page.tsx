@@ -3,9 +3,9 @@
  * its evidence (web/DESIGN.md).
  *
  * The page used to be a header, a vitals band and a grid of one-series line
- * charts: no computed read, no flags, no schedule, and no statement anywhere of
- * what any of it does to a bank. Everything the sector tabs had — <Takeaway>,
- * <Movers>, <Transmission>, <Flags>, <Ahead> — was missing here, on the one tab
+ * charts: no computed read, no flags, and no statement anywhere of what any of
+ * it does to a bank. Everything the sector tabs had — <Takeaway>, <Movers>,
+ * <Transmission>, <Flags> — was missing here, on the one tab
  * whose entire job is to explain the conditions the rest of the site measures.
  *
  * Three things it now carries that the data always supported and nobody wired:
@@ -44,7 +44,6 @@ import {
   TableCellNum,
 } from "@/app/components/ui";
 import {
-  Ahead,
   ChartRow,
   Colophon,
   Depth,
@@ -64,7 +63,6 @@ import { lastVal, monthLabel, signedPp, streak, valAgo, windowExtremes, type Pt 
 import { VERBS, direction, signed, signedPct, toneClass } from "@/app/lib/prose";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { economyInsights } from "@/app/lib/insights";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { fmtQuarter } from "@/app/lib/chart-format";
 import Takeaway from "@/app/components/Takeaway";
@@ -123,10 +121,9 @@ const bn = (v: number | null, d = 1) => (v == null ? "—" : `$${v.toFixed(d)}bn
 
 export default async function EconomyPage() {
   const tx = await getText();
-  const [d, flows, ahead] = await Promise.all([
+  const [d, flows] = await Promise.all([
     getEconomyData(),
     getPortfolioFlowsData(),
-    aheadSlots(),
   ]);
 
   // ---- the brief's computed vitals ------------------------------------------
@@ -381,23 +378,6 @@ export default async function EconomyPage() {
     },
   ];
 
-  // ---- the schedule ---------------------------------------------------------
-  // The cadence rows are literals on purpose: "TÜİK publishes CPI on the 3rd" is
-  // true every month, so it is not a claim that can go stale (lib/ahead.ts).
-  const aheadItems = [
-    { when: "3rd", what: <>{tx("TÜİK CPI & Yİ-ÜFE — the month’s price print")}</>, href: "/economy/inflation" },
-    ...(ahead.mpc
-      ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision — the funding cost above")}</>, href: "/rates" }]
-      : []),
-    ...(ahead["mpc-minutes"]
-      ? [{ when: ahead["mpc-minutes"].when, what: <>{tx("MPC minutes — the reasoning behind the decision")}</> }]
-      : []),
-    ...(ahead["inflation-report"]
-      ? [{ when: ahead["inflation-report"].when, what: <>{tx("CBRT Inflation Report — the forecast path")}</> }]
-      : []),
-    { when: "FRI", what: <>{tx("CBRT weekly — reserves, the analytical balance sheet, non-resident flows")}</> },
-  ];
-
   // ---- the scored baseline ---------------------------------------------------
   const scored = scoreBaseline(d);
   const scoredCount = scored.filter((r) => r.realized != null).length;
@@ -569,8 +549,8 @@ export default async function EconomyPage() {
         </div>
       </div>
 
-      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+      {/* ── Flags ─────────────────────────────────────────────────────── */}
+      <div className="mt-8">
         <div>
           <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
@@ -578,10 +558,6 @@ export default async function EconomyPage() {
             showCleared
             quietNote="Every macro rule below was tested against the current record and none tripped."
           />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
-          <Ahead items={aheadItems} />
         </div>
       </div>
 

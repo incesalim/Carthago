@@ -101,7 +101,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },
   { id: "store-d1-transcripts", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_call_transcripts", sublabel: "earnings-call transcripts · one row per call, turns as JSON" },
   { id: "store-d1-advertised-rates", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_advertised_rates", sublabel: "per-bank posted loan + deposit rates · dated snapshots", statusKey: "advertised_rates" },
-  { id: "store-d1-release-calendar", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · release_calendar", sublabel: "scheduled TCMB events · feeds the Ahead strips", statusKey: "release_calendar" },
+  { id: "store-d1-release-calendar", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · release_calendar", sublabel: "scheduled TCMB events · app overview API", statusKey: "release_calendar" },
   { id: "store-d1-products", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · product_* (shelf)", sublabel: "product_attributes · bank_products · bank_product_profile · dated snapshots" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
@@ -296,11 +296,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-bulletin", target: "page-asset-quality" },
   { source: "store-d1-bulletin", target: "page-capital" },
   { source: "store-d1-bulletin", target: "page-profitability" },
-  { source: "store-d1-release-calendar", target: "page-overview" },
-  { source: "store-d1-release-calendar", target: "page-deposits" },
-  { source: "store-d1-release-calendar", target: "page-capital" },
-  { source: "store-d1-release-calendar", target: "page-profitability" },
-  { source: "store-d1-release-calendar", target: "page-liquidity" },
   { source: "store-d1-bulletin", target: "page-rates" },
   { source: "store-d1-bulletin", target: "page-liquidity" },
   { source: "store-d1-bulletin", target: "page-economy" },

@@ -1,10 +1,10 @@
 /**
  * The D1 side of the release schedule. `ahead.ts` stays pure (and unit-tested);
- * this fetches the facts it needs and hands back the slots.
+ * this fetches the facts the app overview API needs and hands back the slots.
  *
  * Two cached queries — the record periods and the scraped TCMB calendar
  * (release_calendar) — plus the (cached) observed filing lag. Cheap enough for
- * the pages that carry an `Ahead` block.
+ * the app overview response that carries upcoming releases.
  */
 import { cachedAll } from "./db";
 import { filingLagDays } from "./earnings";

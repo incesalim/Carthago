@@ -31,7 +31,6 @@ import {
 import { direction } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
-  Ahead,
   Colophon,
   Depth,
   DeskHeader,
@@ -48,7 +47,6 @@ import {
 import { lastVal, monthLabel, signedPp, valAgo, type Pt } from "@/app/lib/desk";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { budgetInsights } from "@/app/lib/insights";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import Takeaway from "@/app/components/Takeaway";
 import { nf } from "@/app/lib/chart-format";
 import { ChartCard } from "@/app/components/ui/chart-card";
@@ -87,7 +85,7 @@ const sp = (pts: { period_date: string; value: number }[] | undefined) =>
 
 export default async function BudgetPage() {
   const tx = await getText();
-  const [d, ahead] = await Promise.all([getBudgetData(), aheadSlots()]);
+  const d = await getBudgetData();
 
   // ---- the brief's computed vitals ------------------------------------------
   // The summary table carries [now monthly, now 12m, year-ago monthly,
@@ -279,12 +277,6 @@ export default async function BudgetPage() {
     },
   ];
 
-  const aheadItems = [
-    { when: "~15th", what: <>{tx("Treasury monthly budget realisations")}</> },
-    { when: "monthly", what: <>{tx("Treasury domestic-debt auction calendar — the funding side")}</> },
-    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision — the cost of the debt stock")}</>, href: "/rates" }] : []),
-  ];
-
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
@@ -414,8 +406,8 @@ export default async function BudgetPage() {
         </div>
       </div>
 
-      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+      {/* ── Flags ─────────────────────────────────────────────────────── */}
+      <div className="mt-8">
         <div>
           <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
@@ -423,10 +415,6 @@ export default async function BudgetPage() {
             showCleared
             quietNote="Every fiscal rule below was tested against the current release and none tripped."
           />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
-          <Ahead items={aheadItems} />
         </div>
       </div>
 

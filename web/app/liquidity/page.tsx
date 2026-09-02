@@ -40,7 +40,6 @@ import {
 import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-ratios";
 import { FWD_YEARS_BACK, RESERVE_CODES, reserveBuffer } from "@/app/lib/reserves";
 import {
-  Ahead,
   CadenceBand,
   ChartFoot,
   ChartRow,
@@ -48,6 +47,7 @@ import {
   Compare,
   Depth,
   DeskHeader,
+  LayerHead,
   Flags,
   Levels,
   Movers,
@@ -63,9 +63,9 @@ import {
 import { lastVal, latestByGroup, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
 import { LDR_WEEKLY_TL } from "@/app/lib/ldr";
 import { VERBS, bandsFor, direction, firstClaim } from "@/app/lib/prose";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
+import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import ReserveBuffer from "@/app/components/ReserveBuffer";
 import Takeaway from "@/app/components/Takeaway";
@@ -146,8 +146,6 @@ function lastYearWindow<T extends { period: string }>(s: T[]): T[] {
 
 export default async function LiquidityPage() {
   const tx = await getText();
-  // What lands next — derived from the record periods + TCMB's published calendar.
-  const ahead = await aheadSlots();
 
   const LOANS = { category: "krediler", item_id: "1.0.1" };
   const DEPOSITS = { category: "mevduat", item_id: "4.0.1" };
@@ -568,6 +566,13 @@ export default async function LiquidityPage() {
         ]}
       />
 
+      <LayerHead
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
         title={tx("Regulatory buffers")}
@@ -709,6 +714,13 @@ export default async function LiquidityPage() {
         </Vitals>
       </CadenceBand>
 
+      <LayerHead
+        index="02"
+        title="Drivers"
+        description="The mechanisms and comparisons behind the current reading."
+        className="mt-10"
+      />
+
       {/* ── Movers | The buffer → the system ───────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
@@ -736,8 +748,8 @@ export default async function LiquidityPage() {
         </div>
       </div>
 
-      {/* ── Flags | The two systems | Ahead ────────────────────────────── */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
+      {/* ── Flags | The two systems ────────────────────────────────────── */}
+      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-2">
         <div>
           <SecHead
             title={tx("Flags")}
@@ -758,32 +770,6 @@ export default async function LiquidityPage() {
           />
           <Compare a="Public" b="Private" rows={compareRows} />
           <p className="mt-2 text-[10.5px] leading-snug text-faint">{tx("BBVA’s cut, which this page follows: public = state banks; private = private + foreign.")}</p>
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
-          <Ahead
-            items={[
-              { when: "THU", what: <>{tx("TCMB analytical balance sheet — the reserve buffer")}</> },
-              ahead.mpc && {
-                when: ahead.mpc.when,
-                what: (
-                  <>{tx(fundNow != null && fundNow < 0
-                    ? "TCMB MPC — the rate applied to the ₺{0}bn system funding shortfall"
-                    : "TCMB MPC — the rate paid on the ₺{0}bn system liquidity surplus",
-                  {0: fundNow != null ? Math.abs(fundNow).toFixed(0) : "—"})}</>
-                ),
-              },
-              ahead["brsa-filings"] && {
-                when: ahead["brsa-filings"].when,
-                what: <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — LCR, NSFR, leverage")}</>,
-                href: "/actions",
-              },
-              ahead.fsr && {
-                when: ahead.fsr.when,
-                what: <>{tx("TCMB Financial Stability Report — funding & liquidity risks")}</>,
-              },
-            ].filter((i) => !!i)}
-          />
         </div>
       </div>
 
@@ -922,7 +908,7 @@ export default async function LiquidityPage() {
               hero="W13"
               zeroLine
             />
-            <TrendChart
+            <SmallMultiplesTrend
               plain
               data={toTrend(tlGrowthOwn)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
@@ -951,8 +937,10 @@ export default async function LiquidityPage() {
               }
               yFormat="pct"
               decimals={0}
-              height={280}
-              hero="PRIVATE"
+              deltaPeriods={13}
+              deltaLabel="13w"
+              height={126}
+              columns={2}
               zeroLine
             />
           </div>

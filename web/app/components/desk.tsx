@@ -9,7 +9,7 @@ import { cadenceLabel, type ObservationMeta } from "@/app/lib/cadence";
  * "The Desk" briefing layer — the shared skeleton every tab's brief is built
  * from: a page header with a record line, a market tape, the vitals band,
  * movers, transmission ("the backdrop → the banks"), rule-based flags,
- * standings, the schedule, and the "In depth" evidence divider.
+ * standings, and the "In depth" evidence divider.
  *
  * Design contract (web/DESIGN.md): no boxes inside the sheet — hierarchy comes
  * from hairlines (`border-hair`), two ink rules (`border-foreground`), mono
@@ -215,6 +215,41 @@ export function SecHead({
   );
 }
 
+/** The three visible reading layers shared by every sector brief. */
+export function LayerHead({
+  index,
+  title,
+  description,
+  meta,
+  className,
+}: {
+  index: "01" | "02" | "03";
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  meta?: React.ReactNode;
+  className?: string;
+}) {
+  const tx = useText();
+  return (
+    <div className={cn("grid gap-x-4 gap-y-1 border-t-2 border-foreground pt-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto] sm:items-start", className)}>
+      <span className="font-mono text-[10px] font-semibold tracking-[0.12em] text-faint">{index}</span>
+      <div className="min-w-0">
+        <h2 className="text-[20px] font-bold tracking-tight text-foreground">{tx(title)}</h2>
+        {description && (
+          <p className="mt-0.5 max-w-[80ch] text-[11px] leading-relaxed text-muted-foreground">
+            {tx(description)}
+          </p>
+        )}
+      </div>
+      {meta && (
+        <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint sm:text-right">
+          {tx(meta)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Vitals band — the signature element
 // ---------------------------------------------------------------------------
@@ -223,8 +258,11 @@ const VITALS_COLS: Record<number, string> = {
   2: "sm:grid-cols-2 xl:grid-cols-2",
   3: "sm:grid-cols-3 xl:grid-cols-3",
   4: "sm:grid-cols-2 xl:grid-cols-4",
-  5: "sm:grid-cols-3 xl:grid-cols-5",
-  6: "sm:grid-cols-3 xl:grid-cols-6",
+  // Five- and six-cell bands used to become one long row at desktop widths.
+  // Three columns keeps the sparkline near a readable 2:1–4:1 aspect ratio
+  // and gives cadence + note text enough measure to scan naturally.
+  5: "sm:grid-cols-2 lg:grid-cols-6 lg:[&>*:nth-child(-n+3)]:col-span-2 lg:[&>*:nth-child(n+4)]:col-span-3",
+  6: "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3",
 };
 
 export function Vitals({
@@ -243,8 +281,9 @@ export function Vitals({
 }) {
   return (
     <div
+      data-vitals
       className={cn(
-        "grid grid-cols-2 border-b border-border [&>*:only-child]:col-span-full",
+        "grid w-full max-w-[72rem] grid-cols-2 [&>*:only-child]:col-span-full",
         rule === "ink" ? "border-t-2 border-t-foreground" : "border-t border-t-hair",
         VITALS_COLS[cols] ?? VITALS_COLS[6],
         className,
@@ -280,14 +319,17 @@ export function Vital({
 }) {
   const tx = useText();
   return (
-    <div className="border-r border-hair px-4 py-3 last:border-r-0 max-sm:odd:pl-0 sm:first:pl-0">
-      <div className="text-[10.5px] text-muted-foreground">{tx(label)}</div>
-      <div className="mt-0.5 font-mono text-[22px] font-semibold tracking-tight text-foreground">
+    <div className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0">
+      <div className="text-[11px] font-medium text-muted-foreground">{tx(label)}</div>
+      <div className="mt-0.5 font-mono text-[24px] font-semibold tracking-tight text-foreground">
         {tx(value)}
         {unit && <small className="ml-0.5 text-[11px] font-normal text-faint">{tx(unit)}</small>}
       </div>
       {series && series.length > 0 && (
-        <div className="mt-1.5 h-10">
+        // A sparkline is a compact trend glyph, not a full-width chart. Capping
+        // the plot keeps one- and two-cell bands from stretching it into a
+        // 20–35:1 strip on wide desktop screens.
+        <div className="mt-2 h-12 w-full max-w-[26rem]">
           <Sparkline
             data={series.filter((r) => r.value != null).map((r) => ({ period: r.period, value: r.value as number }))}
             format={format}
@@ -651,7 +693,7 @@ export function Flags({
 }
 
 // ---------------------------------------------------------------------------
-// Standings + Ahead
+// Standings
 // ---------------------------------------------------------------------------
 
 export interface StandingsGroup {
@@ -691,38 +733,6 @@ export function Standings({ groups }: { groups: StandingsGroup[] }) {
         </React.Fragment>
       ))}
     </div>
-  );
-}
-
-export interface AheadItem {
-  when: string;
-  what: React.ReactNode;
-  href?: string;
-}
-
-export function Ahead({ items }: { items: AheadItem[] }) {
-  const tx = useText();
-  return (
-    <table className="w-full border-collapse">
-      <tbody>
-        {items.map((it, i) => (
-          <tr key={i}>
-            <td className="border-b border-hair py-1.5 pr-3 font-mono text-[10.5px] font-semibold whitespace-nowrap text-foreground">
-              {tx(it.when)}
-            </td>
-            <td className="border-b border-hair py-1.5 text-[12px] text-foreground">
-              {it.href ? (
-                <Link href={it.href} className="text-foreground hover:text-primary">
-                  {tx(it.what)}
-                </Link>
-              ) : (
-                it.what
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 
@@ -918,15 +928,23 @@ export function Depth({
 }) {
   const tx = useText();
   return (
-    <section className="mt-9 border-t-2 border-foreground pt-2">
-      <div className="flex flex-wrap items-baseline gap-2.5">
-        <h2 className="text-[14.5px] font-bold text-foreground">{tx("In depth")}</h2>
-        {action && <span className="max-w-full sm:ml-2">{action}</span>}
-        <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+    <section className="mt-12 border-t-2 border-foreground pt-3">
+      <div className="grid gap-x-4 gap-y-2 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto] sm:items-start">
+        <span className="font-mono text-[10px] font-semibold tracking-[0.12em] text-faint">03</span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-[20px] font-bold tracking-tight text-foreground">{tx("Evidence")}</h2>
+            {action && <span className="max-w-full">{action}</span>}
+          </div>
+          <p className="mt-0.5 max-w-[80ch] text-[11px] leading-relaxed text-muted-foreground">
+            {tx("Full historical series, group comparisons and specialist cuts remain visible below.")}
+          </p>
+        </div>
+        <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint sm:text-right">
           {tx(meta)}
         </span>
       </div>
-      <div className="mt-4 space-y-8">{children}</div>
+      <div className="mt-7 space-y-10">{children}</div>
     </section>
   );
 }

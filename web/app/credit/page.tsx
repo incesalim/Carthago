@@ -38,6 +38,7 @@ import {
   Colophon,
   Depth,
   DeskHeader,
+  LayerHead,
   Flags,
   Movers,
   SecHead,
@@ -62,6 +63,7 @@ import {
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
+import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { creditInsights } from "@/app/lib/insights";
@@ -437,6 +439,13 @@ export default async function CreditPage() {
         ]}
       />
 
+      <LayerHead
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
       {/* ── The bridge — what the headline is worth ─────────────────────── */}
       <SecHead
         title={tx("What the headline is worth")}
@@ -576,6 +585,13 @@ export default async function CreditPage() {
         />
       </Vitals>
 
+      <LayerHead
+        index="02"
+        title="Drivers"
+        description="The mechanisms and comparisons behind the current reading."
+        className="mt-10"
+      />
+
       {/* ── Attribution — where the headline came from ──────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
         <div>
@@ -697,7 +713,7 @@ export default async function CreditPage() {
         >
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <TrendChart
+              <SmallMultiplesTrend
                 data={yoyAll}
                 seriesLabels={WEEKLY_BANK_TYPE_LABELS}
                 title={
@@ -708,9 +724,13 @@ export default async function CreditPage() {
                 source={tx("Source: BDDK weekly bulletin")}
                 yFormat="pct"
                 decimals={1}
+                deltaPeriods={13}
+                deltaLabel="13w"
+                height={108}
+                columns={3}
                 zeroLine
-              plain
-            />
+                plain
+              />
             </div>
             <BarByBank
               data={yoyByBank}

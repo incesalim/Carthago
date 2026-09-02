@@ -26,7 +26,6 @@ import {
   toneFor,
 } from "@/app/components/ui";
 import {
-  Ahead,
   Colophon,
   Depth,
   DeskHeader,
@@ -43,7 +42,6 @@ import {
 import { monthLabel, signedPp, streak, valAgo, type Pt } from "@/app/lib/desk";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { inflationInsights } from "@/app/lib/insights";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { nf } from "@/app/lib/chart-format";
 import { ChartCard } from "@/app/components/ui/chart-card";
@@ -86,7 +84,7 @@ const mean12 = (s: Pt[], skip = 0): number | null => {
 
 export default async function InflationPage() {
   const tx = await getText();
-  const [d, ahead] = await Promise.all([getInflationData(), aheadSlots()]);
+  const d = await getInflationData();
 
   // ---- the brief's computed vitals ------------------------------------------
   // Every cell below is derived from the series this page already fetches.
@@ -271,17 +269,6 @@ export default async function InflationPage() {
     },
   ];
 
-  const aheadItems = [
-    { when: "3rd", what: <>{tx("TÜİK CPI & Yİ-ÜFE — next month’s print")}</> },
-    ...(ahead.mpc
-      ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision")}</>, href: "/rates" }]
-      : []),
-    ...(ahead["inflation-report"]
-      ? [{ when: ahead["inflation-report"].when, what: <>{tx("CBRT Inflation Report — the forecast path")}</> }]
-      : []),
-    { when: "monthly", what: <>{tx("CBRT Survey of Market Participants — the expectation above")}</> },
-  ];
-
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
@@ -418,8 +405,8 @@ export default async function InflationPage() {
         </div>
       </div>
 
-      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+      {/* ── Flags ─────────────────────────────────────────────────────── */}
+      <div className="mt-8">
         <div>
           <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
@@ -427,10 +414,6 @@ export default async function InflationPage() {
             showCleared
             quietNote="Every price rule below was tested against the current print and none tripped."
           />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
-          <Ahead items={aheadItems} />
         </div>
       </div>
 

@@ -1587,7 +1587,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-presentations-weekly.yml` — Sat 06:00 UTC. `scripts/update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. Tier-1 results filings instead ride the daily `refresh-news-daily.yml` (classified in `sync_news.py`). Apply migration 0015 (via a `web/**` deploy) before the first push.
 - `.github/workflows/refresh-transcripts-weekly.yml` — **manual dispatch only, no `schedule:` yet.** `scripts/update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts for the 8 listed banks that hold an English call) → optionally D1 (`--only-tables=bank_call_transcripts`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. The missing cron dates from the 2026-08-01 freeze (`gh workflow disable` leaves no trace in git, so a workflow shipped with a schedule is born **enabled** — dispatch-only was the inert-by-construction choice). The freeze has since lifted; the absent cron and the `push: false` default are now simply a decision nobody has taken. Add `schedule: "0 7 * * 6"` and flip `push` to turn the lane on; a run without `push` ingests and re-uploads the snapshot without touching D1. Inputs use an explicit `ALL`/`NONE` bank sentinel (a blank dispatch input arrives as the default, not empty). Apply migration 0036 (via a `web/**` deploy) before the first push.
 - `.github/workflows/refresh-advertised-rates.yml` — Mon 06:00 UTC. `python -m src.rates.scraper` → `bank_advertised_rates` → D1 (`--only-tables=bank_advertised_rates`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot (re-gzips it explicitly — this lane doesn't run `refresh.py`, which is what VACUUMs+gzips for the other refresh workflows). Migration 0023 applies via the `web/**` deploy that ships it.
-- `.github/workflows/refresh-calendar.yml` — 1st of month 06:00 UTC. `python -m src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published "MPC Meeting and Reports Calendar" (rate decisions + minutes + Inflation Report + Financial Stability Report) so the **Ahead** strips fill themselves; retires the hand-typed `MPC_DATES` (now a render-time fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser — same `www.tcmb.gov.tr` host the news lane scrapes. Bulletin lane (`bddk-pipeline` group), re-gzips the snapshot explicitly. Migration 0025 applies via the `web/**` deploy that ships it.
+- `.github/workflows/refresh-calendar.yml` — 1st of month 06:00 UTC. `python -m src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published "MPC Meeting and Reports Calendar" (rate decisions + minutes + Inflation Report + Financial Stability Report). The web analysis pages no longer render release calendars (removed 2026-09-02); the table remains live for the app overview API and operational freshness checks. The lane retired the hand-typed `MPC_DATES` (now a derivation fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser — same `www.tcmb.gov.tr` host the news lane scrapes. Bulletin lane (`bddk-pipeline` group), re-gzips the snapshot explicitly. Migration 0025 applies via the `web/**` deploy that ships it.
 - `.github/workflows/refresh-audit.yml` — daily during earnings windows (Jan 20–all February, Mar 1–15, Apr/Jul/Oct 20 through May/Aug/Nov 20) plus manual dispatch. It discovers and validates new PDFs, extracts pending partitions immediately, rebuilds stages/validation/coverage locally, sends one registry-derived audit batch to D1, then uploads the snapshot. A no-change run stops before all writes. Own DB/snapshot/group remain `data/bank_audit.db`, `state/bank_audit.db.gz`, `bddk-audit`; targeted `/admin` re-extraction is unchanged.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → resolve the registry lane → re-extract its source disclosure → rebuild any dependent derived rows → inline-validate the complete relationship gate → push only factually changed tables to D1 → snapshot → refresh coverage. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects a partition when any required non-conditional gate is not a proven pass), `require_passing` (default true — rolls source + derived + validation back together unless the whole gate passes), and `dry_run` (pulls the authoritative snapshot, then performs no D1/R2 writes). No-op tables retain their timestamps and are not pushed. This is the lane used to fix OCI/CF/NPL fleet-wide.
 - `.github/workflows/repair-missing-audit-rows.yml` — manual dispatch, `dry_run=true` by default. Repairs narrowly proven D1 drift from the authoritative R2 audit snapshot without extraction or re-stamping. Missing-row mode accepts only named tables and requires live facts to be an exact subset before replacing affected partitions; remote-extra mode requires exact partition triples and compare-and-deletes only excess full primary keys. Both modes preflight every target, preserve null versus zero and source timestamps, post-verify D1 parity, require a no-op replay, and abort before writes on any source/live conflict. Shares the `bddk-audit` group.
@@ -1845,9 +1845,9 @@ vocabulary), `claim()` (three-valued: an unknown prints *neither* branch),
 `latestByGroup`/`deltaByGroup`/`leaderOf` in `desk.ts` — needing no new query,
 because the per-group series was already the chart's own `data` prop.
 Failing closed is the contract: `null` → the caller prints the **topic**, not a
-finding. The five hand-typed `Ahead` schedules now derive (BDDK monthly from the
-record period; the BRSA window from the KAP filing lag that already happened);
-only TCMB's MPC dates remain hand-typed. `/economy`'s third-party claims are
+finding. The five formerly hand-typed `Ahead` schedules were converted to
+calendar-derived rows, then removed from the web analysis pages on 2026-09-02;
+the source remains for the app overview API. `/economy`'s third-party claims are
 computed where we hold the series and **deleted** where they were causal or an
 elasticity — never quoted.
 
@@ -1876,6 +1876,16 @@ visible in the normal reading flow, and the Turkish reading path uses sentence-
 level translations for analytical prose and chart labels. This is a
 presentation/data-contract change only: no ingestion, D1 rows or source coverage
 changed.
+
+The same contract now has visible chart and layout consequences, not only
+editorial labels: every sector brief prints a numbered `01 Now → 02 Drivers →
+03 Evidence` path; evidence stays open in the normal page flow. Five- and
+six-metric vital bands use at most three columns instead of one wide row, and
+compact sparklines have a readable width cap. The main ownership-group trend on
+all seven pages is a shared-scale small-multiple grid (one line, latest value
+and period delta per group) instead of an overlaid six-line plot. Other plain
+time-series charts are width-capped so a large monitor does not flatten them.
+This is presentation-only: no series, formula or source was removed.
 
 **/asset-quality rebuilt — the ratio prints the tip (2026-07-13):** the page led
 with "NPL ratio 2.69%", which is calm, and is the **tip**. What the ratio prints is
@@ -2164,11 +2174,12 @@ replaces the dead 2003=100 index). See [METRICS.md](METRICS.md) §14.
 
 **All six economy pages carry the full Desk brief (2026-08-07).** Until then the
 section was a header, a vitals band and a grid of one-series line charts: none of
-the six had a `<Takeaway>`, `<Movers>`, `<Transmission>`, `<Flags>` or `<Ahead>`
-block, on the one part of the site whose job is to explain the conditions the
-banking tabs measure. Each page now computes a Read, a movers table on a single
-stated cadence, a transmission strip that says what each macro figure does to a
-bank, rule-printed flags (`<Flags showCleared>`) and a release schedule. Six new
+the six had a `<Takeaway>`, `<Movers>`, `<Transmission>` or `<Flags>` block, on
+the one part of the site whose job is to explain the conditions the banking tabs
+measure. Each page now computes a Read, a movers table on a single stated
+cadence, a transmission strip that says what each macro figure does to a bank,
+and rule-printed flags (`<Flags showCleared>`). The release schedules added in
+that conversion were removed from the web analysis pages on 2026-09-02. Six new
 builders in `lib/insights.ts` (`economyInsights`, `inflationInsights`,
 `growthInsights`, `bopInsights`, `budgetInsights`, `tradeInsights`), all
 registered in the regime-flip gate (`prose-regression.test.ts`) — verified

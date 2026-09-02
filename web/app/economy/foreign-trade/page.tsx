@@ -19,7 +19,6 @@ import { getForeignTradeData } from "@/app/lib/foreign-trade";
 import { Section, Stat } from "@/app/components/ui";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
-  Ahead,
   Colophon,
   Depth,
   DeskHeader,
@@ -35,7 +34,6 @@ import {
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import { tradeInsights } from "@/app/lib/insights";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import Takeaway from "@/app/components/Takeaway";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -91,7 +89,7 @@ function topSeries(rec: Record<string, { value: number }[]>): string | null {
 
 export default async function ForeignTradePage() {
   const tx = await getText();
-  const [d, ahead] = await Promise.all([getForeignTradeData(), aheadSlots()]);
+  const d = await getForeignTradeData();
 
   // The section reads — the trade gap and the leading BEC groups, off the charts'
   // own data. "Imports run well above exports" and "intermediate goods dominate
@@ -276,13 +274,6 @@ export default async function ForeignTradePage() {
     },
   ];
 
-  const aheadItems = [
-    { when: "~1st", what: <>{tx("TÜİK / Ministry of Trade provisional foreign-trade figures")}</> },
-    { when: "~end", what: <>{tx("TÜİK final foreign-trade statistics for the month")}</> },
-    { when: "~11th", what: <>{tx("TCMB balance of payments — where this gap lands")}</>, href: "/economy/balance-of-payments" },
-    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision")}</>, href: "/rates" }] : []),
-  ];
-
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
@@ -419,8 +410,8 @@ export default async function ForeignTradePage() {
         </div>
       </div>
 
-      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+      {/* ── Flags ─────────────────────────────────────────────────────── */}
+      <div className="mt-8">
         <div>
           <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
@@ -428,10 +419,6 @@ export default async function ForeignTradePage() {
             showCleared
             quietNote="Every trade rule below was tested against the current release and none tripped."
           />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
-          <Ahead items={aheadItems} />
         </div>
       </div>
 

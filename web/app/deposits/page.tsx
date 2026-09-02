@@ -29,13 +29,13 @@ import {
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
 import {
-  Ahead,
   CadenceBand,
   ChartFoot,
   ChartRow,
   Colophon,
   Depth,
   DeskHeader,
+  LayerHead,
   Flags,
   Levels,
   Movers,
@@ -52,9 +52,9 @@ import {
 import { lastVal, latestByGroup, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import { LDR_PUBLISHED } from "@/app/lib/ldr";
 import { everyOf, firstClaim } from "@/app/lib/prose";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
+import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { depositsInsights } from "@/app/lib/insights";
@@ -155,8 +155,6 @@ function pivotByCode(rows: WeeklyRow[], codes: string[]): Record<string, string 
 
 export default async function DepositsPage() {
   const tx = await getText();
-  // What lands next — derived from the record periods + TCMB's published calendar.
-  const ahead = await aheadSlots();
   const all = Object.values(WEEKLY_BANK_TYPES);
   const sector = [WEEKLY_BANK_TYPES.SECTOR];
   const groups = all.filter((c) => c !== WEEKLY_BANK_TYPES.SECTOR);
@@ -545,6 +543,13 @@ export default async function DepositsPage() {
         ]}
       />
 
+      <LayerHead
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
         title={tx("The vitals")}
@@ -671,6 +676,13 @@ export default async function DepositsPage() {
         </Vitals>
       </CadenceBand>
 
+      <LayerHead
+        index="02"
+        title="Drivers"
+        description="The mechanisms and comparisons behind the current reading."
+        className="mt-10"
+      />
+
       {/* ── Movers | The base → the balance sheet ──────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
@@ -695,8 +707,8 @@ export default async function DepositsPage() {
         </div>
       </div>
 
-      {/* ── Flags | Standings | Ahead ──────────────────────────────────── */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
+      {/* ── Flags | Standings ──────────────────────────────────────────── */}
+      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-2">
         <div>
           <SecHead
             title={tx("Flags")}
@@ -718,28 +730,6 @@ export default async function DepositsPage() {
             className="mb-2.5"
           />
           <Standings groups={standings} />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
-          <Ahead
-            items={[
-              ahead.mpc && {
-                when: ahead.mpc.when,
-                what: (
-                  <>{tx("TCMB MPC — the rate ")}{tx(fmtPct(repriceQuarter))}{tx(" of the book reprices to")}</>
-                ),
-              },
-              ahead["brsa-filings"] && {
-                when: ahead["brsa-filings"].when,
-                what: <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — deposit cost per bank")}</>,
-                href: "/actions",
-              },
-              ahead["inflation-report"] && {
-                when: ahead["inflation-report"].when,
-                what: <>{tx("TCMB Inflation Report — the real-return backdrop")}</>,
-              },
-            ].filter((i) => !!i)}
-          />
         </div>
       </div>
 
@@ -791,7 +781,7 @@ export default async function DepositsPage() {
               height={280}
               colorKeys
             />
-            <TrendChart
+            <SmallMultiplesTrend
               plain
               data={yoyAll}
               seriesLabels={WEEKLY_BANK_TYPE_LABELS}
@@ -812,7 +802,10 @@ export default async function DepositsPage() {
               }
               yFormat="pct"
               decimals={1}
-              height={280}
+              deltaPeriods={13}
+              deltaLabel="13w"
+              height={104}
+              columns={3}
               zeroLine
             />
             <TrendChart

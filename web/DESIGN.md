@@ -26,7 +26,7 @@ do all the work; nothing is decorated.
    deliberately resolves to the sans stack so legacy `font-serif` degrades.
 6. **Automation honesty.** The site is compiled, not written: flags print their
    rule (`consecutive_rise(npl) ≥ 6m`), metas say how a number was made
-   ("transmission computed", "schedule — derived from the record periods"), and
+   ("transmission computed", "rule-based — 2 of 5"), and
    each page ends with the `<Colophon/>`.
 7. **A claim is computed, or it does not print.** A sentence that asserts a
    **direction**, a **level** or a **ranking** is a claim about the data, not a
@@ -152,9 +152,10 @@ Worked example, on real rows, with the arithmetic:
   (the peer frame). Ranking a ₺11bn digital bank against a ₺8.7trn state bank
   without saying so is a lie of omission.
 
-## The two-layer page skeleton
+## The three-layer page skeleton
 
-Every sector tab is a **brief above its evidence**. Components live in
+Every sector tab is a **brief whose reading order is visible on the page**.
+Components live in
 `app/components/desk.tsx`; pure helpers (streaks, window extremes, CPI
 transforms) in `app/lib/desk.ts`. The reference implementation is `app/page.tsx`.
 
@@ -163,19 +164,45 @@ transforms) in `app/lib/desk.ts`. The reference implementation is `app/page.tsx`
   <DeskHeader title record="Record May 2026 · vs Apr" observations={[…]} />
                                             ← observation rail: cadence + date + window + basis
   <Tape items={…} />                      ← Overview only
+  <LayerHead index="01" title="Now" />
   <SecHead title="The vitals" meta … />
   <Vitals> <Vital … /> ×4–6 </Vitals>     ← the signature: type-only cells,
                                             mono value + sparkline + computed note
   <CadenceBand observation={…}>…</CadenceBand>
                                             ← a separate band when the clock changes
+  <LayerHead index="02" title="Drivers" />
   [Movers | Transmission]                 ← grid lg:grid-cols-[5fr_7fr]
-  [Flags | Standings | Ahead]             ← grid lg:grid-cols-3 (what the page's data supports)
-  <Depth action={<GlobalRangeSelector/>}>  ← full evidence remains in the reading flow
+  [Flags | Standings]                     ← grid lg:grid-cols-2 (what the page's data supports)
+  <Depth action={<GlobalRangeSelector/>}>  ← prints 03 Evidence; remains fully open
     …the page's full pre-Desk chart/table library…
   </Depth>
   <Colophon />
 </main>
 ```
+
+**Sparkline geometry:** a `<Vital>` sparkline is a compact trend glyph, not a
+full-width time-series chart. Its plot is capped at `26rem` and uses a `3rem`
+height so sparse one- and two-cell bands do not flatten the series into a very
+wide strip. The metric cell may remain wider; the plot stays left-aligned with
+its label and value.
+
+**Vital-band geometry:** five- and six-metric bands do not become a row of
+skinny cells on wide screens. They use at most three columns (`3 × 2` for six),
+inside a `72rem` measure. This leaves enough width for the metric, cadence note
+and sparkline to be read together.
+
+**Group-comparison geometry:** when the question is how every ownership group
+moved, use shared-scale small multiples rather than six overlaid lines. Every
+panel carries one line, the latest value and a stated-period delta; all panels
+share the same y-domain so level differences remain honest. Keep a combined
+line chart only when crossings or covariance between groups are the analytical
+question. Plain evidence plots are capped at `52rem`; a small-multiple grid may
+use `64rem`.
+
+**No release calendars on analysis pages:** operational schedules and
+"Ahead" blocks displace the evidence readers came to analyse. Keep release
+calendar data in the pipeline for products that need it, but do not render it
+inside sector or economy briefs.
 
 **Carry-over contract:** converting a page to the Desk preserves both analytical
 content and default visibility. Existing charts, tables and sections may move

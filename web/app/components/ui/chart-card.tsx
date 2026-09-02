@@ -36,19 +36,19 @@ export function ChartCard({
   const tx = useText();
   if (plain) {
     return (
-      <div data-chart-card="" className={cn("group min-w-0", className)}>
-        <div className="mb-2 flex flex-wrap items-start gap-3">
+      <div data-chart-card="" className={cn("group min-w-0 border-t border-hair pt-3", className)}>
+        <div className="mb-3 flex min-h-11 flex-wrap items-start gap-3">
           <div className="min-w-0 flex-[1_1_14rem]">
             {title && (
               <div
                 data-chart-title=""
-                className="text-[12.5px] font-semibold leading-snug text-foreground"
+                className="text-[14px] font-semibold leading-snug tracking-[-0.01em] text-foreground"
               >
                 {tx(title)}
               </div>
             )}
             {description && (
-              <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+              <div className="mt-1 max-w-[90ch] font-mono text-[9px] uppercase leading-relaxed tracking-[0.065em] text-faint">
                 {tx(description)}
               </div>
             )}
@@ -58,7 +58,7 @@ export function ChartCard({
             <ChartExport />
           </div>
         </div>
-        <div className={bodyClassName}>{children}</div>
+        <div data-chart-body="" className={bodyClassName ?? "max-w-[52rem]"}>{children}</div>
         {source && (
           <div className="mt-2 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
             {tx(source)}

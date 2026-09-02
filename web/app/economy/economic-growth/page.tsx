@@ -29,7 +29,6 @@ import {
   toneFor,
 } from "@/app/components/ui";
 import {
-  Ahead,
   Colophon,
   Depth,
   DeskHeader,
@@ -49,7 +48,6 @@ import { GlobalRangeSelector } from "@/app/components/range-context";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import Takeaway from "@/app/components/Takeaway";
 import { growthInsights } from "@/app/lib/insights";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
 import { nf } from "@/app/lib/chart-format";
@@ -170,7 +168,7 @@ const pp = (v: number) => signed(v, (x) => `${x.toFixed(1)}pp`);
 
 export default async function EconomicGrowthPage() {
   const tx = await getText();
-  const [d, ahead] = await Promise.all([getGrowthData(), aheadSlots()]);
+  const d = await getGrowthData();
 
   // ---- the brief's computed vitals ------------------------------------------
   // Every cell below is derived from the series this page already fetches.
@@ -351,12 +349,6 @@ export default async function EconomicGrowthPage() {
     },
   ];
 
-  const aheadItems = [
-    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>{tx("CBRT rate decision")}</>, href: "/rates" }] : []),
-    { when: "quarterly", what: <>{tx("TÜİK national accounts — the next GDP release")}</> },
-    { when: "monthly", what: <>{tx("TÜİK industrial production — the read between quarters")}</> },
-  ];
-
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
       <DeskHeader
@@ -483,8 +475,8 @@ export default async function EconomicGrowthPage() {
         </div>
       </div>
 
-      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+      {/* ── Flags ─────────────────────────────────────────────────────── */}
+      <div className="mt-8">
         <div>
           <SecHead title={tx("Flags")} meta={tx("rules printed whether or not they fire")} className="mb-2.5" />
           <Flags
@@ -492,10 +484,6 @@ export default async function EconomicGrowthPage() {
             showCleared
             quietNote="Every growth rule below was tested against the latest national accounts and none tripped."
           />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("scraped calendar + fixed cadence")} className="mb-2.5" />
-          <Ahead items={aheadItems} />
         </div>
       </div>
 

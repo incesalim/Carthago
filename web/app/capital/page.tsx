@@ -36,19 +36,20 @@ import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
 import StepWaterfall from "./StepWaterfall";
 import TrendChart from "@/app/components/TrendChart";
+import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { capitalInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
-  Ahead,
   CadenceBand,
   ChartFoot,
   ChartRow,
   Colophon,
   Depth,
   DeskHeader,
+  LayerHead,
   Flags,
   Levels,
   Movers,
@@ -73,7 +74,6 @@ import {
   quartersToFloor,
   stepWords,
 } from "@/app/lib/capital";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export const dynamic = "force-dynamic";
@@ -103,8 +103,6 @@ function quarterLabel(p: string | null | undefined): string {
 
 export default async function CapitalPage() {
   const tx = await getText();
-  // What lands next — derived from the record periods + TCMB's published calendar.
-  const ahead = await aheadSlots();
   const sector = [BANK_TYPES.SECTOR];
   const groups = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
 
@@ -457,6 +455,13 @@ export default async function CapitalPage() {
         ]}
       />
 
+      <LayerHead
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
         title={tx("Current capital position")}
@@ -551,6 +556,13 @@ export default async function CapitalPage() {
         </Vitals>
       </CadenceBand>
 
+      <LayerHead
+        index="02"
+        title="Drivers"
+        description="The mechanisms and comparisons behind the current reading."
+        className="mt-10"
+      />
+
       {/* ── Movers | The step → the ratio ──────────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
@@ -571,8 +583,8 @@ export default async function CapitalPage() {
         </div>
       </div>
 
-      {/* ── Flags | Standings | Ahead ──────────────────────────────────── */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
+      {/* ── Flags | Standings ──────────────────────────────────────────── */}
+      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-2">
         <div>
           <SecHead
             title={tx("Flags")}
@@ -588,36 +600,6 @@ export default async function CapitalPage() {
         <div>
           <SecHead title={tx("Standings")} meta={tx("audited {0}", {0: auditQ})} href="/banks" hrefLabel={tx("by bank →")} className="mb-2.5" />
           <Standings groups={standings} />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
-          <Ahead
-            items={[
-              ahead["brsa-filings"] && {
-                when: ahead["brsa-filings"].when,
-                what: (
-                  <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — CET1, Tier-1 and RWA per bank")}</>
-                ),
-                href: "/actions",
-              },
-              ahead.mpc && {
-                when: ahead.mpc.when,
-                what: <>{tx("TCMB MPC — the rate that prices the AT1 stack")}</>,
-              },
-              ahead.fsr && {
-                when: ahead.fsr.when,
-                what: <>{tx("TCMB Financial Stability Report — the systemic read")}</>,
-              },
-              step?.isBreak && {
-                when: "OPEN",
-                what: (
-                  <>{tx("The ")}{tx(monthLabel(step?.period ?? null, false))}{tx(" step is")}{" "}
-                    <b className="font-semibold">{tx("unattributed")}</b>{tx(" — no rule in our window")}</>
-                ),
-                href: "/regulation",
-              },
-            ].filter((i) => !!i)}
-          />
         </div>
       </div>
 
@@ -653,7 +635,7 @@ export default async function CapitalPage() {
             />
           )}
           <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+            <SmallMultiplesTrend
               plain
               data={carAll}
               seriesLabels={BANK_TYPE_LABELS}
@@ -677,12 +659,12 @@ export default async function CapitalPage() {
               }
               yFormat="pct"
               decimals={1}
-              height={280}
-              annotations={
-                step?.isBreak
-                  ? [{ period: step.period, label: `${step.delta.toFixed(2)}pp` }]
-                  : undefined
-              }
+              deltaPeriods={12}
+              deltaLabel="12m"
+              height={104}
+              columns={3}
+              referencePeriod={step?.isBreak ? step.period : undefined}
+              referenceLabel={step?.isBreak ? `${step.delta.toFixed(2)}pp` : undefined}
             />
             {split && step?.isBreak ? (
               <StepWaterfall

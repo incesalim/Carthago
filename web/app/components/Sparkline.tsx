@@ -49,7 +49,7 @@ export default function Sparkline({
   const stroke = color ?? t.palette[0];
   const gradId = `spark-${stroke.replace(/[^a-z0-9]/gi, "")}`;
 
-  if (!data.length) return <div className="h-10" />;
+  if (!data.length) return <div className="h-full" />;
   const fmt = formatters[format];
 
   // Range references: min/max indices for the markers + the min baseline.
@@ -62,7 +62,7 @@ export default function Sparkline({
   const lastIdx = data.length - 1;
 
   return (
-    <div className="h-10 -mx-1">
+    <div className="h-full -mx-1">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 3, right: 2, left: 2, bottom: 3 }}>
           <defs>

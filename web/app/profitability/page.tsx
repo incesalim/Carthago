@@ -32,6 +32,7 @@ import {
 import { sectorPnl, sectorDepositMix } from "@/app/lib/metrics";
 import { buildNimDatasets } from "@/app/lib/nim-components";
 import TrendChart from "@/app/components/TrendChart";
+import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import NimComponentsSection from "./NimComponentsSection";
 import EngineBars from "./EngineBars";
 import ProfitBridge from "./ProfitBridge";
@@ -40,12 +41,12 @@ import { profitabilityInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
-  Ahead,
   ChartFoot,
   ChartRow,
   Colophon,
   Depth,
   DeskHeader,
+  LayerHead,
   Flags,
   Levels,
   Movers,
@@ -63,7 +64,6 @@ import { monthLabel, signedPct, signedPp, streak, valAgo, windowExtremes } from 
 import { firstClaim } from "@/app/lib/prose";
 import { realRate } from "@/app/lib/real-terms";
 import { bridge, costIncome, engine } from "@/app/lib/profitability";
-import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export const dynamic = "force-dynamic";
@@ -87,8 +87,6 @@ const Go = ({ href, children }: { href: string; children: ReactNode }) => (
 
 export default async function ProfitabilityPage() {
   const tx = await getText();
-  // What lands next — derived from the record periods + TCMB's published calendar.
-  const ahead = await aheadSlots();
 
   const [
     roe, roa, nim,
@@ -444,6 +442,13 @@ export default async function ProfitabilityPage() {
         ]}
       />
 
+      <LayerHead
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
         title={tx("The vitals")}
@@ -565,6 +570,13 @@ export default async function ProfitabilityPage() {
         </div>
       )}
 
+      <LayerHead
+        index="02"
+        title="Drivers"
+        description="The mechanisms and comparisons behind the current reading."
+        className="mt-10"
+      />
+
       {/* ── Movers | The engine → the return ───────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
         <div>
@@ -589,8 +601,8 @@ export default async function ProfitabilityPage() {
         </div>
       </div>
 
-      {/* ── Flags | Standings | Ahead ──────────────────────────────────── */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
+      {/* ── Flags | Standings ──────────────────────────────────────────── */}
+      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-2">
         <div>
           <SecHead
             title={tx("Flags")}
@@ -612,31 +624,6 @@ export default async function ProfitabilityPage() {
             className="mb-2.5"
           />
           <Standings groups={standings} />
-        </div>
-        <div>
-          <SecHead title={tx("Ahead")} meta={tx("schedule — derived from the record periods + the tcmb calendar")} className="mb-2.5" />
-          <Ahead
-            items={[
-              ahead.mpc && {
-                when: ahead.mpc.when,
-                what: <>{tx("TCMB MPC — the rate the engine reprices to")}</>,
-              },
-              ahead["inflation-report"] && {
-                when: ahead["inflation-report"].when,
-                what: <>{tx("TCMB Inflation Report — where the hurdle is headed")}</>,
-              },
-              ahead["brsa-filings"] && {
-                when: ahead["brsa-filings"].when,
-                what: <>{tx("BRSA ")}{tx(ahead["brsa-filings"].record)}{tx(" filings — per-bank margins")}</>,
-                href: "/actions",
-              },
-              {
-                when: "MONTHLY",
-                what: <>{tx("TÜİK CPI — the hurdle every return is measured against")}</>,
-                href: "/economy/inflation",
-              },
-            ].filter((i) => !!i)}
-          />
         </div>
       </div>
 
@@ -846,7 +833,7 @@ export default async function ProfitabilityPage() {
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+            <SmallMultiplesTrend
               plain
               data={roe}
               seriesLabels={BANK_TYPE_LABELS}
@@ -860,7 +847,10 @@ export default async function ProfitabilityPage() {
               source={<ChartFoot data={roe} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
               yFormat="pct"
               decimals={1}
-              height={280}
+              deltaPeriods={12}
+              deltaLabel="12m"
+              height={104}
+              columns={3}
               zeroLine
             />
             <TrendChart
