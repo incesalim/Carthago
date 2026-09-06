@@ -587,3 +587,16 @@ of detected tables.
   GlobalSign intermediate. Verified the live hostname/chain normally and matched
   2026Q2 solo bytes to acquisition. Exact-host downloader support and failure
   tests pass; cloud comparison across all 36 registered ICBC filings pending.
+
+- 2026-09-07: ICBC follow-up `34066751096` matches all 36 acquired PDFs and
+  supports their opening-page identities. Every receipt/current index and old
+  acquisition hash independently reconciles. Fresh byte agreement now covers
+  1,011 filings; prior unavailable observations remain in history.
+- 2026-09-07: TOMK reading-view publication/replay `34066695808` preserves the
+  seven-case probe exactly and leaves all four checked object versions unchanged.
+- 2026-09-07: inventoried 14 Takasbank activity-report attachments. Independently
+  checked two complete 12-page native/structure artifacts, all OCR word positions,
+  four original-page pixel samples and both covers. The June 2022 archive contains
+  a March 2022 report; June 2026's member matches its quarter. Added immutable
+  related-identity receipts and admin source-period conflict display, preserving
+  archive context separately. Python and 745 web tests pass; cloud rollout pending.

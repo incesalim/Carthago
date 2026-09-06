@@ -5,14 +5,33 @@ import hashlib
 import io
 import json
 import zipfile
+from pathlib import Path
 
 from .document_acquisition import unwrap_pdf
 from .document_corpus import Filing
-from .document_corpus_store import CorpusStore, PREFIX
+from .document_corpus_store import CorpusStore, PREFIX, _json
+from .document_evidence import artifact_digest, verify_evidence_records
 
 
 def _sha(body):
     return hashlib.sha256(body).hexdigest()
+
+
+def related_identity_review(records, patterns):
+    """The archive's filing is context, not proof of its attachment's period."""
+    from . import document_quality
+    if not verify_evidence_records(records)['valid']:
+        raise ValueError('Related identity requires valid native source evidence')
+    source = records[0]['source']
+    filing = Filing(**{k: source[k] for k in ('bank_ticker', 'period', 'kind')})
+    rules = {bank: [{'pattern': p.pattern, 'flags': p.flags} for p in values]
+             for bank, values in sorted(patterns.items())}
+    return {'schema_version': 'related-identity-review-1', 'source': source,
+            'evidence_artifact_sha256': artifact_digest(records),
+            'container_filing': filing.as_dict(), 'source_filing_role': 'archive_container',
+            'identity_review': document_quality.source_identity_review(filing, records[1:4], patterns),
+            'engine': {'implementation_sha256': _sha(Path(document_quality.__file__).read_bytes()),
+                       'bank_patterns': rules}, 'semantic_verification': 'not_performed'}
 
 
 def _verified(store, entry, expected_key):
@@ -104,6 +123,38 @@ class RelatedCorpusStore(CorpusStore):
             index['relationship'] = self.relation
             update(index)
         return super()._update_index(filing, bound)
+
+    def publish_identity_review(self, records, patterns):
+        packet = related_identity_review(records, patterns)
+        if packet['container_filing'] != self.filing.as_dict():
+            raise ValueError('Related identity review has a different container filing')
+        body = _json(packet)
+        digest = _sha(body)
+        key = f"{PREFIX}sources/{packet['source']['pdf_sha256']}/related-identity/{digest}.json"
+
+        def bound(index):
+            current = index.get('current')
+            if (not current or current['source'] != packet['source']
+                    or current['artifact_sha256'] != packet['evidence_artifact_sha256']):
+                raise ValueError('Related identity review differs from retained native capture')
+            return current
+
+        index = json.loads(self._read(self.index_key(self.filing))[0])
+        bound(index)
+        self._immutable(key, body, 'application/json')
+        reference = {'key': key, 'sha256': digest, 'bytes': len(body)}
+
+        def update(index):
+            current = bound(index)
+            revision = next(r for r in index['revisions'] if r['artifact_sha256'] == current['artifact_sha256'])
+            history = revision.setdefault('related_identity_reviews', [])
+            if reference not in history:
+                history.append(reference)
+            revision['related_identity_review'] = reference
+            index['current'] = revision
+
+        self._update_index(self.filing, update)
+        return packet
 
     def publish(self, records, original, evidence):
         # A caller-supplied relationship is not sufficient proof: locate the

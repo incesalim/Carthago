@@ -1,0 +1,61 @@
+{
+  "reference": {
+    "key": "document-corpus/v1/sources/cd7645285ab7104432a80ca914355d72bdd776ef1cffffa958b82c28a7be8820/related-identity/953afe1b0aad034aefead8140277719d73466fb499ea4f10bcf6c0a5abbf65d9.json",
+    "sha256": "953afe1b0aad034aefead8140277719d73466fb499ea4f10bcf6c0a5abbf65d9",
+    "bytes": 1013
+  },
+  "body": "eyJjb250YWluZXJfZmlsaW5nIjp7ImJhbmtfdGlja2VyIjoiVEVTVCIsImtpbmQiOiJjb25zb2xpZGF0ZWQiLCJwZXJpb2QiOiIyMDI2UTEifSwiZW5naW5lIjp7ImJhbmtfcGF0dGVybnMiOnsiVEVTVCI6W3siZmxhZ3MiOjMyLCJwYXR0ZXJuIjoidGVzdCBiYW5rIn1dfSwiaW1wbGVtZW50YXRpb25fc2hhMjU2IjoiNDE5MDhjYjhhNjFlN2YzOTk3ZmQxYThhMjEyMDIwMTFhODc4NmUzOTk1ZTBhMTY0MTk0Y2ZjZTRiNGM1ZjlhZCJ9LCJldmlkZW5jZV9hcnRpZmFjdF9zaGEyNTYiOiIwYzMwNWM5ZTU2YmI5NDAyZDExNzkwMGZiYjg0YTgwMzAyZDI1NWIxYTkzODk5MTljYzkwZTRlNmFhZjk3Yzg4IiwiaWRlbnRpdHlfcmV2aWV3Ijp7ImNsYWltX3BhZ2UiOm51bGwsImZpbGluZyI6eyJiYW5rX3RpY2tlciI6IlRFU1QiLCJraW5kIjoiY29uc29saWRhdGVkIiwicGVyaW9kIjoiMjAyNlExIn0sImlzc3VlcyI6WyJub19jb21wbGV0ZV9pZGVudGl0eV9jbGFpbV9vbl9vbmVfbGVhZGluZ19wYWdlIl0sIm9ic2VydmF0aW9ucyI6W3siYmFua3MiOltdLCJiYXNlcyI6W10sInBhZ2UiOjEsInF1YXJ0ZXJfZW5kX2RhdGVzIjpbXX1dLCJzY29wZSI6ImxlYWRpbmdfc291cmNlX3RleHRfb25seSIsInNlbWFudGljX3ZlcmlmaWNhdGlvbiI6Im5vdF9wZXJmb3JtZWQiLCJzdGF0dXMiOiJ1bnJlc29sdmVkIn0sInNjaGVtYV92ZXJzaW9uIjoicmVsYXRlZC1pZGVudGl0eS1yZXZpZXctMSIsInNlbWFudGljX3ZlcmlmaWNhdGlvbiI6Im5vdF9wZXJmb3JtZWQiLCJzb3VyY2UiOnsiYmFua190aWNrZXIiOiJURVNUIiwiYnl0ZV9jb3VudCI6ODU0LCJraW5kIjoiY29uc29saWRhdGVkIiwib2JqZWN0X2tleSI6bnVsbCwicGRmX3NoYTI1NiI6ImNkNzY0NTI4NWFiNzEwNDQzMmE4MGNhOTE0MzU1ZDcyYmRkNzc2ZWYxY2ZmZmZhOTU4YjgyYzI4YTdiZTg4MjAiLCJwZXJpb2QiOiIyMDI2UTEiLCJzb3VyY2VfdXJsIjpudWxsfSwic291cmNlX2ZpbGluZ19yb2xlIjoiYXJjaGl2ZV9jb250YWluZXIifQo=",
+  "packet": {
+    "schema_version": "related-identity-review-1",
+    "source": {
+      "bank_ticker": "TEST",
+      "byte_count": 854,
+      "kind": "consolidated",
+      "object_key": null,
+      "pdf_sha256": "cd7645285ab7104432a80ca914355d72bdd776ef1cffffa958b82c28a7be8820",
+      "period": "2026Q1",
+      "source_url": null
+    },
+    "evidence_artifact_sha256": "0c305c9e56bb9402d117900fbb84a80302d255b1a9389919cc90e4e6aaf97c88",
+    "container_filing": {
+      "bank_ticker": "TEST",
+      "period": "2026Q1",
+      "kind": "consolidated"
+    },
+    "source_filing_role": "archive_container",
+    "identity_review": {
+      "filing": {
+        "bank_ticker": "TEST",
+        "period": "2026Q1",
+        "kind": "consolidated"
+      },
+      "status": "unresolved",
+      "claim_page": null,
+      "observations": [
+        {
+          "page": 1,
+          "banks": [],
+          "quarter_end_dates": [],
+          "bases": []
+        }
+      ],
+      "issues": [
+        "no_complete_identity_claim_on_one_leading_page"
+      ],
+      "scope": "leading_source_text_only",
+      "semantic_verification": "not_performed"
+    },
+    "engine": {
+      "implementation_sha256": "41908cb8a61e7f3997fd1a8a21202011a8786e3995e0a164194cfce4b4c5f9ad",
+      "bank_patterns": {
+        "TEST": [
+          {
+            "pattern": "test bank",
+            "flags": 32
+          }
+        ]
+      }
+    },
+    "semantic_verification": "not_performed"
+  }
+}

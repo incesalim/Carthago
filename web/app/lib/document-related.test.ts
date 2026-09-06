@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getRelatedRevision } from "./document-related";
 import type { CorpusBucket } from "./document-corpus";
@@ -13,6 +14,7 @@ import { GET as sourceGET } from "../api/admin/document-corpus/route";
 import { GET as recoveryGET } from "../api/admin/document-recovery/route";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_related_wire.json", import.meta.url), "utf8"));
+const identityFixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_related_identity_wire.json", import.meta.url), "utf8"));
 const objects = () => Object.fromEntries(Object.entries(fixture.objects).map(([k, v]) => [k, Buffer.from(v as string, "base64")]));
 function bucket(data = objects()): CorpusBucket {
   return { get: vi.fn(async (key: string) => {
@@ -27,6 +29,34 @@ const query = `filing=TEST%7C2026Q1%7Cconsolidated&related=${fixture.member.sha2
 const url = `https://test/api/admin/document-corpus?${query}`;
 
 describe("related-document provenance", () => {
+  it("reads the Python-produced identity receipt while keeping the container separate", async () => {
+    const data = objects();
+    const index = JSON.parse(data[fixture.index_key].toString());
+    index.current.related_identity_review = identityFixture.reference;
+    data[fixture.index_key] = Buffer.from(JSON.stringify(index));
+    data[identityFixture.reference.key] = Buffer.from(identityFixture.body, "base64");
+    const revision = await getRelatedRevision(bucket(data), fixture.filing, fixture.member.sha256);
+    expect(revision?.archive_identity).toEqual({ status: "unresolved", claim_page: null,
+      observed_periods: [], issues: ["no_complete_identity_claim_on_one_leading_page"] });
+  });
+  it.each(["pdf", "native", "container", "approval", "checksum", "key"])("rejects altered identity %s bindings", async change => {
+    const data = objects();
+    const index = JSON.parse(data[fixture.index_key].toString());
+    const packet = structuredClone(identityFixture.packet);
+    if (change === "pdf") packet.source.pdf_sha256 = "a".repeat(64);
+    if (change === "native") packet.evidence_artifact_sha256 = "a".repeat(64);
+    if (change === "container") packet.container_filing.period = "2026Q2";
+    if (change === "approval") packet.semantic_verification = "verified";
+    const body = Buffer.from(JSON.stringify(packet));
+    const sha256 = createHash("sha256").update(body).digest("hex");
+    const key = `document-corpus/v1/sources/${fixture.member.sha256}/related-identity/${sha256}.json`;
+    index.current.related_identity_review = { key, sha256, bytes: body.length };
+    data[key] = body;
+    if (change === "checksum") data[key][0] = 0;
+    if (change === "key") index.current.related_identity_review.key = "private/unrelated.json";
+    data[fixture.index_key] = Buffer.from(JSON.stringify(index));
+    await expect(getRelatedRevision(bucket(data), fixture.filing, fixture.member.sha256)).rejects.toThrow();
+  });
   it("reads the Python-produced archive-bound index without accessing the primary filing index", async () => {
     const store = bucket();
     expect(await getRelatedRevision(store, fixture.filing, fixture.member.sha256)).toEqual(fixture.index.current);

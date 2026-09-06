@@ -1767,3 +1767,12 @@ needed by BDDK. Certificate and hostname verification remain enabled; no fallbac
 to unverified transport is allowed. Origin response metadata names the verification
 method. Other hosts keep the default trust store. A local source-byte probe
 matched the 2026Q2 solo acquisition; the registered-bank follow-up runs in Actions.
+
+Related-document captures now preserve an immutable identity review under the
+source revision's `related-identity/` namespace. Its receipt binds the PDF hash,
+native evidence digest, archive filing and exact identity rules. Related indexes
+keep both the current receipt and history without restamping identical values.
+A related source's inherited bank/period/basis fields label its archive context;
+use its own opening-page claims to assess identity. A conflict is retained with
+the source, not suppressed or relabeled. The private reader checks the receipt
+bytes and native/container bindings before exposing its period observations.

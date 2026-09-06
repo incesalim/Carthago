@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { CorpusRevision } from "@/app/lib/document-corpus";
+import type { RelatedRevision } from "@/app/lib/document-related";
 import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 
 export default function DocumentRelatedPanel({ filing, member }: {
@@ -9,7 +9,7 @@ export default function DocumentRelatedPanel({ filing, member }: {
 }) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [state, setState] = useState<{ key: string; revision?: CorpusRevision; error?: string } | null>(null);
+  const [state, setState] = useState<{ key: string; revision?: RelatedRevision; error?: string } | null>(null);
   const query = `filing=${encodeURIComponent(filing)}&related=${member.sha256}`;
   useEffect(() => {
     if (!open) return;
@@ -30,6 +30,13 @@ export default function DocumentRelatedPanel({ filing, member }: {
       {current?.error && <p className="mt-2 text-warning" role="alert">{current.error}</p>}
       {current?.revision && <>
         <p className="mt-2 text-muted-foreground">Separate document in the same official archive · {current.revision.page_count} pages · content review pending.</p>
+        <p className="mt-1 text-faint">The archive’s reporting period does not establish this document’s period.</p>
+        {current.revision.archive_identity && <div className="mt-2 text-xs">
+          <p className={current.revision.archive_identity.status === "source_text_conflict" ? "text-warning" : "text-muted-foreground"}>
+            Opening-page identity: {current.revision.archive_identity.status.replaceAll("_", " ")}.</p>
+          {current.revision.archive_identity.observed_periods.length > 0 && <p className="mt-1">Source period on page {current.revision.archive_identity.claim_page}: {current.revision.archive_identity.observed_periods.join(", ")}.</p>}
+          {current.revision.archive_identity.issues.map(issue => <p key={issue} className="mt-1 text-warning">{issue.replaceAll("_", " ")}</p>)}
+        </div>}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <label>Related PDF page <select className="ml-2 border-b border-border bg-transparent py-1 text-foreground" value={page} onChange={event => setPage(Number(event.target.value))}>
             {Array.from({ length: current.revision.page_count }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}

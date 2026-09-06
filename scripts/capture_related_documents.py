@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -14,7 +15,8 @@ from src.audit_reports.document_acquisition import unwrap_pdf  # noqa: E402
 from src.audit_reports.document_corpus import Filing, source_identity  # noqa: E402
 from src.audit_reports.document_corpus_store import CorpusStore  # noqa: E402
 from src.audit_reports.document_evidence import capture_source_evidence, save_evidence  # noqa: E402
-from src.audit_reports.document_related import RelatedCorpusStore, related_sources  # noqa: E402
+from src.audit_reports.document_related import RelatedCorpusStore, related_sources, related_identity_review  # noqa: E402
+from src.audit_reports.document_quality import bank_patterns  # noqa: E402
 from src.audit_reports.document_structure import build_document_structure, structure_jsonl  # noqa: E402
 from build_document_corpus import _write_bytes, _write_json  # noqa: E402
 
@@ -81,6 +83,7 @@ def main(argv=None):
         parser.error(str(error))
     from src.audit_reports import r2_storage
     store = CorpusStore(r2_storage.get_client(), r2_storage._bucket())
+    patterns = bank_patterns(json.loads((REPO / 'data/banks/audit_report_urls.json').read_text(encoding='utf-8'))['banks'])
     report = {'schema_version': 'related-document-run-1', 'filing': filing.as_dict(),
               'documents': [], 'status': 'running', 'published': args.publish, 'semantically_verified': False}
     _write_json(args.output_dir / 'related-results.json', report)
@@ -103,6 +106,9 @@ def main(argv=None):
                 save_evidence(records, evidence)
                 if args.publish:
                     related.publish(records, original, evidence)
+                identity = related.publish_identity_review(records, patterns) if args.publish else related_identity_review(records, patterns)
+                _write_json(folder / 'identity-review.json', identity)
+                outcome['identity_review'] = identity['identity_review']
                 structure = build_document_structure(original, records)
                 _write_bytes(folder / 'structure.jsonl', structure_jsonl(structure))
                 if args.publish:

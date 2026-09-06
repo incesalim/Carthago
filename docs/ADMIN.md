@@ -436,3 +436,9 @@ where an explicit continued title and ordered column identifiers agree, offers
 a link to the preceding physical fragment. Competing fragments remain labelled
 ambiguous. Continuation links are candidates for review and do not combine rows
 or approve header meanings, financial values or units.
+
+Related PDFs expose their own source-period observations when an identity receipt
+has been captured. The archive's reporting period is context, not a substitute for
+the attachment's date. A retained conflicting claim remains visible alongside the
+original PDF and source pages. Receipt hashes and exact native/container bindings
+are checked; malformed or substituted reviews fail instead of clearing a conflict.

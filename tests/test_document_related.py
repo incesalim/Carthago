@@ -49,6 +49,7 @@ def test_related_native_capture_cannot_replace_primary_filing_and_replay_writes_
     related = RelatedCorpusStore(store, relation)
     before = dict(client.objects)
     related.publish(records, original, evidence)
+    related.publish_identity_review(records, PATTERNS)
     related.publish_structure(structure, records)
     assert related.index_key(FILING).startswith(PREFIX + 'related/')
     assert client.objects[primary_key] == before[primary_key]
@@ -57,8 +58,18 @@ def test_related_native_capture_cannot_replace_primary_filing_and_replay_writes_
     assert index['relationship'] == relation and index['current']['source']['pdf_sha256'] == hashlib.sha256(raw).hexdigest()
     writes = list(client.writes)
     related.publish(records, original, evidence)
+    related.publish_identity_review(records, PATTERNS)
     related.publish_structure(structure, records)
     assert client.writes == writes
+    reference = related.read_index(FILING)['current']['related_identity_review']
+    packet = json.loads(client.objects[reference['key']])
+    assert packet['source_filing_role'] == 'archive_container'
+    assert packet['evidence_artifact_sha256'] == index['current']['artifact_sha256']
+    assert hashlib.sha256(client.objects[reference['key']]).hexdigest() == reference['sha256']
+    damaged = copy.deepcopy(records)
+    damaged[0]['source']['pdf_sha256'] = 'a' * 64
+    with pytest.raises(ValueError, match='differs from retained'):
+        related.publish_identity_review(damaged, PATTERNS)
     with pytest.raises(ValueError, match='another filing'):
         related.index_key(Filing('OTHER', '2026Q1', 'consolidated'))
 
@@ -131,3 +142,16 @@ def test_related_full_capture_cannot_run_locally(monkeypatch):
     from capture_related_documents import main
     monkeypatch.delenv('GITHUB_ACTIONS', raising=False)
     with pytest.raises(SystemExit): main(['--filing', 'TEST|2026Q1|consolidated'])
+
+
+def test_actual_takas_june_archive_contains_a_march_report():
+    from pathlib import Path
+    from src.audit_reports.document_quality import bank_patterns, source_identity_review
+    fixture = json.loads((Path(__file__).parent / 'fixtures/document_related_identity_takas.json').read_text(encoding='utf-8'))
+    filing = Filing('TAKAS', '2022Q2', 'unconsolidated')
+    result = source_identity_review(filing, [fixture['source_page']], bank_patterns(fixture['bank_config']))
+    assert fixture['source_manifest']['source']['pdf_sha256'] == '08d8ab923ae97dafd64cc09d35058a771d72691b2ff4f865fb00961fb6349f31'
+    assert result['status'] == 'source_text_conflict' and result['claim_page'] == 1
+    assert result['issues'] == ['period_conflicts_with_source_text']
+    assert result['observations'][0]['quarter_end_dates'][0]['period'] == '2022Q1'
+    assert result['observations'][0]['quarter_end_dates'][0]['source_span_ids'] == [10]

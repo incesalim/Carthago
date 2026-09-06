@@ -104,7 +104,8 @@ unique registry bindings, committed engine and receipt hashes, and all 1,145
 observed acquisition hashes against native capture. Follow-up `34062651771`
 verifies repaired Anadolubank consolidated bytes and its retained receipt/index;
 Solo follow-up `34064708288` also passes independent receipt/transport checks;
-975 filings now have byte agreement. Old observations remain in history.
+975 filings had byte agreement before the ICBC follow-up. Old observations
+remain in history.
 Byte agreement does not clear conflicting cover claims or verify document content.
 Independently inspected Albaraka 2026Q2 consolidated and Eximbank 2026Q1 solo
 copies are English/Turkish editions. Both remain preserved; full content
@@ -113,7 +114,11 @@ ICBC's 36 initial downloads failed certificate-chain validation. A source probe
 now verifies the ICBC hostname and chain using the existing GlobalSign
 intermediate, then proves its 2026Q2 solo PDF exactly matches acquired bytes.
 The corpus downloader supports those exact ICBC hosts with normal verification
-enabled; the 36-filing cloud follow-up remains pending. Ziraat Katılım returns
+enabled. Follow-up `34066751096` matches all 36 registered ICBC PDFs, with
+36 supported opening-page identities. Independent reconciliation checks every
+current receipt/index, prior acquisition hash and committed engine; old failed
+observations remain. **1,011 filings now have fresh byte agreement.**
+Ziraat Katılım returns
 browser-challenge HTML. Halkbank's 2026Q2 solo BDDK archive contains a DOCX,
 not a PDF. None is reclassified as a missing acquired filing.
 
@@ -141,6 +146,19 @@ valid main-report revision substituted under a related-document relationship.
 The publication replay preserves eight object versions, including the parent
 index. Wrapped related members need explicit wrapper-byte binding before admin
 access; ordinary PDF members are supported.
+
+The initial origin fleet also identifies **14 separate Takasbank activity-report
+PDF members** (plus Anadolu's consolidated declaration). Read-only probes
+`34066892345` and `34066893929` retain two 12-page attachments; all native/structure
+accounting and 2,707/2,545 OCR word-position inventories pass independent checks,
+with fresh original-pixel comparisons on the first/last pages. Visual inspection
+confirms that the 2022Q2 archive actually contains a 2022Q1 activity report; the
+2026Q2 attachment states 2026Q2. A separate immutable related-identity receipt now
+binds the opening-page observations to the exact PDF/native artifact and labels
+the inherited filing as archive context. The admin exposes source-period conflicts
+and rejects substituted or corrupted receipts. Local Python and 745 web tests
+pass; cloud publication of these receipts and capture of the remaining activity
+attachments remain pending. No whole attachment is semantically approved.
 
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has
@@ -202,7 +220,9 @@ duplicated or unknown. Local Python and 738 web tests pass. Cloud probe `3406649
 source cases; all 51 native pages and every earlier structure field remain
 identical, and all new reading views were independently rebuilt. The two reviewed
 prose pages have no layout issue; 44 other pages retain unresolved areas, often
-within table text. Publication and authenticated live inspection remain pending.
+within table text. Publication/replay `34066695808` matches the independent
+seven-case probe and leaves all four checked object versions unchanged.
+Authenticated live inspection remains pending.
 
 Remaining work: resolve fresh-origin exceptions and reconcile the revised recovery fleet; establish
 whole-document physical and semantic coverage with independently reviewed source

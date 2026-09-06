@@ -1,10 +1,14 @@
 /** Resolve an attachment only through its retained official archive relationship. */
-import { CORPUS_PREFIX, parseCorpusRevision, type CorpusBucket, type FilingIdentity } from "./document-corpus";
+import { CORPUS_PREFIX, parseCorpusRevision, type CorpusBucket, type CorpusRevision, type FilingIdentity } from "./document-corpus";
 import { getOriginReview } from "./document-origin";
+import { readRecoveryArtifact } from "./document-recovery";
 
 const record = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+export type RelatedRevision = CorpusRevision & { archive_identity?: {
+  status: string; claim_page: number | null; observed_periods: string[]; issues: string[];
+} };
 
-export async function getRelatedRevision(bucket: CorpusBucket, filing: FilingIdentity, memberHash: string) {
+export async function getRelatedRevision(bucket: CorpusBucket, filing: FilingIdentity, memberHash: string): Promise<RelatedRevision | null> {
   if (!/^[a-f0-9]{64}$/.test(memberHash)) throw new Error("Invalid related document hash");
   const origin = await getOriginReview(bucket, filing);
   const members = origin?.selection?.unselected_pdf_members?.filter(m => m.sha256 === memberHash) ?? [];
@@ -35,6 +39,46 @@ export async function getRelatedRevision(bucket: CorpusBucket, filing: FilingIde
   }
   if (revision && (!record(index) || !record(index.current) || index.current.semantic_verification !== "not_performed")) {
     throw new Error("Related source claims unsupported semantic approval");
+  }
+  if (revision && record(index) && record(index.current) && index.current.related_identity_review !== undefined) {
+    const ref = index.current.related_identity_review;
+    if (!record(ref) || typeof ref.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(ref.sha256)
+        || ref.key !== `${CORPUS_PREFIX}sources/${memberHash}/related-identity/${ref.sha256}.json`
+        || typeof ref.bytes !== "number" || !Number.isSafeInteger(ref.bytes) || ref.bytes < 1 || ref.bytes > 2_000_000) {
+      throw new Error("Invalid related identity reference");
+    }
+    const bytes = await readRecoveryArtifact(bucket, ref as { key: string; sha256: string; bytes: number });
+    const packet: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    const sameFiling = (value: unknown) => record(value) && Object.entries(filing).every(([k, v]) => value[k] === v);
+    if (!record(packet) || packet.schema_version !== "related-identity-review-1"
+        || packet.source_filing_role !== "archive_container" || packet.semantic_verification !== "not_performed"
+        || !sameFiling(packet.container_filing) || !sameFiling(packet.source) || !record(packet.source)
+        || packet.source.pdf_sha256 !== memberHash || packet.evidence_artifact_sha256 !== index.current.artifact_sha256
+        || revision.evidence_key !== `${CORPUS_PREFIX}sources/${memberHash}/${packet.evidence_artifact_sha256}.jsonl.gz`
+        || !record(packet.identity_review) || !sameFiling(packet.identity_review.filing)) {
+      throw new Error("Related identity differs from its native source or archive");
+    }
+    const review = packet.identity_review;
+    if (!["supported_by_source_text", "unresolved", "ambiguous", "source_text_conflict"].includes(String(review.status))
+        || review.semantic_verification !== "not_performed" || review.scope !== "leading_source_text_only"
+        || review.claim_page !== null && (typeof review.claim_page !== "number" || !Number.isSafeInteger(review.claim_page)
+          || review.claim_page < 1 || review.claim_page > Math.min(3, revision.page_count))
+        || !Array.isArray(review.issues) || !review.issues.every(i => typeof i === "string")
+        || !Array.isArray(review.observations)) throw new Error("Invalid related identity observation");
+    const periods: string[] = [];
+    for (const observation of review.observations) {
+      if (!record(observation) || typeof observation.page !== "number" || !Array.isArray(observation.quarter_end_dates)) {
+        throw new Error("Invalid related source date observation");
+      }
+      for (const date of observation.quarter_end_dates) {
+        if (!record(date) || typeof date.period !== "string" || !/^\d{4}Q[1-4]$/.test(date.period)) {
+          throw new Error("Invalid related source period");
+        }
+        if (observation.page === review.claim_page && !periods.includes(date.period)) periods.push(date.period);
+      }
+    }
+    return { ...revision, archive_identity: { status: String(review.status), claim_page: review.claim_page as number | null,
+      observed_periods: periods, issues: review.issues as string[] } };
   }
   return revision;
 }
