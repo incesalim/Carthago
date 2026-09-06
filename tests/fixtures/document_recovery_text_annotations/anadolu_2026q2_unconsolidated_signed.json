@@ -1,0 +1,72 @@
+{
+  "filing": {
+    "bank_ticker": "ANADOLU",
+    "period": "2026Q2",
+    "kind": "unconsolidated"
+  },
+  "pdf_sha256": "deb0b38e5ccb981d61c09734ae55cd4fa5fd2d3d0499b52caf3e4aab1c91ab02",
+  "review_method": "Independent transcription from the original one-page signed solo responsibility declaration, rendered before inspecting recovered text; signature marks remain source-image evidence.",
+  "coordinate_space": "display",
+  "cases": [
+    {
+      "id": "bank_heading",
+      "page": 1,
+      "kind": "full_text_region",
+      "source_bbox": [
+        205,
+        65,
+        385,
+        92
+      ],
+      "text": "ANADOLUBANK A.Ş."
+    },
+    {
+      "id": "responsibility_heading",
+      "page": 1,
+      "kind": "full_text_region",
+      "source_bbox": [
+        205,
+        95,
+        385,
+        122
+      ],
+      "text": "SORUMLULUK BEYANI"
+    },
+    {
+      "id": "complete_report_scope",
+      "page": 1,
+      "kind": "full_text_region",
+      "source_bbox": [
+        38,
+        177,
+        557,
+        217
+      ],
+      "text": "Anadolubank A.Ş.'nin Sermaye Piyasası Kurulu'nun Sermaye Piyasasında Finansal Raporlamaya İlişkin Esaslar Tebliği (II-14.1) uyarınca düzenlenmiş olan 01.01.2026 – 30.06.2026 dönemine ait Konsolide Olmayan Finansal Tabloları ile Bağımsız Denetim Raporu tarafımızca incelenmiş olup;"
+    },
+    {
+      "id": "complete_first_responsibility_statement",
+      "page": 1,
+      "kind": "full_text_region",
+      "source_bbox": [
+        38,
+        229,
+        557,
+        269
+      ],
+      "text": "- Banka'daki görev ve sorumluluk alanımız ve sahip olduğumuz bilgiler çerçevesinde, Konsolide Olmayan Finansal Tablolar ve Bağımsız Denetim Raporu'nun önemli konularda gerçeğe aykırı bir açıklama veya açıklamanın yapıldığı tarih itibarıyla yanıltıcı olması sonucunu doğurabilecek herhangi bir eksiklik içermediğini,"
+    },
+    {
+      "id": "complete_second_responsibility_statement",
+      "page": 1,
+      "kind": "full_text_region",
+      "source_bbox": [
+        38,
+        280,
+        557,
+        317
+      ],
+      "text": "- Banka'daki görev ve sorumluluk alanımız ve sahip olduğumuz bilgiler çerçevesinde Konsolide Olmayan Finansal Tablolar ile Bağımsız Denetim Raporu'nun Banka'nın aktifleri, pasifleri, finansal durumu ve kâr ve zararı ile ilgili gerçeği dürüst bir biçimde yansıttığını beyan ederiz."
+    }
+  ]
+}

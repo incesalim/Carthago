@@ -153,6 +153,31 @@
         "0,09871",
         "-"
       ]
+    },
+    {
+      "id": "complete-prior-fx-table-and-currency-units",
+      "kind": "complete_physical_table",
+      "page": 30,
+      "method": "horizontal_rule_cells",
+      "bbox": [
+        125,
+        421,
+        540,
+        456
+      ],
+      "rows": [
+        [
+          "",
+          "USD",
+          "EURO"
+        ],
+        [
+          "Bilanço değerleme kuru",
+          "18,6983 TL",
+          "19,9349 TL"
+        ]
+      ],
+      "spans": []
     }
   ]
 }

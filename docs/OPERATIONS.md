@@ -1742,7 +1742,11 @@ Source-line structure for tall ruled cells is derived from retained word positio
 with exact original-cell word inventories and unambiguous baseline bands. Original
 physical cells remain intact; note references are text, not newly parsed figures.
 The TOMK 2023Q3 source annotations cover the complete shareholder grid/unit and
-three source lines in the profit/loss statement. They do not certify the whole
+three source lines in the profit/loss statement, plus the complete six-slot
+prior exchange-rate table with its currency headings and literal TL units.
+Matching segmented top and bottom rules support this single-row table;
+unmatched rules and missing value columns do not produce a candidate.
+These checks do not certify the whole
 report. The reviewed Anadolubank 2026Q2 solo archive selection is bound to its
 86-page primary PDF hash; capture its separate signed member only after a fresh
 origin observation has published that exact selection.

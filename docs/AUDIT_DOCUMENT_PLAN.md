@@ -556,3 +556,14 @@ of detected tables.
   columns/headers, literal note references and EPS unit wording. Full source-word
   accounting and corruption tests pass; three independently read profit/loss
   lines are added to the cloud benchmark. Admin toggle and cloud validation pending.
+
+- 2026-09-07: source-line cloud probe `34064705881` independently verifies all 51
+  retained native pages and rebuilt line views, with four source cases passing.
+  Repaired page 30's missed prior FX table by matching segmented column borders;
+  the complete six-slot case preserves USD/EURO headings and literal TL units.
+  Full Python suite and targeted mutation checks pass; cloud publication pending.
+- 2026-09-07: Anadolu solo origin follow-up `34064708288` matches acquired bytes;
+  receipt, archive and exact committed engine independently verified. Signed
+  attachment probe `34064863416` retains all 150 OCR words/positions and original
+  pixels. Five independently transcribed full regions expose two disagreements,
+  including a changed regulatory reference. Retain both readings; publication pending.

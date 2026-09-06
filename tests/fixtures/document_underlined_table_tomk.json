@@ -1,0 +1,5580 @@
+{
+  "source": {
+    "bank_ticker": "TOMK",
+    "byte_count": 912865,
+    "kind": "unconsolidated",
+    "object_key": "tomk/TOMK_2023Q3_unconsolidated.pdf",
+    "pdf_sha256": "80dbb8e5a2b18675e84b2ed62fbbaf07c3dadebc5984ea36979ba0687b610c84",
+    "period": "2023Q3",
+    "source_url": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30092023.pdf"
+  },
+  "source_page": {
+    "drawings": [
+      {
+        "bbox": [
+          83.664,
+          106.94,
+          540.214,
+          107.42
+        ],
+        "id": 0,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          126.38,
+          271.37,
+          299.68,
+          271.85
+        ],
+        "id": 1,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          299.69,
+          271.37,
+          300.17,
+          271.85
+        ],
+        "id": 2,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          300.17,
+          271.37,
+          419.23,
+          271.85
+        ],
+        "id": 3,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          419.23,
+          271.37,
+          419.71,
+          271.85
+        ],
+        "id": 4,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          419.71,
+          271.37,
+          538.77,
+          271.85
+        ],
+        "id": 5,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          125.66,
+          339.65,
+          299.68,
+          340.13
+        ],
+        "id": 6,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          298.97,
+          339.65,
+          299.45,
+          340.13
+        ],
+        "id": 7,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          299.45,
+          339.65,
+          419.23,
+          340.13
+        ],
+        "id": 8,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          418.51,
+          339.65,
+          418.99,
+          340.13
+        ],
+        "id": 9,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          418.99,
+          339.65,
+          538.77,
+          340.13
+        ],
+        "id": 10,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          126.38,
+          443.71,
+          299.68,
+          444.19
+        ],
+        "id": 11,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          299.69,
+          443.71,
+          300.17,
+          444.19
+        ],
+        "id": 12,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          300.17,
+          443.71,
+          419.23,
+          444.19
+        ],
+        "id": 13,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          419.23,
+          443.71,
+          419.71,
+          444.19
+        ],
+        "id": 14,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          419.71,
+          443.71,
+          538.77,
+          444.19
+        ],
+        "id": 15,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          125.66,
+          454.51,
+          299.68,
+          454.99
+        ],
+        "id": 16,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          298.97,
+          454.51,
+          299.45,
+          454.99
+        ],
+        "id": 17,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          299.45,
+          454.51,
+          419.23,
+          454.99
+        ],
+        "id": 18,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          418.51,
+          454.51,
+          418.99,
+          454.99
+        ],
+        "id": 19,
+        "path_items": 1,
+        "type": "f"
+      },
+      {
+        "bbox": [
+          418.99,
+          454.51,
+          538.77,
+          454.99
+        ],
+        "id": 20,
+        "path_items": 1,
+        "type": "f"
+      }
+    ],
+    "page": 30,
+    "spans": [
+      {
+        "bbox": [
+          86.064,
+          43.8033,
+          257.45,
+          56.0246
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 0,
+        "line": 0,
+        "size": 11.04,
+        "span": 0,
+        "text": "T.O.M. KATILIM BANKASI A.Ş.  "
+      },
+      {
+        "bbox": [
+          86.064,
+          57.3633,
+          88.824,
+          69.5846
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 1,
+        "line": 1,
+        "size": 11.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          86.064,
+          70.9433,
+          540.7,
+          83.1646
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 2,
+        "line": 2,
+        "size": 11.04,
+        "span": 0,
+        "text": "30 EYLÜL 2023 TARİHİ İTİBARIYLA KONSOLİDE OLMAYAN FİNANSAL TABLOLARA "
+      },
+      {
+        "bbox": [
+          86.064,
+          83.9034,
+          287.81,
+          96.1246
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 3,
+        "line": 3,
+        "size": 11.04,
+        "span": 0,
+        "text": "İLİŞKİN AÇIKLAMA VE DİPNOTLAR "
+      },
+      {
+        "bbox": [
+          85.104,
+          96.5887,
+          345.3203,
+          106.0203
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 4,
+        "line": 4,
+        "size": 8.52,
+        "span": 0,
+        "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+      },
+      {
+        "bbox": [
+          345.31,
+          94.3434,
+          348.07,
+          106.5646
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 5,
+        "line": 4,
+        "size": 11.04,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          107.9034,
+          87.864,
+          120.1246
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 6,
+        "line": 5,
+        "size": 11.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          307.37,
+          788.901,
+          318.62,
+          798.864
+        ],
+        "block": 1,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 7,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "24 "
+      },
+      {
+        "bbox": [
+          85.104,
+          790.5656,
+          87.594,
+          801.5914
+        ],
+        "block": 1,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 8,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          120.521,
+          381.28,
+          130.484
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 9,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "MALİ BÜNYEYE VE RİSK YÖNETİMİNE İLİŞKİN BİLGİLER (Devamı) "
+      },
+      {
+        "bbox": [
+          85.104,
+          130.961,
+          87.354,
+          140.924
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 10,
+        "line": 1,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          141.281,
+          94.446,
+          151.244
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 11,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": "II."
+      },
+      {
+        "bbox": [
+          94.584,
+          141.155,
+          97.1556,
+          151.19
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 12,
+        "line": 2,
+        "size": 9.1242,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          141.281,
+          304.3956,
+          151.244
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 13,
+        "line": 3,
+        "size": 9.1393,
+        "span": 0,
+        "text": "KUR RİSKİNE İLİŞKİN AÇIKLAMALAR"
+      },
+      {
+        "bbox": [
+          304.61,
+          141.281,
+          306.86,
+          151.244
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 14,
+        "line": 3,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          151.601,
+          87.354,
+          161.564
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 15,
+        "line": 4,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          161.921,
+          540.6919,
+          171.884
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 16,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "Piyasalarda yaşanan belirsizlikler ve değişkenlikler nedeniyle herhangi bir kısa ya da uzun pozisyon izlenmemekte, "
+      },
+      {
+        "bbox": [
+          127.7,
+          172.361,
+          540.7671,
+          182.324
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 17,
+        "line": 1,
+        "size": 9.0,
+        "span": 0,
+        "text": "dolayısıyla kur riski taşınmaması öngörülmektedir. Ancak, yine de oluşabilecek kur riskleri standart metot "
+      },
+      {
+        "bbox": [
+          127.7,
+          182.681,
+          540.6561,
+          192.644
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 18,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": "kapsamında yer alan kur riski tablosunda aylık dönemler itibarıyla hesaplanmakta, sonuçlar resmi makamlara ve "
+      },
+      {
+        "bbox": [
+          127.7,
+          193.001,
+          540.868,
+          202.964
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 19,
+        "line": 3,
+        "size": 9.0,
+        "span": 0,
+        "text": "Banka üst yönetimine raporlanmaktadır. Böylece kur riski yakından takip edilmektedir. Kur riski genel piyasa "
+      },
+      {
+        "bbox": [
+          127.7,
+          203.321,
+          541.024,
+          213.284
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 20,
+        "line": 4,
+        "size": 9.0,
+        "span": 0,
+        "text": "riskinin bir parçası olarak, Sermaye Yeterliliği Standart Oranının hesaplanmasında da dikkate alınmaktadır. Dönem "
+      },
+      {
+        "bbox": [
+          127.7,
+          213.761,
+          541.03,
+          223.724
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 21,
+        "line": 5,
+        "size": 9.0,
+        "span": 0,
+        "text": "itibariyle kur riski tutarı özkaynağın yüzde ikisini geçmediği için kur riski sermaye yükümlülüğü hesaplanmamıştır. "
+      },
+      {
+        "bbox": [
+          127.7,
+          223.8516,
+          129.08,
+          229.9623
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 22,
+        "line": 6,
+        "size": 5.52,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          230.351,
+          540.5928,
+          240.314
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 23,
+        "line": 7,
+        "size": 9.0,
+        "span": 0,
+        "text": "Banka’nın finansal tablo tarihi ile bu tarihten geriye doğru son beş günü kamuya duyurulan cari döviz alış kurları "
+      },
+      {
+        "bbox": [
+          127.7,
+          240.791,
+          350.44,
+          250.754
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 24,
+        "line": 8,
+        "size": 9.0,
+        "span": 0,
+        "text": "önemli döviz cinsleri için aşağıdaki tabloda gösterilmektedir: "
+      },
+      {
+        "bbox": [
+          171.98,
+          251.111,
+          174.23,
+          261.074
+        ],
+        "block": 4,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 25,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          397.75,
+          261.4309,
+          418.0,
+          271.394
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 26,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "USD "
+      },
+      {
+        "bbox": [
+          509.26,
+          261.4309,
+          537.55,
+          271.394
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 27,
+        "line": 1,
+        "size": 9.0,
+        "span": 0,
+        "text": "EURO "
+      },
+      {
+        "bbox": [
+          129.86,
+          272.351,
+          218.66,
+          282.314
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 28,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": "Bilanço değerleme kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          272.351,
+          418.0,
+          282.314
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 29,
+        "line": 3,
+        "size": 9.0,
+        "span": 0,
+        "text": "27,3767 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          272.351,
+          537.55,
+          282.314
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 30,
+        "line": 4,
+        "size": 9.0,
+        "span": 0,
+        "text": "29,0305 TL "
+      },
+      {
+        "bbox": [
+          129.86,
+          288.3109,
+          245.66,
+          298.274
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 31,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "1. Günün Cari Döviz Alış Kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          288.3109,
+          418.0,
+          298.274
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 32,
+        "line": 1,
+        "size": 9.0,
+        "span": 0,
+        "text": "27,3767 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          288.3109,
+          537.55,
+          298.274
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 33,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": "29,0305 TL "
+      },
+      {
+        "bbox": [
+          129.86,
+          298.631,
+          245.66,
+          308.594
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 34,
+        "line": 3,
+        "size": 9.0,
+        "span": 0,
+        "text": "2. Günün Cari Döviz Alış Kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          298.631,
+          418.0,
+          308.594
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 35,
+        "line": 4,
+        "size": 9.0,
+        "span": 0,
+        "text": "27,3752 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          298.631,
+          537.55,
+          308.594
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 36,
+        "line": 5,
+        "size": 9.0,
+        "span": 0,
+        "text": "28,8083 TL "
+      },
+      {
+        "bbox": [
+          129.86,
+          308.951,
+          245.66,
+          318.914
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 37,
+        "line": 6,
+        "size": 9.0,
+        "span": 0,
+        "text": "3. Günün Cari Döviz Alış Kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          308.951,
+          418.0,
+          318.914
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 38,
+        "line": 7,
+        "size": 9.0,
+        "span": 0,
+        "text": "27,2640 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          308.951,
+          537.55,
+          318.914
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 39,
+        "line": 8,
+        "size": 9.0,
+        "span": 0,
+        "text": "28,7853 TL "
+      },
+      {
+        "bbox": [
+          129.86,
+          319.391,
+          245.66,
+          329.354
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 40,
+        "line": 9,
+        "size": 9.0,
+        "span": 0,
+        "text": "4. Günün Cari Döviz Alış Kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          319.391,
+          418.0,
+          329.354
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 41,
+        "line": 10,
+        "size": 9.0,
+        "span": 0,
+        "text": "27,2108 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          319.391,
+          537.55,
+          329.354
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 42,
+        "line": 11,
+        "size": 9.0,
+        "span": 0,
+        "text": "28,8183 TL "
+      },
+      {
+        "bbox": [
+          129.86,
+          329.711,
+          245.66,
+          339.674
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 43,
+        "line": 12,
+        "size": 9.0,
+        "span": 0,
+        "text": "5. Günün Cari Döviz Alış Kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          329.711,
+          418.0,
+          339.674
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 44,
+        "line": 13,
+        "size": 9.0,
+        "span": 0,
+        "text": "27,1751 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          329.711,
+          537.55,
+          339.674
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 45,
+        "line": 14,
+        "size": 9.0,
+        "span": 0,
+        "text": "28,9027 TL "
+      },
+      {
+        "bbox": [
+          171.98,
+          340.511,
+          174.23,
+          350.474
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 46,
+        "line": 15,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          350.951,
+          540.5659,
+          360.914
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 47,
+        "line": 16,
+        "size": 9.0,
+        "span": 0,
+        "text": "Banka’nın cari döviz alış kurunun mali tablo tarihinden geriye doğru son otuz günlük basit aritmetik ortalama "
+      },
+      {
+        "bbox": [
+          127.7,
+          361.271,
+          340.24,
+          371.234
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 48,
+        "line": 17,
+        "size": 9.0,
+        "span": 0,
+        "text": "değerleri önemli döviz cinsleri için aşağıda gösterilmiştir:  "
+      },
+      {
+        "bbox": [
+          127.7,
+          371.611,
+          129.95,
+          381.574
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 49,
+        "line": 18,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          381.931,
+          147.95,
+          391.894
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 50,
+        "line": 19,
+        "size": 9.0,
+        "span": 0,
+        "text": "USD "
+      },
+      {
+        "bbox": [
+          157.1,
+          381.931,
+          211.1,
+          391.894
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 51,
+        "line": 20,
+        "size": 9.0,
+        "span": 0,
+        "text": " : 26,9630 TL  "
+      },
+      {
+        "bbox": [
+          127.7,
+          392.371,
+          211.1,
+          402.334
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 52,
+        "line": 21,
+        "size": 9.0,
+        "span": 0,
+        "text": "EURO  : 28,8224 TL  "
+      },
+      {
+        "bbox": [
+          127.7,
+          402.691,
+          129.95,
+          412.654
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 53,
+        "line": 22,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          413.011,
+          223.94,
+          422.974
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 54,
+        "line": 23,
+        "size": 9.0,
+        "span": 0,
+        "text": "31 Aralık 2022 itibarıyla;  "
+      },
+      {
+        "bbox": [
+          127.7,
+          423.331,
+          129.95,
+          433.294
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 55,
+        "line": 24,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          129.86,
+          433.771,
+          134.39,
+          443.734
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 56,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          397.75,
+          433.771,
+          418.0,
+          443.734
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 57,
+        "line": 1,
+        "size": 9.0,
+        "span": 0,
+        "text": "USD "
+      },
+      {
+        "bbox": [
+          509.26,
+          433.771,
+          537.55,
+          443.734
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 58,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": "EURO "
+      },
+      {
+        "bbox": [
+          129.86,
+          444.571,
+          218.66,
+          454.534
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 59,
+        "line": 3,
+        "size": 9.0,
+        "span": 0,
+        "text": "Bilanço değerleme kuru "
+      },
+      {
+        "bbox": [
+          373.27,
+          444.571,
+          418.0,
+          454.534
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 60,
+        "line": 4,
+        "size": 9.0,
+        "span": 0,
+        "text": "18,6983 TL "
+      },
+      {
+        "bbox": [
+          492.82,
+          444.571,
+          537.55,
+          454.534
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 61,
+        "line": 5,
+        "size": 9.0,
+        "span": 0,
+        "text": "19,9349 TL "
+      },
+      {
+        "bbox": [
+          171.98,
+          455.371,
+          174.23,
+          465.334
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 62,
+        "line": 6,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          171.98,
+          465.811,
+          174.23,
+          475.774
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 63,
+        "line": 7,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          476.131,
+          87.354,
+          486.094
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 64,
+        "line": 8,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          229.13,
+          476.131,
+          231.38,
+          486.094
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 65,
+        "line": 9,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      }
+    ],
+    "words": [
+      {
+        "bbox": [
+          86.064,
+          43.8033,
+          120.7186,
+          56.0246
+        ],
+        "block": 0,
+        "id": 0,
+        "line": 0,
+        "text": "T.O.M.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          124.58,
+          43.8033,
+          174.7126,
+          56.0246
+        ],
+        "block": 0,
+        "id": 1,
+        "line": 0,
+        "text": "KATILIM",
+        "word": 1
+      },
+      {
+        "bbox": [
+          178.46,
+          43.8033,
+          228.5927,
+          56.0246
+        ],
+        "block": 0,
+        "id": 2,
+        "line": 0,
+        "text": "BANKASI",
+        "word": 2
+      },
+      {
+        "bbox": [
+          232.49,
+          43.8033,
+          252.0639,
+          56.0246
+        ],
+        "block": 0,
+        "id": 3,
+        "line": 0,
+        "text": "A.Ş.",
+        "word": 3
+      },
+      {
+        "bbox": [
+          86.064,
+          70.9433,
+          97.104,
+          83.1646
+        ],
+        "block": 0,
+        "id": 4,
+        "line": 2,
+        "text": "30",
+        "word": 0
+      },
+      {
+        "bbox": [
+          99.864,
+          70.9433,
+          137.722,
+          83.1646
+        ],
+        "block": 0,
+        "id": 5,
+        "line": 2,
+        "text": "EYLÜL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          140.42,
+          70.9433,
+          162.5,
+          83.1646
+        ],
+        "block": 0,
+        "id": 6,
+        "line": 2,
+        "text": "2023",
+        "word": 2
+      },
+      {
+        "bbox": [
+          165.26,
+          70.9433,
+          205.6554,
+          83.1646
+        ],
+        "block": 0,
+        "id": 7,
+        "line": 2,
+        "text": "TARİHİ",
+        "word": 3
+      },
+      {
+        "bbox": [
+          208.4154,
+          70.9433,
+          275.0859,
+          83.1646
+        ],
+        "block": 0,
+        "id": 8,
+        "line": 2,
+        "text": "İTİBARIYLA",
+        "word": 4
+      },
+      {
+        "bbox": [
+          277.7907,
+          70.9433,
+          344.395,
+          83.1646
+        ],
+        "block": 0,
+        "id": 9,
+        "line": 2,
+        "text": "KONSOLİDE",
+        "word": 5
+      },
+      {
+        "bbox": [
+          347.1108,
+          70.9433,
+          405.2254,
+          83.1646
+        ],
+        "block": 0,
+        "id": 10,
+        "line": 2,
+        "text": "OLMAYAN",
+        "word": 6
+      },
+      {
+        "bbox": [
+          408.07,
+          70.9433,
+          464.363,
+          83.1646
+        ],
+        "block": 0,
+        "id": 11,
+        "line": 2,
+        "text": "FİNANSAL",
+        "word": 7
+      },
+      {
+        "bbox": [
+          468.34,
+          70.9433,
+          537.9693,
+          83.1646
+        ],
+        "block": 0,
+        "id": 12,
+        "line": 2,
+        "text": "TABLOLARA",
+        "word": 8
+      },
+      {
+        "bbox": [
+          86.064,
+          83.9034,
+          128.9323,
+          96.1246
+        ],
+        "block": 0,
+        "id": 13,
+        "line": 3,
+        "text": "İLİŞKİN",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.86,
+          83.9034,
+          195.2691,
+          96.1246
+        ],
+        "block": 0,
+        "id": 14,
+        "line": 3,
+        "text": "AÇIKLAMA",
+        "word": 1
+      },
+      {
+        "bbox": [
+          199.49,
+          83.9034,
+          214.7737,
+          96.1246
+        ],
+        "block": 0,
+        "id": 15,
+        "line": 3,
+        "text": "VE",
+        "word": 2
+      },
+      {
+        "bbox": [
+          219.05,
+          83.9034,
+          285.0803,
+          96.1246
+        ],
+        "block": 0,
+        "id": 16,
+        "line": 3,
+        "text": "DİPNOTLAR",
+        "word": 3
+      },
+      {
+        "bbox": [
+          85.104,
+          96.5887,
+          115.3926,
+          106.0203
+        ],
+        "block": 0,
+        "id": 17,
+        "line": 4,
+        "text": "(Tutarlar",
+        "word": 0
+      },
+      {
+        "bbox": [
+          117.14,
+          96.5887,
+          130.8913,
+          106.0203
+        ],
+        "block": 0,
+        "id": 18,
+        "line": 4,
+        "text": "aksi",
+        "word": 1
+      },
+      {
+        "bbox": [
+          132.74,
+          96.5887,
+          184.1326,
+          106.0203
+        ],
+        "block": 0,
+        "id": 19,
+        "line": 4,
+        "text": "belirtilmedikçe",
+        "word": 2
+      },
+      {
+        "bbox": [
+          186.14,
+          96.5887,
+          198.3236,
+          106.0203
+        ],
+        "block": 0,
+        "id": 20,
+        "line": 4,
+        "text": "Bin",
+        "word": 3
+      },
+      {
+        "bbox": [
+          200.21,
+          96.5887,
+          216.7047,
+          106.0203
+        ],
+        "block": 0,
+        "id": 21,
+        "line": 4,
+        "text": "Türk",
+        "word": 4
+      },
+      {
+        "bbox": [
+          218.69,
+          96.5887,
+          238.4479,
+          106.0203
+        ],
+        "block": 0,
+        "id": 22,
+        "line": 4,
+        "text": "Lirası",
+        "word": 5
+      },
+      {
+        "bbox": [
+          240.41,
+          96.5887,
+          264.0019,
+          106.0203
+        ],
+        "block": 0,
+        "id": 23,
+        "line": 4,
+        "text": "(“TL”)",
+        "word": 6
+      },
+      {
+        "bbox": [
+          265.73,
+          96.5887,
+          287.0129,
+          106.0203
+        ],
+        "block": 0,
+        "id": 24,
+        "line": 4,
+        "text": "olarak",
+        "word": 7
+      },
+      {
+        "bbox": [
+          288.89,
+          96.5887,
+          305.8618,
+          106.0203
+        ],
+        "block": 0,
+        "id": 25,
+        "line": 4,
+        "text": "ifade",
+        "word": 8
+      },
+      {
+        "bbox": [
+          307.73,
+          96.5887,
+          345.3203,
+          106.0203
+        ],
+        "block": 0,
+        "id": 26,
+        "line": 4,
+        "text": "edilmiştir.)",
+        "word": 9
+      },
+      {
+        "bbox": [
+          307.37,
+          788.901,
+          316.43,
+          798.864
+        ],
+        "block": 1,
+        "id": 27,
+        "line": 0,
+        "text": "24",
+        "word": 0
+      },
+      {
+        "bbox": [
+          85.104,
+          120.521,
+          109.602,
+          130.484
+        ],
+        "block": 2,
+        "id": 28,
+        "line": 0,
+        "text": "MALİ",
+        "word": 0
+      },
+      {
+        "bbox": [
+          111.852,
+          120.521,
+          155.79,
+          130.484
+        ],
+        "block": 2,
+        "id": 29,
+        "line": 0,
+        "text": "BÜNYEYE",
+        "word": 1
+      },
+      {
+        "bbox": [
+          158.058,
+          120.521,
+          170.559,
+          130.484
+        ],
+        "block": 2,
+        "id": 30,
+        "line": 0,
+        "text": "VE",
+        "word": 2
+      },
+      {
+        "bbox": [
+          172.809,
+          120.521,
+          194.814,
+          130.484
+        ],
+        "block": 2,
+        "id": 31,
+        "line": 0,
+        "text": "RİSK",
+        "word": 3
+      },
+      {
+        "bbox": [
+          197.037,
+          120.521,
+          257.0401,
+          130.484
+        ],
+        "block": 2,
+        "id": 32,
+        "line": 0,
+        "text": "YÖNETİMİNE",
+        "word": 4
+      },
+      {
+        "bbox": [
+          259.2901,
+          120.521,
+          294.3361,
+          130.484
+        ],
+        "block": 2,
+        "id": 33,
+        "line": 0,
+        "text": "İLİŞKİN",
+        "word": 5
+      },
+      {
+        "bbox": [
+          296.5861,
+          120.521,
+          341.136,
+          130.484
+        ],
+        "block": 2,
+        "id": 34,
+        "line": 0,
+        "text": "BİLGİLER",
+        "word": 6
+      },
+      {
+        "bbox": [
+          343.386,
+          120.521,
+          378.99,
+          130.484
+        ],
+        "block": 2,
+        "id": 35,
+        "line": 0,
+        "text": "(Devamı)",
+        "word": 7
+      },
+      {
+        "bbox": [
+          85.104,
+          141.281,
+          94.446,
+          151.244
+        ],
+        "block": 2,
+        "id": 36,
+        "line": 2,
+        "text": "II.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          127.7,
+          141.281,
+          148.5447,
+          151.244
+        ],
+        "block": 2,
+        "id": 37,
+        "line": 3,
+        "text": "KUR",
+        "word": 0
+      },
+      {
+        "bbox": [
+          150.62,
+          141.281,
+          190.2397,
+          151.244
+        ],
+        "block": 2,
+        "id": 38,
+        "line": 3,
+        "text": "RİSKİNE",
+        "word": 1
+      },
+      {
+        "bbox": [
+          192.38,
+          141.281,
+          229.0299,
+          151.244
+        ],
+        "block": 2,
+        "id": 39,
+        "line": 3,
+        "text": "İLİŞKİN",
+        "word": 2
+      },
+      {
+        "bbox": [
+          231.17,
+          141.281,
+          304.3956,
+          151.244
+        ],
+        "block": 2,
+        "id": 40,
+        "line": 3,
+        "text": "AÇIKLAMALAR",
+        "word": 3
+      },
+      {
+        "bbox": [
+          127.7,
+          161.921,
+          169.235,
+          171.884
+        ],
+        "block": 3,
+        "id": 41,
+        "line": 0,
+        "text": "Piyasalarda",
+        "word": 0
+      },
+      {
+        "bbox": [
+          171.116,
+          161.921,
+          200.087,
+          171.884
+        ],
+        "block": 3,
+        "id": 42,
+        "line": 0,
+        "text": "yaşanan",
+        "word": 1
+      },
+      {
+        "bbox": [
+          202.058,
+          161.921,
+          247.535,
+          171.884
+        ],
+        "block": 3,
+        "id": 43,
+        "line": 0,
+        "text": "belirsizlikler",
+        "word": 2
+      },
+      {
+        "bbox": [
+          249.317,
+          161.921,
+          257.867,
+          171.884
+        ],
+        "block": 3,
+        "id": 44,
+        "line": 0,
+        "text": "ve",
+        "word": 3
+      },
+      {
+        "bbox": [
+          259.748,
+          161.921,
+          310.7241,
+          171.884
+        ],
+        "block": 3,
+        "id": 45,
+        "line": 0,
+        "text": "değişkenlikler",
+        "word": 4
+      },
+      {
+        "bbox": [
+          312.632,
+          161.921,
+          347.669,
+          171.884
+        ],
+        "block": 3,
+        "id": 46,
+        "line": 0,
+        "text": "nedeniyle",
+        "word": 5
+      },
+      {
+        "bbox": [
+          349.568,
+          161.921,
+          381.0859,
+          171.884
+        ],
+        "block": 3,
+        "id": 47,
+        "line": 0,
+        "text": "herhangi",
+        "word": 6
+      },
+      {
+        "bbox": [
+          382.9039,
+          161.921,
+          392.9569,
+          171.884
+        ],
+        "block": 3,
+        "id": 48,
+        "line": 0,
+        "text": "bir",
+        "word": 7
+      },
+      {
+        "bbox": [
+          394.9009,
+          161.921,
+          409.337,
+          171.884
+        ],
+        "block": 3,
+        "id": 49,
+        "line": 0,
+        "text": "kısa",
+        "word": 8
+      },
+      {
+        "bbox": [
+          411.218,
+          161.921,
+          419.7679,
+          171.884
+        ],
+        "block": 3,
+        "id": 50,
+        "line": 0,
+        "text": "ya",
+        "word": 9
+      },
+      {
+        "bbox": [
+          421.6489,
+          161.921,
+          430.1989,
+          171.884
+        ],
+        "block": 3,
+        "id": 51,
+        "line": 0,
+        "text": "da",
+        "word": 10
+      },
+      {
+        "bbox": [
+          432.0799,
+          161.921,
+          449.5309,
+          171.884
+        ],
+        "block": 3,
+        "id": 52,
+        "line": 0,
+        "text": "uzun",
+        "word": 11
+      },
+      {
+        "bbox": [
+          451.5019,
+          161.921,
+          483.9379,
+          171.884
+        ],
+        "block": 3,
+        "id": 53,
+        "line": 0,
+        "text": "pozisyon",
+        "word": 12
+      },
+      {
+        "bbox": [
+          485.9089,
+          161.921,
+          538.4419,
+          171.884
+        ],
+        "block": 3,
+        "id": 54,
+        "line": 0,
+        "text": "izlenmemekte,",
+        "word": 13
+      },
+      {
+        "bbox": [
+          127.7,
+          172.361,
+          167.291,
+          182.324
+        ],
+        "block": 3,
+        "id": 55,
+        "line": 1,
+        "text": "dolayısıyla",
+        "word": 0
+      },
+      {
+        "bbox": [
+          171.827,
+          172.361,
+          183.815,
+          182.324
+        ],
+        "block": 3,
+        "id": 56,
+        "line": 1,
+        "text": "kur",
+        "word": 1
+      },
+      {
+        "bbox": [
+          188.486,
+          172.361,
+          204.425,
+          182.324
+        ],
+        "block": 3,
+        "id": 57,
+        "line": 1,
+        "text": "riski",
+        "word": 2
+      },
+      {
+        "bbox": [
+          209.09,
+          172.361,
+          253.964,
+          182.324
+        ],
+        "block": 3,
+        "id": 58,
+        "line": 1,
+        "text": "taşınmaması",
+        "word": 3
+      },
+      {
+        "bbox": [
+          258.635,
+          172.361,
+          320.8251,
+          182.324
+        ],
+        "block": 3,
+        "id": 59,
+        "line": 1,
+        "text": "öngörülmektedir.",
+        "word": 4
+      },
+      {
+        "bbox": [
+          325.4241,
+          172.361,
+          351.182,
+          182.324
+        ],
+        "block": 3,
+        "id": 60,
+        "line": 1,
+        "text": "Ancak,",
+        "word": 5
+      },
+      {
+        "bbox": [
+          355.763,
+          172.361,
+          371.153,
+          182.324
+        ],
+        "block": 3,
+        "id": 61,
+        "line": 1,
+        "text": "yine",
+        "word": 6
+      },
+      {
+        "bbox": [
+          375.788,
+          172.361,
+          384.338,
+          182.324
+        ],
+        "block": 3,
+        "id": 62,
+        "line": 1,
+        "text": "de",
+        "word": 7
+      },
+      {
+        "bbox": [
+          388.856,
+          172.361,
+          433.775,
+          182.324
+        ],
+        "block": 3,
+        "id": 63,
+        "line": 1,
+        "text": "oluşabilecek",
+        "word": 8
+      },
+      {
+        "bbox": [
+          438.383,
+          172.361,
+          450.488,
+          182.324
+        ],
+        "block": 3,
+        "id": 64,
+        "line": 1,
+        "text": "kur",
+        "word": 9
+      },
+      {
+        "bbox": [
+          455.042,
+          172.361,
+          480.476,
+          182.324
+        ],
+        "block": 3,
+        "id": 65,
+        "line": 1,
+        "text": "riskleri",
+        "word": 10
+      },
+      {
+        "bbox": [
+          485.147,
+          172.361,
+          513.551,
+          182.324
+        ],
+        "block": 3,
+        "id": 66,
+        "line": 1,
+        "text": "standart",
+        "word": 11
+      },
+      {
+        "bbox": [
+          518.2401,
+          172.361,
+          538.6161,
+          182.324
+        ],
+        "block": 3,
+        "id": 67,
+        "line": 1,
+        "text": "metot",
+        "word": 12
+      },
+      {
+        "bbox": [
+          127.7,
+          182.681,
+          170.792,
+          192.644
+        ],
+        "block": 3,
+        "id": 68,
+        "line": 2,
+        "text": "kapsamında",
+        "word": 0
+      },
+      {
+        "bbox": [
+          173.384,
+          182.681,
+          184.895,
+          192.644
+        ],
+        "block": 3,
+        "id": 69,
+        "line": 2,
+        "text": "yer",
+        "word": 1
+      },
+      {
+        "bbox": [
+          187.649,
+          182.681,
+          202.607,
+          192.644
+        ],
+        "block": 3,
+        "id": 70,
+        "line": 2,
+        "text": "alan",
+        "word": 2
+      },
+      {
+        "bbox": [
+          205.397,
+          182.681,
+          217.385,
+          192.644
+        ],
+        "block": 3,
+        "id": 71,
+        "line": 2,
+        "text": "kur",
+        "word": 3
+      },
+      {
+        "bbox": [
+          220.139,
+          182.681,
+          236.078,
+          192.644
+        ],
+        "block": 3,
+        "id": 72,
+        "line": 2,
+        "text": "riski",
+        "word": 4
+      },
+      {
+        "bbox": [
+          238.85,
+          182.681,
+          277.856,
+          192.644
+        ],
+        "block": 3,
+        "id": 73,
+        "line": 2,
+        "text": "tablosunda",
+        "word": 5
+      },
+      {
+        "bbox": [
+          280.574,
+          182.681,
+          298.511,
+          192.644
+        ],
+        "block": 3,
+        "id": 74,
+        "line": 2,
+        "text": "aylık",
+        "word": 6
+      },
+      {
+        "bbox": [
+          301.193,
+          182.681,
+          335.15,
+          192.644
+        ],
+        "block": 3,
+        "id": 75,
+        "line": 2,
+        "text": "dönemler",
+        "word": 7
+      },
+      {
+        "bbox": [
+          337.886,
+          182.681,
+          370.4031,
+          192.644
+        ],
+        "block": 3,
+        "id": 76,
+        "line": 2,
+        "text": "itibarıyla",
+        "word": 8
+      },
+      {
+        "bbox": [
+          373.0221,
+          182.681,
+          428.7861,
+          192.644
+        ],
+        "block": 3,
+        "id": 77,
+        "line": 2,
+        "text": "hesaplanmakta,",
+        "word": 9
+      },
+      {
+        "bbox": [
+          431.5491,
+          182.681,
+          462.0321,
+          192.644
+        ],
+        "block": 3,
+        "id": 78,
+        "line": 2,
+        "text": "sonuçlar",
+        "word": 10
+      },
+      {
+        "bbox": [
+          464.7681,
+          182.681,
+          484.6671,
+          192.644
+        ],
+        "block": 3,
+        "id": 79,
+        "line": 2,
+        "text": "resmi",
+        "word": 11
+      },
+      {
+        "bbox": [
+          487.3131,
+          182.681,
+          527.1921,
+          192.644
+        ],
+        "block": 3,
+        "id": 80,
+        "line": 2,
+        "text": "makamlara",
+        "word": 12
+      },
+      {
+        "bbox": [
+          529.8921,
+          182.681,
+          538.4421,
+          192.644
+        ],
+        "block": 3,
+        "id": 81,
+        "line": 2,
+        "text": "ve",
+        "word": 13
+      },
+      {
+        "bbox": [
+          127.7,
+          193.001,
+          150.767,
+          202.964
+        ],
+        "block": 3,
+        "id": 82,
+        "line": 3,
+        "text": "Banka",
+        "word": 0
+      },
+      {
+        "bbox": [
+          154.079,
+          193.001,
+          164.636,
+          202.964
+        ],
+        "block": 3,
+        "id": 83,
+        "line": 3,
+        "text": "üst",
+        "word": 1
+      },
+      {
+        "bbox": [
+          167.984,
+          193.001,
+          208.547,
+          202.964
+        ],
+        "block": 3,
+        "id": 84,
+        "line": 3,
+        "text": "yönetimine",
+        "word": 2
+      },
+      {
+        "bbox": [
+          211.985,
+          193.001,
+          276.1011,
+          202.964
+        ],
+        "block": 3,
+        "id": 85,
+        "line": 3,
+        "text": "raporlanmaktadır.",
+        "word": 3
+      },
+      {
+        "bbox": [
+          279.5031,
+          193.001,
+          308.9331,
+          202.964
+        ],
+        "block": 3,
+        "id": 86,
+        "line": 3,
+        "text": "Böylece",
+        "word": 4
+      },
+      {
+        "bbox": [
+          312.3711,
+          193.001,
+          324.3591,
+          202.964
+        ],
+        "block": 3,
+        "id": 87,
+        "line": 3,
+        "text": "kur",
+        "word": 5
+      },
+      {
+        "bbox": [
+          327.8331,
+          193.001,
+          343.7632,
+          202.964
+        ],
+        "block": 3,
+        "id": 88,
+        "line": 3,
+        "text": "riski",
+        "word": 6
+      },
+      {
+        "bbox": [
+          347.1382,
+          193.001,
+          380.164,
+          202.964
+        ],
+        "block": 3,
+        "id": 89,
+        "line": 3,
+        "text": "yakından",
+        "word": 7
+      },
+      {
+        "bbox": [
+          383.692,
+          193.001,
+          401.629,
+          202.964
+        ],
+        "block": 3,
+        "id": 90,
+        "line": 3,
+        "text": "takip",
+        "word": 8
+      },
+      {
+        "bbox": [
+          405.04,
+          193.001,
+          452.7221,
+          202.964
+        ],
+        "block": 3,
+        "id": 91,
+        "line": 3,
+        "text": "edilmektedir.",
+        "word": 9
+      },
+      {
+        "bbox": [
+          456.2411,
+          193.001,
+          470.1551,
+          202.964
+        ],
+        "block": 3,
+        "id": 92,
+        "line": 3,
+        "text": "Kur",
+        "word": 10
+      },
+      {
+        "bbox": [
+          473.5121,
+          193.001,
+          489.5681,
+          202.964
+        ],
+        "block": 3,
+        "id": 93,
+        "line": 3,
+        "text": "riski",
+        "word": 11
+      },
+      {
+        "bbox": [
+          492.8171,
+          193.001,
+          512.347,
+          202.964
+        ],
+        "block": 3,
+        "id": 94,
+        "line": 3,
+        "text": "genel",
+        "word": 12
+      },
+      {
+        "bbox": [
+          515.7131,
+          193.001,
+          538.798,
+          202.964
+        ],
+        "block": 3,
+        "id": 95,
+        "line": 3,
+        "text": "piyasa",
+        "word": 13
+      },
+      {
+        "bbox": [
+          127.7,
+          203.321,
+          155.231,
+          213.284
+        ],
+        "block": 3,
+        "id": 96,
+        "line": 4,
+        "text": "riskinin",
+        "word": 0
+      },
+      {
+        "bbox": [
+          157.085,
+          203.321,
+          167.138,
+          213.284
+        ],
+        "block": 3,
+        "id": 97,
+        "line": 4,
+        "text": "bir",
+        "word": 1
+      },
+      {
+        "bbox": [
+          168.956,
+          203.321,
+          194.39,
+          213.284
+        ],
+        "block": 3,
+        "id": 98,
+        "line": 4,
+        "text": "parçası",
+        "word": 2
+      },
+      {
+        "bbox": [
+          196.307,
+          203.321,
+          220.985,
+          213.284
+        ],
+        "block": 3,
+        "id": 99,
+        "line": 4,
+        "text": "olarak,",
+        "word": 3
+      },
+      {
+        "bbox": [
+          222.803,
+          203.321,
+          254.267,
+          213.284
+        ],
+        "block": 3,
+        "id": 100,
+        "line": 4,
+        "text": "Sermaye",
+        "word": 4
+      },
+      {
+        "bbox": [
+          256.148,
+          203.321,
+          293.1921,
+          213.284
+        ],
+        "block": 3,
+        "id": 101,
+        "line": 4,
+        "text": "Yeterliliği",
+        "word": 5
+      },
+      {
+        "bbox": [
+          295.0101,
+          203.321,
+          324.9712,
+          213.284
+        ],
+        "block": 3,
+        "id": 102,
+        "line": 4,
+        "text": "Standart",
+        "word": 6
+      },
+      {
+        "bbox": [
+          326.9152,
+          203.321,
+          358.7662,
+          213.284
+        ],
+        "block": 3,
+        "id": 103,
+        "line": 4,
+        "text": "Oranının",
+        "word": 7
+      },
+      {
+        "bbox": [
+          360.6202,
+          203.321,
+          422.1802,
+          213.284
+        ],
+        "block": 3,
+        "id": 104,
+        "line": 4,
+        "text": "hesaplanmasında",
+        "word": 8
+      },
+      {
+        "bbox": [
+          423.9442,
+          203.321,
+          432.4942,
+          213.284
+        ],
+        "block": 3,
+        "id": 105,
+        "line": 4,
+        "text": "da",
+        "word": 9
+      },
+      {
+        "bbox": [
+          434.2581,
+          203.321,
+          460.7811,
+          213.284
+        ],
+        "block": 3,
+        "id": 106,
+        "line": 4,
+        "text": "dikkate",
+        "word": 10
+      },
+      {
+        "bbox": [
+          462.6801,
+          203.321,
+          510.3621,
+          213.284
+        ],
+        "block": 3,
+        "id": 107,
+        "line": 4,
+        "text": "alınmaktadır.",
+        "word": 11
+      },
+      {
+        "bbox": [
+          512.62,
+          203.321,
+          538.936,
+          213.284
+        ],
+        "block": 3,
+        "id": 108,
+        "line": 4,
+        "text": "Dönem",
+        "word": 12
+      },
+      {
+        "bbox": [
+          127.7,
+          213.761,
+          160.226,
+          223.724
+        ],
+        "block": 3,
+        "id": 109,
+        "line": 5,
+        "text": "itibariyle",
+        "word": 0
+      },
+      {
+        "bbox": [
+          162.008,
+          213.761,
+          174.113,
+          223.724
+        ],
+        "block": 3,
+        "id": 110,
+        "line": 5,
+        "text": "kur",
+        "word": 1
+      },
+      {
+        "bbox": [
+          175.913,
+          213.761,
+          191.852,
+          223.724
+        ],
+        "block": 3,
+        "id": 111,
+        "line": 5,
+        "text": "riski",
+        "word": 2
+      },
+      {
+        "bbox": [
+          193.67,
+          213.761,
+          212.624,
+          223.724
+        ],
+        "block": 3,
+        "id": 112,
+        "line": 5,
+        "text": "tutarı",
+        "word": 3
+      },
+      {
+        "bbox": [
+          214.424,
+          213.761,
+          255.842,
+          223.724
+        ],
+        "block": 3,
+        "id": 113,
+        "line": 5,
+        "text": "özkaynağın",
+        "word": 4
+      },
+      {
+        "bbox": [
+          257.714,
+          213.761,
+          279.215,
+          223.724
+        ],
+        "block": 3,
+        "id": 114,
+        "line": 5,
+        "text": "yüzde",
+        "word": 5
+      },
+      {
+        "bbox": [
+          280.9789,
+          213.761,
+          303.506,
+          223.724
+        ],
+        "block": 3,
+        "id": 115,
+        "line": 5,
+        "text": "ikisini",
+        "word": 6
+      },
+      {
+        "bbox": [
+          305.207,
+          213.761,
+          342.7279,
+          223.724
+        ],
+        "block": 3,
+        "id": 116,
+        "line": 5,
+        "text": "geçmediği",
+        "word": 7
+      },
+      {
+        "bbox": [
+          344.5459,
+          213.761,
+          358.046,
+          223.724
+        ],
+        "block": 3,
+        "id": 117,
+        "line": 5,
+        "text": "için",
+        "word": 8
+      },
+      {
+        "bbox": [
+          359.783,
+          213.761,
+          371.771,
+          223.724
+        ],
+        "block": 3,
+        "id": 118,
+        "line": 5,
+        "text": "kur",
+        "word": 9
+      },
+      {
+        "bbox": [
+          373.571,
+          213.761,
+          389.627,
+          223.724
+        ],
+        "block": 3,
+        "id": 119,
+        "line": 5,
+        "text": "riski",
+        "word": 10
+      },
+      {
+        "bbox": [
+          391.445,
+          213.761,
+          421.361,
+          223.724
+        ],
+        "block": 3,
+        "id": 120,
+        "line": 5,
+        "text": "sermaye",
+        "word": 11
+      },
+      {
+        "bbox": [
+          423.125,
+          213.761,
+          471.361,
+          223.724
+        ],
+        "block": 3,
+        "id": 121,
+        "line": 5,
+        "text": "yükümlülüğü",
+        "word": 12
+      },
+      {
+        "bbox": [
+          473.215,
+          213.761,
+          538.798,
+          223.724
+        ],
+        "block": 3,
+        "id": 122,
+        "line": 5,
+        "text": "hesaplanmamıştır.",
+        "word": 13
+      },
+      {
+        "bbox": [
+          127.7,
+          230.351,
+          165.185,
+          240.314
+        ],
+        "block": 3,
+        "id": 123,
+        "line": 7,
+        "text": "Banka’nın",
+        "word": 0
+      },
+      {
+        "bbox": [
+          167.75,
+          230.351,
+          196.163,
+          240.314
+        ],
+        "block": 3,
+        "id": 124,
+        "line": 7,
+        "text": "finansal",
+        "word": 1
+      },
+      {
+        "bbox": [
+          198.692,
+          230.351,
+          216.611,
+          240.314
+        ],
+        "block": 3,
+        "id": 125,
+        "line": 7,
+        "text": "tablo",
+        "word": 2
+      },
+      {
+        "bbox": [
+          219.077,
+          230.351,
+          238.022,
+          240.314
+        ],
+        "block": 3,
+        "id": 126,
+        "line": 7,
+        "text": "tarihi",
+        "word": 3
+      },
+      {
+        "bbox": [
+          240.551,
+          230.351,
+          249.578,
+          240.314
+        ],
+        "block": 3,
+        "id": 127,
+        "line": 7,
+        "text": "ile",
+        "word": 4
+      },
+      {
+        "bbox": [
+          251.936,
+          230.351,
+          260.873,
+          240.314
+        ],
+        "block": 3,
+        "id": 128,
+        "line": 7,
+        "text": "bu",
+        "word": 5
+      },
+      {
+        "bbox": [
+          263.438,
+          230.351,
+          290.8701,
+          240.314
+        ],
+        "block": 3,
+        "id": 129,
+        "line": 7,
+        "text": "tarihten",
+        "word": 6
+      },
+      {
+        "bbox": [
+          293.3,
+          230.351,
+          315.764,
+          240.314
+        ],
+        "block": 3,
+        "id": 130,
+        "line": 7,
+        "text": "geriye",
+        "word": 7
+      },
+      {
+        "bbox": [
+          318.239,
+          230.351,
+          339.164,
+          240.314
+        ],
+        "block": 3,
+        "id": 131,
+        "line": 7,
+        "text": "doğru",
+        "word": 8
+      },
+      {
+        "bbox": [
+          341.729,
+          230.351,
+          354.14,
+          240.314
+        ],
+        "block": 3,
+        "id": 132,
+        "line": 7,
+        "text": "son",
+        "word": 9
+      },
+      {
+        "bbox": [
+          356.588,
+          230.351,
+          368.6029,
+          240.314
+        ],
+        "block": 3,
+        "id": 133,
+        "line": 7,
+        "text": "beş",
+        "word": 10
+      },
+      {
+        "bbox": [
+          370.9699,
+          230.351,
+          389.0149,
+          240.314
+        ],
+        "block": 3,
+        "id": 134,
+        "line": 7,
+        "text": "günü",
+        "word": 11
+      },
+      {
+        "bbox": [
+          391.4629,
+          230.351,
+          420.0379,
+          240.314
+        ],
+        "block": 3,
+        "id": 135,
+        "line": 7,
+        "text": "kamuya",
+        "word": 12
+      },
+      {
+        "bbox": [
+          422.3958,
+          230.351,
+          458.7918,
+          240.314
+        ],
+        "block": 3,
+        "id": 136,
+        "line": 7,
+        "text": "duyurulan",
+        "word": 13
+      },
+      {
+        "bbox": [
+          461.3568,
+          230.351,
+          474.7758,
+          240.314
+        ],
+        "block": 3,
+        "id": 137,
+        "line": 7,
+        "text": "cari",
+        "word": 14
+      },
+      {
+        "bbox": [
+          477.1878,
+          230.351,
+          497.1318,
+          240.314
+        ],
+        "block": 3,
+        "id": 138,
+        "line": 7,
+        "text": "döviz",
+        "word": 15
+      },
+      {
+        "bbox": [
+          499.6068,
+          230.351,
+          512.0988,
+          240.314
+        ],
+        "block": 3,
+        "id": 139,
+        "line": 7,
+        "text": "alış",
+        "word": 16
+      },
+      {
+        "bbox": [
+          514.5918,
+          230.351,
+          538.4418,
+          240.314
+        ],
+        "block": 3,
+        "id": 140,
+        "line": 7,
+        "text": "kurları",
+        "word": 17
+      },
+      {
+        "bbox": [
+          127.7,
+          240.791,
+          152.729,
+          250.754
+        ],
+        "block": 3,
+        "id": 141,
+        "line": 8,
+        "text": "önemli",
+        "word": 0
+      },
+      {
+        "bbox": [
+          155.024,
+          240.791,
+          174.95,
+          250.754
+        ],
+        "block": 3,
+        "id": 142,
+        "line": 8,
+        "text": "döviz",
+        "word": 1
+      },
+      {
+        "bbox": [
+          177.2,
+          240.791,
+          203.705,
+          250.754
+        ],
+        "block": 3,
+        "id": 143,
+        "line": 8,
+        "text": "cinsleri",
+        "word": 2
+      },
+      {
+        "bbox": [
+          206.0,
+          240.791,
+          219.383,
+          250.754
+        ],
+        "block": 3,
+        "id": 144,
+        "line": 8,
+        "text": "için",
+        "word": 3
+      },
+      {
+        "bbox": [
+          221.705,
+          240.791,
+          255.635,
+          250.754
+        ],
+        "block": 3,
+        "id": 145,
+        "line": 8,
+        "text": "aşağıdaki",
+        "word": 4
+      },
+      {
+        "bbox": [
+          257.921,
+          240.791,
+          284.462,
+          250.754
+        ],
+        "block": 3,
+        "id": 146,
+        "line": 8,
+        "text": "tabloda",
+        "word": 5
+      },
+      {
+        "bbox": [
+          286.586,
+          240.791,
+          348.0741,
+          250.754
+        ],
+        "block": 3,
+        "id": 147,
+        "line": 8,
+        "text": "gösterilmektedir:",
+        "word": 6
+      },
+      {
+        "bbox": [
+          397.75,
+          261.4309,
+          415.75,
+          271.394
+        ],
+        "block": 5,
+        "id": 148,
+        "line": 0,
+        "text": "USD",
+        "word": 0
+      },
+      {
+        "bbox": [
+          509.26,
+          261.4309,
+          535.225,
+          271.394
+        ],
+        "block": 5,
+        "id": 149,
+        "line": 1,
+        "text": "EURO",
+        "word": 0
+      },
+      {
+        "bbox": [
+          129.86,
+          272.351,
+          157.868,
+          282.314
+        ],
+        "block": 5,
+        "id": 150,
+        "line": 2,
+        "text": "Bilanço",
+        "word": 0
+      },
+      {
+        "bbox": [
+          160.19,
+          272.351,
+          197.54,
+          282.314
+        ],
+        "block": 5,
+        "id": 151,
+        "line": 2,
+        "text": "değerleme",
+        "word": 1
+      },
+      {
+        "bbox": [
+          199.772,
+          272.351,
+          216.377,
+          282.314
+        ],
+        "block": 5,
+        "id": 152,
+        "line": 2,
+        "text": "kuru",
+        "word": 2
+      },
+      {
+        "bbox": [
+          373.27,
+          272.351,
+          402.5829,
+          282.314
+        ],
+        "block": 5,
+        "id": 153,
+        "line": 3,
+        "text": "27,3767",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          272.351,
+          415.7949,
+          282.314
+        ],
+        "block": 5,
+        "id": 154,
+        "line": 3,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          272.351,
+          522.133,
+          282.314
+        ],
+        "block": 5,
+        "id": 155,
+        "line": 4,
+        "text": "29,0305",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          272.351,
+          535.345,
+          282.314
+        ],
+        "block": 5,
+        "id": 156,
+        "line": 4,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          129.86,
+          288.3109,
+          136.664,
+          298.274
+        ],
+        "block": 6,
+        "id": 157,
+        "line": 0,
+        "text": "1.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          138.95,
+          288.3109,
+          163.358,
+          298.274
+        ],
+        "block": 6,
+        "id": 158,
+        "line": 0,
+        "text": "Günün",
+        "word": 1
+      },
+      {
+        "bbox": [
+          165.68,
+          288.3109,
+          181.142,
+          298.274
+        ],
+        "block": 6,
+        "id": 159,
+        "line": 0,
+        "text": "Cari",
+        "word": 2
+      },
+      {
+        "bbox": [
+          183.437,
+          288.3109,
+          205.406,
+          298.274
+        ],
+        "block": 6,
+        "id": 160,
+        "line": 0,
+        "text": "Döviz",
+        "word": 3
+      },
+      {
+        "bbox": [
+          207.656,
+          288.3109,
+          222.677,
+          298.274
+        ],
+        "block": 6,
+        "id": 161,
+        "line": 0,
+        "text": "Alış",
+        "word": 4
+      },
+      {
+        "bbox": [
+          224.927,
+          288.3109,
+          243.35,
+          298.274
+        ],
+        "block": 6,
+        "id": 162,
+        "line": 0,
+        "text": "Kuru",
+        "word": 5
+      },
+      {
+        "bbox": [
+          373.27,
+          288.3109,
+          402.5829,
+          298.274
+        ],
+        "block": 6,
+        "id": 163,
+        "line": 1,
+        "text": "27,3767",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          288.3109,
+          415.7949,
+          298.274
+        ],
+        "block": 6,
+        "id": 164,
+        "line": 1,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          288.3109,
+          522.133,
+          298.274
+        ],
+        "block": 6,
+        "id": 165,
+        "line": 2,
+        "text": "29,0305",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          288.3109,
+          535.345,
+          298.274
+        ],
+        "block": 6,
+        "id": 166,
+        "line": 2,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          129.86,
+          298.631,
+          136.664,
+          308.594
+        ],
+        "block": 6,
+        "id": 167,
+        "line": 3,
+        "text": "2.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          138.95,
+          298.631,
+          163.358,
+          308.594
+        ],
+        "block": 6,
+        "id": 168,
+        "line": 3,
+        "text": "Günün",
+        "word": 1
+      },
+      {
+        "bbox": [
+          165.68,
+          298.631,
+          181.142,
+          308.594
+        ],
+        "block": 6,
+        "id": 169,
+        "line": 3,
+        "text": "Cari",
+        "word": 2
+      },
+      {
+        "bbox": [
+          183.437,
+          298.631,
+          205.406,
+          308.594
+        ],
+        "block": 6,
+        "id": 170,
+        "line": 3,
+        "text": "Döviz",
+        "word": 3
+      },
+      {
+        "bbox": [
+          207.656,
+          298.631,
+          222.677,
+          308.594
+        ],
+        "block": 6,
+        "id": 171,
+        "line": 3,
+        "text": "Alış",
+        "word": 4
+      },
+      {
+        "bbox": [
+          224.927,
+          298.631,
+          243.35,
+          308.594
+        ],
+        "block": 6,
+        "id": 172,
+        "line": 3,
+        "text": "Kuru",
+        "word": 5
+      },
+      {
+        "bbox": [
+          373.27,
+          298.631,
+          402.5829,
+          308.594
+        ],
+        "block": 6,
+        "id": 173,
+        "line": 4,
+        "text": "27,3752",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          298.631,
+          415.7949,
+          308.594
+        ],
+        "block": 6,
+        "id": 174,
+        "line": 4,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          298.631,
+          522.133,
+          308.594
+        ],
+        "block": 6,
+        "id": 175,
+        "line": 5,
+        "text": "28,8083",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          298.631,
+          535.345,
+          308.594
+        ],
+        "block": 6,
+        "id": 176,
+        "line": 5,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          129.86,
+          308.951,
+          136.664,
+          318.914
+        ],
+        "block": 6,
+        "id": 177,
+        "line": 6,
+        "text": "3.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          138.95,
+          308.951,
+          163.358,
+          318.914
+        ],
+        "block": 6,
+        "id": 178,
+        "line": 6,
+        "text": "Günün",
+        "word": 1
+      },
+      {
+        "bbox": [
+          165.68,
+          308.951,
+          181.142,
+          318.914
+        ],
+        "block": 6,
+        "id": 179,
+        "line": 6,
+        "text": "Cari",
+        "word": 2
+      },
+      {
+        "bbox": [
+          183.437,
+          308.951,
+          205.406,
+          318.914
+        ],
+        "block": 6,
+        "id": 180,
+        "line": 6,
+        "text": "Döviz",
+        "word": 3
+      },
+      {
+        "bbox": [
+          207.656,
+          308.951,
+          222.677,
+          318.914
+        ],
+        "block": 6,
+        "id": 181,
+        "line": 6,
+        "text": "Alış",
+        "word": 4
+      },
+      {
+        "bbox": [
+          224.927,
+          308.951,
+          243.35,
+          318.914
+        ],
+        "block": 6,
+        "id": 182,
+        "line": 6,
+        "text": "Kuru",
+        "word": 5
+      },
+      {
+        "bbox": [
+          373.27,
+          308.951,
+          402.5829,
+          318.914
+        ],
+        "block": 6,
+        "id": 183,
+        "line": 7,
+        "text": "27,2640",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          308.951,
+          415.7949,
+          318.914
+        ],
+        "block": 6,
+        "id": 184,
+        "line": 7,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          308.951,
+          522.133,
+          318.914
+        ],
+        "block": 6,
+        "id": 185,
+        "line": 8,
+        "text": "28,7853",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          308.951,
+          535.345,
+          318.914
+        ],
+        "block": 6,
+        "id": 186,
+        "line": 8,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          129.86,
+          319.391,
+          136.664,
+          329.354
+        ],
+        "block": 6,
+        "id": 187,
+        "line": 9,
+        "text": "4.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          138.95,
+          319.391,
+          163.358,
+          329.354
+        ],
+        "block": 6,
+        "id": 188,
+        "line": 9,
+        "text": "Günün",
+        "word": 1
+      },
+      {
+        "bbox": [
+          165.68,
+          319.391,
+          181.142,
+          329.354
+        ],
+        "block": 6,
+        "id": 189,
+        "line": 9,
+        "text": "Cari",
+        "word": 2
+      },
+      {
+        "bbox": [
+          183.437,
+          319.391,
+          205.406,
+          329.354
+        ],
+        "block": 6,
+        "id": 190,
+        "line": 9,
+        "text": "Döviz",
+        "word": 3
+      },
+      {
+        "bbox": [
+          207.656,
+          319.391,
+          222.677,
+          329.354
+        ],
+        "block": 6,
+        "id": 191,
+        "line": 9,
+        "text": "Alış",
+        "word": 4
+      },
+      {
+        "bbox": [
+          224.927,
+          319.391,
+          243.35,
+          329.354
+        ],
+        "block": 6,
+        "id": 192,
+        "line": 9,
+        "text": "Kuru",
+        "word": 5
+      },
+      {
+        "bbox": [
+          373.27,
+          319.391,
+          402.5829,
+          329.354
+        ],
+        "block": 6,
+        "id": 193,
+        "line": 10,
+        "text": "27,2108",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          319.391,
+          415.7949,
+          329.354
+        ],
+        "block": 6,
+        "id": 194,
+        "line": 10,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          319.391,
+          522.133,
+          329.354
+        ],
+        "block": 6,
+        "id": 195,
+        "line": 11,
+        "text": "28,8183",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          319.391,
+          535.345,
+          329.354
+        ],
+        "block": 6,
+        "id": 196,
+        "line": 11,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          129.86,
+          329.711,
+          136.664,
+          339.674
+        ],
+        "block": 6,
+        "id": 197,
+        "line": 12,
+        "text": "5.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          138.95,
+          329.711,
+          163.358,
+          339.674
+        ],
+        "block": 6,
+        "id": 198,
+        "line": 12,
+        "text": "Günün",
+        "word": 1
+      },
+      {
+        "bbox": [
+          165.68,
+          329.711,
+          181.142,
+          339.674
+        ],
+        "block": 6,
+        "id": 199,
+        "line": 12,
+        "text": "Cari",
+        "word": 2
+      },
+      {
+        "bbox": [
+          183.437,
+          329.711,
+          205.406,
+          339.674
+        ],
+        "block": 6,
+        "id": 200,
+        "line": 12,
+        "text": "Döviz",
+        "word": 3
+      },
+      {
+        "bbox": [
+          207.656,
+          329.711,
+          222.677,
+          339.674
+        ],
+        "block": 6,
+        "id": 201,
+        "line": 12,
+        "text": "Alış",
+        "word": 4
+      },
+      {
+        "bbox": [
+          225.05,
+          329.711,
+          243.464,
+          339.674
+        ],
+        "block": 6,
+        "id": 202,
+        "line": 12,
+        "text": "Kuru",
+        "word": 5
+      },
+      {
+        "bbox": [
+          373.27,
+          329.711,
+          402.5829,
+          339.674
+        ],
+        "block": 6,
+        "id": 203,
+        "line": 13,
+        "text": "27,1751",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          329.711,
+          415.7949,
+          339.674
+        ],
+        "block": 6,
+        "id": 204,
+        "line": 13,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          329.711,
+          522.133,
+          339.674
+        ],
+        "block": 6,
+        "id": 205,
+        "line": 14,
+        "text": "28,9027",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          329.711,
+          535.345,
+          339.674
+        ],
+        "block": 6,
+        "id": 206,
+        "line": 14,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          127.7,
+          350.951,
+          165.185,
+          360.914
+        ],
+        "block": 6,
+        "id": 207,
+        "line": 16,
+        "text": "Banka’nın",
+        "word": 0
+      },
+      {
+        "bbox": [
+          168.587,
+          350.951,
+          182.006,
+          360.914
+        ],
+        "block": 6,
+        "id": 208,
+        "line": 16,
+        "text": "cari",
+        "word": 1
+      },
+      {
+        "bbox": [
+          185.381,
+          350.951,
+          205.307,
+          360.914
+        ],
+        "block": 6,
+        "id": 209,
+        "line": 16,
+        "text": "döviz",
+        "word": 2
+      },
+      {
+        "bbox": [
+          208.637,
+          350.951,
+          221.129,
+          360.914
+        ],
+        "block": 6,
+        "id": 210,
+        "line": 16,
+        "text": "alış",
+        "word": 3
+      },
+      {
+        "bbox": [
+          224.342,
+          350.951,
+          254.258,
+          360.914
+        ],
+        "block": 6,
+        "id": 211,
+        "line": 16,
+        "text": "kurunun",
+        "word": 4
+      },
+      {
+        "bbox": [
+          257.66,
+          350.951,
+          273.581,
+          360.914
+        ],
+        "block": 6,
+        "id": 212,
+        "line": 16,
+        "text": "mali",
+        "word": 5
+      },
+      {
+        "bbox": [
+          276.956,
+          350.951,
+          294.8751,
+          360.914
+        ],
+        "block": 6,
+        "id": 213,
+        "line": 16,
+        "text": "tablo",
+        "word": 6
+      },
+      {
+        "bbox": [
+          298.178,
+          350.951,
+          334.7,
+          360.914
+        ],
+        "block": 6,
+        "id": 214,
+        "line": 16,
+        "text": "tarihinden",
+        "word": 7
+      },
+      {
+        "bbox": [
+          337.985,
+          350.951,
+          360.449,
+          360.914
+        ],
+        "block": 6,
+        "id": 215,
+        "line": 16,
+        "text": "geriye",
+        "word": 8
+      },
+      {
+        "bbox": [
+          363.761,
+          350.951,
+          384.686,
+          360.914
+        ],
+        "block": 6,
+        "id": 216,
+        "line": 16,
+        "text": "doğru",
+        "word": 9
+      },
+      {
+        "bbox": [
+          388.088,
+          350.951,
+          400.508,
+          360.914
+        ],
+        "block": 6,
+        "id": 217,
+        "line": 16,
+        "text": "son",
+        "word": 10
+      },
+      {
+        "bbox": [
+          403.793,
+          350.951,
+          419.417,
+          360.914
+        ],
+        "block": 6,
+        "id": 218,
+        "line": 16,
+        "text": "otuz",
+        "word": 11
+      },
+      {
+        "bbox": [
+          422.6119,
+          350.951,
+          447.6139,
+          360.914
+        ],
+        "block": 6,
+        "id": 219,
+        "line": 16,
+        "text": "günlük",
+        "word": 12
+      },
+      {
+        "bbox": [
+          450.8989,
+          350.951,
+          467.9179,
+          360.914
+        ],
+        "block": 6,
+        "id": 220,
+        "line": 16,
+        "text": "basit",
+        "word": 13
+      },
+      {
+        "bbox": [
+          471.2839,
+          350.951,
+          503.603,
+          360.914
+        ],
+        "block": 6,
+        "id": 221,
+        "line": 16,
+        "text": "aritmetik",
+        "word": 14
+      },
+      {
+        "bbox": [
+          507.005,
+          350.951,
+          538.3519,
+          360.914
+        ],
+        "block": 6,
+        "id": 222,
+        "line": 16,
+        "text": "ortalama",
+        "word": 15
+      },
+      {
+        "bbox": [
+          127.7,
+          361.271,
+          159.722,
+          371.234
+        ],
+        "block": 6,
+        "id": 223,
+        "line": 17,
+        "text": "değerleri",
+        "word": 0
+      },
+      {
+        "bbox": [
+          161.999,
+          361.271,
+          186.911,
+          371.234
+        ],
+        "block": 6,
+        "id": 224,
+        "line": 17,
+        "text": "önemli",
+        "word": 1
+      },
+      {
+        "bbox": [
+          189.206,
+          361.271,
+          209.249,
+          371.234
+        ],
+        "block": 6,
+        "id": 225,
+        "line": 17,
+        "text": "döviz",
+        "word": 2
+      },
+      {
+        "bbox": [
+          211.499,
+          361.271,
+          237.887,
+          371.234
+        ],
+        "block": 6,
+        "id": 226,
+        "line": 17,
+        "text": "cinsleri",
+        "word": 3
+      },
+      {
+        "bbox": [
+          240.182,
+          361.271,
+          253.565,
+          371.234
+        ],
+        "block": 6,
+        "id": 227,
+        "line": 17,
+        "text": "için",
+        "word": 4
+      },
+      {
+        "bbox": [
+          255.887,
+          361.271,
+          282.914,
+          371.234
+        ],
+        "block": 6,
+        "id": 228,
+        "line": 17,
+        "text": "aşağıda",
+        "word": 5
+      },
+      {
+        "bbox": [
+          285.038,
+          361.271,
+          335.6271,
+          371.234
+        ],
+        "block": 6,
+        "id": 229,
+        "line": 17,
+        "text": "gösterilmiştir:",
+        "word": 6
+      },
+      {
+        "bbox": [
+          127.7,
+          381.931,
+          145.7,
+          391.894
+        ],
+        "block": 6,
+        "id": 230,
+        "line": 19,
+        "text": "USD",
+        "word": 0
+      },
+      {
+        "bbox": [
+          159.38,
+          381.931,
+          161.882,
+          391.894
+        ],
+        "block": 6,
+        "id": 231,
+        "line": 20,
+        "text": ":",
+        "word": 0
+      },
+      {
+        "bbox": [
+          164.168,
+          381.931,
+          193.355,
+          391.894
+        ],
+        "block": 6,
+        "id": 232,
+        "line": 20,
+        "text": "26,9630",
+        "word": 1
+      },
+      {
+        "bbox": [
+          195.677,
+          381.931,
+          206.576,
+          391.894
+        ],
+        "block": 6,
+        "id": 233,
+        "line": 20,
+        "text": "TL",
+        "word": 2
+      },
+      {
+        "bbox": [
+          127.7,
+          392.371,
+          152.198,
+          402.334
+        ],
+        "block": 6,
+        "id": 234,
+        "line": 21,
+        "text": "EURO",
+        "word": 0
+      },
+      {
+        "bbox": [
+          159.38,
+          392.371,
+          161.882,
+          402.334
+        ],
+        "block": 6,
+        "id": 235,
+        "line": 21,
+        "text": ":",
+        "word": 1
+      },
+      {
+        "bbox": [
+          164.168,
+          392.371,
+          193.355,
+          402.334
+        ],
+        "block": 6,
+        "id": 236,
+        "line": 21,
+        "text": "28,8224",
+        "word": 2
+      },
+      {
+        "bbox": [
+          195.677,
+          392.371,
+          206.576,
+          402.334
+        ],
+        "block": 6,
+        "id": 237,
+        "line": 21,
+        "text": "TL",
+        "word": 3
+      },
+      {
+        "bbox": [
+          127.7,
+          413.011,
+          136.754,
+          422.974
+        ],
+        "block": 6,
+        "id": 238,
+        "line": 23,
+        "text": "31",
+        "word": 0
+      },
+      {
+        "bbox": [
+          139.076,
+          413.011,
+          161.936,
+          422.974
+        ],
+        "block": 6,
+        "id": 239,
+        "line": 23,
+        "text": "Aralık",
+        "word": 1
+      },
+      {
+        "bbox": [
+          164.258,
+          413.011,
+          182.186,
+          422.974
+        ],
+        "block": 6,
+        "id": 240,
+        "line": 23,
+        "text": "2022",
+        "word": 2
+      },
+      {
+        "bbox": [
+          184.508,
+          413.011,
+          219.428,
+          422.974
+        ],
+        "block": 6,
+        "id": 241,
+        "line": 23,
+        "text": "itibarıyla;",
+        "word": 3
+      },
+      {
+        "bbox": [
+          397.75,
+          433.771,
+          415.75,
+          443.734
+        ],
+        "block": 7,
+        "id": 242,
+        "line": 1,
+        "text": "USD",
+        "word": 0
+      },
+      {
+        "bbox": [
+          509.26,
+          433.771,
+          535.225,
+          443.734
+        ],
+        "block": 7,
+        "id": 243,
+        "line": 2,
+        "text": "EURO",
+        "word": 0
+      },
+      {
+        "bbox": [
+          129.86,
+          444.571,
+          157.868,
+          454.534
+        ],
+        "block": 7,
+        "id": 244,
+        "line": 3,
+        "text": "Bilanço",
+        "word": 0
+      },
+      {
+        "bbox": [
+          160.19,
+          444.571,
+          197.54,
+          454.534
+        ],
+        "block": 7,
+        "id": 245,
+        "line": 3,
+        "text": "değerleme",
+        "word": 1
+      },
+      {
+        "bbox": [
+          199.772,
+          444.571,
+          216.377,
+          454.534
+        ],
+        "block": 7,
+        "id": 246,
+        "line": 3,
+        "text": "kuru",
+        "word": 2
+      },
+      {
+        "bbox": [
+          373.27,
+          444.571,
+          402.5829,
+          454.534
+        ],
+        "block": 7,
+        "id": 247,
+        "line": 4,
+        "text": "18,6983",
+        "word": 0
+      },
+      {
+        "bbox": [
+          404.7969,
+          444.571,
+          415.7949,
+          454.534
+        ],
+        "block": 7,
+        "id": 248,
+        "line": 4,
+        "text": "TL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          492.82,
+          444.571,
+          522.133,
+          454.534
+        ],
+        "block": 7,
+        "id": 249,
+        "line": 5,
+        "text": "19,9349",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.347,
+          444.571,
+          535.345,
+          454.534
+        ],
+        "block": 7,
+        "id": 250,
+        "line": 5,
+        "text": "TL",
+        "word": 1
+      }
+    ]
+  },
+  "existing_tables": [
+    {
+      "bbox": [
+        129.86,
+        272.351,
+        535.345,
+        339.674
+      ],
+      "block_id": 1,
+      "cell_count": 17,
+      "col_labels": [
+        "USD",
+        "USD EURO"
+      ],
+      "col_x": [
+        402.58294677734375,
+        522.1329956054688
+      ],
+      "first_line": 16,
+      "header_association_verified": false,
+      "heading": "Banka’nın finansal tablo tarihi ile bu tarihten geriye doğru son beş günü kamuya duyurulan cari döviz alış kurları önemli döviz cinsleri için aşağıdaki tabloda gösterilmektedir: USD EURO",
+      "id": "p30:numeric1",
+      "inline_line_orders": [],
+      "kind": "table_candidate",
+      "last_line": 21,
+      "legacy_n_cols": 3,
+      "method": "legacy_numeric_geometry",
+      "n_cols": 2,
+      "page": 30,
+      "physical_row_count": 6,
+      "review_status": "unreviewed",
+      "row_count": 6,
+      "rows": [
+        {
+          "cells": [
+            {
+              "bbox": [
+                373.27,
+                272.351,
+                402.5829,
+                282.314
+              ],
+              "cell_index": 0,
+              "col_index": 0,
+              "is_numeric": true,
+              "legacy_col_index": 1,
+              "line_order": 16,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "27,3767",
+              "value": 27.3767,
+              "word_ids": [
+                153
+              ],
+              "x0": 373.2699890136719,
+              "x1": 402.58294677734375
+            },
+            {
+              "bbox": [
+                373.27,
+                272.351,
+                415.7949,
+                282.314
+              ],
+              "cell_index": 2,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 16,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "27,3767 TL",
+              "value": null,
+              "word_ids": [
+                153,
+                154
+              ],
+              "x0": 373.2699890136719,
+              "x1": 415.794921875
+            },
+            {
+              "bbox": [
+                492.82,
+                272.351,
+                522.133,
+                282.314
+              ],
+              "cell_index": 1,
+              "col_index": 1,
+              "is_numeric": true,
+              "legacy_col_index": 2,
+              "line_order": 16,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "29,0305",
+              "value": 29.0305,
+              "word_ids": [
+                155
+              ],
+              "x0": 492.82000732421875,
+              "x1": 522.1329956054688
+            },
+            {
+              "bbox": [
+                492.82,
+                272.351,
+                535.345,
+                282.314
+              ],
+              "cell_index": 3,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 16,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "29,0305 TL",
+              "value": null,
+              "word_ids": [
+                155,
+                156
+              ],
+              "x0": 492.82000732421875,
+              "x1": 535.3450317382812
+            }
+          ],
+          "index": 0,
+          "label": "Bilanço değerleme kuru",
+          "line_orders": [
+            16
+          ],
+          "review_status": "unreviewed"
+        },
+        {
+          "cells": [
+            {
+              "bbox": [
+                129.86,
+                288.3109,
+                136.664,
+                298.274
+              ],
+              "cell_index": 0,
+              "col_index": null,
+              "is_numeric": true,
+              "legacy_col_index": 0,
+              "line_order": 17,
+              "placement": "label_text",
+              "source_text_matches": true,
+              "text": "1.",
+              "value": 1.0,
+              "word_ids": [
+                157
+              ],
+              "x0": 129.86000061035156,
+              "x1": 136.66400146484375
+            },
+            {
+              "bbox": [
+                373.27,
+                288.3109,
+                402.5829,
+                298.274
+              ],
+              "cell_index": 1,
+              "col_index": 0,
+              "is_numeric": true,
+              "legacy_col_index": 1,
+              "line_order": 17,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "27,3767",
+              "value": 27.3767,
+              "word_ids": [
+                163
+              ],
+              "x0": 373.2699890136719,
+              "x1": 402.58294677734375
+            },
+            {
+              "bbox": [
+                373.27,
+                288.3109,
+                415.7949,
+                298.274
+              ],
+              "cell_index": 3,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 17,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "27,3767 TL",
+              "value": null,
+              "word_ids": [
+                163,
+                164
+              ],
+              "x0": 373.2699890136719,
+              "x1": 415.794921875
+            },
+            {
+              "bbox": [
+                492.82,
+                288.3109,
+                522.133,
+                298.274
+              ],
+              "cell_index": 2,
+              "col_index": 1,
+              "is_numeric": true,
+              "legacy_col_index": 2,
+              "line_order": 17,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "29,0305",
+              "value": 29.0305,
+              "word_ids": [
+                165
+              ],
+              "x0": 492.82000732421875,
+              "x1": 522.1329956054688
+            },
+            {
+              "bbox": [
+                492.82,
+                288.3109,
+                535.345,
+                298.274
+              ],
+              "cell_index": 4,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 17,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "29,0305 TL",
+              "value": null,
+              "word_ids": [
+                165,
+                166
+              ],
+              "x0": 492.82000732421875,
+              "x1": 535.3450317382812
+            }
+          ],
+          "index": 1,
+          "label": "1. Günün Cari Döviz Alış Kuru",
+          "line_orders": [
+            17
+          ],
+          "review_status": "unreviewed"
+        },
+        {
+          "cells": [
+            {
+              "bbox": [
+                129.86,
+                298.631,
+                136.664,
+                308.594
+              ],
+              "cell_index": 0,
+              "col_index": null,
+              "is_numeric": true,
+              "legacy_col_index": 0,
+              "line_order": 18,
+              "placement": "label_text",
+              "source_text_matches": true,
+              "text": "2.",
+              "value": 2.0,
+              "word_ids": [
+                167
+              ],
+              "x0": 129.86000061035156,
+              "x1": 136.66400146484375
+            },
+            {
+              "bbox": [
+                373.27,
+                298.631,
+                402.5829,
+                308.594
+              ],
+              "cell_index": 1,
+              "col_index": 0,
+              "is_numeric": true,
+              "legacy_col_index": 1,
+              "line_order": 18,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "27,3752",
+              "value": 27.3752,
+              "word_ids": [
+                173
+              ],
+              "x0": 373.2699890136719,
+              "x1": 402.58294677734375
+            },
+            {
+              "bbox": [
+                373.27,
+                298.631,
+                415.7949,
+                308.594
+              ],
+              "cell_index": 3,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 18,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "27,3752 TL",
+              "value": null,
+              "word_ids": [
+                173,
+                174
+              ],
+              "x0": 373.2699890136719,
+              "x1": 415.794921875
+            },
+            {
+              "bbox": [
+                492.82,
+                298.631,
+                522.133,
+                308.594
+              ],
+              "cell_index": 2,
+              "col_index": 1,
+              "is_numeric": true,
+              "legacy_col_index": 2,
+              "line_order": 18,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "28,8083",
+              "value": 28.8083,
+              "word_ids": [
+                175
+              ],
+              "x0": 492.82000732421875,
+              "x1": 522.1329956054688
+            },
+            {
+              "bbox": [
+                492.82,
+                298.631,
+                535.345,
+                308.594
+              ],
+              "cell_index": 4,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 18,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "28,8083 TL",
+              "value": null,
+              "word_ids": [
+                175,
+                176
+              ],
+              "x0": 492.82000732421875,
+              "x1": 535.3450317382812
+            }
+          ],
+          "index": 2,
+          "label": "2. Günün Cari Döviz Alış Kuru",
+          "line_orders": [
+            18
+          ],
+          "review_status": "unreviewed"
+        },
+        {
+          "cells": [
+            {
+              "bbox": [
+                129.86,
+                308.951,
+                136.664,
+                318.914
+              ],
+              "cell_index": 0,
+              "col_index": null,
+              "is_numeric": true,
+              "legacy_col_index": 0,
+              "line_order": 19,
+              "placement": "label_text",
+              "source_text_matches": true,
+              "text": "3.",
+              "value": 3.0,
+              "word_ids": [
+                177
+              ],
+              "x0": 129.86000061035156,
+              "x1": 136.66400146484375
+            },
+            {
+              "bbox": [
+                373.27,
+                308.951,
+                402.5829,
+                318.914
+              ],
+              "cell_index": 1,
+              "col_index": 0,
+              "is_numeric": true,
+              "legacy_col_index": 1,
+              "line_order": 19,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "27,2640",
+              "value": 27.264,
+              "word_ids": [
+                183
+              ],
+              "x0": 373.2699890136719,
+              "x1": 402.58294677734375
+            },
+            {
+              "bbox": [
+                373.27,
+                308.951,
+                415.7949,
+                318.914
+              ],
+              "cell_index": 3,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 19,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "27,2640 TL",
+              "value": null,
+              "word_ids": [
+                183,
+                184
+              ],
+              "x0": 373.2699890136719,
+              "x1": 415.794921875
+            },
+            {
+              "bbox": [
+                492.82,
+                308.951,
+                522.133,
+                318.914
+              ],
+              "cell_index": 2,
+              "col_index": 1,
+              "is_numeric": true,
+              "legacy_col_index": 2,
+              "line_order": 19,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "28,7853",
+              "value": 28.7853,
+              "word_ids": [
+                185
+              ],
+              "x0": 492.82000732421875,
+              "x1": 522.1329956054688
+            },
+            {
+              "bbox": [
+                492.82,
+                308.951,
+                535.345,
+                318.914
+              ],
+              "cell_index": 4,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 19,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "28,7853 TL",
+              "value": null,
+              "word_ids": [
+                185,
+                186
+              ],
+              "x0": 492.82000732421875,
+              "x1": 535.3450317382812
+            }
+          ],
+          "index": 3,
+          "label": "3. Günün Cari Döviz Alış Kuru",
+          "line_orders": [
+            19
+          ],
+          "review_status": "unreviewed"
+        },
+        {
+          "cells": [
+            {
+              "bbox": [
+                129.86,
+                319.391,
+                136.664,
+                329.354
+              ],
+              "cell_index": 0,
+              "col_index": null,
+              "is_numeric": true,
+              "legacy_col_index": 0,
+              "line_order": 20,
+              "placement": "label_text",
+              "source_text_matches": true,
+              "text": "4.",
+              "value": 4.0,
+              "word_ids": [
+                187
+              ],
+              "x0": 129.86000061035156,
+              "x1": 136.66400146484375
+            },
+            {
+              "bbox": [
+                373.27,
+                319.391,
+                402.5829,
+                329.354
+              ],
+              "cell_index": 1,
+              "col_index": 0,
+              "is_numeric": true,
+              "legacy_col_index": 1,
+              "line_order": 20,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "27,2108",
+              "value": 27.2108,
+              "word_ids": [
+                193
+              ],
+              "x0": 373.2699890136719,
+              "x1": 402.58294677734375
+            },
+            {
+              "bbox": [
+                373.27,
+                319.391,
+                415.7949,
+                329.354
+              ],
+              "cell_index": 3,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 20,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "27,2108 TL",
+              "value": null,
+              "word_ids": [
+                193,
+                194
+              ],
+              "x0": 373.2699890136719,
+              "x1": 415.794921875
+            },
+            {
+              "bbox": [
+                492.82,
+                319.391,
+                522.133,
+                329.354
+              ],
+              "cell_index": 2,
+              "col_index": 1,
+              "is_numeric": true,
+              "legacy_col_index": 2,
+              "line_order": 20,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "28,8183",
+              "value": 28.8183,
+              "word_ids": [
+                195
+              ],
+              "x0": 492.82000732421875,
+              "x1": 522.1329956054688
+            },
+            {
+              "bbox": [
+                492.82,
+                319.391,
+                535.345,
+                329.354
+              ],
+              "cell_index": 4,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 20,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "28,8183 TL",
+              "value": null,
+              "word_ids": [
+                195,
+                196
+              ],
+              "x0": 492.82000732421875,
+              "x1": 535.3450317382812
+            }
+          ],
+          "index": 4,
+          "label": "4. Günün Cari Döviz Alış Kuru",
+          "line_orders": [
+            20
+          ],
+          "review_status": "unreviewed"
+        },
+        {
+          "cells": [
+            {
+              "bbox": [
+                129.86,
+                329.711,
+                136.664,
+                339.674
+              ],
+              "cell_index": 0,
+              "col_index": null,
+              "is_numeric": true,
+              "legacy_col_index": 0,
+              "line_order": 21,
+              "placement": "label_text",
+              "source_text_matches": true,
+              "text": "5.",
+              "value": 5.0,
+              "word_ids": [
+                197
+              ],
+              "x0": 129.86000061035156,
+              "x1": 136.66400146484375
+            },
+            {
+              "bbox": [
+                373.27,
+                329.711,
+                402.5829,
+                339.674
+              ],
+              "cell_index": 1,
+              "col_index": 0,
+              "is_numeric": true,
+              "legacy_col_index": 1,
+              "line_order": 21,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "27,1751",
+              "value": 27.1751,
+              "word_ids": [
+                203
+              ],
+              "x0": 373.2699890136719,
+              "x1": 402.58294677734375
+            },
+            {
+              "bbox": [
+                373.27,
+                329.711,
+                415.7949,
+                339.674
+              ],
+              "cell_index": 3,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 21,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "27,1751 TL",
+              "value": null,
+              "word_ids": [
+                203,
+                204
+              ],
+              "x0": 373.2699890136719,
+              "x1": 415.794921875
+            },
+            {
+              "bbox": [
+                492.82,
+                329.711,
+                522.133,
+                339.674
+              ],
+              "cell_index": 2,
+              "col_index": 1,
+              "is_numeric": true,
+              "legacy_col_index": 2,
+              "line_order": 21,
+              "placement": "data",
+              "source_text_matches": true,
+              "text": "28,9027",
+              "value": 28.9027,
+              "word_ids": [
+                205
+              ],
+              "x0": 492.82000732421875,
+              "x1": 522.1329956054688
+            },
+            {
+              "bbox": [
+                492.82,
+                329.711,
+                535.345,
+                339.674
+              ],
+              "cell_index": 4,
+              "col_index": null,
+              "is_numeric": false,
+              "legacy_col_index": null,
+              "line_order": 21,
+              "placement": "unplaced",
+              "source_text_matches": true,
+              "text": "28,9027 TL",
+              "value": null,
+              "word_ids": [
+                205,
+                206
+              ],
+              "x0": 492.82000732421875,
+              "x1": 535.3450317382812
+            }
+          ],
+          "index": 5,
+          "label": "5. Günün Cari Döviz Alış Kuru",
+          "line_orders": [
+            21
+          ],
+          "review_status": "unreviewed"
+        }
+      ]
+    }
+  ]
+}

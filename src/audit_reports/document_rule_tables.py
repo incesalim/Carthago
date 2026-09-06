@@ -54,11 +54,24 @@ def underline_candidates(source: dict, existing: list[dict]) -> list[dict]:
                for left, right in zip(segments, segments[1:])):
             continue
         x0, x1 = segments[0]["bbox"][0], segments[-1]["bbox"][2]
-        tops = [(y, d) for y, drawings in groups.items() if 6 <= bottom - y <= 40
-                for d in drawings if abs(d["bbox"][0] - x0) <= 2 and abs(d["bbox"][2] - x1) <= 2]
+        tops = []
+        for y, drawings in groups.items():
+            if not 6 <= bottom - y <= 40:
+                continue
+            full = [d for d in drawings if abs(d["bbox"][0] - x0) <= 2 and abs(d["bbox"][2] - x1) <= 2]
+            if len(full) == 1:
+                tops.append((y, full))
+                continue
+            # Word-generated PDFs may serialize both borders as one segment
+            # per cell. Require the same ordered column extents on both rules.
+            ordered = sorted(drawings, key=lambda d: d['bbox'][0])
+            if len(ordered) == len(segments) and all(
+                    abs(a['bbox'][0] - b['bbox'][0]) <= 2 and abs(a['bbox'][2] - b['bbox'][2]) <= 2
+                    for a, b in zip(ordered, segments, strict=True)):
+                tops.append((y, ordered))
         if not tops:
             continue
-        top, top_rule = max(tops, key=lambda entry: entry[0])
+        top, top_rules = max(tops, key=lambda entry: entry[0])
         center_y = (top + bottom) / 2
         if any(t.get("bbox") and t["bbox"][1] <= center_y <= t["bbox"][3]
                and t["bbox"][0] <= x0 + 3 and t["bbox"][2] >= x1 - 3 for t in existing):
@@ -84,6 +97,6 @@ def underline_candidates(source: dict, existing: list[dict]) -> list[dict]:
         tables.append({"id": f"p{source['page']}:underline{len(tables)}", "kind": "table_candidate",
                        "method": "horizontal_rule_cells", "rows": rows, "row_count": 2,
                        "n_cols": len(segments), "bbox": [x0, header_top, x1, bottom],
-                       "source_drawing_ids": [top_rule["id"], *(d["id"] for d in segments)],
+                       "source_drawing_ids": [d['id'] for d in [*top_rules, *segments]],
                        "review_status": "unreviewed", "header_association_verified": False})
     return tables

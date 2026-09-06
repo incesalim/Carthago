@@ -103,7 +103,8 @@ pre-repair acquisition absence**. Independent reconciliation verifies all 1,146
 unique registry bindings, committed engine and receipt hashes, and all 1,145
 observed acquisition hashes against native capture. Follow-up `34062651771`
 verifies repaired Anadolubank consolidated bytes and its retained receipt/index;
-974 filings now have byte agreement. Old observations remain in history.
+Solo follow-up `34064708288` also passes independent receipt/transport checks;
+975 filings now have byte agreement. Old observations remain in history.
 Byte agreement does not clear conflicting cover claims or verify document content.
 Independently inspected Albaraka 2026Q2 consolidated and Eximbank 2026Q1 solo
 copies are English/Turkish editions. Both remain preserved; full content
@@ -115,7 +116,12 @@ not a PDF. None is reclassified as a missing acquired filing.
 The Anadolu 2026Q2 solo archive contains its already-acquired 86-page report
 and another one-page signed declaration. Both covers and archive/member hashes
 were independently inspected. An exact reviewed member selection is configured;
-separate declaration capture and the corrected origin observation remain pending.
+the corrected origin receipt is published and retains its earlier observation.
+Read-only attachment probe `34064863416` passes independent original/native bytes,
+source pixels, all 150 OCR word positions and committed recovery-engine checks.
+Three of five independently transcribed full regions match; the scope paragraph
+misreads `II-14.1` as `1-14.1`, and the second statement changes `ile` to `İle`.
+Raw OCR and source wording remain separate; attachment publication is pending.
 
 `capture-related-documents.yml` separately preserves every additional PDF member
 of a verified report archive. Anadolubank's one-page signed declaration has
@@ -143,7 +149,11 @@ whole-document review. Cloud pack `34062146313` contains all 51 TOMK 2023Q3
 solo pages; PNG bytes, source/engine hashes, four fresh original-pixel probes and
 all retained native/structure pages pass independent checks. All 51 original page images have now been visually inspected for a layout/content
 inventory. Found footer reading order, separated bullet markers, split signatory
-roles and a missed one-row exchange-rate table on page 30. A complete physical-table benchmark now checks all 40 slots,
+roles and a missed one-row exchange-rate table on page 30. The segmented-border
+repair now recovers that complete six-slot USD/EURO table with its literal TL
+units. Missing or displaced border segments, dropped content and removed units
+fail local source checks; cloud validation/publication remain pending.
+A complete physical-table benchmark checks all 40 slots,
 both merged period headings, every source word in the region and the unit
 qualification of page 6's shareholder table. Publication `34063685062` matches the
 independently verified probe and passes that complete-table case. This does not
@@ -156,7 +166,11 @@ column and the EPS `Tam TL` qualification. No numerical value is inferred from a
 reference. Local complete-word inventory, geometry and mutation checks pass;
 three independent page-13 source-row annotations supplement the shareholder case.
 The admin can toggle these source lines; wrapped labels remain physical lines,
-not certified accounting rows. Cloud execution and live display remain pending.
+not certified accounting rows. Cloud probe `34064705881` passes all four cases;
+all 51 original/native page artifacts remain identical and each added line view
+was independently rebuilt. Assets, liabilities, P&L and OCI now expose 47, 47,
+64 and 17 physical body lines respectively. Equity and cash-flow row associations,
+publication and the authenticated live display remain pending.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
