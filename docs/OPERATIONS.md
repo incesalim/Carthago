@@ -1750,3 +1750,13 @@ These checks do not certify the whole
 report. The reviewed Anadolubank 2026Q2 solo archive selection is bound to its
 86-page primary PDF hash; capture its separate signed member only after a fresh
 origin observation has published that exact selection.
+
+The separate `reading_layout` view partitions retained narrative-element boxes
+into bands and columns. A standalone bullet is linked only to one adjacent
+first source line, with a unique reverse association; aligned list items preserve
+their physical order. Every original element occurs exactly once in the tree.
+Areas without a unique partition remain explicitly unresolved in stored order.
+The original narrative and its source span order are not rewritten. Layout
+benchmarks bind expected order, list pairs and column groups to an exact PDF,
+and independently recheck the referenced native wording. These checks do not
+certify logical paragraph boundaries, signatory roles or full-document meaning.

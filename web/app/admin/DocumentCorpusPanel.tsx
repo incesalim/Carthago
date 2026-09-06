@@ -6,6 +6,7 @@ import type { CorpusCatalogResult, CorpusFiling } from "@/app/lib/document-corpu
 import { nf } from "@/app/lib/chart-format";
 import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 import DocumentOriginPanel from "./DocumentOriginPanel";
+import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
 
 const endpoint = "/api/admin/document-corpus";
 const id = (f: CorpusFiling) => `${f.bank_ticker}|${f.period}|${f.kind}`;
@@ -15,8 +16,6 @@ const control = "border-b border-border bg-transparent px-1 py-1.5 text-xs text-
 type Cell = { text: string | null; col_index?: number | null; column?: number; placement?: string; word_ids: string[] };
 type Table = { id: string; method: string; n_cols: number; row_count: number; col_labels?: string[]; word_view?: string;
   rows: { index: number; label?: string; cells: Cell[] }[] };
-type Narrative = { id: string; kind: string; text: string; span_ids: string[];
-  heading_path: { id: string; text: string }[]; table_ids: string[] };
 type TableContext = { table_id: string; heading: { text: string } | null;
   physical_grid: { anchors: { row: number; column: number; row_span: number; column_span: number }[];
     covered_slots: { row: number; column: number; anchor: number[] }[] } | null };
@@ -26,6 +25,7 @@ type PagePreview = { manifest: { sections: { title: string; page_start: number; 
     table_source_rows?: { tables: SourceRows[] };
     table_context?: { tables: TableContext[]; continuations: { status: string; from_page: number;
       from_table_ids: string[]; to_table_id: string; title: string; column_identifiers: string[] }[] };
+    reading_layout?: ReadingLayout;
     narrative_elements?: Narrative[]; issues: { kind: string; count?: number }[] } };
 
 async function fetchJson<T>(url: string, signal: AbortSignal): Promise<T> {
@@ -145,19 +145,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
           sourceRows={preview.page.table_source_rows?.tables.find((rows) => rows.table_id === table.id)}
           context={preview.page.table_context?.tables.find((context) => context.table_id === table.id)} />)}
         {preview.page.tables.length === 0 && <p className="py-3 text-xs text-faint">No table detected. This does not establish that the source page contains no table.</p>}
-        {preview.page.narrative_elements && <details className="mt-5" open>
-          <summary className="cursor-pointer text-xs font-semibold">Paragraphs and headings · {count(preview.page.narrative_elements.length)} candidates</summary>
-          <p className="my-2 text-xs text-faint">Source wording is retained. Paragraph boundaries, heading context and table membership are candidates awaiting review.</p>
-          {preview.page.narrative_elements.map((element) => <div key={element.id} className="border-b border-border py-3">
-            <div className="flex flex-wrap gap-x-3 text-[10px] text-faint">
-              <span className="font-mono" title={`Source spans: ${element.span_ids.join(", ")}`}>{element.id}</span>
-              <span>{element.kind.replaceAll("_", " ")}</span>
-              {element.table_ids.length > 0 && <span>Table: {element.table_ids.join(", ")}</span>}
-            </div>
-            {element.heading_path.length > 0 && <p className="mt-1 text-[10px] text-muted-foreground">{element.heading_path.map((heading) => heading.text).join(" / ")}</p>}
-            <p className={`mt-1 whitespace-pre-wrap text-xs leading-relaxed ${element.kind === "heading_candidate" ? "font-semibold" : ""}`}>{element.text}</p>
-          </div>)}
-        </details>}
+        {preview.page.narrative_elements && <DocumentNarrativePreview elements={preview.page.narrative_elements} layout={preview.page.reading_layout} />}
         <details className="mt-5" open={!preview.page.narrative_elements}><summary className="cursor-pointer text-xs font-semibold">All page text · {count(preview.page.text_blocks.length)} source blocks</summary>
           <p className="my-2 text-xs text-faint">Includes table text. Paragraph roles and reading order still require review.</p>
           {preview.page.text_blocks.map((block) => <div key={block.id} className="border-b border-border py-3">

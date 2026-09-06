@@ -121,7 +121,10 @@ Read-only attachment probe `34064863416` passes independent original/native byte
 source pixels, all 150 OCR word positions and committed recovery-engine checks.
 Three of five independently transcribed full regions match; the scope paragraph
 misreads `II-14.1` as `1-14.1`, and the second statement changes `ile` to `İle`.
-Raw OCR and source wording remain separate; attachment publication is pending.
+Publication/replay `34065766786` retains the exact independently checked original,
+native evidence, OCR derivative, word positions and review findings. All eight
+object versions remain unchanged on replay, including the parent filing index.
+Raw OCR and source wording remain separate.
 
 `capture-related-documents.yml` separately preserves every additional PDF member
 of a verified report archive. Anadolubank's one-page signed declaration has
@@ -152,7 +155,9 @@ inventory. Found footer reading order, separated bullet markers, split signatory
 roles and a missed one-row exchange-rate table on page 30. The segmented-border
 repair now recovers that complete six-slot USD/EURO table with its literal TL
 units. Missing or displaced border segments, dropped content and removed units
-fail local source checks; cloud validation/publication remain pending.
+fail local source checks. Cloud probe `34065765217` passes all five source cases;
+publication/replay `34065945594` retains the exact independently checked original,
+all 51 native pages and structure. All four checked object versions stay unchanged.
 A complete physical-table benchmark checks all 40 slots,
 both merged period headings, every source word in the region and the unit
 qualification of page 6's shareholder table. Publication `34063685062` matches the
@@ -170,7 +175,8 @@ not certified accounting rows. Cloud probe `34064705881` passes all four cases;
 all 51 original/native page artifacts remain identical and each added line view
 was independently rebuilt. Assets, liabilities, P&L and OCI now expose 47, 47,
 64 and 17 physical body lines respectively. Equity and cash-flow row associations,
-publication and the authenticated live display remain pending.
+and the authenticated live display remain pending. The source-line view itself
+is now published with the five-case FX repair.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
@@ -178,6 +184,18 @@ Page-33 liquidity summaries also show differing TP+YP figures. These observation
 are retained with source pages in the internal visual review, without changing
 any original or declaring one value authoritative. A general analyst-facing
 content-review ledger is still needed.
+
+A separate whitespace-partition reading view now retains every narrative element
+once while ordering the auditor letter before its contact footer, joining seven
+standalone list markers to their source text and grouping all six signatory
+columns on the reviewed TOMK pages. Original spans, physical blocks and narrative
+elements remain unchanged. Overlapping regions without a unique partition retain
+stored order and an explicit issue. Two independently inspected page-layout cases
+check order, list links and complete signatory column groups; omission, duplication,
+misassociation and source-text mutations fail. The admin offers both views and
+automatically falls back to all original text if any layout reference is missing,
+duplicated or unknown. Local Python and 738 web tests pass; cloud validation and
+authenticated live inspection of the new view remain pending.
 
 Remaining work: resolve fresh-origin exceptions and reconcile the revised recovery fleet; establish
 whole-document physical and semantic coverage with independently reviewed source

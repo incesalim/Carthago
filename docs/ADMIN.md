@@ -26,6 +26,12 @@ heading candidates, every source text block, review flags, the original PDF and
 source-evidence JSON. Narrative candidates retain source span references and
 tentative page-scoped heading paths; document section context is kept separately.
 Text inside detected tables is labelled explicitly.
+The prose reading view can arrange text by its source position, connect uniquely
+aligned list markers and preserve column groups. Areas without a unique order
+are flagged. The stored-order view remains available; missing, duplicate or
+unknown layout references automatically fall back to every original text element.
+Heading context and paragraph boundaries still require source review.
+
 Tall ruled body cells can expose a separate source-line view with the original
 column positions and merged headers. Use the checkbox to return to physical
 cells. Blank positions mean no text on that line; no zero is inferred. Wrapped

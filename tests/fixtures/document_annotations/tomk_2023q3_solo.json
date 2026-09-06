@@ -178,6 +178,118 @@
         ]
       ],
       "spans": []
+    },
+    {
+      "id": "auditor_letter_before_contact_footer",
+      "kind": "reading_layout",
+      "page": 2,
+      "element_order": [
+        "p2:narrative1",
+        "p2:narrative2",
+        "p2:narrative3",
+        "p2:narrative4",
+        "p2:narrative5",
+        "p2:narrative6",
+        "p2:narrative7",
+        "p2:narrative0"
+      ],
+      "list_pairs": [],
+      "column_groups": []
+    },
+    {
+      "id": "seven_list_markers_and_six_signatory_columns",
+      "kind": "reading_layout",
+      "page": 4,
+      "element_order": [
+        "p4:narrative0",
+        "p4:narrative1",
+        "p4:narrative2",
+        "p4:narrative3",
+        "p4:narrative4",
+        "p4:narrative5",
+        "p4:narrative6",
+        "p4:narrative7",
+        "p4:narrative8",
+        "p4:narrative9",
+        "p4:narrative10",
+        "p4:narrative11",
+        "p4:narrative12",
+        "p4:narrative13",
+        "p4:narrative14",
+        "p4:narrative15",
+        "p4:narrative16",
+        "p4:narrative17",
+        "p4:narrative18",
+        "p4:narrative19",
+        "p4:narrative20",
+        "p4:narrative21",
+        "p4:narrative22",
+        "p4:narrative23",
+        "p4:narrative24",
+        "p4:narrative25",
+        "p4:narrative26",
+        "p4:narrative27",
+        "p4:narrative28",
+        "p4:narrative29",
+        "p4:narrative30"
+      ],
+      "list_pairs": [
+        [
+          "p4:narrative6",
+          "p4:narrative7"
+        ],
+        [
+          "p4:narrative8",
+          "p4:narrative9"
+        ],
+        [
+          "p4:narrative10",
+          "p4:narrative11"
+        ],
+        [
+          "p4:narrative12",
+          "p4:narrative13"
+        ],
+        [
+          "p4:narrative14",
+          "p4:narrative15"
+        ],
+        [
+          "p4:narrative16",
+          "p4:narrative17"
+        ],
+        [
+          "p4:narrative18",
+          "p4:narrative19"
+        ]
+      ],
+      "column_groups": [
+        [
+          [
+            "p4:narrative21"
+          ],
+          [
+            "p4:narrative22"
+          ],
+          [
+            "p4:narrative23",
+            "p4:narrative24"
+          ]
+        ],
+        [
+          [
+            "p4:narrative25"
+          ],
+          [
+            "p4:narrative26",
+            "p4:narrative27"
+          ],
+          [
+            "p4:narrative28",
+            "p4:narrative29"
+          ]
+        ]
+      ]
     }
   ]
 }

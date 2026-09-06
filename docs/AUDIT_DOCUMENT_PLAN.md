@@ -567,3 +567,14 @@ of detected tables.
   attachment probe `34064863416` retains all 150 OCR words/positions and original
   pixels. Five independently transcribed full regions expose two disagreements,
   including a changed regulatory reference. Retain both readings; publication pending.
+
+- 2026-09-07: FX/source-line probe `34065765217` passes all five cases; publication
+  and replay `34065945594` match independently checked bytes and leave all four
+  object versions unchanged. Anadolu solo attachment publication/replay
+  `34065766786` preserves all eight versions and both source wording disagreements.
+- 2026-09-07: added a separate whitespace-partition reading view. TOMK pages 2
+  and 4 now order the letter before its footer, link seven list markers and retain
+  six signatory columns with their split role text. Original narrative/span
+  inventories remain unchanged; ambiguous geometry is explicit. Two page-layout
+  source cases and corruption tests pass. Admin reference-integrity fallback and
+  all 738 web tests pass; cloud validation and authenticated display pending.

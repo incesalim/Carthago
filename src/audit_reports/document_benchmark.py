@@ -173,6 +173,28 @@ def _narrative_matches(case, page, sources, pages):
     return matching
 
 
+def _reading_layout_matches(case, page, source):
+    from .document_narrative import verify_narrative
+    from .document_reading_layout import reading_layout
+    view = page.get('reading_layout')
+    if (view is None or verify_narrative(page, source) or view != reading_layout(page, source)
+            or view['element_order'] != case['element_order'] or view['list_pairs'] != case['list_pairs']):
+        return False
+    columns = []
+
+    def visit(node):
+        if 'element_ids' in node:
+            return node['element_ids']
+        children = [visit(child) for child in node['children']]
+        if node.get('axis') == 'x':
+            columns.append(children)
+        return [i for child in children for i in child]
+
+    if view['tree']:
+        visit(view['tree'])
+    return all(group in columns for group in case.get('column_groups', []))
+
+
 def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -> dict:
     failures = []
     if (annotation["pdf_sha256"] != evidence[0]["source"]["pdf_sha256"]
@@ -208,6 +230,10 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
             if len(matching) != 1:
                 failures.append({**prefix, 'kind': 'table_source_line_mismatch',
                                  'matching_candidates': len(matching)})
+            continue
+        if case.get('kind') == 'reading_layout':
+            if not _reading_layout_matches(case, pages[case['page']], sources[case['page']]):
+                failures.append({**prefix, 'kind': 'reading_layout_source_mismatch'})
             continue
         if case.get("kind") in SOURCE_CASE_KINDS:
             source = sources[case["page"]]
