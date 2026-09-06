@@ -578,3 +578,12 @@ of detected tables.
   inventories remain unchanged; ambiguous geometry is explicit. Two page-layout
   source cases and corruption tests pass. Admin reference-integrity fallback and
   all 738 web tests pass; cloud validation and authenticated display pending.
+
+- 2026-09-07: reading-layout cloud probe `34066499398` independently passes all
+  seven cases; all 51 native pages and prior structure fields are unchanged.
+  New views were rebuilt from retained source references. 44 other pages retain
+  unresolved layout areas; the selected prose cases do not certify them.
+- 2026-09-07: traced ICBC's source-download failures to the already-vendored
+  GlobalSign intermediate. Verified the live hostname/chain normally and matched
+  2026Q2 solo bytes to acquisition. Exact-host downloader support and failure
+  tests pass; cloud comparison across all 36 registered ICBC filings pending.

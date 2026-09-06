@@ -109,7 +109,11 @@ Byte agreement does not clear conflicting cover claims or verify document conten
 Independently inspected Albaraka 2026Q2 consolidated and Eximbank 2026Q1 solo
 copies are English/Turkish editions. Both remain preserved; full content
 comparison is pending. Other differences include four Şekerbank historical PDFs.
-ICBC's 36 downloads fail certificate-chain validation; Ziraat Katılım returns
+ICBC's 36 initial downloads failed certificate-chain validation. A source probe
+now verifies the ICBC hostname and chain using the existing GlobalSign
+intermediate, then proves its 2026Q2 solo PDF exactly matches acquired bytes.
+The corpus downloader supports those exact ICBC hosts with normal verification
+enabled; the 36-filing cloud follow-up remains pending. Ziraat Katılım returns
 browser-challenge HTML. Halkbank's 2026Q2 solo BDDK archive contains a DOCX,
 not a PDF. None is reclassified as a missing acquired filing.
 
@@ -194,8 +198,11 @@ stored order and an explicit issue. Two independently inspected page-layout case
 check order, list links and complete signatory column groups; omission, duplication,
 misassociation and source-text mutations fail. The admin offers both views and
 automatically falls back to all original text if any layout reference is missing,
-duplicated or unknown. Local Python and 738 web tests pass; cloud validation and
-authenticated live inspection of the new view remain pending.
+duplicated or unknown. Local Python and 738 web tests pass. Cloud probe `34066499398` passes all seven
+source cases; all 51 native pages and every earlier structure field remain
+identical, and all new reading views were independently rebuilt. The two reviewed
+prose pages have no layout issue; 44 other pages retain unresolved areas, often
+within table text. Publication and authenticated live inspection remain pending.
 
 Remaining work: resolve fresh-origin exceptions and reconcile the revised recovery fleet; establish
 whole-document physical and semantic coverage with independently reviewed source

@@ -1760,3 +1760,10 @@ The original narrative and its source span order are not rewritten. Layout
 benchmarks bind expected order, list pairs and column groups to an exact PDF,
 and independently recheck the referenced native wording. These checks do not
 certify logical paragraph boundaries, signatory roles or full-document meaning.
+
+Official-origin downloads from the exact ICBC hosts `www.icbc.com.tr` and
+`icbc.com.tr` use the existing certifi-plus-GlobalSign intermediate bundle also
+needed by BDDK. Certificate and hostname verification remain enabled; no fallback
+to unverified transport is allowed. Origin response metadata names the verification
+method. Other hosts keep the default trust store. A local source-byte probe
+matched the 2026Q2 solo acquisition; the registered-bank follow-up runs in Actions.

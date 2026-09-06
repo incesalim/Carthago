@@ -62,13 +62,19 @@ def fetch_source(url: str) -> tuple[bytes, dict]:
     from src.scrapers._http import bddk_verify
 
     hostname = (urlsplit(url).hostname or '').lower()
-    verify = bddk_verify() if hostname in ('www.bddk.org.tr', 'bddk.org.tr', 'www.bddk.gov.tr', 'bddk.gov.tr') else True
+    # ICBC's server omits the same GlobalSign RSA OV SSL CA 2018 intermediate
+    # as BDDK. Supply that existing chain with certifi roots; normal certificate
+    # and hostname validation remain enabled. Limit this to the observed hosts.
+    incomplete_chain = hostname in ('www.bddk.org.tr', 'bddk.org.tr', 'www.bddk.gov.tr', 'bddk.gov.tr',
+                                    'www.icbc.com.tr', 'icbc.com.tr')
+    verify = bddk_verify() if incomplete_chain else True
     response = requests.get(url, timeout=120, verify=verify, headers={
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
         'Accept': 'application/pdf,application/zip,application/octet-stream,*/*'})
     response.raise_for_status()
     return response.content, {'source_url': url, 'resolved_url': response.url,
-                              'content_type': response.headers.get('Content-Type')}
+                              'content_type': response.headers.get('Content-Type'),
+                              'tls_verification': 'certifi_with_globalsign_intermediate' if incomplete_chain else 'default_ca_bundle'}
 
 
 def _existing(store, key):
