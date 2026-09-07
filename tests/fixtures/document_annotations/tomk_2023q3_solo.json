@@ -6,11 +6,12 @@
     "kind": "unconsolidated"
   },
   "pdf_sha256": "80dbb8e5a2b18675e84b2ed62fbbaf07c3dadebc5984ea36979ba0687b610c84",
-  "annotation_method": "Independently read every slot and both merged period headings in the rendered original PDF page6 (printed1) on2026-09-07. Complete physical-table text/geometry comparison; not whole-document or financial-interpretation approval. Unit qualification is a separate source-text witness.",
+  "annotation_method": "Named cases independently transcribed and located on rendered original PDF pages. Each case identifies its own page and source region. Checks cover only the registered transcriptions and source associations; no complete-report or financial-series approval.",
   "cases": [
     {
       "id": "complete_shareholder_table_two_reporting_dates",
       "kind": "complete_physical_table",
+      "source_review": "Independently read every slot and both merged period headings in the rendered original PDF page 6 (printed page 1) on 2026-09-07. Complete physical-table text/geometry comparison; not whole-document or financial-interpretation approval. Unit qualification is a separate source-text witness.",
       "page": 6,
       "method": "pymupdf_lines_strict",
       "bbox": [
@@ -2804,6 +2805,764 @@
             533
           ],
           "text": "Özkaynak kalemlerine ilişkin bilgiler tablosunda yer alan tutarlar ile bilançodaki tutarlar arasında fark bulunmamaktadır."
+        }
+      ]
+    },
+    {
+      "id": "complete_note_tax_loss_expiry",
+      "kind": "complete_physical_table",
+      "page": 39,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        128,
+        380,
+        542,
+        489
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Cari Dönem 31 Aralık 2022"
+        ],
+        [
+          "2022",
+          "-",
+          "-"
+        ],
+        [
+          "2023",
+          "-",
+          "-"
+        ],
+        [
+          "2024",
+          "-",
+          "-"
+        ],
+        [
+          "2025",
+          "-",
+          "-"
+        ],
+        [
+          "2026",
+          "-",
+          "-"
+        ],
+        [
+          "2027",
+          "3.200",
+          "3.200"
+        ],
+        [
+          "2028",
+          "48.253",
+          "-"
+        ],
+        [
+          "Toplam",
+          "51.453",
+          "3.200"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_lease_debt",
+      "kind": "complete_physical_table",
+      "page": 40,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        223,
+        539,
+        267
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 31 Aralık 2022"
+        ],
+        [
+          "1 yıldan az",
+          "3.544",
+          "-"
+        ],
+        [
+          "1-5 yıl arası",
+          "1.032",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_taxes_payable",
+      "kind": "complete_physical_table",
+      "page": 40,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        128,
+        459,
+        539,
+        525
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem",
+          "Önceki Dönem"
+        ],
+        [
+          null,
+          "30 Eylül 2023",
+          "31 Aralık 2022"
+        ],
+        [
+          "Ödenecek Gelir Vergisi",
+          "4.000",
+          "15"
+        ],
+        [
+          "Ödenecek Katma Değer Vergisi",
+          "245",
+          "150"
+        ],
+        [
+          "Diğer",
+          "124",
+          "4"
+        ],
+        [
+          "Toplam",
+          "4.369",
+          "169"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        }
+      ],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_social_premiums",
+      "kind": "complete_physical_table",
+      "page": 40,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        128,
+        557,
+        539,
+        645
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem",
+          "Önceki Dönem"
+        ],
+        [
+          null,
+          "30 Eylül 2023",
+          "31 Aralık 2022"
+        ],
+        [
+          "Sosyal Sigorta Primleri – Personel",
+          "2.372",
+          "11"
+        ],
+        [
+          "Sosyal Sigorta Primleri - İşveren",
+          "3.668",
+          "16"
+        ],
+        [
+          "İşsizlik Sigortası – Personel",
+          "162",
+          "1"
+        ],
+        [
+          "İşsizlik Sigortası - İşveren",
+          "323",
+          "2"
+        ],
+        [
+          "Diğer",
+          "557",
+          "2"
+        ],
+        [
+          "Toplam",
+          "7.082",
+          "32"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        }
+      ],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_paid_in_capital",
+      "kind": "complete_physical_table",
+      "page": 41,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        129,
+        200,
+        539,
+        244
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 31 Aralık 2022"
+        ],
+        [
+          "Hisse Senedi Karşılığı",
+          "1.500.000",
+          "1.500.000"
+        ],
+        [
+          "İmtiyazlı Hisse Senedi Karşılığı",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_bank_profit_share_income",
+      "kind": "complete_physical_table",
+      "page": 42,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        239,
+        539,
+        331
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          null,
+          "Önceki Dönem 30 Eylül 2022",
+          null
+        ],
+        [
+          null,
+          "TP",
+          "YP",
+          "TP",
+          "YP"
+        ],
+        [
+          "TCMB",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Yurtiçi Bankalardan",
+          "112.155",
+          "183",
+          "-",
+          "-"
+        ],
+        [
+          "Yurtdışı Bankalardan",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Yurtdışı Merkez ve Şubelerden",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam",
+          "112.155",
+          "183",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_securities_profit_share_income",
+      "kind": "complete_physical_table",
+      "page": 42,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        359,
+        542,
+        482
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          null,
+          "Önceki Dönem 30 Eylül 2022",
+          null
+        ],
+        [
+          null,
+          "TP",
+          "YP",
+          "TP",
+          "YP"
+        ],
+        [
+          "Gerçeğe Uygun Değer Farkı Kâr Zarara Yansıtılan Finansal Varlıklar",
+          "170.569",
+          "181",
+          "-",
+          "-"
+        ],
+        [
+          "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "İtfa Edilmiş Maliyeti İle Ölçülen Finansal Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam",
+          "170.569",
+          "181",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_trading_income",
+      "kind": "complete_physical_table",
+      "page": 43,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        128,
+        177,
+        539,
+        297
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 30 Eylül 2022"
+        ],
+        [
+          "Kar",
+          "236.961",
+          "-"
+        ],
+        [
+          "Sermaye Piyasası İşlemleri Karı",
+          "170.750",
+          "-"
+        ],
+        [
+          "Türev Finansal İşlemlerden Kar",
+          "-",
+          "-"
+        ],
+        [
+          "Kambiyo İşlemlerinden Kar",
+          "66.211",
+          "-"
+        ],
+        [
+          "Zarar (-)",
+          "57.866",
+          "-"
+        ],
+        [
+          "Sermaye Piyasası İşlemleri Zararı",
+          "-",
+          "-"
+        ],
+        [
+          "Türev Finansal İşlemlerden Zarar",
+          "-",
+          "-"
+        ],
+        [
+          "Kambiyo İşlemlerinden Zarar",
+          "57.866",
+          "-"
+        ],
+        [
+          "Net",
+          "179.095",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_other_operating_expenses",
+      "kind": "complete_physical_table",
+      "page": 43,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        419,
+        539,
+        647
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 30 Eylül 2022"
+        ],
+        [
+          "Kıdem Tazminatı Karşılığı",
+          "-",
+          "-"
+        ],
+        [
+          "Banka Sosyal Yardım Sandığı Varlık Açıkları Karşılığı",
+          "-",
+          "-"
+        ],
+        [
+          "Maddi Duran Varlık Değer Düşüş Giderleri",
+          "-",
+          "-"
+        ],
+        [
+          "Maddi Duran Varlık Amortisman Giderleri",
+          "2.235",
+          "-"
+        ],
+        [
+          "Maddi Olmayan Duran Varlık Değer Düşüş Giderleri",
+          "-",
+          "-"
+        ],
+        [
+          "Şerefiye Değer Düşüş Gideri",
+          "-",
+          "-"
+        ],
+        [
+          "Maddi Olmayan Duran Varlık Amortisman Giderleri",
+          "7.272",
+          "-"
+        ],
+        [
+          "Özkaynak Yöntemi Uygulanan Ortaklık Payları Değer Düşüş Gideri",
+          "-",
+          "-"
+        ],
+        [
+          "Elden Çıkarılacak Kıymetler Değer Düşüş Giderleri",
+          "-",
+          "-"
+        ],
+        [
+          "Elden Çıkarılacak Kıymetler Amortisman Giderleri",
+          "-",
+          "-"
+        ],
+        [
+          "Satış Amaçlı Elde Tutulan ve Durdurulan Faaliyetlere İlişkin Duran Varlıklar Değer Düşüş Giderleri",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer İşletme Giderleri",
+          "82.638",
+          "-"
+        ],
+        [
+          "TFRS 16 İstisnalarına İlişkin Kiralama Giderleri",
+          "1.448",
+          "-"
+        ],
+        [
+          "Bakım ve Onarım Giderleri",
+          "9",
+          "-"
+        ],
+        [
+          "Reklam ve İlan Giderleri",
+          "298",
+          "-"
+        ],
+        [
+          "Diğer Giderler",
+          "80.883",
+          "-"
+        ],
+        [
+          "Aktiflerin Satışından Doğan Zararlar",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_note_continuing_profit_reconciliation",
+      "kind": "complete_physical_table",
+      "page": 44,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        204,
+        539,
+        335
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 30 Eylül 2022"
+        ],
+        [
+          "Net Kar Payı Geliri",
+          "112.063",
+          "-"
+        ],
+        [
+          "Net Ücret ve Komisyon Gelirleri",
+          "-",
+          "-"
+        ],
+        [
+          "Temettü Gelirleri",
+          "-",
+          "-"
+        ],
+        [
+          "Ticari Kar / Zarar (Net)",
+          "179.095",
+          "-"
+        ],
+        [
+          "Diğer Faaliyet Gelirleri",
+          "-",
+          "-"
+        ],
+        [
+          "Beklenen Zarar Karşılığı (-)",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer Karşılık Giderleri (-)",
+          "2.337",
+          "-"
+        ],
+        [
+          "Personel Giderleri",
+          "70.837",
+          "-"
+        ],
+        [
+          "Diğer Faaliyet Giderleri (-)",
+          "80.301",
+          "-"
+        ],
+        [
+          "Sürdürülen Faaliyetlerden Kaynaklanan Kar/Zarar",
+          "137.683",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All literal cells, dates, currencies and merged header slots independently transcribed from original rendered PDF pages on 2026-09-07, before candidate comparison. Magnified source reinspection corrected one manual singular/plural wording error on page 43. Source spelling and the duplicate current-period label on the tax-loss table are retained.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
         }
       ]
     }

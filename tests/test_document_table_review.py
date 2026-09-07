@@ -125,3 +125,64 @@ def test_reviewed_rows_reject_changed_assignments_and_invented_values(capital_re
     with pytest.raises(ValueError):
         reviewed_logical_rows(table, source, case)
     assert not check_annotations(observed, evidence, annotation)['passed']
+
+
+@pytest.fixture
+def note_review():
+    folder = Path(__file__).parent / 'fixtures'
+    fixture = json.loads((folder / 'document_notes_tomk.json').read_text(encoding='utf-8'))
+    annotation = json.loads((folder / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c['id'] in fixture['case_ids']]
+    assert len(annotation['cases']) == 10
+    return {'source': fixture['source'], 'pages': fixture['pages']}, [{'source': fixture['source']}, *fixture['source_pages']], annotation
+
+
+def test_ten_complete_note_tables_keep_source_dates_merges_and_literal_values(note_review):
+    observed, evidence, annotation = note_review
+    result = check_annotations(observed, evidence, annotation)
+    assert result['passed'] and len(result['reviewed_tables']) == 10
+    tables = {r['review_id']: r for r in result['reviewed_tables']}
+    # The bank itself labels both expiry columns Cari Dönem; retain the dates.
+    assert tables['complete_note_tax_loss_expiry']['physical_rows'][0] == [
+        '', 'Cari Dönem 30 Eylül 2023', 'Cari Dönem 31 Aralık 2022']
+    income = tables['complete_note_bank_profit_share_income']
+    assert income['physical_rows'][1] == [None, 'TP', 'YP', 'TP', 'YP']
+    assert income['physical_rows'][3] == ['Yurtiçi Bankalardan', '112.155', '183', '-', '-']
+    assert len(income['merged_spans']) == 3
+    assert tables['complete_note_continuing_profit_reconciliation']['physical_rows'][-1][-2] == '137.683'
+
+
+@pytest.mark.parametrize('index', range(10))
+@pytest.mark.parametrize('change', ['digit', 'source_occurrence'])
+def test_each_complete_note_table_rejects_corrupt_values_or_provenance(note_review, index, change):
+    observed, evidence, annotation = note_review
+    case = annotation['cases'][index]
+    annotation['cases'] = [case]
+    result = check_annotations(observed, evidence, annotation)
+    assert result['passed']
+    page = next(p for p in observed['pages'] if p['page'] == case['page'])
+    table = next(t for t in page['tables'] if t['id'] == result['reviewed_tables'][0]['table_id'])
+    cell = next(c for r in table['rows'][1:] for c in r['cells'][1:]
+                if c['text'] and any(ch.isdigit() for ch in c['text']))
+    if change == 'digit':
+        cell['text'] += '0'
+    else:
+        cell['word_ids'] = []
+        cell['source_fragments'] = []
+    failed = check_annotations(observed, evidence, annotation)
+    assert not failed['passed'] and 'reviewed_tables' not in failed
+
+
+@pytest.mark.parametrize('change', ['date', 'currency', 'null_as_blank', 'dash_as_zero'])
+def test_note_header_and_missingness_corruption_fails(note_review, change):
+    observed, evidence, annotation = note_review
+    table = next(t for p in observed['pages'] if p['page'] == 42 for t in p['tables'] if t['id'] == 'p42:ruled0')
+    if change == 'date':
+        table['rows'][0]['cells'][3]['text'] = 'Önceki Dönem 31 Aralık 2022'
+    elif change == 'currency':
+        table['rows'][1]['cells'][2]['text'] = 'TP'
+    elif change == 'null_as_blank':
+        table['rows'][0]['cells'][2]['text'] = ''
+    else:
+        table['rows'][2]['cells'][1]['text'] = '0'
+    assert not check_annotations(observed, evidence, annotation)['passed']

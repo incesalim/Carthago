@@ -61,8 +61,8 @@ artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
 are not yet published across the corpus. Neither running/queued fleet is
 restarted for subsequent source annotations.
 
-The source benchmark now contains **63 selected cases across eight reports**.
-The latest four independently transcribed TOMK 2023Q3 capital fragments cover
+The source benchmark now contains **73 selected cases across eight reports**.
+Four independently transcribed TOMK 2023Q3 capital fragments cover
 all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
 restores the word finansal, whose final letter physically crosses into an amount
 cell, and separates page 26's dated labels inside a merged physical header.
@@ -75,12 +75,26 @@ and discrepancy notes are available locally as JSON and a readable HTML under
 `output/audit-corpus/TOMK_2023Q3_unconsolidated/capital-disclosure-source-reviewed.*`.
 It is a named disclosure review, not whole-report or financial-series approval.
 
-Admin integration of reviewed tables is implemented locally, with publication
-pending. Passed complete-table annotations produce receipt records bound to
+Admin integration of reviewed tables is deployed at `2b601f3` (CI `34121426927`
+and deployment `34121557991` passed), with review-record publication pending.
+Read-only run `34121459005` independently reconciles exactly eight annotated
+filings, all 63 cases at that commit and 21 complete table records. All those
+records equal fresh benchmark replay against four retained full PDF evidence
+packages. Restricted publication `34122513206` is queued at that tested commit
+behind the two existing corpus runs. Passed complete-table annotations produce receipt records bound to
 both exact stored page views. The private reader validates grid slots, context,
 word occurrences, logical assignments and source/capture identity before serving
-rows and downloads. Four independently captured reports provide 21 reviewed
-tables; this is a selected-review count, not the corpus's printed-table total.
+rows and downloads. Ten further TOMK note tables on pages 39–44 have since been
+independently transcribed and checked locally: 82 rows and 272 physical slots.
+Magnified original inspection corrected one manual wording error. The bank's
+duplicated Cari Dönem header on its tax-loss table remains literal, alongside
+the distinct printed dates. Wrong digits, dates, currencies, missing references,
+covered slots and dash/zero substitutions fail the new checks. These ten reviews
+are not part of the already queued 21-table publication.
+The four independently captured reports now provide 31 reviewed tables in
+`output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
+311 physical rows and 1,236 slots. This is a selected-review count, not the
+corpus's printed-table total.
 Python-produced wire fixtures include original reviewed pages with explicit
 empty placeholders elsewhere solely for protocol tests. They are not complete
 report extracts. The new `annotated_only` capture input limits publication to

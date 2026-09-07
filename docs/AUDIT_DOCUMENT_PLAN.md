@@ -1132,3 +1132,46 @@ of detected tables.
   726 still on c6e429ce and zero catalog capture failures. The two existing
   publications remain unchanged. A read-only annotated-scope run and independent
   review-record reconciliation precede the new restricted publication.
+
+- 2026-09-07: exact-commit CI `34121426927` and deployment `34121557991`
+  succeed. Read-only annotated-scope run `34121459005` independently reconciles
+  eight unique expected filings, the unchanged 1,146-filing denominator, all
+  63 registered cases and 21 complete table records. Recomputing the entire
+  benchmark against four retained full PDF/native/structure packages yields
+  exactly the same review records. The source PDF and artifact content hashes
+  are checked, with native hashes addressing decompressed canonical evidence.
+  Publication `34122513206` is pending at tested commit `2b601f3`, behind
+  region `34112697713` and period-heading `34116379265`; none is restarted.
+
+- 2026-09-07: independently transcribed ten further TOMK 2023Q3 note tables
+  on PDF pages 39–44 before comparing candidate text. They cover 82 rows and
+  272 physical slots: tax-loss expiry, leases, taxes, social premiums, paid-in
+  capital, bank and securities income, trading, expenses and continuing profit.
+  Magnified original inspection corrected one manual singular/plural wording
+  error. The printed duplicate Cari Dönem heading, separate reporting dates,
+  TP/YP columns and merged/blank/dash distinctions are retained. All ten
+  complete-table checks pass and corruption of each table's figures or source
+  occurrences fails. The benchmark now has 73 cases across the same eight
+  reports. Existing extracted evidence is reused; no extraction engine changes.
+  A local HTML index and per-filing JSON deliver all 31 passed complete tables
+  from the four retained reports (311 physical rows, 1,236 slots), including
+  original physical cells and word/character references. The ten new tables
+  still need committed cloud verification/publication. Whole-report content
+  verification and the overall corpus goal remain open.
+
+- The local collection was visually inspected in the browser, including its
+  two-period currency headers and source links. This caught an older annotation
+  description scoped to page 6 that had become the fallback for other TOMK
+  tables. The page-6 wording now belongs to its own case; the report-level
+  description states its selected-case scope. No source cells changed. The
+  completed 63-case probe's independent replay script now loads annotations
+  from its exact tested commit, preserving reproducibility after new reviews.
+
+- The ten-note-table change passes the full isolated staged Python suite (two
+  expected skips), lint and all nine standalone repository gates. Web passes
+  all 833 tests, lint and type checking; mobile lint/type/token checks pass.
+  The refreshed live admin shows the deployed source-reviewed-table section,
+  an explicit empty state on unreviewed pages, all 1,146 preserved/structured
+  filings, zero fully verified and 536 remaining region updates at this check.
+  The local four-report collection's 31-table / 311-row / 1,236-slot totals and
+  all structured download files are independently reconciled.
