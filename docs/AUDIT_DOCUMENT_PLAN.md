@@ -929,3 +929,20 @@ of detected tables.
   pending. Next, reconcile that run and apply the validated repair across the
   corpus; investigate reuse of retained structures with explicit version and
   equivalence checks to avoid repeatedly parsing unaffected PDF pages.
+
+- 2026-09-07: implemented a strictly versioned retained-structure replay for
+  c6e429ce to 9d4a83ae with PyMuPDF 1.27.2.3. Changed sources, invalid native
+  evidence, corrupt structure/diagnostics and unsupported versions cannot use
+  the shortcut. Sixteen new tests cover exact fresh equality at four rotations,
+  failure handling, unchanged prose pages, cache precedence and fresh fallback.
+  Independent cloud extraction `34105876696` at `e7248da` produces exactly the
+  same entire 83-page EXIM 2023Q3 solo structure as replaying its real published
+  c6e429ce artifact. Native records and original bytes also match. Replay reads
+  glyphs on page 70 only and takes 2.6 seconds locally. Source rendering exposes
+  a remaining table-detection defect: ruled4's boundary is at x307.20 while the
+  printed divider is x302.11, splitting 153.702.651 across cells in two rows.
+  The repair keeps mandatory boundary-review observations and does not approve
+  those amounts. Correcting the detected border is a separate necessary repair.
+  Proof: `retained-upgrade-independent-verification.json` in the internal evidence
+  folder. The original full refresh remains active; fleet-wide replay publication
+  and timing have not yet been measured.

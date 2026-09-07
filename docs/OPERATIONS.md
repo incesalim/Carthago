@@ -1947,3 +1947,19 @@ nearby prose; they are not authoritative paragraph boundaries. Aligned Roman
 headings on the same page are treated as siblings despite small font-size
 differences, while indented heading candidates can retain a parent. These remain
 source-layout candidates and do not certify semantic hierarchy.
+
+Publishing captures can replay the exact `c6e429ce49dad46d4217c68d0ea35d8c5fe4acc6b508ea690f03c55bed83a463`
+to `9d4a83ae8331be87f793b2fd9878463f35178a4f40f70766f2e6010a81a4b438`
+structure transition under PyMuPDF 1.27.2.3 without rerunning table detection.
+`document_corpus_upgrade.py` is an adapter outside the extraction fingerprint;
+both exact fingerprints must match its separately tested transition. It reads
+only immutable-byte-verified retained structure for the same native evidence,
+checks the original PDF identity before and after, inspects glyphs only on
+ruled-table pages with source-reference mismatches, and recomputes dependent
+source-row/header/note references. Full structure and source benchmarks still
+gate publication. A corrupt eligible cache fails; an unavailable base or any
+different extraction/library version takes normal full extraction. Default
+read-only probes remain fresh and supply an independent comparison. Capture
+results name `structure_build.method`, inspected glyph pages and changed tables;
+an unchanged-object receipt can still skip a previously completed publication.
+No figure or semantic approval follows from successful reuse.

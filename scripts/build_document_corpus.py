@@ -311,12 +311,9 @@ def main(argv: list[str] | None = None) -> int:
                                   original=str(original.relative_to(args.output_dir)))
                     structure_path = None
                     if args.structure:
-                        from src.audit_reports.document_structure import (
-                            build_document_structure, structure_digest, structure_engine,
-                        )
-                        structure = store.cached_structure(records, structure_engine()) if store else None
-                        if structure is None:
-                            structure = build_document_structure(pdf, records)
+                        from src.audit_reports.document_structure import structure_digest
+                        from src.audit_reports.document_corpus_upgrade import build_or_reuse_structure
+                        structure, result['structure_build'] = build_or_reuse_structure(pdf, records, store)
                         structure_path = artifact.parent / f"{structure_digest(structure)}.structure.json"
                         _write_json(structure_path, structure)
                         from src.audit_reports.document_benchmark import check_registered_annotations

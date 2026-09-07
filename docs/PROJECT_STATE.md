@@ -82,6 +82,18 @@ Publication of the new report artifacts and live boundary-review inspection
 remain pending while the older full-corpus refresh finishes.
 The reviewed table is under `output/audit-corpus/TOMK_2024Q1_unconsolidated/`.
 
+The retained-structure adapter now supports only the exact `c6e429ce` to
+`9d4a83ae` extraction transition, both using PyMuPDF 1.27.2.3. It reuses
+byte-verified structure, reads original glyphs on affected ruled-table pages,
+and recomputes dependent references. Changed sources or unsupported engines
+cannot take this path. Independent fresh cloud probe `34105876696` at `e7248da`
+matches the replay's entire 83-page EXIM 2023Q3 solo structure and all native
+records exactly. Replay inspected one page and took 2.6 seconds locally. The
+source render also confirms an unresolved detected-border error on page 70:
+the amount 153.702.651 is split between label and amount cells. Mandatory
+boundary-review observations remain; exact replay does not approve that table.
+Corpus-wide use of this adapter has not yet been measured.
+
 Remaining work is corpus-wide physical and semantic completeness: every printed
 table, its headers/units/row-column associations and continuations; all prose,
 its ordering and analyst retrieval; and named unresolved source limitations.
@@ -93,7 +105,8 @@ execution record. Independent evidence is retained under
 `registered-quality-independent-reconciliation.json`,
 `rotation-publication-independent-verification.json` and
 `cell-fragments-source-verification.json`; the complete cloud probe checks are in
-`cell-fragments-cloud-independent-verification.json`.
+`cell-fragments-cloud-independent-verification.json` and
+`retained-upgrade-independent-verification.json`.
 
 
 ## Data coverage in D1
