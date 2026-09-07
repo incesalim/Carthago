@@ -8,12 +8,13 @@ type Element = { id: string; text: string; kind: string; span_ids: SpanId[];
   source_lines: [number, number][]; bbox: Box; font_size?: number;
   heading_path?: { id: string; text: string }[]; table_ids: string[]; candidate_table_ids?: string[] };
 export type ProseSection = { number: number; title: string; role: string; page_start: number; page_end: number };
-export type ProseHeading = { id: string; text: string; page: number; marker: string | null };
+export type ProseHeading = { id: string; text: string; page: number; marker: string | null; marker_element_id: string | null };
 export type ProsePassage = {
   id: string; element_id: string; order: number; source_order: number; page: number;
-  kind: "heading" | "paragraph" | "list_item" | "table_note" | "table_text" | "mixed_text" | "furniture" | "unclassified";
+  kind: "heading" | "heading_marker" | "paragraph" | "list_item" | "table_note" | "table_text" | "mixed_text" | "furniture" | "unclassified";
   raw_text: string; text: string; source_span_ids: SpanId[]; source_lines: [number, number][]; bbox: Box;
   section: ProseSection | null; heading_path: ProseHeading[]; heading_scope: "page" | "document_candidate";
+  heading_marker: { element_id: string; text: string } | null;
   table_ids: string[]; candidate_table_ids: string[]; note_links: { table_id: string; column: number; marker: string }[];
   continuation_from: string | null; language: "tr" | "en" | "und";
   issues: string[];
@@ -97,10 +98,29 @@ function checkedElements(page: StructurePage, source: SourcePage): { elements: E
 }
 
 function marker(text: string): { key: string; depth: number } | null {
-  const m = /^(\d+(?:\.\d+)+|[IVX]+|[a-zA-Z]|\d+)[.)]\s+\S/u.exec(compact(text));
+  const m = /^(\d+(?:\.\d+)+)[.)]?\s+\S/u.exec(compact(text))
+    ?? /^([IVX]+|[a-zA-Z]|\d+)[.)]\s+\S/u.exec(compact(text));
   if (!m) return null;
   const key = m[1];
   return { key, depth: key.includes(".") ? 2 + key.split(".").length : /^[IVX]+$/.test(key) ? 1 : /^\d+$/.test(key) ? 3 : 2 };
+}
+
+/** Unique, adjacent fragments on the same printed line; keep both original elements. */
+function separatedMarkers(elements: Element[], source: SourcePage) {
+  const found = new Map<string, Element>();
+  const spans = new Map(source.spans.map(s => [s.id, s]));
+  for (const heading of elements.filter(e => e.kind === "heading_candidate" && !marker(e.text))) {
+    const first = heading.span_ids.map(id => spans.get(id)!).filter(s => s.block === heading.source_lines[0][0] && s.line === heading.source_lines[0][1]);
+    const b = bounds(first), height = b[3] - b[1];
+    const choices = elements.filter(e => ["paragraph_candidate", "list_item_candidate"].includes(e.kind)
+      && !e.table_ids.length && /^(?:\d+(?:\.\d+)*[.)]?|[IVX]+[.)]|[a-zA-Z][.)])$/.test(compact(e.text))
+      && e.bbox[2] <= b[0] && b[0] - e.bbox[2] <= 4 * height
+      && Math.abs(e.bbox[1] - b[1]) <= .2 * height && Math.abs(e.bbox[3] - b[3]) <= .2 * height);
+    if (choices.length === 1) found.set(heading.id, choices[0]);
+  }
+  const uses = new Map<string, number>();
+  for (const e of found.values()) uses.set(e.id, (uses.get(e.id) ?? 0) + 1);
+  return new Map([...found].filter(([, e]) => uses.get(e.id) === 1));
 }
 function language(text: string): ProsePassage["language"] {
   const words = ` ${fold(text)} `;
@@ -147,7 +167,12 @@ export class ProseBuilder {
     const validOrder = order && order.length === elements.size && new Set(order).size === elements.size && order.every(id => elements.has(id));
     if (!validOrder) issues.push("reading_layout_unavailable");
     issues.push(...(page.reading_layout?.issues ?? []).map(i => i.kind));
-    const reference = (e: Element): ProseHeading => ({ id: this.id(e.id), text: compact(e.text), page: page.page, marker: marker(e.text)?.key ?? null });
+    const prefixes = separatedMarkers(checked.elements, source);
+    const prefixIds = new Set([...prefixes.values()].map(e => e.id));
+    const numberOf = (e: Element) => marker(e.text) ?? (prefixes.has(e.id)
+      ? marker(`${compact(prefixes.get(e.id)!.text).replace(/[.)]$/, "")}. ${e.text}`) : null);
+    const reference = (e: Element): ProseHeading => ({ id: this.id(e.id), text: compact(e.text), page: page.page,
+      marker: numberOf(e)?.key ?? null, marker_element_id: prefixes.has(e.id) ? this.id(prefixes.get(e.id)!.id) : null });
     const noteLinks = new Map<string, ProsePassage["note_links"]>();
     for (const table of page.table_notes?.tables ?? []) {
       if (!page.tables.some(t => t.id === table.table_id)) throw new Error("Unknown prose note table");
@@ -163,13 +188,15 @@ export class ProseBuilder {
     let firstBody = true;
     for (const id of validOrder ? order : storedOrder) {
       const e = elements.get(id)!;
-      const kind = noteLinks.has(id) ? "table_note" : kinds[e.kind] ?? "unclassified";
+      const kind = noteLinks.has(id) ? "table_note" : prefixIds.has(id) ? "heading_marker" : kinds[e.kind] ?? "unclassified";
       const text = compact(e.text);
       let headingPath = (e.heading_path ?? []).map(h => reference(elements.get(h.id)!));
       let headingScope: ProsePassage["heading_scope"] = "page";
-      const numbered = kind === "heading" ? marker(text) : null;
+      const numbered = kind === "heading" ? numberOf(e) : null;
       const divider = section && fold(text).replace(/\s*\((DEVAMI|CONTINUED)\)\s*$/, "") === fold(section.title);
       if (numbered && section) {
+        if (numbered.key.startsWith(`${section.number}.`)) this.headings = this.headings.filter(h =>
+          h.heading.marker && numbered.key.startsWith(`${h.heading.marker}.`));
         while (this.headings.length && this.headings.at(-1)!.depth >= numbered.depth) this.headings.pop();
         headingPath = this.headings.map(h => h.heading);
         headingScope = headingPath.some(h => h.page < page.page) ? "document_candidate" : "page";
@@ -191,11 +218,12 @@ export class ProseBuilder {
         source_order: storedOrder.indexOf(id) + 1, page: page.page, kind, raw_text: e.text, text,
         source_span_ids: e.span_ids, source_lines: e.source_lines, bbox: e.bbox, section, heading_path: headingPath,
         heading_scope: headingScope, table_ids: e.table_ids, candidate_table_ids: e.candidate_table_ids ?? [],
+        heading_marker: prefixes.has(id) ? { element_id: this.id(prefixes.get(id)!.id), text: compact(prefixes.get(id)!.text) } : null,
         note_links: noteLinks.get(id) ?? [], continuation_from: null, language: language(text), issues: [] };
       if (kind === "mixed_text") passage.issues.push("prose_and_table_overlap");
       if (e.candidate_table_ids?.length) passage.issues.push("candidate_table_overlap");
       if (headingScope === "document_candidate") passage.issues.push("cross_page_heading_candidate");
-      if (!["furniture", "heading"].includes(kind)) {
+      if (!["furniture", "heading", "heading_marker"].includes(kind)) {
         const previous = this.previousPageLast;
         if (firstBody && kind === "paragraph" && previous?.kind === "paragraph" && previous.page === page.page - 1
             && section && previous.section?.number === section.number && headingPath.length > 0

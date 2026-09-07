@@ -16,9 +16,9 @@ export function ProseReadingView({ report, citation, onPage }: {
   const [limit, setLimit] = useState(60);
   const matching = useMemo(() => {
     const search = query.toLocaleLowerCase("tr").trim();
-    return report.passages.filter(p => (includeTables || !["furniture", "table_text"].includes(p.kind))
+    return report.passages.filter(p => (includeTables || !["furniture", "table_text", "heading_marker"].includes(p.kind))
       && (!section || (section === "unknown" ? !p.section : String(p.section?.number) === section))
-      && (!search || `${p.text} ${p.heading_path.map(h => h.text).join(" ")}`.toLocaleLowerCase("tr").includes(search)));
+      && (!search || `${p.heading_marker?.text ?? ""} ${p.text} ${p.heading_path.map(h => `${h.marker ?? ""} ${h.text}`).join(" ")}`.toLocaleLowerCase("tr").includes(search)));
   }, [report, query, section, includeTables]);
   return <div className="mt-3">
     <p className="text-xs text-muted-foreground">Wording checked against {nf(report.verification.source_spans_checked, 0)} native source spans
@@ -48,8 +48,8 @@ export function ProseReadingView({ report, citation, onPage }: {
         <a className="text-primary hover:underline" href={`${citation}&artifact=original#page=${p.page}`} target="_blank" rel="noreferrer">Original PDF</a>
         <span>{p.section ? `${p.section.number}. ${p.section.role.replaceAll("_", " ")}` : "Section unassigned"}</span>
       </div>
-      {p.heading_path.length > 0 && <p className="mt-1 text-xs text-muted-foreground">{p.heading_path.map(h => h.text).join(" › ")}</p>}
-      <p className={`mt-2 text-sm leading-relaxed ${raw ? "whitespace-pre-wrap" : ""} ${p.kind === "heading" ? "font-semibold" : ""}`}>{raw ? p.raw_text : p.text}</p>
+      {p.heading_path.length > 0 && <p className="mt-1 text-xs text-muted-foreground">{p.heading_path.map(h => h.marker_element_id ? `${h.marker} ${h.text}` : h.text).join(" › ")}</p>}
+      <p className={`mt-2 text-sm leading-relaxed ${raw ? "whitespace-pre-wrap" : ""} ${p.kind === "heading" ? "font-semibold" : ""}`}>{p.heading_marker && <span className="mr-2">{p.heading_marker.text}</span>}{raw ? p.raw_text : p.text}</p>
       {p.continuation_from && <p className="mt-1 text-xs text-warning">Possible continuation of the preceding page’s paragraph; fragments are kept separately.</p>}
       {p.note_links.map(link => <p key={`${link.table_id}:${link.column}`} className="mt-1 text-xs text-muted-foreground">Note {link.marker} · table {link.table_id} · column {link.column}</p>)}
       {p.issues.length > 0 && <p className="mt-1 text-xs text-warning">{p.issues.map(i => i.replaceAll("_", " ")).join(" · ")}</p>}

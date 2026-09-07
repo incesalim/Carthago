@@ -26,6 +26,10 @@ text and page furniture. Short disclosures remain visible. Original line breaks,
 source-page inspection, PDF citations and complete structured JSON export are
 available. The export includes passages outside the current search/filter.
 
+Printed note numbers held in separate PDF fragments are shown with their
+uniquely aligned headings. Search also matches these addresses (for example,
+`3.24`); the JSON retains both source fragments and their explicit relationship.
+
 The reader verifies wording against every native source span before displaying
 the report. Section/heading relationships, paragraph boundaries and reading order
 remain candidates with visible flags. Missing native text is reported rather

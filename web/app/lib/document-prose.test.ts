@@ -42,6 +42,9 @@ describe("structured audit prose", () => {
     const found = builder.report.passages.find(p => p.text.startsWith("The Bank operates in corporate"))!;
     expect(found.language).toBe("en");
     expect(found.heading_path.at(-1)?.text).toBe("Segment reporting");
+    expect(found.heading_path.at(-1)?.marker).toBe("3.24");
+    expect(found.heading_path.at(-1)?.marker_element_id).toContain("p50:narrative7");
+    expect(builder.report.passages.find(p => p.element_id === "p50:narrative7")?.raw_text).toBe("3.24 ");
     expect(found.section?.role).toBe("accounting_policies");
   });
   it.each(["negation", "figure", "drop", "duplicate", "source-lines", "bbox", "heading", "table"])("rejects damaged %s even in a checksummed structured artifact", mutation => {
@@ -77,6 +80,21 @@ describe("structured audit prose", () => {
     builder.addPage(p1.structure, p1.source); builder.addPage(p2.structure, p2.source);
     expect(builder.report.passages[2].heading_path).toEqual([]);
     expect(builder.report.passages[2].continuation_from).toBeNull();
+  });
+  it("absolute decimal addresses never inherit an unrelated preceding note", () => {
+    const builder = new ProseBuilder(revision, sections);
+    const p = page(1, [["4.2 Previous note", "heading_candidate"], ["4.3.1 Separate note", "heading_candidate"], ["The disclosure.", "paragraph_candidate"]]);
+    builder.addPage(p.structure, p.source);
+    expect(builder.report.passages[2].heading_path.map(h => h.marker)).toEqual(["4.3.1"]);
+  });
+  it("does not assign ambiguous or distant standalone numbers to headings", () => {
+    for (const ambiguous of [false, true]) {
+      const p = page(1, [["4.2", "paragraph_candidate"], ["4.3", "paragraph_candidate"], ["Risk heading", "heading_candidate"]]);
+      p.source.spans[0].bbox = p.structure.narrative_elements[0].bbox = [10, ambiguous ? 140 : 110, 30, ambiguous ? 150 : 120];
+      p.source.spans[1].bbox = p.structure.narrative_elements[1].bbox = [10, ambiguous ? 140 : 110, 30, ambiguous ? 150 : 120];
+      const builder = new ProseBuilder(revision, sections); builder.addPage(p.structure, p.source);
+      expect(builder.report.passages[2].heading_marker).toBeNull();
+    }
   });
   it("retains every original line when old captures lack paragraphs, and reports unreadable pages", () => {
     const builder = new ProseBuilder(revision, []);

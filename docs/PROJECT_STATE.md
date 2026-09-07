@@ -31,6 +31,12 @@ relationships remain marked. Table text and page furniture are retained in the
 export and available through the reader's filter. Older captures fall back to
 unclassified source lines; pages without native text are reported explicitly.
 
+Separately positioned note numbers are linked to a uniquely adjacent heading
+on the same source line. For example, GARAN's `3.24` now accompanies “Segment
+reporting” and participates in the heading address across pages. Both original
+fragments remain intact. Ambiguous marker matches stay unassigned; an absolute
+decimal address never inherits an unrelated preceding note.
+
 Read-only checks against current cloud artifacts cover TOMK 2023Q3 solo (51
 pages, 6,830 spans, 1,387 elements) and GARAN 2022Q4 consolidated (184 pages,
 25,713 spans, 7,061 elements). All 14 previously source-reviewed TOMK management
