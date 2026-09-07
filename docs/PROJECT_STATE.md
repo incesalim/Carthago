@@ -70,9 +70,14 @@ filings and 289,865 OCR words; that older selector omitted damaged native font
 maps. The revised selector includes control-character/legibility signals. The
 current automatic run `34058889360` has an independently verified retained scope
 of exactly 1,144 successful PDF hashes from expanded capture; the two repaired
-filings follow separately. All four workers started; final page outcomes remain
-pending. Quality-only follow-ups have independently passed with empty recovery
-scope. Selection completion does not establish that every unreadable page was found.
+filings follow separately. All four workers succeeded: 210 filings have 1,153
+selected pages and 441,179 OCR words; 934 have no pages flagged. The two explicit
+repair checks (`34069911174` / `34069912704`) also succeed with no flagged pages.
+All **1,146 registered filings** are now reconciled against their source hashes
+and named recovery outcomes (936 not flagged, 210 with recovery candidates).
+Two previously referenced follow-ups were only empty scope reports; the explicit
+repair checks close that bookkeeping gap. Selection completion does not establish
+that every unreadable page was found or that the recognized text is correct.
 
 Six FIBA/ISCTR/Takasbank sample pages have independently verified source pixels,
 raw readings, physical tables and 75 selected cell checks. Their unchanged replays
@@ -156,9 +161,17 @@ confirms that the 2022Q2 archive actually contains a 2022Q1 activity report; the
 2026Q2 attachment states 2026Q2. A separate immutable related-identity receipt now
 binds the opening-page observations to the exact PDF/native artifact and labels
 the inherited filing as archive context. The admin exposes source-period conflicts
-and rejects substituted or corrupted receipts. Local Python and 745 web tests
-pass; cloud publication of these receipts and capture of the remaining activity
-attachments remain pending. No whole attachment is semantically approved.
+and rejects substituted or corrupted receipts. All 14 archive associations are
+now published and independently reconciled: 13 distinct PDFs, 168 associated
+pages, 37,216 OCR words across associations, 13 supported native identities and
+one retained period conflict. Original/native/structure/identity bytes are
+checked for every attachment; all 24 recovery pages in the two earlier probes
+also match their independently inspected artifacts. Replay `34069765929` preserves
+all 31 observed object versions. Both Anadolu declaration identity receipts are
+also backfilled (`34069767466` / `34069769140`); their image-only native identity
+remains unresolved and prior artifacts retain their versions. All 16 identified
+related archive associations are captured. No whole attachment is semantically
+approved, and unresolved origin downloads may contain additional attachments.
 
 Three open TOMK 2023Q3 content notes now retain seven exact source passages:
 capital ratios 93,93 / 93,75 / 93,90, the prior own-funds discrepancy and adjacent
@@ -167,7 +180,19 @@ reader verify page hashes, span occurrences, literal wording and geometry.
 Notes are stored in the source benchmark receipt, independently of candidate
 table views, and exposed as structured analyst metadata. They do not select
 corrected values or certify financial meanings. Python checks and all 761 web
-tests, lint and type checks pass. Cloud receipt publication is pending.
+tests, lint and type checks pass. Cloud probe `34069764376` retains all 51 native
+and structured pages byte-for-byte and passes all 10 selected cases. Publication
+and replay `34069966411` preserve the source-bound notes with all four object
+versions unchanged on replay. CI and deployment at `310eaaa` pass; the deployed
+admin display awaits renewal of the user's expired session.
+
+A bounded read-only comparison with four independently matched BDDK listing
+rows finds exact acquired-byte agreement for AKTIF, VAKBN and ZIRAATK 2026Q2
+solo, and a different ATBANK PDF revision. All four covers visually confirm the
+bank, period and basis; ATBANK's two covers have identical rendered bytes, but
+its full 88-page revision comparison is pending. Alternate-source origin receipt
+publication has not yet been implemented; these probes do not replace the
+registered URLs or alter the published origin-agreement count.
 
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has

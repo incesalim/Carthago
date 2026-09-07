@@ -607,3 +607,25 @@ of detected tables.
   Benchmark receipts retain the notes separately from structure; admin and private
   analyst JSON expose original passages. No figure is corrected by these notes.
   Cloud receipt publication and deployed UI checks remain pending.
+
+- 2026-09-07: all registered recovery selection outcomes reconciled: 1,144 in
+  `34058889360` plus explicit ZIRAATD/Anadolu checks `34069911174` / `34069912704`.
+  Total 1,146 filings; 1,153 selected pages in 210 filings; 441,179 OCR words;
+  936 filings not flagged. Two earlier follow-up IDs held empty scope reports,
+  not repair outcomes; the explicit checks correct that gap. This is selection
+  and retention coverage, not recognition or whole-document correctness.
+- 2026-09-07: all 14 Takasbank archive associations published and independently
+  reconciled to original/native/structure/identity bytes; 13 distinct PDFs, 168
+  associated pages and 37,216 OCR words. The 2022Q2 archive/source-period conflict
+  remains. Replay preserves 31 object versions. Both Anadolu declaration identity
+  receipts are backfilled without restamping prior artifacts; native image-only
+  identity remains unresolved. All 16 currently identified related associations
+  are captured, with known recognition disagreements retained.
+- 2026-09-07: TOMK open content notes pass cloud probe `34069764376`; all 51 native
+  and structured pages remain byte-identical. Publication/replay `34069966411`
+  passes independent receipt checks and preserves all four object versions.
+  Deployed admin review awaits the user renewing the expired session.
+- 2026-09-07: four bounded BDDK alternate-origin probes match literal official
+  listing rows and independently inspected covers. AKTIF/VAKBN/ZIRAATK 2026Q2
+  solo match acquisitions; ATBANK differs despite identical rendered covers.
+  Full alternate-revision comparison and source-bound publication remain open.
