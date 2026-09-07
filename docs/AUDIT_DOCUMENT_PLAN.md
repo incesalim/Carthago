@@ -1283,3 +1283,11 @@ of detected tables.
   gates. The readable off-balance-sheet output was visually inspected from its
   dated headings through the closing total. Extraction fingerprint remains
   `35500cc8`; only the named review receipts need refreshing.
+
+  Delivered code `29c8af4` passes CI `34138492762`. Independent downloaded
+  artifacts from fresh probe `34138514206` retain every original/native byte
+  across all 51 pages and exactly match the entire retained structure. All 57
+  TOMK source cases and 32 complete table records equal pinned local replay.
+  Scoped publication `34138728663` queues this receipt after the existing
+  full-corpus jobs; the additional tables are not yet verified live. Proof is
+  recorded in `reviewed-grid-cloud-independent-verification.json`.

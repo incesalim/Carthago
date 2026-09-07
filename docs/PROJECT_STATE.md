@@ -182,12 +182,19 @@ explicitly joins the 14.6.2 label with its six amounts printed on the following
 otherwise unlabelled baseline, while preserving those source coordinates.
 The private reader validates the complete assignments and displays the reviewed
 column count. Neither extraction engine `35500cc8` nor stored analytical facts
-change. This additional three-table batch is not in pending publication
-`34133467871`; fresh cloud verification and scoped receipt publication remain
-required. Python and Worker checks reject changed values, dates, currencies,
-word occurrences, boundaries and spans. The isolated staged source passes
-2,898 Python tests (two skipped), 858 web tests, web/mobile lint and types,
-mobile token checks and all nine standalone gates. Whole-report content review remains open.
+change. This additional three-table batch is queued separately from pending
+full-corpus publication `34133467871`. Code `29c8af4` passes CI `34138492762`.
+Independent downloaded readback of fresh probe `34138514206` verifies identical
+original/native bytes on all 51 pages and exact equality of the entire structure
+with retained replay. All 57 TOMK cases and 32 complete table records match
+pinned local replay. Scoped publication `34138728663` queues that report's
+updated review receipt after the existing fleets; live display remains unverified.
+The isolated staged source passes 2,898 Python tests (two skipped), 858 web
+tests, web/mobile lint and types, mobile token checks and all nine standalone
+gates. Wrong values, dates, currencies, word occurrences, boundaries and spans
+fail review validation. Receipt: `reviewed-grid-cloud-independent-verification.json`
+under `docs/knowledge/2026-09-06-document-corpus/`. Whole-report content review
+remains open.
 
 Remaining work is every printed table's coverage and logical structure across
 the corpus, complete prose ordering and analyst retrieval, whole-report source

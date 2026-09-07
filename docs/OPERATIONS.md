@@ -2105,3 +2105,13 @@ Changes to its validator invalidate table-review receipts, without changing
 native/structure extraction versions or source-only receipts. Publish updated
 review receipts with the existing scoped capture controls after source proof;
 there is no need to restart either full-corpus extraction fleet.
+
+The first reviewed-grid batch is independently cloud-verified at `29c8af4`:
+read-only probe `34138514206` preserves all 51 TOMK 2023Q3 original/native
+pages and exactly matches the complete retained structure and all 57 cases /
+32 table-review records. Scoped publication `34138728663` queues only that
+filing's updated receipt after combined publication `34133467871`. Original
+and extraction identities are unchanged. The latter full-corpus job retains
+its original annotation snapshot; it is not restarted for these three tables.
+Receipt: `reviewed-grid-cloud-independent-verification.json` in the internal
+evidence directory. Queued publication does not establish a verified live view.
