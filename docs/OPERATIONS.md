@@ -1997,3 +1997,13 @@ It prefers a retained 9d4a83ae revision when both exist. This can avoid an
 intermediate corpus-wide publication solely to change word references. Other
 source or extraction versions remain unsupported, and complete fresh/replay
 comparison is still required before publishing a new transition across the fleet.
+
+Complete physical-table source annotations can explicitly name `absent_slots`
+for spaces outside a printed grid. The benchmark checks the exact transcribed
+slot inventory, merged spans, nonoverlapping cell rectangles and common edges,
+along with every source character occurrence and date/unit/title witnesses.
+This is an annotation-backed check; general grid inference still abstains when
+the candidate does not cover a complete rectangle. A null outside the grid,
+a null covered by a merged cell, a printed empty cell, a dash and zero remain
+different source facts. Global unit witnesses do not convert count, percentage,
+rating or explicitly different-currency cells into financial amounts.

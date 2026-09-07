@@ -127,6 +127,121 @@
           ]
         }
       ]
+    },
+    {
+      "id": "derivative_hedging_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 70,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        80,
+        378,
+        540,
+        447
+      ],
+      "rows": [
+        [
+          "Derivative Financial Liabilities for Hedge",
+          "Current Period",
+          null,
+          "Prior Period",
+          null
+        ],
+        [
+          null,
+          "TL",
+          "FC",
+          "TL",
+          "FC"
+        ],
+        [
+          "Fair Value Hedge",
+          "-",
+          "736.628",
+          "-",
+          "448.516"
+        ],
+        [
+          "Cash Flow Hedge",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Net Investment in Foreign Operations Hedge",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Total",
+          "-",
+          "736.628",
+          "-",
+          "448.516"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_text_regions": [
+        {
+          "text": "AS AT 30 SEPTEMBER 2023",
+          "bbox": [
+            78.024,
+            70.688,
+            235.01,
+            83.972
+          ],
+          "source_span_ids": [
+            2
+          ]
+        },
+        {
+          "text": "(Amounts expressed in thousands of Turkish Lira (TL) unless otherwise stated.)",
+          "bbox": [
+            78.024,
+            84.5056,
+            400.87,
+            95.5314
+          ],
+          "source_span_ids": [
+            3
+          ]
+        },
+        {
+          "text": "Information on derivative financial liabilities for hedging purposes",
+          "bbox": [
+            78.024,
+            361.7356,
+            364.72,
+            372.7614
+          ],
+          "source_span_ids": [
+            81
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct."
     }
   ],
   "review": "All 25 slots, merged headings, title, units and report date independently read from original page 70 on 2026-09-07."

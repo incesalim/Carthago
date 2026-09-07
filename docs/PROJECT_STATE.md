@@ -92,9 +92,10 @@ records exactly. Replay inspected one page and took 2.6 seconds locally. The
 source render also confirms an unresolved detected-border error on page 70:
 the amount 153.702.651 is split between label and amount cells. Mandatory
 boundary-review observations remain; exact replay does not approve that table.
-Commit `6aae99a` passes CI `34106739090`; full-corpus publication `34106960090`
-is queued at that exact commit behind the existing refresh. Corpus-wide reuse
-and timing have not yet been measured. A bounded source-region prototype fixes
+Commit `6aae99a` passes CI `34106739090`; its intermediate full-corpus publication
+`34106960090` was cancelled while still pending with no jobs started, after the
+combined repair passed independent cloud comparison. Corpus-wide reuse and
+timing have not yet been measured. A bounded source-region prototype fixes
 the EXIM border; all 25 slots, three merged headings, date, units and complete
 footnote are independently checked. Its local export is
 `output/audit-corpus/EXIM_2023Q3_unconsolidated/borrowing-maturity-table.json`.
@@ -103,8 +104,14 @@ passes, while corrupted variants fail. General region isolation is now
 implemented: each table is reobserved in a bounded region, with exactly one
 candidate, the same complete source-word region and conserved characters.
 Ambiguity or source loss keeps the original candidate. The complete EXIM table,
-its date/units and full footnote are now a permanent regression: 48 cases across
-eight reports. The reviewed TOMK liquidity and Garanti OCI cases still pass.
+its date/units and full footnote are now a permanent regression. Seven further
+complete source grids bring the benchmark to 55 cases across eight reports.
+All eight tables whose literal or empty-slot structure changed in the 384-page
+probe sample were checked against rendered originals: 241 slots, including
+hedging liabilities, market/operational risk, branch statistics and credit ratings.
+The reviewed TOMK liquidity and Garanti OCI cases still pass. Explicitly reviewed
+gaps outside a printed grid remain distinct from merged slots and printed blanks;
+the regression checker does not require those tables to be rectangular.
 Current code also supports an exact `9d4a83ae` to `ca66890e` retained-region
 replay, rebuilding dependent tables, prose/layout and context without repeating
 native capture or initial grid detection. Read-only cloud probes compare it
@@ -115,12 +122,20 @@ full-output comparisons pass at all four page rotations. Fresh cloud probes at
 ordered narrative span occurrences across EXIM, Garanti and two TOMK reports.
 All 30 selected source cases pass; CI `34109724552` and deployment `34109971304`
 pass. The probes find no retained 9d4a83ae base, so they do not establish replay
-equivalence. That comparison and publication remain pending; both dispatched
-corpus runs keep their exact versions. A combined replay from the current
+equivalence. Subsequent probes `34110722949` and `34110725855` at `3f3f763`
+establish complete direct replay/fresh equality across all 267 EXIM/Garanti pages.
+Independent artifact readback confirms both base digests, all originals/native
+records, the complete fresh structures and preserved physical blocks/prose.
+A combined replay from the current
 `c6e429ce` base is also implemented: its initial grids/numeric/native data are
 identical to 9d4a83ae before character linking. Both paths pass complete synthetic
-comparisons at all rotations. Independent cloud equality for the direct path is
-pending; no queued run has been cancelled or replaced on this basis.
+comparisons at all rotations. CI `34110701474` and deployment `34110814831` pass.
+Combined full-corpus publication `34112697713` is queued at exactly `3f3f763`
+behind the unchanged running base refresh `34098885624`. At 10:41 UTC the live
+catalog has 1,010 refreshed filings and 136 remaining on the preceding engine,
+with zero recorded capture failures. This is progress on structure preservation,
+not whole-filing semantic certification. Evidence is retained in
+`region-direct-independent-verification.json` in the internal corpus folder.
 
 Remaining work is corpus-wide physical and semantic completeness: every printed
 table, its headers/units/row-column associations and continuations; all prose,

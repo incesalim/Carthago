@@ -67,6 +67,54 @@ def _continuation_matches(case, pages, sources):
     return matches
 
 
+def _reviewed_sparse_grid_matches(case, table):
+    """Check explicit source-reviewed holes without inventing a rectangular grid.
+
+    Production grid inference abstains on uncovered slots. An annotation may
+    instead name exactly which slots are outside the printed cells. All other
+    slots must belong to the separately transcribed spans and shared edges.
+    """
+    rows, columns = len(case['rows']), len(case['rows'][0])
+    absent = {(slot['row'], slot['column']) for slot in case['absent_slots']}
+    if len(absent) != len(case['absent_slots']) or any(
+            not (0 <= r < rows and 0 <= c < columns) for r, c in absent):
+        return False
+    spans = {(s['row'], s['column']): (s['row_span'], s['column_span']) for s in case['spans']}
+    if len(spans) != len(case['spans']):
+        return False
+    edges, covered, used_spans = ({}, {}), set(), set()
+    for r, row in enumerate(table['rows']):
+        for c, cell in enumerate(row['cells']):
+            box = cell.get('bbox')
+            if box is None:
+                continue
+            rs, cs = spans.get((r, c), (1, 1))
+            if (r, c) in spans:
+                used_spans.add((r, c))
+            if rs < 1 or cs < 1 or r + rs > rows or c + cs > columns:
+                return False
+            slots = {(rr, cc) for rr in range(r, r + rs) for cc in range(c, c + cs)}
+            if slots & (covered | absent):
+                return False
+            covered.update(slots)
+            for axis, first, last in ((0, c, c + cs), (1, r, r + rs)):
+                for index, value in ((first, box[axis]), (last, box[axis + 2])):
+                    if index in edges[axis] and abs(edges[axis][index] - value) > .1:
+                        return False
+                    edges[axis][index] = value
+    if used_spans != set(spans) or len(covered | absent) != rows * columns:
+        return False
+    for axis, count in ((0, columns), (1, rows)):
+        if set(edges[axis]) != set(range(count + 1)):
+            return False
+        if any(edges[axis][i] >= edges[axis][i + 1] for i in range(count)):
+            return False
+        if any(abs(edges[axis][i] - table['bbox'][j]) > .1
+               for i, j in ((0, axis), (count, axis + 2))):
+            return False
+    return True
+
+
 def _complete_table_matches(case, page, source):
     """Check every annotated slot and every source word in a reviewed region."""
     from .document_table_context import table_context
@@ -91,7 +139,10 @@ def _complete_table_matches(case, page, source):
                 or table['n_cols'] != len(expected[0]) or len(table['rows']) != len(expected)):
             continue
         grid = contexts[table['id']]['physical_grid']
-        if grid is None or [a for a in grid['anchors'] if a['row_span'] > 1 or a['column_span'] > 1] != case['spans']:
+        if 'absent_slots' in case:
+            if not _reviewed_sparse_grid_matches(case, table):
+                continue
+        elif grid is None or [a for a in grid['anchors'] if a['row_span'] > 1 or a['column_span'] > 1] != case['spans']:
             continue
         actual_characters, good = Counter(), True
         for r, (row, texts) in enumerate(zip(table['rows'], expected, strict=True)):

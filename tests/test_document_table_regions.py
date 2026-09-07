@@ -115,12 +115,12 @@ def test_complete_exim_source_table_and_footnote_require_uncut_amounts():
     evidence = [{'source': fixture['source']}, fixture['source_page']]
     observed = {'source': fixture['source'], 'pages': [fixture['original_page']]}
     assert not check_annotations(observed, evidence, annotation)['passed']
-    observed['pages'][0]['tables'] = [fixture['refined_table']]
+    observed['pages'][0]['tables'] = fixture['refined_tables']
     assert check_annotations(observed, evidence, annotation)['passed']
     assert verify_region_refinement(fixture['refined_table'], fixture['source_page']) == []
     for change in ('digit', 'currency', 'row', 'footnote', 'unit'):
         changed, source = deepcopy(observed), deepcopy(evidence)
-        table = changed['pages'][0]['tables'][0]
+        table = next(t for t in changed['pages'][0]['tables'] if t['id'] == 'p70:ruled4')
         if change == 'digit':
             table['rows'][2]['cells'][1]['text'] = '53.702.651'
         elif change == 'currency':
@@ -133,3 +133,59 @@ def test_complete_exim_source_table_and_footnote_require_uncut_amounts():
         else:
             source[1]['spans'][3]['text'] = 'Amounts expressed in millions of Turkish Lira.'
         assert not check_annotations(changed, source, annotation)['passed'], change
+
+
+@pytest.fixture
+def reviewed_garan_tables():
+    folder = Path(__file__).parent / 'fixtures'
+    fixture = json.loads((folder / 'document_region_review_garan.json').read_text(encoding='utf-8'))
+    annotation = json.loads((folder / 'document_annotations/garan_2022q4_consolidated.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c['id'] in fixture['case_ids']]
+    assert len(annotation['cases']) == 6
+    evidence = [{'source': fixture['source']}, *fixture['source_pages']]
+    observed = {'source': fixture['source'], 'pages': fixture['pages']}
+    return observed, evidence, annotation
+
+
+def test_six_source_reviewed_garan_grids_preserve_all_slots_and_context(reviewed_garan_tables):
+    from src.audit_reports.document_benchmark import check_annotations
+    observed, evidence, annotation = reviewed_garan_tables
+    assert check_annotations(observed, evidence, annotation)['passed']
+    assert sum(len(row) for case in annotation['cases'] for row in case['rows']) == 186
+    # A reviewed hole is different from both a merged slot and a printed blank.
+    branch = next(c for c in annotation['cases'] if c['id'] == 'parent_bank_branches_complete_grid')
+    assert branch['rows'][7][0] == ''
+    assert {'row': 0, 'column': 4} in branch['absent_slots']
+    assert {'row': 1, 'column': 3, 'row_span': 2, 'column_span': 1} in branch['spans']
+
+
+@pytest.mark.parametrize('change', ['blank', 'zero', 'merge', 'counts', 'currency',
+                                  'date', 'units', 'row', 'hole', 'boundary', 'overlap'])
+def test_reviewed_garan_grids_reject_changed_values_slots_and_context(reviewed_garan_tables, change):
+    from src.audit_reports.document_benchmark import check_annotations
+    observed, evidence, annotation = reviewed_garan_tables
+    tables = {t['id']: t for page in observed['pages'] for t in page['tables']}
+    if change in ('blank', 'zero'):
+        tables['p117:ruled0']['rows'][0]['cells'][0]['text'] = '' if change == 'blank' else '0'
+    elif change == 'merge':
+        tables['p181:ruled2']['rows'][0]['cells'][0]['text'] += ' Short-Term International FC'
+        tables['p181:ruled2']['rows'][1]['cells'][0]['text'] = None
+    elif change == 'counts':
+        cells = tables['p179:ruled0']['rows'][2]['cells']
+        cells[1]['text'], cells[2]['text'] = cells[2]['text'], cells[1]['text']
+    elif change == 'currency':
+        tables['p179:ruled2']['rows'][2]['cells'][5]['text'] = '1,208,086,946'
+    elif change in ('date', 'units'):
+        page = next(p for p in evidence[1:] if p['page'] == 117)
+        span = next(s for s in page['spans'] if ('Year Ended' if change == 'date' else 'Thousands of') in s['text'])
+        span['text'] = span['text'].replace('2022', '2023') if change == 'date' else 'Millions of Turkish Lira'
+    elif change == 'row':
+        tables['p179:ruled0']['rows'].pop(4)
+    elif change == 'hole':
+        annotation['cases'][0]['absent_slots'].pop()
+    elif change == 'boundary':
+        tables['p117:ruled0']['rows'][2]['cells'][2]['bbox'][0] += 1
+    else:
+        case = next(c for c in annotation['cases'] if c['id'] == 'parent_bank_branches_complete_grid')
+        case['spans'].append({'row': 6, 'column': 0, 'row_span': 2, 'column_span': 1})
+    assert not check_annotations(observed, evidence, annotation)['passed'], change

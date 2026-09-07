@@ -997,3 +997,33 @@ of detected tables.
   `34109971304` pass. The probe comparison status is explicitly missing-base,
   because 9d4a83ae has not been published. The combined c6e429ce replay is next.
   Evidence: `region-cloud-independent-verification.json` in the internal folder.
+
+- 2026-09-07: direct replay probes `34110722949` / `34110725855` at `3f3f763`
+  match complete fresh extraction on all 267 EXIM/Garanti pages. Independent
+  downloaded-artifact reconciliation confirms the real c6e429ce base digests,
+  unchanged original/native evidence, exact complete ca66890e outputs and all
+  physical blocks/ordered prose span occurrences. CI `34110701474` and deployment
+  `34110814831` pass. After confirming zero jobs had started, intermediate pending
+  run `34106960090` was cancelled and combined publication `34112697713` queued
+  at 3f3f763. The live base run `34098885624` was not interrupted. Its catalog at
+  10:41 UTC shows 1,010 refreshed filings, 136 still on the preceding engine and
+  zero capture failures. Proof: `region-direct-independent-verification.json`.
+
+- 2026-09-07: independently reviewed all eight tables whose literal/empty-slot
+  structure changed across the four fresh probes (384 pages). Seven additional
+  complete-grid annotations cover 216 slots; the existing EXIM borrowing grid
+  adds 25. The benchmark now has 55 source cases across eight reports. The branch
+  table's last label cell is a printed blank, not a vertical merge: reinspection
+  of the original dotted divider corrected the manual annotation before it was
+  saved. Nonrectangular tables have explicit source-reviewed absent slots; the
+  checker validates their separate merged spans and shared physical boundaries.
+  Digit/currency/count/date/unit/row/blank/absent-slot/merge mutations fail. This
+  extends source regression coverage without changing the extraction engine or
+  the queued publication. Whole-filing semantic verification remains unfinished.
+  Local deliverables are `source-reviewed-tables.json` under each EXIM 2023Q3
+  solo and GARAN 2022Q4 consolidated output folder: respectively two tables/55
+  slots and six tables/186 slots, with literal text, merges, absent slots and
+  source context. All 2,720 workspace Python tests pass; the isolated staged
+  source passes 2,690 tests with two skips, lint and all standalone gates.
+  Web passes 797 tests, lint and type checking; mobile checks pass. These are
+  regression results, not a claim that every report has been verified.

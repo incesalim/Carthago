@@ -374,6 +374,765 @@
           "17,950,032"
         ]
       ]
+    },
+    {
+      "id": "market_risk_standardised_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 117,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        95,
+        93,
+        469,
+        278
+      ],
+      "rows": [
+        [
+          null,
+          null,
+          "RWA (*)",
+          null
+        ],
+        [
+          "",
+          "",
+          "Current Period",
+          "Prior Period"
+        ],
+        [
+          "",
+          "Outright products",
+          "46,933,362",
+          "34,541,500"
+        ],
+        [
+          "1",
+          "Interest rate risk (general and specific)",
+          "5,663,011",
+          "2,697,562"
+        ],
+        [
+          "2",
+          "Equity risk (general and specific)",
+          "5,794,538",
+          "3,006,900"
+        ],
+        [
+          "3",
+          "Foreign exchange risk",
+          "34,961,963",
+          "27,874,775"
+        ],
+        [
+          "4",
+          "Commodity risk",
+          "513,850",
+          "962,263"
+        ],
+        [
+          "",
+          "Options",
+          "1,943,663",
+          "77,638"
+        ],
+        [
+          "5",
+          "Simplified approach",
+          "-",
+          "-"
+        ],
+        [
+          "6",
+          "Delta-plus method",
+          "1,943,663",
+          "77,638"
+        ],
+        [
+          "7",
+          "Scenario approach",
+          "-",
+          "-"
+        ],
+        [
+          "8",
+          "Securitisation",
+          "-",
+          "-"
+        ],
+        [
+          "9",
+          "Total",
+          "48,877,025",
+          "34,619,138"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_text_regions": [
+        {
+          "text": "for the Year Ended 31 December 2022",
+          "bbox": [
+            58.68,
+            53.163,
+            200.367,
+            65.286
+          ],
+          "source_span_ids": [
+            6
+          ]
+        },
+        {
+          "text": "(Thousands of Turkish Lira (TL))",
+          "bbox": [
+            58.68,
+            65.1984,
+            170.6129,
+            76.0283
+          ],
+          "source_span_ids": [
+            8
+          ]
+        },
+        {
+          "text": "4.10.6.2 Consolidated market risk under standardised approach",
+          "bbox": [
+            56.64,
+            77.0467,
+            347.0362,
+            91.8293
+          ],
+          "source_span_ids": [
+            15
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct.",
+      "absent_slots": [
+        {
+          "row": 0,
+          "column": 0
+        },
+        {
+          "row": 0,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "id": "operational_risk_current_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 117,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        84,
+        467,
+        554,
+        544
+      ],
+      "rows": [
+        [
+          "Current Period",
+          "31.12.2019",
+          "31.12.2020",
+          "31.12.2021",
+          "Total/ No. of Years of Positive Gross Income",
+          "Rate (%)",
+          "Total"
+        ],
+        [
+          "Basic Indicator Approach",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Gross Income",
+          "26,949,357",
+          "34,923,860",
+          "52,769,452.00",
+          "38,214,223",
+          "15 %",
+          "5,732,133"
+        ],
+        [
+          "Value at Operational Risk (Total x % 12.5)",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "71,651,668"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 5,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 6,
+          "row_span": 2,
+          "column_span": 1
+        }
+      ],
+      "source_text_regions": [
+        {
+          "text": "for the Year Ended 31 December 2022",
+          "bbox": [
+            58.68,
+            53.163,
+            200.367,
+            65.286
+          ],
+          "source_span_ids": [
+            6
+          ]
+        },
+        {
+          "text": "(Thousands of Turkish Lira (TL))",
+          "bbox": [
+            58.68,
+            65.1984,
+            170.6129,
+            76.0283
+          ],
+          "source_span_ids": [
+            8
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct.",
+      "absent_slots": [
+        {
+          "row": 3,
+          "column": 1
+        },
+        {
+          "row": 3,
+          "column": 2
+        },
+        {
+          "row": 3,
+          "column": 3
+        },
+        {
+          "row": 3,
+          "column": 4
+        },
+        {
+          "row": 3,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "id": "operational_risk_prior_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 117,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        84,
+        567,
+        554,
+        644
+      ],
+      "rows": [
+        [
+          "Prior Period",
+          "31.12.2018",
+          "31.12.2019",
+          "31.12.2020",
+          "Total/ No. of Years of Positive Gross Income",
+          "Rate (%)",
+          "Total"
+        ],
+        [
+          "Basic Indicator Approach",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "Gross Income",
+          "26,386,033",
+          "26,949,357",
+          "34,923,860",
+          "29,419,750",
+          "15 %",
+          "4,412,962"
+        ],
+        [
+          "Value at Operational Risk (Total x % 12.5)",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "55,162,031"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 5,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 6,
+          "row_span": 2,
+          "column_span": 1
+        }
+      ],
+      "source_text_regions": [
+        {
+          "text": "for the Year Ended 31 December 2022",
+          "bbox": [
+            58.68,
+            53.163,
+            200.367,
+            65.286
+          ],
+          "source_span_ids": [
+            6
+          ]
+        },
+        {
+          "text": "(Thousands of Turkish Lira (TL))",
+          "bbox": [
+            58.68,
+            65.1984,
+            170.6129,
+            76.0283
+          ],
+          "source_span_ids": [
+            8
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct.",
+      "absent_slots": [
+        {
+          "row": 3,
+          "column": 1
+        },
+        {
+          "row": 3,
+          "column": 2
+        },
+        {
+          "row": 3,
+          "column": 3
+        },
+        {
+          "row": 3,
+          "column": 4
+        },
+        {
+          "row": 3,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "id": "parent_bank_branches_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 179,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        98,
+        130,
+        568,
+        274
+      ],
+      "rows": [
+        [
+          "Parent Bank",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "",
+          "Number of Branches",
+          "Number Of Employees",
+          "Country",
+          null,
+          null
+        ],
+        [
+          "Domestic Branches",
+          "829",
+          "18,422",
+          null,
+          null,
+          null
+        ],
+        [
+          "Foreign Representative Offices",
+          "1",
+          "1",
+          "1- China",
+          null,
+          null
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          null,
+          null
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "Total Assets",
+          "Legal Capital"
+        ],
+        [
+          "Foreign Branches",
+          "1",
+          "14",
+          "1- Malta",
+          "51,670,225",
+          "-"
+        ],
+        [
+          "",
+          "7",
+          "107",
+          "2- KKTC",
+          "12,826,835",
+          "80,000"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 4
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "row_span": 2,
+          "column_span": 1
+        }
+      ],
+      "source_text_regions": [
+        {
+          "text": "for the Year Ended 31 December 2022",
+          "bbox": [
+            58.68,
+            53.163,
+            200.367,
+            65.286
+          ],
+          "source_span_ids": [
+            6
+          ]
+        },
+        {
+          "text": "(Thousands of Turkish Lira (TL))",
+          "bbox": [
+            58.68,
+            65.1984,
+            170.6129,
+            76.0283
+          ],
+          "source_span_ids": [
+            8
+          ]
+        },
+        {
+          "text": "Domestic and foreign branches and representative offices of Parent bank",
+          "bbox": [
+            99.2434,
+            111.7017,
+            444.0005,
+            126.9811
+          ],
+          "source_span_ids": [
+            21
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct.",
+      "absent_slots": [
+        {
+          "row": 0,
+          "column": 4
+        },
+        {
+          "row": 0,
+          "column": 5
+        },
+        {
+          "row": 1,
+          "column": 4
+        },
+        {
+          "row": 1,
+          "column": 5
+        },
+        {
+          "row": 2,
+          "column": 4
+        },
+        {
+          "row": 2,
+          "column": 5
+        },
+        {
+          "row": 3,
+          "column": 4
+        },
+        {
+          "row": 3,
+          "column": 5
+        },
+        {
+          "row": 4,
+          "column": 4
+        },
+        {
+          "row": 4,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "id": "garanti_bank_sa_branches_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 179,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        98,
+        478,
+        564,
+        547
+      ],
+      "rows": [
+        [
+          "Garanti Bank SA",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "",
+          "Number of Branches",
+          "Number Of Employees",
+          "Country",
+          "Total Assets",
+          "Legal Capital"
+        ],
+        [
+          "Romania Head Office and Branches",
+          "71",
+          "969",
+          "Romania",
+          "54,015,888",
+          "RON 1,208,086,946"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 4
+        }
+      ],
+      "source_text_regions": [
+        {
+          "text": "for the Year Ended 31 December 2022",
+          "bbox": [
+            58.68,
+            53.163,
+            200.367,
+            65.286
+          ],
+          "source_span_ids": [
+            6
+          ]
+        },
+        {
+          "text": "(Thousands of Turkish Lira (TL))",
+          "bbox": [
+            58.68,
+            65.1984,
+            170.6129,
+            76.0283
+          ],
+          "source_span_ids": [
+            8
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct.",
+      "absent_slots": [
+        {
+          "row": 0,
+          "column": 4
+        },
+        {
+          "row": 0,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "id": "jcr_ratings_complete_grid",
+      "kind": "complete_physical_table",
+      "page": 181,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        204,
+        492,
+        471,
+        579
+      ],
+      "rows": [
+        [
+          "Long-Term International FC",
+          "BBB- (Stable)"
+        ],
+        [
+          "Short-Term International FC",
+          "-"
+        ],
+        [
+          "Long-Term International TL",
+          "BBB (Stable)"
+        ],
+        [
+          "Short-Term International TL",
+          "-"
+        ],
+        [
+          "Long-Term NSR",
+          "AAA(Trk) (Stable)"
+        ],
+        [
+          "Short-Term NSR",
+          "J1+(Trk) (Stable)"
+        ]
+      ],
+      "spans": [],
+      "source_text_regions": [
+        {
+          "text": "for the Year Ended 31 December 2022",
+          "bbox": [
+            58.68,
+            53.163,
+            200.367,
+            65.286
+          ],
+          "source_span_ids": [
+            6
+          ]
+        },
+        {
+          "text": "(Thousands of Turkish Lira (TL))",
+          "bbox": [
+            58.68,
+            65.1984,
+            170.6129,
+            76.0283
+          ],
+          "source_span_ids": [
+            8
+          ]
+        },
+        {
+          "text": "JCR EURASIA RATINGS (September 2022)",
+          "bbox": [
+            99.24,
+            476.8022,
+            396.57,
+            490.5869
+          ],
+          "source_span_ids": [
+            75,
+            76,
+            77
+          ]
+        }
+      ],
+      "source_review": "All slots and merged/absent regions independently transcribed from original rendered PDF page on 2026-09-07. Global units are printed context; explicit cell units such as RON, percentages, counts and rating grades remain distinct."
     }
   ]
 }
