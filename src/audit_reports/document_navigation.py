@@ -17,6 +17,7 @@ NAVIGATION_VERSION = "document-navigation-1"
 _FOLIO = re.compile(r"\(?([0-9]{1,4})\)?")
 _RANGE = re.compile(r"([0-9]{1,4})(?:[-–—]([0-9]{1,4}))?")
 _ITEM = re.compile(r"(" + "|".join(sorted(ROMAN, key=len, reverse=True)) + r")\.?$")
+_CHAPTER = re.compile(SEC_EN.pattern.replace('^SECTION', '^CHAPTER'))
 
 
 def _bounds(words):
@@ -51,10 +52,15 @@ def _banner(line):
     if not line['valid']:
         return None
     text = line['text']
-    match = SEC_EN.match(fold(text)) or SEC_TR.match(fold(text))
+    match = SEC_EN.match(fold(text)) or SEC_TR.match(fold(text)) or _CHAPTER.match(fold(text))
     if match is None:
         return None
     suffix = text[match.end():]
+    if fold(suffix.strip()) in ('PAGE NO:', 'SAYFA NO'):
+        count = len(text[:match.end()].split())
+        words = line['words']
+        if words[count]['bbox'][0] - words[count - 1]['bbox'][2] >= 4 * (line['bbox'][3] - line['bbox'][1]):
+            return sec_no(match.group(1)), ''
     # A prose reference beginning "SECTION ONE contains ..." is not a banner.
     if suffix.strip() and not suffix.lstrip().startswith((':', '—', '–', '-')):
         return None
@@ -179,6 +185,71 @@ def _body_item_matches(entry, section, all_lines):
     return matches
 
 
+def _numbered_body_sections(evidence, all_lines, contents, explicit):
+    """Bind a body's standalone section number to its complete contents title.
+
+    The number and title can have different font ascenders. Their source boxes
+    must overlap vertically, and all words on each participating title baseline
+    must match the entire declared title. Dotted subsection numbers, extra prose,
+    conflicting contents titles and repeated body candidates are not collapsed.
+    """
+    titles = defaultdict(list)
+    for page in contents:
+        for section in page['sections']:
+            titles[section['number']].append(section['title'])
+    already = {s['number'] for s in explicit}
+    toc_pages = {p['page'] for p in contents}
+    found = []
+    for number, names in titles.items():
+        if number in already or len({fold(n) for n in names}) != 1 or not names[0]:
+            continue
+        target = [fold(w) for w in names[0].split()]
+        for source in evidence[1:]:
+            if source['page'] in toc_pages:
+                continue
+            lines = all_lines[source['page']]
+            markers = [w for w in source['words'] if w['text'] == str(number)]
+            for marker in markers:
+                box = marker['bbox']
+                for index, line in enumerate(lines):
+                    if not line['valid']:
+                        continue
+                    words = line['words']
+                    if words[0]['id'] == marker['id']:
+                        words = words[1:]
+                    if not words or words[0]['bbox'][0] <= box[2] or fold(words[0]['text']) != target[0]:
+                        continue
+                    title_box = _bounds(words)
+                    if title_box[0] - box[2] > 3 * (title_box[3] - title_box[1]):
+                        continue  # A distant numeral in another column is not a heading marker.
+                    overlap = min(box[3], title_box[3]) - max(box[1], title_box[1])
+                    if overlap < .6 * min(box[3] - box[1], title_box[3] - title_box[1]):
+                        continue
+                    selected = [_witness(source, words)]
+                    actual = [fold(w['text']) for w in words]
+                    for following in lines[index + 1:]:
+                        if len(actual) >= len(target):
+                            break
+                        # A separately positioned numeral is already represented
+                        # by its own witness and is not title continuation text.
+                        if following['word_ids'] == [marker['id']]:
+                            continue
+                        previous = selected[-1]
+                        if (not following['valid'] or following['bbox'][0] < title_box[0] - 1
+                                or following['bbox'][1] < previous['bbox'][1]
+                                or following['bbox'][1] - previous['bbox'][3] > previous['bbox'][3] - previous['bbox'][1]):
+                            break
+                        selected.append(_public(following))
+                        actual.extend(fold(w['text']) for w in following['words'])
+                    if actual != target:
+                        continue
+                    found.append({'number': number, 'page': source['page'],
+                                  'title': ' '.join(s['text'] for s in selected),
+                                  'banner': _witness(source, [marker]), 'title_sources': selected,
+                                  'method': 'contents_title_and_body_number'})
+    return found
+
+
 def document_navigation(evidence: list[dict]) -> dict:
     """Retain source claims even when the body or the folio map disagrees."""
     body, contents, entries, folios, issues = [], [], [], [], []
@@ -202,6 +273,8 @@ def document_navigation(evidence: list[dict]) -> dict:
                     and .2 * source['width'] <= line['bbox'][0] <= .8 * source['width']):
                 folios.append({'folio': int(match.group(1)), 'source': _public(line)})
 
+    body.extend(_numbered_body_sections(evidence, all_lines, contents, body))
+    body.sort(key=lambda b: (b['page'], b['number']))
     by_number, by_folio = defaultdict(list), defaultdict(list)
     for item in body:
         by_number[item['number']].append(item)
@@ -217,7 +290,7 @@ def document_navigation(evidence: list[dict]) -> dict:
         for index, item in enumerate(ordered):
             sections.append({'number': item['number'], 'title': item['title'], 'page_start': item['page'],
                              'page_end': ordered[index + 1]['page'] - 1 if index + 1 < len(ordered) else evidence[0]['page_count'],
-                             'method': 'source_body_banner', 'role': role_from_title(item['title']),
+                             'method': item.get('method', 'source_body_banner'), 'role': role_from_title(item['title']),
                              'review_status': 'unreviewed'})
     elif body or contents:
         issues.append({'kind': 'body_section_sequence_unresolved'})

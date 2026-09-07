@@ -803,3 +803,21 @@ of detected tables.
   truncation, wrong occurrences, erased conflicts and paragraph section context.
   All prior tables and literal prose fields remain unchanged in the local
   projection. Cloud rebuild, publication and authenticated display remain pending.
+
+- 2026-09-07: navigation probe `34087256653` independently reproduces the local
+  source review and all 24 cases, preserving 51 native pages and every prior table
+  and literal prose field. Publication/replay `34087462722` preserves history and
+  all ten checked object versions on replay. CI/deploy at `10e5cae` pass. The admin
+  session still requests sign-in after refresh; authenticated display is pending.
+
+- 2026-09-07: independently reviewed seven body starts and selected contents in
+  GARAN 2022Q4 consolidated and ALBRK 2026Q1 consolidated. Added numbered-heading
+  and CHAPTER support, preserving wrapped titles and the separate Page-No column.
+  The selected benchmarks retain 69/61 contents entries, 11 complete selected
+  titles and 14 source footer bindings. Missing, moved, dotted, repeated or
+  incomplete evidence abstains; GARAN solo's differing source titles remain
+  unresolved. Fresh checks on eight original pages preserve every older native
+  field; five added evidence fields are recorded separately. The admin displays
+  literal contents section headings as well as body headings. Full Python and
+  796 web tests pass locally. Cloud verification/publication remain pending;
+  no whole-report semantic verification is claimed.

@@ -1923,4 +1923,18 @@ section assignments from native evidence. Independent `document_navigation`
 annotations check full contents titles, section boundaries, footer pairs and
 source conflicts. This affects only the separate complete-document corpus;
 legacy analytical sectioning and settled D1 partitions are unchanged. The initial
-whole-report regression is TOMK 2023Q3; broader navigation coverage remains open.
+navigation regression is TOMK 2023Q3; broader coverage remains open.
+
+Body headings also recognize literal CHAPTER banners. Where explicit banners are
+absent, a standalone section numeral can bind to an exact, complete contents
+title on the same physical baseline, with adjacent wrapped lines. Word boxes
+must overlap vertically and remain close horizontally; dotted subsection numbers,
+extra prose, changed titles and duplicate candidates do not resolve a section.
+The complete ordered sequence requirement still applies. A distant Page-No
+column on a contents-banner baseline is retained as source evidence without
+hiding that section. `navigation_source_selection` annotations check reviewed
+section boundaries, counts by section, selected full contents titles, selected
+footer pairs and literal body markers; passing is only a selected-case result.
+The admin exposes the contents section titles separately, including wording that
+differs from the body. GARAN 2022Q4 consolidated and ALBRK 2026Q1 consolidated are
+the initial selected-source regressions for these formats.

@@ -1,8 +1,12 @@
 {
   "schema_version": "document-annotations-1",
-  "filing": {"bank_ticker": "GARAN", "period": "2022Q4", "kind": "consolidated"},
+  "filing": {
+    "bank_ticker": "GARAN",
+    "period": "2022Q4",
+    "kind": "consolidated"
+  },
   "pdf_sha256": "e8dd9818e92c4613c321714f1a5d21817d40535be0c240055c935e759491c723",
-  "annotation_method": "Original PDF page 4, rendered with Poppler and visually read 2026-09-06. Two columns: pension audit matter and the auditor's response. The logo is above the table, not part of its grid. Bounds are displayed PDF points. Selected cases only.",
+  "annotation_method": "Original PDF page 4, rendered with Poppler and visually read 2026-09-06. Two columns: pension audit matter and the auditor's response. The logo is above the table, not part of its grid. Bounds are displayed PDF points. Selected cases only. Navigation selection: original PDF contents pages 10–11 and body headings/footers on pages 12, 15, 23, 55, 121, 181 and 184, visually read 2026-09-07. All seven section starts, counts by section and nine selected contents titles; not all contents titles or report text certified.",
   "cases": [
     {
       "id": "pension_audit_matter_headers_unclipped_by_logo",
@@ -11,8 +15,239 @@
       "row_label": "Pension Fund Obligations",
       "column_count": 2,
       "cells": [
-        {"column": 0, "text": "Pension Fund Obligations", "bbox": [74, 148, 200, 164]},
-        {"column": 1, "text": "How the Key Audit Matter is addressed in our audit", "bbox": [299, 139, 523, 169]}
+        {
+          "column": 0,
+          "text": "Pension Fund Obligations",
+          "bbox": [
+            74,
+            148,
+            200,
+            164
+          ]
+        },
+        {
+          "column": 1,
+          "text": "How the Key Audit Matter is addressed in our audit",
+          "bbox": [
+            299,
+            139,
+            523,
+            169
+          ]
+        }
+      ]
+    },
+    {
+      "id": "numbered_body_sections_and_selected_contents",
+      "kind": "navigation_source_selection",
+      "page": 10,
+      "sections": [
+        {
+          "number": 1,
+          "title": "General Information",
+          "page_start": 12,
+          "page_end": 14
+        },
+        {
+          "number": 2,
+          "title": "Consolidated Financial Statements",
+          "page_start": 15,
+          "page_end": 22
+        },
+        {
+          "number": 3,
+          "title": "Accounting Policies",
+          "page_start": 23,
+          "page_end": 54
+        },
+        {
+          "number": 4,
+          "title": "Consolidated Financial Position and Results of Operations and Risk Management",
+          "page_start": 55,
+          "page_end": 120
+        },
+        {
+          "number": 5,
+          "title": "Disclosures and Footnotes on Consolidated Financial Statements",
+          "page_start": 121,
+          "page_end": 180
+        },
+        {
+          "number": 6,
+          "title": "Other disclosures on activities",
+          "page_start": 181,
+          "page_end": 183
+        },
+        {
+          "number": 7,
+          "title": "Independent Auditors’ Report",
+          "page_start": 184,
+          "page_end": 184
+        }
+      ],
+      "contents_counts": [
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          3,
+          29
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          7,
+          2
+        ]
+      ],
+      "contents": [
+        {
+          "section": 1,
+          "number": 1,
+          "title": "History of Parent Bank including its incorporation date, initial legal status, amendments to legal status",
+          "declared_folio": "1",
+          "page_start": 12,
+          "page_end": 12
+        },
+        {
+          "section": 1,
+          "number": 2,
+          "title": "Parent Bank’s shareholder structure, management and internal audit, direct and indirect shareholders, change in shareholder structure during the period and information on its risk group",
+          "declared_folio": "1",
+          "page_start": 12,
+          "page_end": 12
+        },
+        {
+          "section": 1,
+          "number": 3,
+          "title": "Information on Parent Bank’s Board of Directors Chairman and members, Audit Committee members, Chief Executive Officer, Executive Vice presidents and their responsibilities and, if any, shareholdings in the bank",
+          "declared_folio": "2",
+          "page_start": 13,
+          "page_end": 13
+        },
+        {
+          "section": 1,
+          "number": 4,
+          "title": "Information on Parent Bank’s qualified shareholders",
+          "declared_folio": "3",
+          "page_start": 14,
+          "page_end": 14
+        },
+        {
+          "section": 1,
+          "number": 5,
+          "title": "Summary information on Parent Bank’s activities and services",
+          "declared_folio": "3",
+          "page_start": 14,
+          "page_end": 14
+        },
+        {
+          "section": 1,
+          "number": 6,
+          "title": "Information on application differences between consolidation practices as per the Regulation on Preparation of Consolidated Financial Statements of Banks and as per the Turkish Accounting Standards, and entities subject to full or proportional consolidation or deducted from equity or not subject to any of these three methods",
+          "declared_folio": "3",
+          "page_start": 14,
+          "page_end": 14
+        },
+        {
+          "section": 1,
+          "number": 7,
+          "title": "Current or likely actual or legal barriers to immediate transfer of equity or repayment of debts between parent bank and its subsidiaries",
+          "declared_folio": "3",
+          "page_start": 14,
+          "page_end": 14
+        },
+        {
+          "section": 7,
+          "number": 1,
+          "title": "Disclosure on independent auditors’ report",
+          "declared_folio": "173",
+          "page_start": 184,
+          "page_end": 184
+        },
+        {
+          "section": 7,
+          "number": 2,
+          "title": "Disclosures and footnotes prepared by independent auditors",
+          "declared_folio": "173",
+          "page_start": 184,
+          "page_end": 184
+        }
+      ],
+      "folio_pairs": [
+        [
+          12,
+          1
+        ],
+        [
+          15,
+          4
+        ],
+        [
+          23,
+          12
+        ],
+        [
+          55,
+          44
+        ],
+        [
+          121,
+          110
+        ],
+        [
+          181,
+          170
+        ],
+        [
+          184,
+          173
+        ]
+      ],
+      "body_markers": [
+        {
+          "number": 1,
+          "text": "1"
+        },
+        {
+          "number": 2,
+          "text": "2"
+        },
+        {
+          "number": 3,
+          "text": "3"
+        },
+        {
+          "number": 4,
+          "text": "4"
+        },
+        {
+          "number": 5,
+          "text": "5"
+        },
+        {
+          "number": 6,
+          "text": "6"
+        },
+        {
+          "number": 7,
+          "text": "7"
+        }
       ]
     }
   ]

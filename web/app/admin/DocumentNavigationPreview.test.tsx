@@ -33,3 +33,18 @@ it("keeps missing or ambiguous page links unresolved without converting them to 
 it("leaves earlier revisions readable", () => {
   expect(renderToStaticMarkup(<DocumentNavigationPreview onPage={() => {}} />)).toBe("");
 });
+
+it("retains differing source section titles even when body locations are unresolved", () => {
+  const nav = {
+    sections: [{ number: 7, title: "Information on Interim Report", page_start: 94, page_end: 98 }],
+    contents_pages: [{ page: 6, sections: [{ number: 7, title: "Information on Interim activity report" }] }],
+    contents_entries: [], issues: [],
+  };
+  const markup = renderToStaticMarkup(<DocumentNavigationPreview navigation={nav} onPage={() => {}} />);
+  expect(markup).toContain("7. Information on Interim Report");
+  expect(markup).toContain("7. Information on Interim activity report");
+  expect(markup).toContain("Contents on PDF page 6");
+  const unresolved = renderToStaticMarkup(<DocumentNavigationPreview navigation={{ ...nav, sections: [] }} onPage={() => {}} />);
+  expect(unresolved).toContain("could not be resolved");
+  expect(unresolved).toContain("Information on Interim activity report");
+});

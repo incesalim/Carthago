@@ -1,0 +1,175 @@
+{
+  "schema_version": "document-annotations-1",
+  "filing": {
+    "bank_ticker": "ALBRK",
+    "period": "2026Q1",
+    "kind": "consolidated"
+  },
+  "pdf_sha256": "6a12a7d07ba2d799bab1606d67e8ba9d8fb9a919c0524a3109fc0efd490231b1",
+  "annotation_method": "Original PDF contents pages 5–6 and body headings/footers on pages 7, 10, 19, 37, 55, 93 and 94, rendered with PyMuPDF and visually read 2026-09-07. All seven section starts, counts by section, two selected contents titles and the differing section-seven title. Selected navigation only; not a whole-report content certification.",
+  "cases": [
+    {
+      "id": "chapter_seven_and_selected_contents",
+      "kind": "navigation_source_selection",
+      "page": 6,
+      "sections": [
+        {
+          "number": 1,
+          "title": "General Information",
+          "page_start": 7,
+          "page_end": 9
+        },
+        {
+          "number": 2,
+          "title": "The consolidated financial statements",
+          "page_start": 10,
+          "page_end": 18
+        },
+        {
+          "number": 3,
+          "title": "Accounting Policies",
+          "page_start": 19,
+          "page_end": 36
+        },
+        {
+          "number": 4,
+          "title": "Information on Consolidated Financial Structure and Risk Management of the Group",
+          "page_start": 37,
+          "page_end": 54
+        },
+        {
+          "number": 5,
+          "title": "Explanations and notes on the consolidated financial statements",
+          "page_start": 55,
+          "page_end": 92
+        },
+        {
+          "number": 6,
+          "title": "Limited review report",
+          "page_start": 93,
+          "page_end": 93
+        },
+        {
+          "number": 7,
+          "title": "Information on Interim Report",
+          "page_start": 94,
+          "page_end": 98
+        }
+      ],
+      "contents_counts": [
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          24
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          7,
+          2
+        ]
+      ],
+      "contents": [
+        {
+          "section": 7,
+          "number": 1,
+          "title": "General Information",
+          "declared_folio": "88",
+          "page_start": 94,
+          "page_end": 94
+        },
+        {
+          "section": 7,
+          "number": 2,
+          "title": "Parent Bank’s Financial Information and Evaluations",
+          "declared_folio": "88",
+          "page_start": 94,
+          "page_end": 94
+        }
+      ],
+      "folio_pairs": [
+        [
+          7,
+          1
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          19,
+          13
+        ],
+        [
+          37,
+          31
+        ],
+        [
+          55,
+          49
+        ],
+        [
+          93,
+          87
+        ],
+        [
+          94,
+          88
+        ]
+      ],
+      "body_markers": [
+        {
+          "number": 1,
+          "text": "SECTION ONE"
+        },
+        {
+          "number": 2,
+          "text": "SECTION TWO"
+        },
+        {
+          "number": 3,
+          "text": "SECTION THREE"
+        },
+        {
+          "number": 4,
+          "text": "SECTION FOUR"
+        },
+        {
+          "number": 5,
+          "text": "SECTION FIVE"
+        },
+        {
+          "number": 6,
+          "text": "SECTION SIX"
+        },
+        {
+          "number": 7,
+          "text": "CHAPTER SEVEN"
+        }
+      ],
+      "contents_section_titles": [
+        {
+          "number": 7,
+          "title": "Information on Interim activity report"
+        }
+      ]
+    }
+  ]
+}

@@ -406,9 +406,31 @@ The admin exposes section links, complete contents text, printed references and
 competing locations. A 24th source case checks all seven boundaries, 57 entries,
 45 footer observations and five disagreements. Mutation checks reject truncation,
 wrong links, erased conflicts and incorrect paragraph section context. The local
-projection preserves every prior table and literal prose field; cloud rebuild,
-publication and authenticated UI review remain pending. Broader navigation
-coverage and whole-report semantic verification are still unfinished.
+projection preserves every prior table and literal prose field. Cloud probe
+`34087256653` independently reproduces that projection, all 24 source cases and
+51 unchanged native pages, with fresh original checks on pages 5, 9, 46 and 47.
+Publication/replay `34087462722` matches the verified probe, retains all earlier
+revisions and leaves all ten checked object versions unchanged on replay.
+CI/deploy at `10e5cae` pass; authenticated UI review remains pending. Broader
+navigation coverage and whole-report semantic verification are unfinished.
+
+Cross-bank navigation source checks now cover GARAN 2022Q4 consolidated and
+ALBRK 2026Q1 consolidated. Garanti uses standalone section numbers, including a
+wrapped heading and a numeral with different font ascenders; Albaraka switches
+from SECTION to CHAPTER SEVEN. A distant Page-No column no longer hides Garanti's
+first contents section. The local view retains 69 and 61 entries respectively,
+with all seven independently reviewed body starts in each report. Two selected
+navigation cases check section ranges, counts by section, 11 complete selected
+contents titles, 14 footer bindings and the literal body markers. All fixture
+word occurrences match the retained native evidence; eight fresh original page
+inventories preserve its existing fields, with five newer evidence fields added.
+Missing, moved, dotted or repeated numeral candidates and incomplete or differing
+titles remain unresolved. GARAN's solo report still has conflicting contents/body
+titles and no resolved whole section sequence. The admin also retains the source
+contents section headings alongside body headings. Full Python, 796 web tests
+and source mutation checks pass locally; cloud verification and publication of
+these cross-bank revisions are pending. None of these results certifies every
+table or prose passage in either report.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

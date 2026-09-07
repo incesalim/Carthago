@@ -2,6 +2,7 @@
 
 export type Navigation = {
   sections: { number: number; title: string; page_start: number; page_end: number }[];
+  contents_pages?: { page: number; sections: { number: number; title: string }[] }[];
   contents_entries: { id: string; section: number; number: number; title: string;
     declared_folio: string | null; page_start: number | null; page_end: number | null;
     mapping_status: string; end_mapping_status: string;
@@ -18,11 +19,18 @@ export default function DocumentNavigationPreview({ navigation, onPage }: {
   const jump = (page: number, label: string) => <button className="text-primary hover:underline" onClick={() => onPage(page)}>{label}</button>;
   return <details className="mb-4 border-y border-border py-3 text-xs">
     <summary className="cursor-pointer font-semibold">Report sections and printed contents</summary>
-    <p className="my-3 text-muted-foreground">Section links follow banners in the report. Printed contents references are retained separately; matching a page number does not confirm that the named content starts there.</p>
-    {navigation.sections.length === 0 && <p className="my-2 text-warning">Section boundaries could not be resolved from the body banners.</p>}
+    <p className="my-3 text-muted-foreground">Section links follow headings in the report body. Printed contents references are retained separately; matching a page number does not confirm that the named content starts there.</p>
+    {navigation.sections.length === 0 && <p className="my-2 text-warning">Section boundaries could not be resolved from the body headings.</p>}
     {navigation.sections.map((section) => <div key={section.number} className="border-t border-hair py-3">
       <p className="font-semibold">{jump(section.page_start, `${section.number}. ${section.title}`)} <span className="font-normal text-muted-foreground">· PDF pages {section.page_start}–{section.page_end}</span></p>
     </div>)}
+    {!!navigation.contents_pages?.length && <details className="my-3 text-muted-foreground">
+      <summary className="cursor-pointer">Section headings printed in the contents</summary>
+      <p className="my-2">These are the source contents headings. Their wording may differ from the body headings above.</p>
+      {navigation.contents_pages.flatMap((page) => page.sections.map((section, index) => <p key={`${page.page}:${index}`} className="my-2">
+        {section.number}. {section.title}{" · "}{jump(page.page, `Contents on PDF page ${page.page}`)}
+      </p>))}
+    </details>}
     <h4 className="mt-3 font-semibold">Printed contents · {navigation.contents_entries.length} entries</h4>
     <ol className="divide-y divide-hair">
       {navigation.contents_entries.map((entry) => {

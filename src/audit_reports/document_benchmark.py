@@ -223,6 +223,37 @@ def _reading_layout_matches(case, page, source):
     return all(group in columns for group in case.get('column_groups', []))
 
 
+def _navigation_selection_matches(case, structure, evidence):
+    """Check reviewed navigation locations without claiming all contents were read."""
+    from .document_navigation import verify_document_navigation
+    if verify_document_navigation(structure, evidence):
+        return False
+    nav = structure.get('navigation', {})
+    sections = [{k: s.get(k) for k in ('number', 'title', 'page_start', 'page_end')}
+                for s in nav.get('sections', [])]
+    entries = nav.get('contents_entries', [])
+    counts = Counter(e['section'] for e in entries)
+    if sections != case['sections'] or sorted(counts.items()) != [tuple(p) for p in case['contents_counts']]:
+        return False
+    for expected in case['contents']:
+        selected = [e for e in entries if (e['section'], e['number']) == (expected['section'], expected['number'])]
+        if len(selected) != 1 or any(selected[0].get(k) != v for k, v in expected.items()):
+            return False
+    for page, folio in case['folio_pairs']:
+        selected = [f for f in nav.get('folio_observations', []) if f['source']['page'] == page]
+        if len(selected) != 1 or selected[0]['folio'] != folio:
+            return False
+    for expected in case['body_markers']:
+        selected = [b for b in nav.get('body_banners', []) if b['number'] == expected['number']]
+        if len(selected) != 1 or selected[0]['banner']['text'] != expected['text']:
+            return False
+    for expected in case.get('contents_section_titles', []):
+        selected = [s for p in nav.get('contents_pages', []) for s in p['sections'] if s['number'] == expected['number']]
+        if len(selected) != 1 or selected[0]['title'] != expected['title']:
+            return False
+    return True
+
+
 def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -> dict:
     failures, content_reviews = [], []
     if (annotation["pdf_sha256"] != evidence[0]["source"]["pdf_sha256"]
@@ -268,6 +299,10 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
             if (verify_document_navigation(structure, evidence)
                     or any(observed[k] != case[k] for k in observed)):
                 failures.append({**prefix, 'kind': 'navigation_source_mismatch'})
+            continue
+        if case.get('kind') == 'navigation_source_selection':
+            if not _navigation_selection_matches(case, structure, evidence):
+                failures.append({**prefix, 'kind': 'navigation_selection_source_mismatch'})
             continue
         if case.get('kind') == 'complete_physical_table':
             matching = _complete_table_matches(case, pages[case['page']], sources[case['page']])

@@ -43,7 +43,9 @@ unique footer occurrence is found; missing or repeated folios remain unresolved
 or ambiguous. Wrapped titles and declared page ranges stay literal. Matching
 body titles and repeated section-index titles are identified separately. When
 contents references disagree with body locations, both remain visible with
-links to their source pages. These are navigation candidates, not approval of
+links to their source pages. The section headings printed in the contents are
+also available separately, preserving wording that differs from body headings
+even when body boundaries remain unresolved. These are navigation candidates, not approval of
 the report's meaning. Earlier captures without this view remain readable.
 
 Content review notes retain open questions about figures printed in the report.
