@@ -1,0 +1,263 @@
+{
+  "schema_version": "document-origin-selections-1",
+  "selections": [
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "unconsolidated",
+        "period": "2022Q1"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-SOLO-2022-03.zip",
+      "transport_sha256": "5716121258baa783bf1b83747e4578df15934bf54537eb6dc8ba8da7ad83ef35",
+      "member": "Anadolubank Solo 31 03 2022.pdf",
+      "sha256": "18675422acedb5767302470a2667d379be9b69af19096a630e4a8348eb53c14a",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "61e38953f02052f3ba3e85356ea80a6dbacbecf71af4ea96bd198b496a8457d6",
+        "acquisition_sha256": "18675422acedb5767302470a2667d379be9b69af19096a630e4a8348eb53c14a"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "unconsolidated",
+        "period": "2022Q2"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-SOLO-2022-06.zip",
+      "transport_sha256": "d02b7e834c87f397a4bb344dbf9f054faf89c92e08f53193d4c5647ca134438f",
+      "member": "Anadolubank Solo 30 06 2022.pdf",
+      "sha256": "cc4b145dbb1a1c7d6c92d5ed2585029b68bc8e7178796c7df44297447812029c",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "213b25124dd06fd94d643d8bb9789eb517a5cd7ef8bc8daadd41c482bbe750e1",
+        "acquisition_sha256": "cc4b145dbb1a1c7d6c92d5ed2585029b68bc8e7178796c7df44297447812029c"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "unconsolidated",
+        "period": "2022Q4"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-SOLO-2022-12.zip",
+      "transport_sha256": "291b1b8b3c8a6b05eb42bd039739c602aa70fc364544ccdf48643f4ad3f71b68",
+      "member": "Anadolubank A.Ş. 31122022  Solo Rapor.pdf",
+      "sha256": "8ad142a99f81ead907a26b4ba8b0466ae7e1ecf672527a3f4bcc697c8c1ba4af",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "d5526fdf4b6737e6743edef27b0d2ce5096818e03105bf223a2859948c92ad95",
+        "acquisition_sha256": "8ad142a99f81ead907a26b4ba8b0466ae7e1ecf672527a3f4bcc697c8c1ba4af"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "consolidated",
+        "period": "2023Q1"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-KONSOLIDE-2023-03.zip",
+      "transport_sha256": "458527069d6dd8867c46ca4df3a3dd13d7cd6f2635f12b19199dd574b57b719c",
+      "member": "Anadolubank Konsolide 31032023.pdf",
+      "sha256": "d5cf4f378124ff75a9ca36859443202f0fdb101fa21a11e3ba969c103ff4e9d7",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "7c7a633d1eaa2ed6b208cb8dcc52ec72501c313cbf4c28691047c974fcf13846",
+        "acquisition_sha256": "d5cf4f378124ff75a9ca36859443202f0fdb101fa21a11e3ba969c103ff4e9d7"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "unconsolidated",
+        "period": "2023Q3"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-SOLO-2023-09.zip",
+      "transport_sha256": "a9ca740887421e22be85e69fc391279f6542e104af3ef22e052041977edf6db1",
+      "member": "Anadolubank A.Ş. 30092023  Solo Rapor.pdf",
+      "sha256": "153b4e4b2771998f879730477f2e739c0a3320f732aeb94864b1775106675779",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "1d3b1711f4d011cd92648792c7a4b497b98a100a71c90208cbe7e705c0288395",
+        "acquisition_sha256": "153b4e4b2771998f879730477f2e739c0a3320f732aeb94864b1775106675779"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "consolidated",
+        "period": "2024Q2"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-KONSOLIDE-2024-06.zip",
+      "transport_sha256": "d5cf4b7deb72a2e560515dcc117e1d11436ca07e87b2eebec52e712d9e0d7f4f",
+      "member": "Anadolubank Konsolide 30062024.pdf",
+      "sha256": "c0fb48f3ff933e2ff334ad8b5607a4c8054a1a531577845ebd9002ccca451a90",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "99266514f15de142fd6b016fb2509cc63bbaff9e17ba59d229e9ade74fa289f0",
+        "acquisition_sha256": "c0fb48f3ff933e2ff334ad8b5607a4c8054a1a531577845ebd9002ccca451a90"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "consolidated",
+        "period": "2024Q3"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-KONSOLIDE-2024-09.zip",
+      "transport_sha256": "6f9d5351f4466c491194cd10762330a2fec2b8a6ddf3deef8b4f49d577b7d39d",
+      "member": "Anadolubank Konsolide 30092024.pdf",
+      "sha256": "17a3908372319a9e71bbb072b2e4bd48412a0110d1d42cf88441f56d654b6d20",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "b63e226d22e0e86f448895cc95b6b86ab133d1e735b7016b099c8a5451f3f51c",
+        "acquisition_sha256": "17a3908372319a9e71bbb072b2e4bd48412a0110d1d42cf88441f56d654b6d20"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "ANADOLU",
+        "kind": "consolidated",
+        "period": "2024Q4"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-135-KONSOLIDE-2024-12.zip",
+      "transport_sha256": "c46c025f3bef64a409afbe8f1b129d2473071bccc9d8625121a82f28ffdedb5b",
+      "member": "Anadolubank A.Ş. 31.12.2024 Konsolide Rapor.pdf",
+      "sha256": "2ed9e8419ee98f68db170eb6a104255d547d97b62972d7b5caaae1cab658e909",
+      "review": {
+        "basis": "acquired_pdf_byte_agreement",
+        "origin_observation_sha256": "b0cce56ee49cf92ce9ada66b56975f0e784cee3122ca9db01d5cfac599302643",
+        "acquisition_sha256": "2ed9e8419ee98f68db170eb6a104255d547d97b62972d7b5caaae1cab658e909"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "TSKB",
+        "kind": "consolidated",
+        "period": "2022Q3"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-014-KONSOLIDE-2022-09.zip",
+      "transport_sha256": "07aa12288e524ead5091a4fc05ef376d3872addd6c1ea1394ed7c52ebfc2c0a4",
+      "member": "TSKB 30.09.2022 Konsolide.pdf",
+      "sha256": "ed12752557b1c75a7fe32caf25479be646be4558fadda14e802bfcfc22285706",
+      "review": {
+        "basis": "rendered_financial_report_cover",
+        "origin_observation_sha256": "09c1add4a99329570c76c456d312532b5b3bd456ce246d13adbda16a25570dec",
+        "page": 1,
+        "text": "Türkiye Sınai Kalkınma Bankası Anonim Şirketi ve Finansal Ortaklıkları 30 Eylül 2022 Tarihinde Sona Eren Ara Hesap Dönemine Ait Konsolide Finansal Tablolar ve Finansal Tablolara İlişkin Dipnotlar ile Ara Dönem Faaliyet Raporu"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "TSKB",
+        "kind": "consolidated",
+        "period": "2023Q1"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-014-KONSOLIDE-2023-03.zip",
+      "transport_sha256": "b4f52308091d8473a97a65591d69877d4c81c68a3f660f2db32f0db00e70859e",
+      "member": "TSKB-31.03.2023 Konsolide.pdf",
+      "sha256": "c11c127425ffa04aeafcdab47eb172cba103dc9fbfb4477bd644fc3d4287e900",
+      "review": {
+        "basis": "rendered_financial_report_cover",
+        "origin_observation_sha256": "bd7b531b8cb6288e9317d2c33c9eecdaf8aa796347af4e0a024472629a99c10f",
+        "page": 1,
+        "text": "Türkiye Sınai Kalkınma Bankası Anonim Şirketi ve Finansal Ortaklıkları 31 Mart 2023 Tarihinde Sona Eren Ara Hesap Dönemine Ait Konsolide Finansal Tablolar ve Finansal Tablolara İlişkin Dipnotlar ile Ara Dönem Faaliyet Raporu"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "TSKB",
+        "kind": "consolidated",
+        "period": "2024Q1"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-014-KONSOLIDE-2024-03.zip",
+      "transport_sha256": "ebcf90d6481579e4d398416e049fe8530536da5f5b632d108fc69fb839ada72f",
+      "member": "TSKB Konsolide 31.03.2024.pdf",
+      "sha256": "f9a5fd9e39a9ec31dc4345a1616a248acafd849f94a060ecff14164fb17e121c",
+      "review": {
+        "basis": "rendered_financial_report_cover",
+        "origin_observation_sha256": "388bc226a05bd0597dbe932cc8e8dc3640c56ec809b21b270e99a4e0865e52c2",
+        "page": 1,
+        "text": "Türkiye Sınai Kalkınma Bankası Anonim Şirketi ve Finansal Ortaklıkları 31 Mart 2024 Tarihinde Sona Eren Ara Hesap Dönemine Ait Konsolide Finansal Tablolar ve Finansal Tablolara İlişkin Dipnotlar ile Ara Dönem Faaliyet Raporu"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "TSKB",
+        "kind": "unconsolidated",
+        "period": "2024Q1"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-014-SOLO-2024-03.zip",
+      "transport_sha256": "04cc4255ce803326140332663e77285a843f20230e9f79ab5d1090b2554f257d",
+      "member": "TSKB Solo 31.03.2024.pdf",
+      "sha256": "1491636e2e9149a4089f6ce5969d2b0606b470f4a8cf8f0decf837d7006bbfb3",
+      "review": {
+        "basis": "rendered_financial_report_cover",
+        "origin_observation_sha256": "42719d40c9567314ec75c450ba7acd4867ac30a4704923177ebe9a7e7dc6fb5f",
+        "page": 1,
+        "text": "Türkiye Sınai Kalkınma Bankası Anonim Şirketi 31 Mart 2024 Tarihinde Sona Eren Ara Hesap Dönemine Ait Konsolide Olmayan Finansal Tablolar ve Finansal Tablolara İlişkin Dipnotlar ile Ara Dönem Faaliyet Raporu"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "TSKB",
+        "kind": "consolidated",
+        "period": "2024Q4"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-014-KONSOLIDE-2024-12.zip",
+      "transport_sha256": "08f41218eb3878be5532f2e10a6b42ea83258529417900f8f95217e6264a286b",
+      "member": "TSKB Konsolide 31.12.2024.pdf",
+      "sha256": "7d5f8de941505443dfa7bb3d5c48007a949a6b5ca7514aa9c9d2c1506ace0d13",
+      "review": {
+        "basis": "rendered_financial_report_cover",
+        "origin_observation_sha256": "6f2b9a3b597a5931a31acec4564e31d6e4a599223dd1c671efc589ad1f498b16",
+        "page": 1,
+        "text": "Türkiye Sınai Kalkınma Bankası Anonim Şirketi ve Finansal Ortaklıkları 31 Aralık 2024 Tarihinde Sona Eren Hesap Dönemine Ait Konsolide Finansal Tablolar ve Bağımsız Denetim Raporu"
+      },
+      "semantically_verified": false
+    },
+    {
+      "schema_version": "document-origin-selection-1",
+      "filing": {
+        "bank_ticker": "TSKB",
+        "kind": "unconsolidated",
+        "period": "2025Q1"
+      },
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-014-SOLO-2025-03.zip",
+      "transport_sha256": "8acfc2de21833d93db071f691964310526485733c57b18cac1cf94635a395412",
+      "member": "TSKB 31.03.2025 Solo.pdf",
+      "sha256": "51260b72ae09669366bdb9d9d6e4461c6cfdc57f2692ef3446c3fb201b95de4e",
+      "review": {
+        "basis": "rendered_financial_report_cover",
+        "origin_observation_sha256": "7b7deeb31aa67819eb7a1eaca7308f51f149611b640a60b44507a39ca5426761",
+        "page": 1,
+        "text": "Türkiye Sınai Kalkınma Bankası Anonim Şirketi 31 Mart 2025 Tarihinde Sona Eren Ara Hesap Dönemine Ait Konsolide Olmayan Finansal Tablolar ve Finansal Tablolara İlişkin Dipnotlar ile Ara Dönem Faaliyet Raporu"
+      },
+      "semantically_verified": false
+    }
+  ]
+}

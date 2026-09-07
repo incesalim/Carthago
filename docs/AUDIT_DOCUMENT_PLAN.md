@@ -697,3 +697,26 @@ of detected tables.
   source-row annotations, conservation and ambiguity/mutation checks pass. Only
   this page's line view changes among all 51 retained TOMK pages. Full Python,
   788 web tests, lint and type checks pass; cloud publication remains pending.
+
+- 2026-09-07: all 61 exact source follow-ups in `34074745326` independently
+  reconcile across 288 objects: 14 matches, 30 different PDFs and 17 unresolved
+  sources. Current origin coverage is 1,085 agreements, 45 different-PDF filings,
+  one overlap and 17 with neither outcome. The first 15 editions independently
+  reconcile across 1,624 pages; the next 30 reconcile across 2,811 pages. Combined:
+  4,435 pages, 11,193,374 native characters, 83,154 physical text blocks, 11,073
+  table candidates, 46 selected recovery pages and 18,862 OCR words. Original
+  acquisition and main-index versions remain unchanged. Artifact accounting and
+  recovery-byte checks do not approve full semantic content.
+- 2026-09-07: independently verified cash-flow probe `34075540385` against all
+  51 native pages and prior structure: only page 16's line view changes. All 13
+  source cases pass. Publication/replay `34075859884` matches the probe and
+  preserves all six observed object versions on replay, including the prior
+  structure artifact and acquisition. Three open source-content notes remain.
+- 2026-09-07: independently inventoried 14 two-PDF regulator archives. Eight
+  Anadolubank primary members exactly match acquired PDFs. Visually checked all
+  six TSKB financial-report covers against their bank, period and basis; each is
+  a different PDF from the acquisition. Added exact URL/transport/member-bound
+  selections, acquired-byte or literal-cover witnesses, and mutation tests.
+  Neither filename guesses nor another URL's override select the report.
+  Fourteen additional responsibility-statement attachments need separate capture;
+  the 14 selected origin observations await cloud verification/publication.

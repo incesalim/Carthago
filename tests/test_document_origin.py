@@ -6,7 +6,7 @@ import pytest
 
 from src.audit_reports.document_corpus import Filing
 from src.audit_reports.document_corpus_store import CorpusStore, PREFIX
-from src.audit_reports.document_origin import observe_origin, publish_origin
+from src.audit_reports.document_origin import load_archive_selections, observe_origin, publish_origin
 from src.audit_reports.document_quality import bank_patterns
 from test_document_acquisition import archive_body, pdf_body
 from test_document_corpus_store import MemoryR2
@@ -15,6 +15,76 @@ FILING = Filing('TEST', '2026Q1', 'consolidated')
 PATTERNS = bank_patterns({'TEST': {'name': 'Test Bank'}})
 KEY = 'test/' + FILING.filename
 URL = 'https://bank.example/report.pdf'
+
+
+def bound_member(body, archive, *, cover=None):
+    review = {'basis': 'acquired_pdf_byte_agreement', 'acquisition_sha256': hashlib.sha256(body).hexdigest(),
+              'origin_observation_sha256': 'a' * 64}
+    if cover is not None:
+        review = {'basis': 'rendered_financial_report_cover', 'page': 1, 'text': cover,
+                  'origin_observation_sha256': 'a' * 64}
+    return {'schema_version': 'document-origin-selection-1', 'filing': FILING.as_dict(), 'source_url': URL,
+            'transport_sha256': hashlib.sha256(archive).hexdigest(), 'member': 'financial.pdf',
+            'sha256': hashlib.sha256(body).hexdigest(), 'review': review, 'semantically_verified': False}
+
+
+def test_bound_selection_preserves_both_pdfs_and_old_failed_observation():
+    client, body = MemoryR2(), pdf_body()
+    archive = archive_body([('financial.pdf', body), ('declaration.pdf', pdf_body('Signed declaration'))])
+    store = CorpusStore(client, 'test')
+    failed, failed_artifacts = observe(client, body, archive)
+    assert failed['status'] == 'origin_needs_review'
+    before = publish_origin(store, failed, failed_artifacts, PATTERNS)
+    selected, artifacts = observe(client, body, archive, bound_member(body, archive))
+    assert selected['status'] == 'matches_acquired_bytes'
+    after = publish_origin(store, selected, artifacts, PATTERNS)
+    index = json.loads(client.objects[after['index_key']])
+    assert {r['key'] for r in index['revisions']} == {before['review_key'], after['review_key']}
+    assert selected['selection']['unselected_pdf_members'][0]['name'] == 'declaration.pdf'
+    assert all(key.startswith(PREFIX) for key in client.writes)
+
+
+@pytest.mark.parametrize('change', ['transport', 'member', 'url', 'filing', 'acquisition', 'cover'])
+def test_bound_selection_rejects_changed_source_context_and_preserves_raw_download(change):
+    client, body = MemoryR2(), pdf_body()
+    archive = archive_body([('financial.pdf', body), ('declaration.pdf', pdf_body('Signed declaration'))])
+    member = bound_member(body, archive)
+    acquired = body
+    if change == 'transport': archive = archive_body([('financial.pdf', body), ('declaration.pdf', pdf_body('Changed declaration'))])
+    if change == 'member': member['member'] = 'declaration.pdf'
+    if change == 'url': member['source_url'] = 'https://bank.example/another.zip'
+    if change == 'filing': member['filing']['period'] = '2026Q2'
+    if change == 'acquisition': acquired = pdf_body('Different acquired edition')
+    if change == 'cover': member = bound_member(body, archive, cover='Different source cover')
+    result, artifacts = observe(client, acquired, archive, member)
+    assert result['status'] == 'origin_needs_review'
+    published = publish_origin(CorpusStore(client, 'test'), result, artifacts, PATTERNS)
+    assert client.objects[published['transport']['key']] == archive
+    assert client.objects[KEY] == acquired
+
+
+def test_rendered_cover_selection_can_preserve_another_official_edition():
+    client, old = MemoryR2(), pdf_body()
+    title = 'Test Bank 31 March 2026 Consolidated Financial Statements Revised Edition'
+    body = pdf_body(title)
+    archive = archive_body([('financial.pdf', body), ('declaration.pdf', pdf_body('Signed declaration'))])
+    selected, _ = observe(client, old, archive, bound_member(body, archive, cover=title))
+    assert selected['status'] == 'different_pdf_revision'
+    assert selected['origin_identity']['status'] == 'supported_by_source_text'
+
+
+@pytest.mark.parametrize('change', ['duplicate', 'unregistered', 'hash', 'basis', 'semantic_claim'])
+def test_selection_registry_rejects_ambiguous_or_invalid_witnesses(tmp_path, change):
+    body = pdf_body();archive = archive_body([('financial.pdf', body)])
+    member = bound_member(body, archive);entries = [member]
+    if change == 'duplicate': entries.append(copy.deepcopy(member))
+    if change == 'unregistered': member['filing']['period'] = '2025Q1'
+    if change == 'hash': member['transport_sha256'] = 'invalid'
+    if change == 'basis': member['review']['basis'] = 'filename_guess'
+    if change == 'semantic_claim': member['semantically_verified'] = True
+    path = tmp_path / 'selections.json'
+    path.write_text(json.dumps({'schema_version': 'document-origin-selections-1', 'selections': entries}), encoding='utf-8')
+    with pytest.raises(ValueError): load_archive_selections(path, {FILING})
 
 
 def observe(client, acquired, downloaded, member=None):

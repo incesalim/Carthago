@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import json
 from pathlib import Path
+import re
+from urllib.parse import urlsplit
 
 import fitz
 
@@ -20,6 +23,48 @@ from .document_quality import source_identity_review
 
 def _sha(body):
     return hashlib.sha256(body).hexdigest()
+
+
+def _validate_bound_selection(entry):
+    if not isinstance(entry, dict):
+        raise ValueError('Invalid source-bound archive selection')
+    filing = Filing(**entry['filing'])
+    url = urlsplit(entry['source_url'])
+    if url.scheme != 'https' or not url.hostname or url.username or url.password or url.fragment:
+        raise ValueError('Archive selection requires its exact HTTPS source URL')
+    if (entry.get('schema_version') != 'document-origin-selection-1'
+            or entry.get('semantically_verified') is not False
+            or not isinstance(entry.get('member'), str) or not entry['member'].lower().endswith('.pdf')):
+        raise ValueError('Invalid source-bound archive selection')
+    review = entry['review']
+    digests = [entry['transport_sha256'], entry['sha256'], review['origin_observation_sha256']]
+    if review['basis'] == 'acquired_pdf_byte_agreement':
+        digests.append(review['acquisition_sha256'])
+        if review['acquisition_sha256'] != entry['sha256']:
+            raise ValueError('Selected archive member differs from the reviewed acquisition')
+    elif review['basis'] == 'rendered_financial_report_cover':
+        if (review.get('page') != 1 or not isinstance(review.get('text'), str)
+                or not review['text'].strip()):
+            raise ValueError('Reviewed report selection requires its literal cover text')
+    else:
+        raise ValueError('Unknown archive selection review basis')
+    if any(not isinstance(value, str) or not re.fullmatch(r'[a-f0-9]{64}', value) for value in digests):
+        raise ValueError('Invalid archive selection source digest')
+    return filing, entry['source_url']
+
+
+def load_archive_selections(path: Path, registered) -> dict:
+    """A separate official URL needs its own reviewed, exact-byte selection."""
+    packet = json.loads(path.read_text(encoding='utf-8'))
+    if packet.get('schema_version') != 'document-origin-selections-1' or not isinstance(packet.get('selections'), list):
+        raise ValueError('Invalid official archive selection registry')
+    result = {}
+    for entry in packet['selections']:
+        binding = _validate_bound_selection(entry)
+        if binding[0] not in registered or binding in result:
+            raise ValueError('Unregistered or duplicate official archive selection')
+        result[binding] = entry
+    return result
 
 
 def observe_origin(store, filing: Filing, acquisition_key: str | None, url: str, patterns: dict, *,
@@ -65,6 +110,14 @@ def observe_origin(store, filing: Filing, acquisition_key: str | None, url: str,
     result.update(response=response, transport={'sha256': _sha(transport), 'bytes': len(transport)})
     artifacts['transport'] = transport
     try:
+        bound_selection = reviewed_member and any(k in reviewed_member for k in ('source_url', 'transport_sha256'))
+        if bound_selection:
+            if _validate_bound_selection(reviewed_member) != (filing, url):
+                raise ValueError('Reviewed archive selection belongs to a different filing or source URL')
+            review = reviewed_member['review']
+            if (review['basis'] == 'acquired_pdf_byte_agreement'
+                    and (acquired is None or _sha(acquired) != review['acquisition_sha256'])):
+                raise ValueError('Acquisition differs from the reviewed archive selection')
         body, selection = unwrap_pdf(transport, reviewed_member)
         result['selection'] = selection
         result['origin_pdf'] = {'sha256': _sha(body), 'bytes': len(body)}
@@ -87,6 +140,10 @@ def observe_origin(store, filing: Filing, acquisition_key: str | None, url: str,
                 leading.append({'page': number + 1, 'spans': spans})
             result['page_count'] = len(pdf)
         result['origin_leading_pages'] = leading
+        if bound_selection and reviewed_member['review']['basis'] == 'rendered_financial_report_cover':
+            cover = ' '.join(s['text'] for s in leading[0]['spans'])
+            if ' '.join(cover.split()) != ' '.join(reviewed_member['review']['text'].split()):
+                raise ValueError('Selected PDF cover differs from its source review')
         result['origin_identity'] = source_identity_review(filing, leading, patterns)
         result['related_pdf_content_capture'] = 'pending' if selection.get('unselected_pdf_members') else 'not_applicable'
     except Exception as error:
@@ -115,8 +172,6 @@ def observe_origin(store, filing: Filing, acquisition_key: str | None, url: str,
 
 def publish_origin(store, result: dict, artifacts: dict[str, bytes], patterns: dict) -> dict:
     """Keep downloaded evidence and an immutable review before updating its index."""
-    import json
-
     filing = Filing(**result['filing'])
     if result.get('schema_version') != 'document-origin-review-1' or result.get('semantically_verified') is not False:
         raise ValueError('Invalid source-origin review')

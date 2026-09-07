@@ -218,10 +218,19 @@ marker and nested selection and rejects ambiguous extra members, excessive depth
 truncation or invalid archive boundaries. Local source-byte checks, mutation tests and the full Python suite pass.
 Cloud follow-up `34074341718` now matches both PDFs; 11 independently read objects
 prove exact agreement with the manually unpacked transport/member chain, prior
-history retention and unchanged acquisitions. The updated published rollup is
+history retention and unchanged acquisitions. That published rollup was
 **1,071 filings with byte agreement**, 15 with a different PDF (one overlaps),
-and 61 with neither outcome. Exact registered-filing follow-up scopes are now
-implemented to compare those remaining sources without rerunning complete banks.
+and 61 with neither outcome. Exact follow-up `34074745326` has now independently
+reconciled all 61 filings and 288 stored objects: 14 matches, 30 different PDFs
+and 17 unresolved sources. The current rollup is **1,085 filings with byte
+agreement**, **45 with a different PDF**, one overlap (ATBANK), and **17 with
+neither outcome**. Fourteen unresolved downloads contain two PDFs. Eight Anadolubank
+archives include the exact acquired financial report; six TSKB report covers
+independently match their bank, period and basis but have different PDF bytes.
+Source-bound selections now retain the exact URL, archive hash, member hash and
+review witness. Their cloud follow-up and 14 additional attachment captures are
+pending. Two regulator downloads return error HTML and one HALKB archive contains
+a DOCX rather than a PDF; those source paths still need resolution.
 
 `capture-document-edition.yml` is implemented for an exact historical origin
 observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
@@ -235,10 +244,13 @@ original/native/structure accounting and exact Git engine checks, plus four
 fresh original-page comparisons. It retains 195,952 native characters, 987 text
 blocks and 183 table candidates; no pages were flagged for recovery. Publication/replay
 `34074261461` is independently verified against the probe and preserves all seven
-observed object versions. The other 14 observed editions have individually
-verified immutable origin/transport/PDF bindings and are capturing in separate
-indexes. Full fleet readback is pending. CI/deployment at `53e18f8` pass; live admin inspection
-still awaits the user renewing the expired session.
+observed object versions. Full independent readback of all **45 observed editions**
+now passes: **4,435 pages**, **11,193,374 native characters**, **83,154 physical
+text blocks** and **11,073 table candidates**. Selected recovery covers **46 pages**
+and **18,862 OCR words**. Main filing index bytes/versions and acquisitions remained
+unchanged. These checks establish artifact accounting and source bindings, not
+complete table detection or accurate recognition of every word. CI/deployment at
+`d23d76e` pass; live admin inspection still awaits the user renewing the expired session.
 
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has
@@ -287,9 +299,12 @@ containment are required. Original cells remain unchanged. Its 49 physical lines
 retain every source word, blank note cells and literal dashes; isolated dashes
 are not assigned to neighbouring labels. Three independently transcribed cash-flow
 lines and missing/moved-rule, gap, word-placement and header mutations pass.
-Only page 16 changes among the prior 51 TOMK line views. Python suite, 788 web
-tests, lint and type checks pass; cloud capture and authenticated UI review are
-pending. This geometric projection does not certify logical accounting rows.
+Only page 16 changes among the prior 51 TOMK line views. Cloud probe `34075540385`
+passes independent original/native/structure checks and all 13 source cases.
+Publication/replay `34075859884` matches that probe, retains three open source
+content notes and leaves all six observed object versions unchanged on replay.
+Python suite, 788 web tests, lint and type checks pass; authenticated UI review
+remains pending. This geometric projection does not certify logical accounting rows.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

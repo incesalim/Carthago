@@ -1738,6 +1738,20 @@ editions and changed revisions remain separate evidence; do not overwrite an
 acquired English translation merely because the registered BDDK URL serves a
 Turkish PDF. Both exact originals must remain traceable.
 
+Ambiguous multi-PDF downloads can use reviewed entries in
+`data/banks/audit_document_origin_selections.json` (CLI override:
+`review_document_origins.py --archive-selections <path>`). Each entry binds one
+registered filing and exact HTTPS URL to the complete transport SHA-256, selected
+member name/hash and either acquired-byte agreement or an independently reviewed
+financial-report cover. The latter rechecks literal cover text; the former
+rechecks the acquisition hash. Changed archive bytes, member bytes, URL, filing
+or review evidence produce a named review outcome with the raw response retained.
+The registry is validated before any source access. A selection for another URL
+does not apply, including a bank URL versus its regulator alternative. Unselected
+PDFs stay inventoried for separate attachment capture; previous failed origin
+observations and acquired filings are preserved. Fourteen source-reviewed entries
+cover the unresolved Anadolubank/TSKB two-PDF archives; publication is pending.
+
 Source-line structure for tall ruled cells is derived from retained word positions,
 with exact original-cell word inventories and unambiguous baseline bands. Original
 physical cells remain intact; note references are text, not newly parsed figures.

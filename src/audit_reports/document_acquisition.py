@@ -26,6 +26,9 @@ def is_zip_transport(body: bytes) -> bool:
 
 
 def unwrap_pdf(body: bytes, reviewed_member: dict | None = None, *, _archive_depth: int = 0) -> tuple[bytes, dict]:
+    if reviewed_member and 'transport_sha256' in reviewed_member:
+        if hashlib.sha256(body).hexdigest() != reviewed_member['transport_sha256']:
+            raise ValueError('Reviewed source archive bytes changed')
     selection = {'method': 'direct_pdf', 'archive_members': []}
     if is_zip_transport(body):
         end = body.rfind(b'PK\x05\x06', max(0, len(body) - 65_557))

@@ -18,7 +18,7 @@ sys.path.insert(0, str(REPO))
 
 from src.audit_reports.document_corpus import Filing, registered_sources  # noqa: E402
 from src.audit_reports.document_corpus_store import CorpusStore  # noqa: E402
-from src.audit_reports.document_origin import observe_origin, publish_origin  # noqa: E402
+from src.audit_reports.document_origin import load_archive_selections, observe_origin, publish_origin  # noqa: E402
 from src.audit_reports.document_quality import bank_patterns  # noqa: E402
 from build_document_corpus import _write_bytes, _write_json, filing_shard  # noqa: E402
 
@@ -26,6 +26,8 @@ from build_document_corpus import _write_bytes, _write_json, filing_shard  # noq
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, default=REPO / 'data/banks/audit_report_urls.json')
+    parser.add_argument('--archive-selections', type=Path,
+                        default=REPO / 'data/banks/audit_document_origin_selections.json')
     parser.add_argument('--output-dir', type=Path, default=REPO / 'data/audit_capture/origins-v1')
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--source', choices=['registered', 'bddk'], default='registered')
@@ -70,6 +72,10 @@ def main(argv=None):
         selected = selected[:args.limit]
     if not selected:
         parser.error('No registered filing matches the origin review scope')
+    try:
+        selections = load_archive_selections(args.archive_selections, registered)
+    except (KeyError, TypeError, ValueError, OSError) as error:
+        parser.error(f'Invalid official archive selections: {error}')
     assigned = [f for f in selected if filing_shard(f.as_dict(), args.shard_count) == args.shard_index]
     from src.audit_reports import r2_storage
     store = CorpusStore(r2_storage.get_client(), r2_storage._bucket())
@@ -107,6 +113,8 @@ def main(argv=None):
                 # different official archive needs its own unambiguous selection.
                 if url != urls[0]:
                     member = None
+            if (filing, url) in selections:
+                member = selections[filing, url]
             result, artifacts = observe_origin(store, filing, key, url, patterns, reviewed_member=member,
                                                 **({'listing': listing} if listing is not None else {}))
             if args.publish:

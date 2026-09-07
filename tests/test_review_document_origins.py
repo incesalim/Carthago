@@ -19,9 +19,11 @@ def setup(tmp_path, monkeypatch):
         'OTHER': {'name': 'Other Bank', 'urls': {'consolidated': {'2026Q1': 'https://other.example/report.pdf'}}}}}
     path = tmp_path / 'config.json'
     path.write_text(json.dumps(config), encoding='utf-8')
+    selections = tmp_path / 'selections.json'
+    selections.write_text(json.dumps({'schema_version': 'document-origin-selections-1', 'selections': []}), encoding='utf-8')
     monkeypatch.setattr(r2_storage, 'get_client', lambda: client)
     monkeypatch.setattr(r2_storage, 'list_audit_pdfs', lambda: [('TEST', '2026Q1', 'consolidated', KEY)])
-    return client, ['--config', str(path), '--output-dir', str(tmp_path)], tmp_path
+    return client, ['--config', str(path), '--archive-selections', str(selections), '--output-dir', str(tmp_path)], tmp_path
 
 
 @pytest.mark.parametrize('args', [[], ['--limit', '5'], ['--limit', '1', '--publish'],
@@ -178,3 +180,36 @@ def test_regulator_alternative_does_not_reuse_another_urls_archive_override(setu
     assert len(calls) == 1 and calls[0][2] is None and calls[0][3] == (BODY, RESPONSE)
     assert 'BDREki-091-SOLO-2026-06' in calls[0][1]
     assert path.read_bytes() == before and not client.writes
+
+
+def test_regulator_alternative_uses_only_its_own_reviewed_archive_binding(setup, monkeypatch):
+    from src.audit_reports import document_origin_listing
+    from test_document_origin import bound_member
+    from test_document_origin_listing import BODY, RESPONSE, FILING as regulator_filing
+    client, args, folder = setup
+    config = {'banks': {'ATBANK': {'name': 'Arap Türk Bankası', 'urls': {'unconsolidated': {'2026Q2': URL}}}}}
+    (folder / 'config.json').write_text(json.dumps(config), encoding='utf-8')
+    url = document_origin_listing.listing_witness(BODY, RESPONSE, regulator_filing)['download_url']
+    entry = bound_member(pdf_body(), b'archive')
+    entry.update(filing=regulator_filing.as_dict(), source_url=url)
+    (folder / 'selections.json').write_text(json.dumps({'schema_version': 'document-origin-selections-1',
+                                                        'selections': [entry]}), encoding='utf-8')
+    monkeypatch.setattr(document_origin_listing, 'fetch_listing', lambda: (BODY, RESPONSE))
+    calls = []
+    def review(store, filing, key, source_url, patterns, *, reviewed_member, **kwargs):
+        calls.append((source_url, reviewed_member))
+        return {'filing': filing.as_dict(), 'status': 'matches_acquired_bytes'}, {}
+    monkeypatch.setattr(command, 'observe_origin', review)
+    assert command.main(args + ['--bank', 'ATBANK', '--source', 'bddk']) == 0
+    assert calls == [(url, entry)]
+    calls.clear()
+    assert command.main(args + ['--bank', 'ATBANK', '--source', 'registered']) == 0
+    assert calls == [(URL, None)]
+    assert not client.writes
+
+
+def test_invalid_archive_registry_fails_before_reading_any_source(setup, monkeypatch):
+    _client, args, folder = setup
+    (folder / 'selections.json').write_text('{}', encoding='utf-8')
+    monkeypatch.setattr(r2_storage, 'get_client', lambda: pytest.fail('Invalid registry accessed source storage'))
+    with pytest.raises(SystemExit): command.main(args)
