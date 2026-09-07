@@ -11,6 +11,8 @@ import hashlib
 from collections import Counter
 from pathlib import Path
 
+from .document_cell_fragments import cell_word_fragments, verify_cell_fragments
+
 SOURCE_CASE_KINDS = frozenset({"source_span", "source_word", "source_review"})
 
 
@@ -49,11 +51,16 @@ def _continuation_matches(case, pages, sources):
             words = {w['id']: w for w in sources[number]['words']}
             for cell in table_context['column_identifiers']['cells']:
                 ids = cell['word_ids']
-                if (not ids or len(ids) != len(set(ids)) or any(i not in words for i in ids)
-                        or _text(' '.join(words[i]['text'] for i in ids)) != _text(cell['text'])):
+                if not ids or len(ids) != len(set(ids)) or any(i not in words for i in ids):
                     good = False
-                elif any(not (cell['bbox'][0] <= (words[i]['bbox'][0] + words[i]['bbox'][2]) / 2 <= cell['bbox'][2]
-                              and cell['bbox'][1] <= (words[i]['bbox'][1] + words[i]['bbox'][3]) / 2 <= cell['bbox'][3]) for i in ids):
+                    continue
+                pieces = cell_word_fragments(cell, words)
+                parent = next(t for t in pages[number]['tables'] if t['id'] == table_id)
+                if (verify_cell_fragments(parent, sources[number])
+                        or _text(' '.join(p['text'] for p in pieces)) != _text(cell['text'])
+                        or any(not (cell['bbox'][0] <= (p['bbox'][0] + p['bbox'][2]) / 2 <= cell['bbox'][2]
+                                    and cell['bbox'][1] <= (p['bbox'][1] + p['bbox'][3]) / 2 <= cell['bbox'][3])
+                               for p in pieces)):
                     good = False
         if good:
             matches.append(link['to_table_id'])
@@ -70,20 +77,23 @@ def _complete_table_matches(case, page, source):
     def inside(box, region):
         return region[0] <= (box[0] + box[2]) / 2 <= region[2] and region[1] <= (box[1] + box[3]) / 2 <= region[3]
 
-    expected_words = Counter(w['id'] for w in source['words'] if inside(w['bbox'], bounds))
+    expected_characters = Counter((w['id'], i) for w in source['words'] if inside(w['bbox'], bounds)
+                                  for i in range(len(w['text'])))
     for region in case.get('source_text_regions', []):
         selected = [s for s in source['spans'] if inside(s['bbox'], region['bbox'])]
         if not selected or _text(' '.join(s['text'] for s in selected)) != _text(region['text']):
             return []
     matches = []
     for table in page['tables']:
+        if verify_cell_fragments(table, source):
+            continue
         if (table['method'] != case['method'] or table['row_count'] != len(expected)
                 or table['n_cols'] != len(expected[0]) or len(table['rows']) != len(expected)):
             continue
         grid = contexts[table['id']]['physical_grid']
         if grid is None or [a for a in grid['anchors'] if a['row_span'] > 1 or a['column_span'] > 1] != case['spans']:
             continue
-        actual_words, good = Counter(), True
+        actual_characters, good = Counter(), True
         for r, (row, texts) in enumerate(zip(table['rows'], expected, strict=True)):
             if row['index'] != r or len(row['cells']) != len(texts):
                 good = False
@@ -99,13 +109,14 @@ def _complete_table_matches(case, page, source):
                         good = False
                     continue
                 box = cell['bbox']
+                pieces = cell_word_fragments(cell, words)
                 if (box is None or not (bounds[0] <= box[0] <= box[2] <= bounds[2]
                                        and bounds[1] <= box[1] <= box[3] <= bounds[3])
-                        or _text(' '.join(words[i]['text'] for i in refs)) != _text(text)
-                        or any(not inside(words[i]['bbox'], box) for i in refs)):
+                        or _text(' '.join(p['text'] for p in pieces)) != _text(text)
+                        or any(not inside(p['bbox'], box) for p in pieces)):
                     good = False
-                actual_words.update(refs)
-        if good and actual_words == expected_words:
+                actual_characters.update((p['word_id'], i) for p in pieces for i in range(p['start'], p['end']))
+        if good and actual_characters == expected_characters:
             if 'source_line_rows' in case:
                 from .document_table_rows import table_source_rows
                 projected = table_source_rows(page, source)

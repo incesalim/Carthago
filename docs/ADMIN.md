@@ -67,6 +67,13 @@ labels remain separate lines and accounting-row associations require review.
 When a label cell spans several physical rows, the line view keeps the group
 together in its original columns and displays its closing balance once. Turning
 the checkbox off restores the original cell spans.
+When one PDF word crosses a ruled cell border, character ranges retain the exact
+pieces belonging to each cell. Hover over the cell to inspect those references.
+**Boundary review** lists the original words and the affected rows and columns.
+It remains visible even when every character has a source reference: a row
+number touching a label and a clipped alphabetic word require different review.
+The source-line view carries these same fragments without restoring the whole
+word into both cells. Earlier captures keep their original word references.
 Some partially ruled tables also offer a **Printed rules and text positions**
 alternative with complete grouped headings and literal period columns. It keeps
 blank cells separate from covered merged-header slots; all earlier candidates

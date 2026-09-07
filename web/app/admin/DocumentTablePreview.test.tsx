@@ -55,3 +55,22 @@ it("shows each complete numbered explanation next to its original column referen
   expect(markup).toContain("interpretation still needs review");
   expect(markup.split("<tbody>")[1].split("</tbody>")[0].match(/Dönem Sonu Bakiyesi\s+\(III/g)).toHaveLength(1);
 });
+
+it("keeps a split word's character ranges and its unresolved boundary visible", () => {
+  const table = { id: "p1:ruled0", method: "pymupdf_lines_strict", n_cols: 3, row_count: 1,
+    word_boundary_observations: [{ word_id: 7, text: "1Label", review_status: "unreviewed", cells: [
+      { row: 0, column: 0, start: 0, end: 1 }, { row: 0, column: 1, start: 1, end: 6 }] }],
+    rows: [{ index: 0, cells: [
+      { column: 0, text: "1", word_ids: [7], source_fragments: [{ word_id: 7, start: 0, end: 1, text: "1" }] },
+      { column: 1, text: "Label", word_ids: [7], source_fragments: [{ word_id: 7, start: 1, end: 6, text: "Label" }] },
+      { column: 2, text: "0", word_ids: [8] }] }] };
+  const markup = renderToStaticMarkup(<TablePreview table={table} />);
+  const body = markup.split("<tbody>")[1].split("</tbody>")[0];
+  expect(body).toContain("characters 1-1");
+  expect(body).toContain("characters 2-6");
+  expect(body).not.toContain("1Label");
+  expect(body).toContain(">0</div>");
+  expect(markup).toContain("Boundary review: 1 source word spans more than one cell");
+  expect(markup).toContain("row 1, column 1; row 1, column 2");
+  expect(markup).toContain("before interpreting the cells");
+});

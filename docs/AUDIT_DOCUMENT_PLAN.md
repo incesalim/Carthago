@@ -884,3 +884,31 @@ of detected tables.
   structured report and the specifically reviewed OCI table. Full registered
   refresh 34098885624 now runs at the same exact commit. Hold this extraction
   version steady until the run's complete filing outcomes can be reconciled.
+
+- 2026-09-07: prepared a character-occurrence repair while the full refresh stays
+  on its dispatched extraction version. Fresh original pages exactly reproduce
+  retained native evidence for TOMK 2023Q3 page 28 and 2024Q1 page 35. The local
+  prototype resolves 2/14 whole-word reference mismatches without altering any
+  table text; the alphabetic word crossing a printed border stays an explicit
+  unresolved logical boundary. Independently transcribed all 186 slots and five
+  merged regions of the 2024Q1 liquidity table, including blank amount cells,
+  both currency columns, applied/unapplied headings, period and units. Exact
+  character occurrence coverage and five source mutations pass; 14 synthetic
+  regressions cover rotations, missing/duplicate references and reordered text.
+  The reviewed physical table is available locally under output/audit-corpus.
+  Integration into the extractor, whole-structure verifier, source-row projection,
+  benchmarks and admin remains pending. The module is not yet published or part
+  of the extraction engine, and no whole-report approval is claimed.
+
+- 2026-09-07: integrated character ranges into structure capture, its dependency
+  identity, the whole-structure verifier, complete-table benchmarks, tall-cell
+  source lines and numbered-header references. A missing boundary-review issue
+  fails validation. The admin shows exact character ranges and the original
+  words spanning cell borders. The independently transcribed liquidity table is
+  now a registered full-grid source case; the cohort has 47 cases. Its earlier
+  whole-word artifact fails, and the linked artifact passes all 186 slots, five
+  spans, title, period and unit witnesses. Blank-to-zero, repeated-value source
+  swaps, missing/duplicate fragments, changed units and changed periods fail.
+  Local focused Python and admin tests pass. Full checks and read-only cloud
+  probes are next; publication remains pending. Read-only probes use a separate
+  workflow concurrency group and cannot alter the running 8d9e449 corpus refresh.

@@ -16,515 +16,77 @@ coverage or known issues change.
 
 ## Complete audit document corpus (2026-09-07; content verification in progress)
 
-Published repair `8d9e449` fixes two shared extraction defects: rotated pages
-now use a separate displayed-coordinate page copy for ruled tables, and numeric
-source-line links cannot borrow words from the preceding baseline. Garanti
-2022Q4 consolidated page 19 previously put OCI labels and figures in unrelated
-cells. The corrected bounded source check matches its complete printed table,
-both period headers, unit, merged slots, and all 16 label/current/prior rows.
-Source bytes remain unchanged. Tests cover all four page rotations and close
-baselines. New capture reports and filing indexes retain per-page issue lists,
-mismatching table cells, unplaced numeric cells and candidate-method counts so
-fleet repairs can be ranked without another extraction. These are diagnostics,
-not semantic approval. Publication `34098317752` is independently read back:
-all 184 original/native pages and physical text blocks are retained, all ordered
-narrative span occurrences survive, and the source annotations pass. Table-cell
-source mismatch observations fall from five to zero; line-source mismatch
-observations fall from seven to one. CI and deployment pass. A fresh authenticated
-admin review displays the corrected source-grid table, both headers and separated
-source rows. This clears the earlier session-access blocker; it does not approve
-every report passage. The complete 184-page structured JSON and reviewed OCI
-rows are available locally under `output/audit-corpus/GARAN_2022Q4_consolidated/`.
+The first scope is **1,146 registered filings across 38 banks, 2022Q1–2026Q2**.
+All have acquired PDFs and published original/native evidence plus candidate
+structure through `build-document-corpus.yml`. The last completed independent reconciliation covers **119,772 pages,
+308,126,554 native characters and 2,241,656 physical text blocks**. Its 197,883
+table candidates can overlap and are not a count of every printed table.
+**Zero whole filings are semantically verified.** Older history and additional
+banks follow completion of this registered corpus; analytical lanes are unchanged.
 
-Replacement full-corpus run `34098885624` is active at exact commit `8d9e449`.
-It covers all 1,146 registered filings, with acquisition disabled and no D1
-writes. Fleet completion, named failures and aggregate improvement counts remain
-pending. The extraction version is held steady while this run finishes.
+The preserved originals, native spans/words, images and drawings remain the
+source evidence. Separate candidates retain physical cells and merged slots,
+source lines inside tall cells, table continuations, complete prose, reading
+order, contents/body navigation and numbered explanations. OCR and vector-text
+recoveries retain their own sources and uncertainties. The authenticated admin
+can inspect the original PDF alongside these artifacts and review flags. Absence,
+blank text, merged slots, dashes and disclosed zero remain distinct.
 
-The first scope is the existing 38 banks and 2022Q1–2026Q2. All **1,146
-registered filings** are acquired and have published native source/structure
-artifacts. The reconciled baseline contains **119,772 pages, 308,126,554 native characters, 2,241,656 physical text
-blocks and 197,883 table candidates**. These are baseline preservation/candidate counts; later structural repairs
-are published for named filings below and have not been rolled across the fleet.
-**Zero whole filings are semantically verified; the analytical lanes are unchanged.**
+The completed read-only review `34059243171` checked every acquisition/original
+copy and native/structure artifact against the reconciled PDF identities. Its
+identity and recovery findings remain source-bound observations, not complete
+content certification. Explicit registry gaps, independently observed source
+editions, attachment associations and source disagreements are recorded in the
+internal evidence folder. Original revisions and recovery history are retained;
+none is replaced merely because another source URL now returns different bytes.
+Supporting workflows are `capture-document-edition.yml`,
+`capture-related-documents.yml`, `review-document-origins.yml` and
+`recover-document-corpus.yml`; their operating controls are in
+[OPERATIONS.md](OPERATIONS.md).
 
-The initial register had 1,101 explicit URLs and R2 had 1,117 acquired PDFs.
-Independent comparison against BDDK found 45 missing bindings, including 29
-unacquired reports. The old claim that VakıfBank Q1/Q3 consolidated reports were
-not published was wrong. Source-backed additions include nine VakıfBank quarterly
-reports, sixteen Kalkınma historical reports, Takasbank 2022Q1, Ziraat Dinamik
-2025Q2 and Aktif/Anadolubank 2026Q2. Absence from BDDK is never proof of
-nonpublication. Scope evidence is retained in the internal investigation folder.
+Published repair `8d9e449` corrects rotated ruled-table coordinates and numerical
+source lines borrowing preceding-baseline words. Independent readback of
+`34098317752` preserves all 184 Garanti 2022Q4 consolidated native pages, physical
+text blocks and ordered narrative span occurrences. All three selected source
+cases pass, including the full page-19 OCI table: units, periods, merged cells
+and 16 label/current/prior rows. Its table-cell mismatch observations fall from
+five to zero and line-source observations from seven to one. CI/deployment and
+fresh authenticated admin inspection pass. The complete structured report and
+reviewed OCI table are available under `output/audit-corpus/GARAN_2022Q4_consolidated/`.
 
-Expanded capture [34049704430](https://github.com/incesalim/Carthago/actions/runs/34049704430)
-preserved 1,144 PDFs. Repairs `34051064505` and `34051067193` completed the
-remaining two after independent inspection of Ziraat Dinamik's serialized PDF
-wrapper and Anadolubank's two-member PDF archive. Every original baseline PDF
-hash is unchanged. The repaired PDF bytes and all 175 retained pages match the
-independently downloaded official sources. Full read-only review
-[34059243171](https://github.com/incesalim/Carthago/actions/runs/34059243171)
-passes for all 1,146 filings: every acquisition/original copy and source/structure
-artifact was byte-checked, and every filing hash matches the reconciled capture.
+**Full refresh `34098885624` remains in progress at exact commit `8d9e449`.**
+It covers all registered filings without acquisition or D1 writes. Do not report
+fleet improvement from partial outcomes or cancel it to restart another version.
+Capture results now carry named per-page diagnostics for the next repair queue.
+Completion, failure reconciliation and independent verification of that complete
+run remain pending. A read-only probe of newer code does not publish artifacts
+and uses a separate concurrency group.
 
-Leading native text supports 1,140 source identities; three remain automatically
-unresolved and three have actual cover contradictions. Eleven revision-bound
-reviews now supplement those observations. Eight use exact native-span witnesses;
-the three new reviews use visually transcribed cover regions bound to exact PDF
-and source-page hashes. They identify scanned Kalkınma 2022Q4/2023Q4 consolidated
-covers and Takasbank 2022Q1's damaged text encoding. The latter reviews certify
-neither OCR accuracy nor report content. All three bounded cloud reviews at
-`cbe9d3e` pass; retained witnesses match the independently inspected originals
-and exact committed review/registry hashes. Raw automatic findings stay unchanged. HALKB 2022Q2, BURGAN 2022Q2 and QNBFB 2023Q4
-consolidated covers mix consolidated/unconsolidated wording; their auditor
-introductions support consolidated statements. Those contradictions stay explicit.
+Character references for words spanning ruled-cell borders are now implemented
+and locally checked. The repair retains the literal table text and a mandatory
+boundary-review observation; it does not treat an alphabetic word clipped into
+an amount cell as a verified logical value. Fresh TOMK source pages reproduce the
+retained native evidence exactly. The 2024Q1 liquidity table independently matches
+all 186 physical slots, five merged regions, title, period and unit witnesses;
+blank amounts and the percentage row retain their source meaning. It is the
+47th registered source case. The earlier whole-word artifact fails this case;
+character references pass while source-reference, omission, zero, unit and period
+mutations fail. Tall-cell line views and admin references preserve these same
+character ranges. Cloud verification/publication of this repair remain pending.
+The reviewed table is under `output/audit-corpus/TOMK_2024Q1_unconsolidated/`.
 
-`build-document-corpus.yml` retains immutable originals, source evidence,
-structured candidates, source/runtime/implementation identities and named failures
-in R2 `document-corpus/v1/`. Every native span, word occurrence, image/drawing
-region and native PDF structure is retained, including unbounded replacement
-text and a separate literal-glyph view. Source-linked label positions use unique
-native image/text pairs and preserve alternatives. Independent probes at
-`5f6fd48` cover 543 retained pages, seven fresh source-page observations and 17
-selected table/prose/position cases. The expanded corpus uses that structure
-implementation; selected-case success does not approve complete tables.
+Remaining work is corpus-wide physical and semantic completeness: every printed
+table, its headers/units/row-column associations and continuations; all prose,
+its ordering and analyst retrieval; and named unresolved source limitations.
+Passing selected cases, consistent hashes or an extraction run does not prove
+that end state. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the
+execution record. Independent evidence is retained under
+`docs/knowledge/2026-09-06-document-corpus/`, including
+`registered-native-final-reconciliation.json`,
+`registered-quality-independent-reconciliation.json`,
+`rotation-publication-independent-verification.json` and
+`cell-fragments-source-verification.json`.
 
-`recover-document-corpus.yml` preserves source pixels, pinned-model OCR, physical
-text blocks, source-pixel table candidates and eligible embedded-font readings.
-Raw native/OCR/font alternatives and disagreements remain available. The original
-1,117-filing recovery run `34040878532` completed with 741 selected pages in 184
-filings and 289,865 OCR words; that older selector omitted damaged native font
-maps. The revised selector includes control-character/legibility signals. The
-current automatic run `34058889360` has an independently verified retained scope
-of exactly 1,144 successful PDF hashes from expanded capture; the two repaired
-filings follow separately. All four workers succeeded: 210 filings have 1,153
-selected pages and 441,179 OCR words; 934 have no pages flagged. The two explicit
-repair checks (`34069911174` / `34069912704`) also succeed with no flagged pages.
-All **1,146 registered filings** are now reconciled against their source hashes
-and named recovery outcomes (936 not flagged, 210 with recovery candidates).
-Two previously referenced follow-ups were only empty scope reports; the explicit
-repair checks close that bookkeeping gap. Selection completion does not establish
-that every unreadable page was found or that the recognized text is correct.
-
-Six FIBA/ISCTR/Takasbank sample pages have independently verified source pixels,
-raw readings, physical tables and 75 selected cell checks. Their unchanged replays
-reuse all three receipts and preserve 25 object versions. Takasbank's embedded
-font reading independently recovers 60/1,571 characters on pages 1/13 and matches
-four complete source text regions; the separate OCR İstanbul discrepancy stays
-visible. FIBA's source value 717.417 versus OCR 7.417 remains an explicit error.
-A new table-context view preserves merged slots only when all cell rectangles
-fit one unambiguous grid. It links adjacent fragments only with an explicit
-continued title and identical ordered column identifiers, retaining competing
-matches without merging. QNB pages 47–48 were visually reviewed: the instrument
-columns 1/2 continue despite changed widths, with three/two full-width headings.
-Cloud capture `34061799667` passes. Independent checks verify all 108 retained
-pages, freshly reobserve original pages 47–48, reproduce the new context from
-prior retained structure, and match five source annotations and committed engine
-hashes. Publication `34062058387` matches the independently verified probe. Its full-byte
-replay leaves all five observed source/capture object versions unchanged. The
-admin session expired before live merged-cell/continuation inspection; sign-in
-renewal is pending. Header meaning, logical rows and full prose order remain unverified
-beyond bounded source annotations.
-
-`review-document-origins.yml` independently downloads registered sources afresh,
-retains transport/PDF revisions and compares them with acquired bytes without
-replacing acquisitions. Four cloud probes and publishing byte/receipt checks pass;
-full registered comparison `34058065551` completed with **973 byte matches,
-11 different PDFs, 102 unavailable sources, 59 non-PDF/unclear downloads and one
-pre-repair acquisition absence**. Independent reconciliation verifies all 1,146
-unique registry bindings, committed engine and receipt hashes, and all 1,145
-observed acquisition hashes against native capture. Follow-up `34062651771`
-verifies repaired Anadolubank consolidated bytes and its retained receipt/index;
-Solo follow-up `34064708288` also passes independent receipt/transport checks;
-975 filings had byte agreement before the ICBC follow-up. Old observations
-remain in history.
-Byte agreement does not clear conflicting cover claims or verify document content.
-Independently inspected Albaraka 2026Q2 consolidated and Eximbank 2026Q1 solo
-copies are English/Turkish editions. Both remain preserved; full content
-comparison is pending. Other differences include four Şekerbank historical PDFs.
-ICBC's 36 initial downloads failed certificate-chain validation. A source probe
-now verifies the ICBC hostname and chain using the existing GlobalSign
-intermediate, then proves its 2026Q2 solo PDF exactly matches acquired bytes.
-The corpus downloader supports those exact ICBC hosts with normal verification
-enabled. Follow-up `34066751096` matches all 36 registered ICBC PDFs, with
-36 supported opening-page identities. Independent reconciliation checks every
-current receipt/index, prior acquisition hash and committed engine; old failed
-observations remain. **1,011 filings had fresh byte agreement before the
-regulator follow-up described below.**
-Ziraat Katılım returns
-browser-challenge HTML. Halkbank's 2026Q2 solo BDDK archive contains a DOCX,
-not a PDF. None is reclassified as a missing acquired filing.
-
-The Anadolu 2026Q2 solo archive contains its already-acquired 86-page report
-and another one-page signed declaration. Both covers and archive/member hashes
-were independently inspected. An exact reviewed member selection is configured;
-the corrected origin receipt is published and retains its earlier observation.
-Read-only attachment probe `34064863416` passes independent original/native bytes,
-source pixels, all 150 OCR word positions and committed recovery-engine checks.
-Three of five independently transcribed full regions match; the scope paragraph
-misreads `II-14.1` as `1-14.1`, and the second statement changes `ile` to `İle`.
-Publication/replay `34065766786` retains the exact independently checked original,
-native evidence, OCR derivative, word positions and review findings. All eight
-object versions remain unchanged on replay, including the parent filing index.
-Raw OCR and source wording remain separate.
-
-`capture-related-documents.yml` separately preserves every additional PDF member
-of a verified report archive. Anadolubank's one-page signed declaration has
-independently verified native capture, source pixels and 155 OCR words/positions
-(probe `34058889184`, publication/replay `34059202689`). Two of four complete
-source regions disagree: A.S./A.Ş. and ve/ile. The live authenticated admin shows
-the separate original, page, structured source, recovered blocks and both errors.
-At `979b169`, CI/deploy and all 733 web tests pass; attachment bindings reject a
-valid main-report revision substituted under a related-document relationship.
-The publication replay preserves eight object versions, including the parent
-index. Wrapped related members need explicit wrapper-byte binding before admin
-access; ordinary PDF members are supported.
-
-The initial origin fleet also identifies **14 separate Takasbank activity-report
-PDF members** (plus Anadolu's consolidated declaration). Read-only probes
-`34066892345` and `34066893929` retain two 12-page attachments; all native/structure
-accounting and 2,707/2,545 OCR word-position inventories pass independent checks,
-with fresh original-pixel comparisons on the first/last pages. Visual inspection
-confirms that the 2022Q2 archive actually contains a 2022Q1 activity report; the
-2026Q2 attachment states 2026Q2. A separate immutable related-identity receipt now
-binds the opening-page observations to the exact PDF/native artifact and labels
-the inherited filing as archive context. The admin exposes source-period conflicts
-and rejects substituted or corrupted receipts. All 14 archive associations are
-now published and independently reconciled: 13 distinct PDFs, 168 associated
-pages, 37,216 OCR words across associations, 13 supported native identities and
-one retained period conflict. Original/native/structure/identity bytes are
-checked for every attachment; all 24 recovery pages in the two earlier probes
-also match their independently inspected artifacts. Replay `34069765929` preserves
-all 31 observed object versions. Both Anadolu declaration identity receipts are
-also backfilled (`34069767466` / `34069769140`); their image-only native identity
-remains unresolved and prior artifacts retain their versions. Those initial 16 related archive associations are captured. All 14 additional
-Anadolubank/TSKB responsibility declarations also now pass independent readback:
-14 distinct one-page PDFs, 3,689 native characters and 2,026 OCR words. Original,
-native, structure, identity and recovery artifact bytes and source/page bindings
-were checked against their retained archives. Four native identities are supported;
-ten remain unresolved because native text is insufficient. Main indexes and
-acquisition versions are unchanged. All 30 observed archive associations are
-captured; this does not establish that every possible attachment was discovered.
-No whole attachment is semantically approved or every OCR word certified.
-
-Three open TOMK 2023Q3 content notes now retain seven exact source passages:
-capital ratios 93,93 / 93,75 / 93,90, the prior own-funds discrepancy and adjacent
-liquidity ratios with different aggregation contexts. Python and the private
-reader verify page hashes, span occurrences, literal wording and geometry.
-Notes are stored in the source benchmark receipt, independently of candidate
-table views, and exposed as structured analyst metadata. They do not select
-corrected values or certify financial meanings. Python checks and all 761 web
-tests, lint and type checks pass. Cloud probe `34069764376` retains all 51 native
-and structured pages byte-for-byte and passes all 10 selected cases. Publication
-and replay `34069966411` preserve the source-bound notes with all four object
-versions unchanged on replay. CI and deployment at `310eaaa` pass; the deployed
-admin display awaits renewal of the user's expired session.
-
-A bounded read-only comparison with four independently matched BDDK listing
-rows finds exact acquired-byte agreement for AKTIF, VAKBN and ZIRAATK 2026Q2
-solo, and a different ATBANK PDF revision. All four covers visually confirm the
-bank, period and basis; ATBANK's two covers have identical rendered bytes, but
-its full 88-page revision comparison is pending. Alternate-source origin receipt
-publication is now implemented with a retained exact regulator-listing witness.
-Read-only cloud probe `34071549110` matches all independently retained PDF and
-transport bytes and exact listing rows. The dependency-free parser also matches
-all 1,142 registered listing rows. Publication `34072061577` is independently
-verified against 21 retained R2 objects: all four origin receipts, originals,
-transports and listing bytes match their source probes; historical observations,
-acquisition metadata and main native PDF bindings remain unchanged. VAKBN and
-ZIRAATK add two filing agreements. AKTIF and ATBANK already had bank-site byte
-agreement; ATBANK also has a different regulator edition, so agreement and
-observed-difference sets overlap. The 72-filing VAKBN/ZIRAATK regulator comparison
-`34072441306` is independently reconciled against 359 stored objects, all prior
-history references, acquisition versions and main native hashes: 67 matches,
-three different PDFs and two downloads the prior parser could not unwrap.
-Across verified published observations before the nested-wrapper follow-up,
-**1,069 filings have byte agreement**;
-15 have observed different PDFs, with one overlapping filing (ATBANK). 63 have
-neither a verified agreement nor an observed PDF difference. These are source
-revision observations, not approvals of content.
-
-The two unresolved ZIRAATK 2025Q3 downloads were independently inspected and
-contain a single ZIP inside a ZIP with a four-byte spanning marker. Both inner
-PDF hashes match acquired reports. The decoder now retains both member inventories,
-marker and nested selection and rejects ambiguous extra members, excessive depth,
-truncation or invalid archive boundaries. Local source-byte checks, mutation tests and the full Python suite pass.
-Cloud follow-up `34074341718` now matches both PDFs; 11 independently read objects
-prove exact agreement with the manually unpacked transport/member chain, prior
-history retention and unchanged acquisitions. That published rollup was
-**1,071 filings with byte agreement**, 15 with a different PDF (one overlaps),
-and 61 with neither outcome. Exact follow-up `34074745326` has now independently
-reconciled all 61 filings and 288 stored objects: 14 matches, 30 different PDFs
-and 17 unresolved sources. That intermediate rollup was **1,085 filings with byte
-agreement**, **45 with a different PDF**, one overlap (ATBANK), and **17 with
-neither outcome**. Fourteen unresolved downloads contain two PDFs. Eight Anadolubank
-archives include the exact acquired financial report; six TSKB report covers
-independently match their bank, period and basis but have different PDF bytes.
-Source-bound selections retain the exact URL, archive hash, member hash and
-review witness. Cloud follow-up `34076924747` independently reconciles all 14
-against 71 stored objects: eight matches and six different PDFs, all with source
-identity support and unchanged main/acquisition versions. That intermediate coverage was
-1,093 agreements, 51 different-PDF filings, one overlap and three with neither
-outcome. Final comparison `34077439751` independently reconciles the last three
-filings and all 15 retained objects against bank-listed source probes: AKTIF
-2025Q3 solo matches acquired bytes; EXIM 2025Q3 solo and HALKB 2026Q2 solo differ.
-All three rendered covers match their bank, period and basis. The latter two
-registered locators now use those bank-listed PDFs; previous URLs, unavailable
-responses and the DOCX-only regulator archive remain in retained history.
-Every registered filing now has a retained official PDF comparison: **1,094
-have byte agreement**, **53 have an observed different PDF**, **one overlaps**
-(ATBANK), and **zero have neither outcome**. The union is exactly 1,146 filings.
-Main filing index bytes/versions and acquisitions remain unchanged. The findings
-do not settle source contradictions, edition meaning or content accuracy.
-
-`capture-document-edition.yml` is implemented for an exact historical origin
-observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
-and any regulator listing, then preserves full native/structure capture and
-selected recovery pages under a PDF-specific edition index. It never replaces
-the acquired filing. The private reader now exposes all retained origin
-observations and can address an edition or archive attachment through its exact
-historical observation. Python source-binding/replay tests and all 788 web tests
-pass. ATBANK's 88-page edition probe `34073988169` passes independent
-original/native/structure accounting and exact Git engine checks, plus four
-fresh original-page comparisons. It retains 195,952 native characters, 987 text
-blocks and 183 table candidates; no pages were flagged for recovery. Publication/replay
-`34074261461` is independently verified against the probe and preserves all seven
-observed object versions. Full independent readback of all **53 observed editions**
-now passes: **5,378 pages**, **13,623,066 native characters**, **102,888 physical
-text blocks** and **13,024 table candidates**. Selected recovery covers **47 pages**
-and **19,190 OCR words**. This includes all six additional TSKB reports and the
-final Eximbank/Halkbank editions. Main filing index bytes/versions and acquisitions remained
-unchanged. These checks establish artifact accounting and source bindings, not
-complete table detection or accurate recognition of every word. CI/deployment at
-`d23d76e` pass; live admin inspection still awaits the user renewing the expired session.
-
-The private admin links original pages, source references, candidate tables,
-prose and alternative readings. Anonymous access returns 403. No corpus work has
-written D1 or replaced settled analytical partitions. Unchanged-object receipts
-avoid repeated writes; byte, engine or annotation changes invalidate reuse.
-The source-verified QNB countercyclical-buffer classification repair is in code,
-but existing stored wide rows have not been rebuilt.
-
-A read-only visual review pack is now implemented in the existing capture
-workflow: render selected pages, or a whole single filing in Actions, with exact
-PDF/pixel bindings and named per-page failures. This supports independent
-whole-document review. Cloud pack `34062146313` contains all 51 TOMK 2023Q3
-solo pages; PNG bytes, source/engine hashes, four fresh original-pixel probes and
-all retained native/structure pages pass independent checks. All 51 original page images have now been visually inspected for a layout/content
-inventory. Found footer reading order, separated bullet markers, split signatory
-roles and a missed one-row exchange-rate table on page 30. The segmented-border
-repair now recovers that complete six-slot USD/EURO table with its literal TL
-units. Missing or displaced border segments, dropped content and removed units
-fail local source checks. Cloud probe `34065765217` passes all five source cases;
-publication/replay `34065945594` retains the exact independently checked original,
-all 51 native pages and structure. All four checked object versions stay unchanged.
-A complete physical-table benchmark checks all 40 slots,
-both merged period headings, every source word in the region and the unit
-qualification of page 6's shareholder table. Publication `34063685062` matches the
-independently verified probe and passes that complete-table case. This does not
-approve the whole report or financial interpretation.
-
-A separate source-line view now divides tall ruled body cells by original word
-positions while retaining the original column borders and merged header cells.
-It keeps note `(11)` in its own column, net profit `148.071` in the current-period
-column and the EPS `Tam TL` qualification. No numerical value is inferred from a
-reference. Local complete-word inventory, geometry and mutation checks pass;
-three independent page-13 source-row annotations supplement the shareholder case.
-The admin can toggle these source lines; wrapped labels remain physical lines,
-not certified accounting rows. Cloud probe `34064705881` passes all four cases;
-all 51 original/native page artifacts remain identical and each added line view
-was independently rebuilt. Assets, liabilities, P&L and OCI now expose 47, 47,
-64 and 17 physical body lines respectively. Equity source-line handling is described below. Logical accounting-row
-associations and the authenticated live display remain pending. The source-line view itself
-is now published with the five-case FX repair.
-
-A new, separate column projection handles the TOMK cash-flow body's physical
-merge of current/prior columns. A complete earlier header grid, retained thin
-vertical rules covering at least 95% of the body and unique whole-word column
-containment are required. Original cells remain unchanged. Its 49 physical lines
-retain every source word, blank note cells and literal dashes; isolated dashes
-are not assigned to neighbouring labels. Three independently transcribed cash-flow
-lines and missing/moved-rule, gap, word-placement and header mutations pass.
-Only page 16 changes among the prior 51 TOMK line views. Cloud probe `34075540385`
-passes independent original/native/structure checks and all 13 source cases.
-Publication/replay `34075859884` matches that probe, retains three open source
-content notes and leaves all six observed object versions unchanged on replay.
-Python suite, 788 web tests, lint and type checks pass; authenticated UI review
-remains pending. This geometric projection does not certify logical accounting rows.
-
-A vertical cell span in TOMK's page-15 equity statement previously prevented
-the source-line view. The new view groups physical rows touched by that span,
-requires exact word conservation and unique original-column containment, and
-retains all original cells. It exposes 19 source lines across the label and 16
-amount columns, including the closing balance once. Four independently
-transcribed opening/movement/closing source cases raise TOMK's benchmark to 17
-cases. Missing, duplicated, misplaced or overlapping content rejects the view.
-All 51 retained page structures were compared locally; only page 15's line view
-changes. Admin rendering tests preserve both merged headers and all body columns.
-Cloud probe `34078794091` independently matches the source PDF, all 51 native
-pages, the exact committed engine and all 17 source cases; only page 15's line
-view changes. Publication/replay `34078940748` matches the verified probe and
-retains three open content notes. All seven source/acquisition object versions
-remain unchanged on replay. CI/deploy at `b9c89ad` pass; live authenticated
-display checks remain pending. Header-note meaning and accounting-row semantics remain unverified.
-
-TOMK's page-39 deferred-tax table previously appeared as a numeric candidate
-and five overlapping underline fragments, with grouped headings split apart.
-A new whole-table alternative requires matching segmented horizontal rules,
-a separate period-header rule, complete non-overlapping native heading blocks,
-unique amount-column containment and full source-word conservation. It retains
-the original candidates. The 8-by-5 table preserves both grouped headings, four
-period columns, the two blank net-row amount slots and every literal figure.
-A complete-table source annotation checks all 40 slots, 69 word occurrences and
-the separate printed thousand-TL units; this raises TOMK's benchmark to 18 cases.
-The printed 55.203 total is retained even though its displayed components sum
-to 55.202. No correction or financial interpretation is inferred. Corrupted
-headers, rule witnesses, repeated-value occurrences, blank-to-zero substitutions,
-omitted tables and changed units fail validation or the source benchmark.
-Across the 51 retained TOMK pages, only page 39 gets this new alternative.
-Full Python, 791 web tests, lint/type and mobile checks pass. Cloud probe
-`34079635094` independently verifies the PDF/native bytes, fresh original page 39,
-all retained earlier tables and prose, the exact committed engine and 18 source
-cases. Publication/replay `34079793061` matches the probe; all eight observed
-object versions remain unchanged on replay. CI/deploy at `e8fafbd` pass.
-Live authenticated display review remains pending.
-
-A further source view links TOMK's six equity-column numbers to their complete
-adjacent explanations on page 15. It requires ordered column identifiers, unique
-marker/paragraph alignment, a complete adjacent note sequence and no competing
-table or paragraph. Each link retains the exact header word occurrence, marker
-and paragraph span IDs, literal text and geometry; the original content is never
-rewritten. An independent six-note source case, including the wrapped final note,
-raises TOMK's benchmark to 19 cases. Missing, duplicated, shifted or substituted
-source associations fail or remain unlinked. Across the retained 51 pages, only
-page 15 has this candidate relationship. The admin displays the complete numbered
-explanations next to the table with their column references. Cloud probe
-`34080486986` independently verifies all 51 unchanged native pages, all earlier
-structure, six complete source-note links and 19 source cases. Publication/replay
-`34080668719` matches the verified probe and retains all nine checked object
-versions on replay. CI/deploy at `22cc62b` pass. Live authenticated display
-checks remain pending; meanings are unverified.
-
-Four page-38 asset-detail tables were independently transcribed from the original
-render: bank placements, fair-value assets, tangible assets and software assets.
-All 121 table slots already match the retained ruled candidates, including the
-merged current/prior headings, explicit blanks and literal dashes. Complete-table
-regressions now also bind their thousand-TL units and the investment-fund asterisk
-qualification. Removing a table, swapping repeated source occurrences, inventing
-zeroes or changing units fails the relevant source case. TOMK now has 23 source
-cases; the four new cases do not alter extraction or certify the whole report.
-Cloud probe `34081259589` independently verifies all 23 cases and byte-identical
-original, native and structured artifacts. Publication/replay `34081464245`
-updates only the review receipt; all nine checked object versions are unchanged
-on replay. CI/deploy at `43ca082` pass.
-
-Navigation now uses source body banners and observed footer words in the separate
-corpus. TOMK's seven section ranges are 6–8, 9–16, 17–25, 26–37, 38–45, 46 and
-47–51; the old contents-offset reading misplaced four boundaries. All 57 full
-contents titles and declared folio ranges are retained, including six wrapped
-entries and the literal printed `EBanka`. The unnumbered statement divider no
-longer shifts early folios or masquerades as six statement starts. Missing or
-repeated footers remain unresolved or ambiguous, without interpolation.
-Five contents entries disagree with observed body locations: general-information
-item II, off-balance-sheet notes, both audit-explanation items and the activity
-report. Both observations remain source-linked; no PDF wording is corrected.
-The admin exposes section links, complete contents text, printed references and
-competing locations. A 24th source case checks all seven boundaries, 57 entries,
-45 footer observations and five disagreements. Mutation checks reject truncation,
-wrong links, erased conflicts and incorrect paragraph section context. The local
-projection preserves every prior table and literal prose field. Cloud probe
-`34087256653` independently reproduces that projection, all 24 source cases and
-51 unchanged native pages, with fresh original checks on pages 5, 9, 46 and 47.
-Publication/replay `34087462722` matches the verified probe, retains all earlier
-revisions and leaves all ten checked object versions unchanged on replay.
-CI/deploy at `10e5cae` pass; authenticated UI review remains pending. Broader
-navigation coverage and whole-report semantic verification are unfinished.
-
-Cross-bank navigation source checks now cover GARAN 2022Q4 consolidated and
-ALBRK 2026Q1 consolidated. Garanti uses standalone section numbers, including a
-wrapped heading and a numeral with different font ascenders; Albaraka switches
-from SECTION to CHAPTER SEVEN. A distant Page-No column no longer hides Garanti's
-first contents section. The local view retains 69 and 61 entries respectively,
-with all seven independently reviewed body starts in each report. Two selected
-navigation cases check section ranges, counts by section, 11 complete selected
-contents titles, 14 footer bindings and the literal body markers. All fixture
-word occurrences match the retained native evidence; eight fresh original page
-inventories preserve its existing fields, with five newer evidence fields added.
-Missing, moved, dotted or repeated numeral candidates and incomplete or differing
-titles remain unresolved. GARAN's solo report still has conflicting contents/body
-titles and no resolved whole section sequence. The admin also retains the source
-contents section headings alongside body headings. Full Python, 796 web tests
-and source mutation checks pass. None of these results certifies every table or
-prose passage in either report.
-
-The cross-bank probes at `544ee1e` (`34089586417`, `34089589601`) match the
-reviewed navigation, preserve all 282 current native pages and every prior table
-field. CI/deploy pass. The additional prose comparison caught a regression in
-ALBRK: inferred underline-table header rectangles split the page-8 shareholder
-paragraph and its preceding heading. Publication was held until that was repaired.
-Table alternatives now remain available for review without changing source prose
-segmentation; aligned Roman headings also stay siblings despite minor font-size
-differences. A new independently transcribed page-8 paragraph case checks the
-complete wording under heading IV, without inheriting heading III. Pure local
-projections retain all tables and pass 24 TOMK, two GARAN and two ALBRK source
-cases. Corrected cloud probes `34090776777`, `34090773185`, `34090769895` exactly
-reproduce those projections across 333 unchanged native pages. Twelve fresh
-original page inventories and rendered-pixel checks also match. All prior table
-fields, text blocks and ordered narrative span occurrences are preserved.
-Publications/replays `34091220078`, `34091216355`, `34091212337` retain source,
-structure and recovery history; all 27 checked object versions remain unchanged
-on repeat runs. CI `34090769311` and deploy `34090857423` at `36fde33` pass.
-Authenticated admin display still requires sign-in. These are 28 selected source
-checks; no whole filing is semantically verified. Broader format checks and
-TOMK's four-page capital-table continuation remain unfinished.
-
-Four further read-only probes at `fe7b669` pass independent artifact/source
-checks: AKBNK 2026Q1 solo (`34092256559`, seven cases/90 pages), ALBRK 2026Q1
-solo (`34092260814`, four/95), QNBFB 2026Q1 solo (`34092264952`, five/108), and
-TOMK 2024Q1 solo (`34092268623`, one/66). Their current original/native R2 bytes
-match the probes; original page inventories and fresh render pixels match.
-Akbank's replacement-text page requires separate document handles for extraction
-and rendering: inspecting text first alters its in-memory render result, while
-a fresh byte snapshot is pixel-identical to the cloud review. The source bytes
-do not change. The expanded cohort now covers all 45 registered source cases
-across seven reports/692 pages. AKBNK and TOMK 2024Q1 navigation remain unresolved;
-the cases do not approve those section maps or whole-report content. The next
-registered-corpus refresh retains candidate/unverified states and prior history.
-Run `34092888903` was cancelled after a shared landscape-table geometry defect
-was reproduced against the original Garanti PDF. Its partial saved revisions
-remain available; it is not a completed fleet refresh. The corrected replacement
-run must be reconciled before reporting current fleet results.
-
-The TOMK PDF itself has unresolved source disagreements: capital adequacy is
-93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
-Page-33 liquidity summaries also show differing TP+YP figures. These observations
-are retained with source pages in the internal visual review, without changing
-any original or declaring one value authoritative. The three source-bound open notes described above retain these findings;
-whole-report reconciliation and financial interpretation remain pending.
-
-A separate whitespace-partition reading view now retains every narrative element
-once while ordering the auditor letter before its contact footer, joining seven
-standalone list markers to their source text and grouping all six signatory
-columns on the reviewed TOMK pages. Original spans, physical blocks and narrative
-elements remain unchanged. Overlapping regions without a unique partition retain
-stored order and an explicit issue. Two independently inspected page-layout cases
-check order, list links and complete signatory column groups; omission, duplication,
-misassociation and source-text mutations fail. The admin offers both views and
-automatically falls back to all original text if any layout reference is missing,
-duplicated or unknown. Local Python and 738 web tests pass. Cloud probe `34066499398` passes all seven
-source cases; all 51 native pages and every earlier structure field remain
-identical, and all new reading views were independently rebuilt. The two reviewed
-prose pages have no layout issue; 44 other pages retain unresolved areas, often
-within table text. Publication/replay `34066695808` matches the independent
-seven-case probe and leaves all four checked object versions unchanged.
-Authenticated live inspection remains pending.
-
-Remaining work: establish
-whole-document physical and semantic coverage with independently reviewed source
-benchmarks; verify table headers/units/row-column associations and continuations;
-verify prose structure/order and analyst retrieval. Older history and additional
-banks follow completion of this registered corpus. See
-[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) and internal evidence under
-`docs/knowledge/2026-09-06-document-corpus/`.
 
 ## Data coverage in D1
 

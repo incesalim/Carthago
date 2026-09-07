@@ -7,9 +7,11 @@ Wrapped labels remain separate source lines; this does not certify logical rows.
 from __future__ import annotations
 
 from collections import Counter
+from copy import deepcopy
 from statistics import median
 
 from .document_table_context import _grid
+from .document_cell_fragments import cell_word_fragments, verify_cell_fragments
 
 
 def _inside(box, region):
@@ -118,13 +120,41 @@ def _row_bands(table, grid):
         start = stop
 
 
+def _fragment_view(table, source):
+    """Use exact character intervals as items without duplicating parent words."""
+    if verify_cell_fragments(table, source):
+        return None
+    parents = {w['id']: w for w in source['words']}
+    expected = Counter((w['id'], i) for w in source['words'] if _inside(w['bbox'], table['bbox'])
+                       for i in range(len(w['text'])))
+    actual, items = Counter(), {}
+    projected = deepcopy(table)
+    for row in projected['rows']:
+        for cell in row['cells']:
+            refs = []
+            for part in cell_word_fragments(cell, parents):
+                key = (part['word_id'], part['start'], part['end'])
+                actual.update((part['word_id'], i) for i in range(part['start'], part['end']))
+                items[key] = {'id': key, 'text': part['text'], 'bbox': part['bbox'], 'source_fragment': part}
+                refs.append(key)
+            cell['word_ids'] = refs
+    return (projected, list(items.values())) if actual == expected else None
+
+
 def table_source_rows(page: dict, source: dict) -> dict:
     results = []
     for table in page['tables']:
         grid = _grid(table)
         if grid is None:
             continue
-        words = [w for w in source['words'] if _inside(w['bbox'], table['bbox'])]
+        fragmented = 'word_fragment_geometry' in table
+        if fragmented:
+            view = _fragment_view(table, source)
+            if view is None:
+                continue
+            table, words = view
+        else:
+            words = [w for w in source['words'] if _inside(w['bbox'], table['bbox'])]
         by_id = {w['id']: w for w in words}
         cells = [c for r in table['rows'] for c in r['cells']]
         if (len(by_id) != len(words)
@@ -171,7 +201,10 @@ def table_source_rows(page: dict, source: dict) -> dict:
                 top, bottom = min(w['bbox'][1] for w in line), max(w['bbox'][3] for w in line)
                 rendered.append({'index': index, 'bbox': [table['bbox'][0], top, table['bbox'][2], bottom],
                     'cells': [{'column': c, 'text': ' '.join(w['text'] for w in line if columns[w['id']] == c),
-                               'word_ids': [w['id'] for w in line if columns[w['id']] == c],
+                               'word_ids': [w['source_fragment']['word_id'] if fragmented else w['id']
+                                            for w in line if columns[w['id']] == c],
+                               **({'source_fragments': [w['source_fragment'] for w in line if columns[w['id']] == c]}
+                                  if fragmented else {}),
                                'bbox': [grid['x_edges'][c], top, grid['x_edges'][c + 1], bottom]}
                               for c in range(table['n_cols'])]})
             split.append({'source_row': row['index'], 'lines': rendered,

@@ -1,8 +1,12 @@
 {
   "schema_version": "document-annotations-1",
-  "filing": {"bank_ticker": "TOMK", "period": "2024Q1", "kind": "unconsolidated"},
+  "filing": {
+    "bank_ticker": "TOMK",
+    "period": "2024Q1",
+    "kind": "unconsolidated"
+  },
   "pdf_sha256": "9f3e281ee93f8905fce994890ccfd46d641bc12ff928987cad98b9076dabd61c",
-  "annotation_method": "Original PDF page 7 (printed page 2), rendered with Poppler and visually read 2026-09-06. The director name belongs to a two-line responsibility cell. Bounds are displayed PDF points. Selected cases only.",
+  "annotation_method": "Original PDF page 7 (printed page 2), rendered with Poppler and visually read 2026-09-06. The director name belongs to a two-line responsibility cell. Bounds are displayed PDF points. Selected cases only. Original page 35 was independently rendered and read on 2026-09-07: all 186 liquidity-table slots, five merged regions, period, unit and caption; source characters crossing column borders are separately retained.",
   "cases": [
     {
       "id": "director_with_wrapped_responsibilities",
@@ -11,8 +15,349 @@
       "row_label": "Onur ÖZKAN",
       "column_count": 2,
       "cells": [
-        {"column": 0, "text": "Onur ÖZKAN", "bbox": [130, 239, 184, 251]},
-        {"column": 1, "text": "Yönetim Kurulu Üyesi, Genel Müdür, Kredi Komitesi Üyesi, Sürdürülebilirlik Komitesi Bşk.", "bbox": [246, 229, 532, 251]}
+        {
+          "column": 0,
+          "text": "Onur ÖZKAN",
+          "bbox": [
+            130,
+            239,
+            184,
+            251
+          ]
+        },
+        {
+          "column": 1,
+          "text": "Yönetim Kurulu Üyesi, Genel Müdür, Kredi Komitesi Üyesi, Sürdürülebilirlik Komitesi Bşk.",
+          "bbox": [
+            246,
+            229,
+            532,
+            251
+          ]
+        }
+      ]
+    },
+    {
+      "id": "liquidity_complete_physical_grid",
+      "kind": "complete_physical_table",
+      "page": 35,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        113,
+        301,
+        544,
+        690
+      ],
+      "rows": [
+        [
+          "Cari Dönem",
+          null,
+          "Dikkate Alınma Oranı Uygulanmamış Toplam Değer",
+          null,
+          "Dikkate Alınma Oranı Uygulanmış Toplam Değer",
+          null
+        ],
+        [
+          null,
+          null,
+          "TP+YP",
+          "YP",
+          "TP+YP",
+          "YP"
+        ],
+        [
+          "YÜKSEK KALİTELİ LİKİT VARLIKLAR",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "1",
+          "Yüksek kaliteli likit varlıklar",
+          "",
+          "",
+          "691.586",
+          "201.183"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "NAKİT ÇIKIŞLARI",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "2",
+          "Gerçek kişi mevduat ve perakende mevduat",
+          "367.462",
+          "311.252",
+          "34.746",
+          "31.125"
+        ],
+        [
+          "3",
+          "İstikrarlı mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "4",
+          "Düşük istikrarlı mevduat",
+          "367.462",
+          "311.252",
+          "34.746",
+          "31.125"
+        ],
+        [
+          "5",
+          "Gerçek kişi mevduat ve perakende mevduat dışında kalan teminatsız borçlar",
+          "16.894",
+          "848",
+          "6.758",
+          "339"
+        ],
+        [
+          "6",
+          "Operasyonel mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "7",
+          "Operasyonel olmayan mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "8",
+          "Diğer teminatsız borçlar",
+          "16.894",
+          "848",
+          "6.758",
+          "339"
+        ],
+        [
+          "9",
+          "Teminatlı borçlar",
+          "",
+          "",
+          "-",
+          "-"
+        ],
+        [
+          "10",
+          "Diğer nakit çıkışları",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "11",
+          "Türev yükümlülükler ve teminat tamamlama yükümlülükleri",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "12",
+          "Yapılandırılmış finansal araçlardan borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "13",
+          "Finansal piyasalara olan borçlar için verilen ödeme taahhütleri ile diğer bilanço dışı yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "14",
+          "Herhangi bir şarta bağlı olmaksızın cayılabilir bilanço dışı diğer yükümlülükler ile sözleşmeye dayalı diğer yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "15",
+          "Diğer cayılamaz veya şarta bağlı olarak cayılabilir bilanço dışı borçlar",
+          "340.821",
+          "8.069",
+          "340.821",
+          "8.069"
+        ],
+        [
+          "16",
+          "TOPLAM NAKİT ÇIKIŞLARI",
+          "",
+          "",
+          "382.325",
+          "39.533"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "NAKİT GİRİŞLERİ",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "17",
+          "Teminatlı alacaklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "18",
+          "Teminatsız alacaklar",
+          "123.404",
+          "13.318",
+          "123.291",
+          "13.318"
+        ],
+        [
+          "19",
+          "Diğer nakit girişleri",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "20",
+          "TOPLAM NAKİT GİRİŞLERİ",
+          "123.404",
+          "13.318",
+          "123.291",
+          "13.318"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "Üst Sınır Uygulanmış Değerler",
+          null
+        ],
+        [
+          "21",
+          "TOPLAM YKLV STOKU",
+          "",
+          "",
+          "691.586",
+          "201.183"
+        ],
+        [
+          "22",
+          "TOPLAM NET NAKİT ÇIKIŞLARI",
+          "",
+          "",
+          "259.034",
+          "26.215"
+        ],
+        [
+          "23",
+          "LİKİDİTE KARŞILAMA ORANI (%)",
+          "",
+          "",
+          "266,99",
+          "767,43"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 6
+        },
+        {
+          "row": 27,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            157,
+            193,
+            169
+          ],
+          "text": "Likidite karşılama oranı"
+        },
+        {
+          "bbox": [
+            85,
+            70,
+            435,
+            84
+          ],
+          "text": "31 MART 2024 TARİHİ İTİBARIYLA KONSOLİDE OLMAYAN"
+        },
+        {
+          "bbox": [
+            85,
+            97,
+            368,
+            108
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
       ]
     }
   ]

@@ -109,7 +109,9 @@ def _headers(table):
             continue
         candidates.append({'row': row['index'], 'labels': labels,
                            'cells': [{'column': c['column'], 'text': c['text'],
-                                      'word_ids': c['word_ids'], 'bbox': c['bbox']} for c in cells[1:]]})
+                                      'word_ids': c['word_ids'], 'bbox': c['bbox'],
+                                      **({'source_fragments': c['source_fragments']} if 'source_fragments' in c else {})}
+                                     for c in cells[1:]]})
     return candidates[0] if len(candidates) == 1 else None
 
 

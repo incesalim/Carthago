@@ -28,6 +28,7 @@ from .document_reading_layout import reading_layout, verify_reading_layout
 from .document_segmented_tables import segmented_table_candidates, verify_segmented_tables
 from .document_table_notes import table_note_links, verify_table_note_links
 from .document_navigation import NAVIGATION_VERSION, document_navigation, verify_document_navigation
+from .document_cell_fragments import link_cell_fragments, verify_cell_fragments, word_character_geometry
 
 STRUCTURE_VERSION = "document-structure-1"
 
@@ -46,6 +47,7 @@ def structure_engine() -> dict:
                  "document_segmented_tables.py",
                  "document_table_notes.py",
                  "document_navigation.py",
+                 "document_cell_fragments.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -323,6 +325,11 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
         for observed, captured in zip(evidence[1:], capture.pages, strict=True):
             numeric, lines, issues = _numeric_candidates(observed, captured)
             ruled = _ruled_candidates(pdf[observed["page"] - 1], observed)
+            if any(not c['source_text_matches'] for t in ruled for r in t['rows'] for c in r['cells']):
+                geometry = word_character_geometry(pdf[observed['page'] - 1], observed,
+                                                   {w['id'] for w in observed['words']})
+                ruled = [link_cell_fragments(t, observed, geometry) if any(
+                    not c['source_text_matches'] for r in t['rows'] for c in r['cells']) else t for t in ruled]
             extra = underline_candidates(observed, numeric + ruled)
             tables = numeric + ruled + extra
             tables.extend(segmented_table_candidates(observed, tables))
@@ -332,6 +339,9 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
                 tables.extend(alternatives)
                 issues.extend(position_issues)
             for table in tables:
+                if table.get('word_boundary_observations'):
+                    issues.append({'kind': 'word_crosses_table_cells', 'table_id': table['id'],
+                                   'word_ids': [o['word_id'] for o in table['word_boundary_observations']]})
                 for row in table["rows"]:
                     for cell in row["cells"]:
                         if not cell["source_text_matches"]:
@@ -436,6 +446,12 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
         if positioned is not None:
             errors.extend(prefix + error for error in verify_positioned_text(positioned, source)['errors'])
         for table in page["tables"]:
+            errors.extend(prefix + error for error in verify_cell_fragments(table, source))
+            if table.get('word_boundary_observations'):
+                expected_issue = {'kind': 'word_crosses_table_cells', 'table_id': table['id'],
+                                  'word_ids': [o['word_id'] for o in table['word_boundary_observations']]}
+                if expected_issue not in page['issues']:
+                    errors.append(prefix + 'missing_word_boundary_issue')
             word_view = table.get('word_view', 'words')
             if word_view not in ('words', 'positioned_text') or word_view == 'positioned_text' and positioned is None:
                 errors.append(prefix + 'unknown_table_word_view')
@@ -444,6 +460,10 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
             words = {w['id']: w for w in items}
             for row in table["rows"]:
                 for cell in row["cells"]:
+                    if 'source_fragments' in cell:
+                        # The table-level check rederives every character range,
+                        # cell assignment and boundary observation together.
+                        continue
                     refs = cell["word_ids"]
                     if any(i not in words for i in refs):
                         errors.append(prefix + "unknown_cell_word")

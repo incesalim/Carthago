@@ -1,0 +1,77 @@
+{
+  "schema_version": "cell-fragment-source-cases-1",
+  "annotation_method": "Independently read original TOMK PDF pages 28 (2023Q3) and 35 (2024Q1), rendered at 144 dpi on 2026-09-07. Literal cells, including empty and merged slots, are transcribed from the source page. Passing these cases does not approve a whole report.",
+  "cases": [
+    {
+      "filing": {"bank_ticker": "TOMK", "period": "2023Q3", "kind": "unconsolidated"},
+      "pdf_sha256": "80dbb8e5a2b18675e84b2ed62fbbaf07c3dadebc5984ea36979ba0687b610c84",
+      "page": 28,
+      "source_word": "finansal",
+      "word_id": 145,
+      "fragments": [
+        {"row": 9, "column": 0, "start": 0, "end": 7, "text": "finansa"},
+        {"row": 9, "column": 1, "start": 7, "end": 8, "text": "l"}
+      ],
+      "boundary_review": "The native word extends over the printed border. The grid clips its last letter into the adjacent amount cell. These references preserve that observation; they do not approve the split as a logical table value."
+    },
+    {
+      "filing": {"bank_ticker": "TOMK", "period": "2024Q1", "kind": "unconsolidated"},
+      "pdf_sha256": "9f3e281ee93f8905fce994890ccfd46d641bc12ff928987cad98b9076dabd61c",
+      "page": 35,
+      "title": "Likidite karşılama oranı",
+      "period_heading": "31 MART 2024 TARİHİ İTİBARIYLA KONSOLİDE OLMAYAN",
+      "unit": "Bin Türk Lirası",
+      "ratio_row_unit": "%",
+      "bbox": [113, 301, 544, 690],
+      "spans": [
+        {"row": 0, "column": 0, "row_span": 2, "column_span": 2},
+        {"row": 0, "column": 2, "row_span": 1, "column_span": 2},
+        {"row": 0, "column": 4, "row_span": 1, "column_span": 2},
+        {"row": 2, "column": 0, "row_span": 1, "column_span": 6},
+        {"row": 27, "column": 4, "row_span": 1, "column_span": 2}
+      ],
+      "rows": [
+        ["Cari Dönem", null, "Dikkate Alınma Oranı Uygulanmamış Toplam Değer", null, "Dikkate Alınma Oranı Uygulanmış Toplam Değer", null],
+        [null, null, "TP+YP", "YP", "TP+YP", "YP"],
+        ["YÜKSEK KALİTELİ LİKİT VARLIKLAR", null, null, null, null, null],
+        ["1", "Yüksek kaliteli likit varlıklar", "", "", "691.586", "201.183"],
+        ["", "", "", "", "", ""],
+        ["", "NAKİT ÇIKIŞLARI", "", "", "", ""],
+        ["2", "Gerçek kişi mevduat ve perakende mevduat", "367.462", "311.252", "34.746", "31.125"],
+        ["3", "İstikrarlı mevduat", "-", "-", "-", "-"],
+        ["4", "Düşük istikrarlı mevduat", "367.462", "311.252", "34.746", "31.125"],
+        ["5", "Gerçek kişi mevduat ve perakende mevduat dışında kalan teminatsız borçlar", "16.894", "848", "6.758", "339"],
+        ["6", "Operasyonel mevduat", "-", "-", "-", "-"],
+        ["7", "Operasyonel olmayan mevduat", "-", "-", "-", "-"],
+        ["8", "Diğer teminatsız borçlar", "16.894", "848", "6.758", "339"],
+        ["9", "Teminatlı borçlar", "", "", "-", "-"],
+        ["10", "Diğer nakit çıkışları", "-", "-", "-", "-"],
+        ["11", "Türev yükümlülükler ve teminat tamamlama yükümlülükleri", "-", "-", "-", "-"],
+        ["12", "Yapılandırılmış finansal araçlardan borçlar", "-", "-", "-", "-"],
+        ["13", "Finansal piyasalara olan borçlar için verilen ödeme taahhütleri ile diğer bilanço dışı yükümlülükler", "-", "-", "-", "-"],
+        ["14", "Herhangi bir şarta bağlı olmaksızın cayılabilir bilanço dışı diğer yükümlülükler ile sözleşmeye dayalı diğer yükümlülükler", "-", "-", "-", "-"],
+        ["15", "Diğer cayılamaz veya şarta bağlı olarak cayılabilir bilanço dışı borçlar", "340.821", "8.069", "340.821", "8.069"],
+        ["16", "TOPLAM NAKİT ÇIKIŞLARI", "", "", "382.325", "39.533"],
+        ["", "", "", "", "", ""],
+        ["", "NAKİT GİRİŞLERİ", "", "", "", ""],
+        ["17", "Teminatlı alacaklar", "-", "-", "-", "-"],
+        ["18", "Teminatsız alacaklar", "123.404", "13.318", "123.291", "13.318"],
+        ["19", "Diğer nakit girişleri", "-", "-", "-", "-"],
+        ["20", "TOPLAM NAKİT GİRİŞLERİ", "123.404", "13.318", "123.291", "13.318"],
+        ["", "", "", "", "Üst Sınır Uygulanmış Değerler", null],
+        ["21", "TOPLAM YKLV STOKU", "", "", "691.586", "201.183"],
+        ["22", "TOPLAM NET NAKİT ÇIKIŞLARI", "", "", "259.034", "26.215"],
+        ["23", "LİKİDİTE KARŞILAMA ORANI (%)", "", "", "266,99", "767,43"]
+      ],
+      "split_words": [
+        {"word_id": 183, "text": "1Yüksek", "prefix": "1", "row": 3},
+        {"word_id": 191, "text": "2Gerçek", "prefix": "2", "row": 6},
+        {"word_id": 216, "text": "5Gerçek", "prefix": "5", "row": 9},
+        {"word_id": 253, "text": "9Teminatlı", "prefix": "9", "row": 13},
+        {"word_id": 257, "text": "10Diğer", "prefix": "10", "row": 14},
+        {"word_id": 302, "text": "14Herhangi", "prefix": "14", "row": 18},
+        {"word_id": 321, "text": "15Diğer", "prefix": "15", "row": 19}
+      ]
+    }
+  ]
+}

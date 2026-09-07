@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 
-type Cell = { text: string | null; col_index?: number | null; column?: number; placement?: string; word_ids: (number | string)[] };
+type SourceFragment = { word_id: number | string; start: number; end: number; text: string };
+type Cell = { text: string | null; col_index?: number | null; column?: number; placement?: string; word_ids: (number | string)[]; source_fragments?: SourceFragment[] };
 export type Table = { id: string; method: string; n_cols: number; row_count: number; col_labels?: string[]; word_view?: string;
+  word_boundary_observations?: { word_id: number | string; text: string; review_status: string;
+    cells: { row: number; column: number; start: number; end: number }[] }[];
   rows: { index: number; label?: string; cells: Cell[] }[] };
 export type TableContext = { table_id: string; heading: { text: string } | null;
   physical_grid: { anchors: { row: number; column: number; row_span: number; column_span: number }[];
@@ -12,7 +15,14 @@ export type SourceRows = { table_id: string; split_rows: { source_row: number; c
   row_group?: { source_rows: number[] };
   lines: { index: number; cells: Cell[] }[] }[] };
 export type TableNotes = { table_id: string; links: { label: string; column: number; text: string;
-  header_word_ids: (number | string)[]; marker_span_ids: (number | string)[]; text_span_ids: (number | string)[] }[] };
+  header_word_ids: (number | string)[]; header_source_fragments?: SourceFragment[]; marker_span_ids: (number | string)[]; text_span_ids: (number | string)[] }[] };
+
+function sourceReference(cell: Pick<Cell, "word_ids" | "source_fragments">, positioned = false) {
+  return cell.source_fragments?.length
+    ? cell.source_fragments.map(p => `${p.text} (source word ${p.word_id}, characters ${p.start + 1}-${p.end})`).join("; ")
+    : `${positioned ? "Positioned source pieces" : "Source words"}: ${cell.word_ids.join(", ")}`;
+}
+
 export default function DocumentTablePreview({ table, context, sourceRows, notes }: { table: Table; context?: TableContext; sourceRows?: SourceRows; notes?: TableNotes }) {
   const [expandLines, setExpandLines] = useState(true);
   const positioned = table.method === "native_image_replacement_geometry";
@@ -32,6 +42,13 @@ export default function DocumentTablePreview({ table, context, sourceRows, notes
       <span className="ml-2 font-normal text-faint">{positioned ? "PDF-linked label positions" : numeric ? "Numeric layout" : table.method === "segmented_rules_and_source_lines" ? "Printed rules and text positions" : "Ruled layout"} · unreviewed</span>
     </summary>
     {context?.heading && <p className="mt-2 text-xs font-medium">{context.heading.text}</p>}
+    {!!table.word_boundary_observations?.length && <details className="mt-2 text-xs text-muted-foreground">
+      <summary className="cursor-pointer">Boundary review: {table.word_boundary_observations.length} source {table.word_boundary_observations.length === 1 ? "word spans" : "words span"} more than one cell</summary>
+      <p className="mt-1">Exact character references are retained. Check these boundaries against the original report before interpreting the cells.</p>
+      <ul className="mt-1 space-y-1">{table.word_boundary_observations.map(word => <li key={word.word_id}>
+        <span className="font-mono">{word.text}</span>: {word.cells.map(cell => `row ${cell.row + 1}, column ${cell.column + 1}`).join("; ")}
+      </li>)}</ul>
+    </details>}
     {sourceRows && <div className="mt-2 text-xs text-muted-foreground">
       <label><input type="checkbox" checked={expandLines} onChange={(e) => setExpandLines(e.target.checked)} className="mr-2" />Show separate source lines inside tall cells</label>
       <p className="mt-1">Original columns and header cells are retained. Wrapped labels may span several lines; these lines are not verified accounting rows.</p>
@@ -52,7 +69,7 @@ export default function DocumentTablePreview({ table, context, sourceRows, notes
             const anchor = !row.projected ? grid?.anchors.find((a) => a.row === row.index && a.column === c) : undefined;
             return <td key={c} rowSpan={anchor?.row_span} colSpan={anchor?.column_span} className="min-w-20 whitespace-pre-wrap p-2 font-mono">
             {row.cells.filter((cell) => (numeric ? cell.placement === "data" && cell.col_index === c : cell.column === c))
-              .map((cell, i) => <div key={i} title={`${positioned ? "Positioned source pieces" : "Source words"}: ${cell.word_ids.join(", ")}`}>{cell.text || (row.sourceLine ? "[no text on this line]" : "[empty source cell]")}</div>)}
+              .map((cell, i) => <div key={i} title={sourceReference(cell, positioned)}>{cell.text || (row.sourceLine ? "[no text on this line]" : "[empty source cell]")}</div>)}
           </td>;
           })}
           {unplaced && <td className="p-2 font-mono text-warning">{row.cells.filter((c) => c.placement === "unplaced").map((c) => c.text).join("\n")}</td>}
@@ -63,7 +80,7 @@ export default function DocumentTablePreview({ table, context, sourceRows, notes
       <p className="font-medium">Numbered source explanations</p>
       <p className="mt-1 text-faint">Suggested links follow the printed column numbers and adjacent notes. Source wording is retained; interpretation still needs review.</p>
       <ol className="mt-2 space-y-2">{notes.links.map((link) => <li key={link.column}
-        title={`Header source words: ${link.header_word_ids.join(", ")}; note source spans: ${[...link.marker_span_ids, ...link.text_span_ids].join(", ")}`}>
+        title={`Header ${sourceReference({ word_ids: link.header_word_ids, source_fragments: link.header_source_fragments })}; note source spans: ${[...link.marker_span_ids, ...link.text_span_ids].join(", ")}`}>
         <span className="mr-2 font-mono">{link.label}.</span><span className="whitespace-pre-wrap leading-relaxed">{link.text.trim()}</span>
         <span className="ml-2 text-faint">Column {link.column + 1}</span>
       </li>)}</ol>

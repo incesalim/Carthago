@@ -76,6 +76,7 @@ def table_note_links(page, source):
         for cell, (marker, text) in zip(cells, notes, strict=True):
             links.append({'label': cell['text'].strip(), 'header_row': headers['row'], 'column': cell['column'],
                           'header_word_ids': cell['word_ids'], 'header_bbox': cell['bbox'],
+                          **({'header_source_fragments': cell['source_fragments']} if 'source_fragments' in cell else {}),
                           'marker_element_id': marker['id'], 'marker_span_ids': marker['span_ids'], 'marker_bbox': marker['bbox'],
                           'text_element_id': text['id'], 'text_span_ids': text['span_ids'], 'text_bbox': text['bbox'],
                           'text': text['text']})
