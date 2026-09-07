@@ -587,5 +587,8 @@ annotation replay against those sources, not a new cloud extraction. Receipt:
 `risk-prose-cloud-source-verification.json` in the internal evidence directory.
 The isolated staged source passes 2,927 Python tests (two skipped), 865 web
 tests, all nine standalone gates, Python/web lint, web types and mobile
-lint/types/design-token checks. Publication of the additional reviews remains
-required, and no whole report is certified complete.
+lint/types/design-token checks. Delivered review code is `370da26`; scoped
+publication `34144411936` queues its TOMK 2023Q3 unconsolidated receipt
+(74 cases / 39 unique complete tables) behind the existing corpus jobs. The
+local prose output was visually checked through its final hedging paragraph.
+The new receipt remains unverified live, and no whole report is certified complete.
