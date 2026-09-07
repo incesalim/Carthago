@@ -49,7 +49,7 @@ export function ProseReadingView({ report, citation, onPage }: {
         <span>{p.section ? `${p.section.number}. ${p.section.role.replaceAll("_", " ")}` : "Section unassigned"}</span>
       </div>
       {p.heading_path.length > 0 && <p className="mt-1 text-xs text-muted-foreground">{p.heading_path.map(h => h.marker_element_id ? `${h.marker} ${h.text}` : h.text).join(" › ")}</p>}
-      <p className={`mt-2 text-sm leading-relaxed ${raw ? "whitespace-pre-wrap" : ""} ${p.kind === "heading" ? "font-semibold" : ""}`}>{p.heading_marker && <span className="mr-2">{p.heading_marker.text}</span>}{raw ? p.raw_text : p.text}</p>
+      <p className={`mt-2 text-sm leading-relaxed ${raw ? "whitespace-pre-wrap" : ""} ${p.kind === "heading" ? "font-semibold" : ""}`}>{p.heading_marker && <span>{p.heading_marker.text}{" "}</span>}{raw ? p.raw_text : p.text}</p>
       {p.continuation_from && <p className="mt-1 text-xs text-warning">Possible continuation of the preceding page’s paragraph; fragments are kept separately.</p>}
       {p.note_links.map(link => <p key={`${link.table_id}:${link.column}`} className="mt-1 text-xs text-muted-foreground">Note {link.marker} · table {link.table_id} · column {link.column}</p>)}
       {p.issues.length > 0 && <p className="mt-1 text-xs text-warning">{p.issues.map(i => i.replaceAll("_", " ")).join(" · ")}</p>}

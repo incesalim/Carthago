@@ -47,8 +47,11 @@ refer to selected ratios or summary rows. A passing cell does not certify a
 complete source table. The deployed liquidity increment preserves LCR current/prior
 headings and literal/page evidence. Its two verified filings are TOMK 2024Q1 solo
 and GARAN 2022Q4 consolidated; complete liquidity tables remain outside this lane.
-Production D1 readback is verified; authenticated visual confirmation is pending
-because the admin browser session expired on reload.
+Production D1 readback is verified. The registry labels were also checked in the
+authenticated admin session on 2026-09-08, alongside the structured prose reader.
+The prose reader is live: TOMK 2023Q3 solo, GARAN 2022Q4 consolidated and AKBNK
+2026Q2 consolidated passed production source checks. Search, section filtering
+and full-report JSON export were exercised in the signed-in browser.
 
 ## Code map
 

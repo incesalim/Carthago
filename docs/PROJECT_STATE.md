@@ -42,6 +42,15 @@ pages, 6,830 spans, 1,387 elements) and GARAN 2022Q4 consolidated (184 pages,
 25,713 spans, 7,061 elements). All 14 previously source-reviewed TOMK management
 and risk passages match exactly, including short nil disclosures. This is source
 fidelity and access, not a full-report semantic or paragraph-boundary approval.
+Release verification: `8272089` and `6d00c53` passed CI and deployed successfully.
+Authenticated production checks passed on both source-test filings plus AKBNK
+2026Q2 consolidated (99 pages / 14,989 native spans), for 334 pages / 47,532
+spans in total. Live search, section filtering and complete JSON downloads were
+checked. The GARAN download equals the checked local contract exactly; the TOMK
+download retains all 14 reviewed passages. Full checks passed: 2,962 Python tests
+(2 skipped), 904 website tests, web/mobile lint and types, token checks and all
+nine standalone gates.
+
 The legacy 369,007-row local `bank_audit_prose` database has not been published;
 no D1 migration, row writes or extraction backfill is required for this reader.
 The analyst-facing contract is available for retrieval/export; automatic memo
