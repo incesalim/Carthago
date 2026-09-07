@@ -2124,8 +2124,20 @@ Original PDF bytes are checked before and after; no PDF pages are opened.
 Unknown engines or unavailable retained bases use the existing fresh path.
 Read-only probes compare the entire fresh structure with the retained replay.
 The local four-report / 384-page replay is valid, with a new daily-rate table
-only on TOMK 2023Q3 page 30. Fresh cloud proof is still required before rollout.
+only on TOMK 2023Q3 page 30. Fresh cloud proof has now passed (receipt below).
 Keep pending jobs `34133467871` and `34138728663` in place; they retain their
 original source and annotation snapshots. New equity/risk annotations bring
 the selected benchmark to 93 cases and 47 complete table records. Neither an
 engine match nor passing selected reviews certifies whole-report completeness.
+
+
+Delivered repair `e7c4770` passes CI `34142657725`; deployment `34142801505`
+succeeded. All five fresh read-only probes (`34142688368`, `34142698600`,
+`34142707866`, `34142716947`, `34142726635`) succeeded. Independent
+downloaded-artifact checks pass all 93 registered cases across eight reports
+and reproduce 47 unique complete-table reviews. Every original/native byte
+and the entire fresh structure equal retained replay on all 384 pages of
+the four comparison reports. Proof: `underline-cloud-independent-verification.json`
+under `docs/knowledge/2026-09-06-document-corpus/`. Scoped publication
+`34143241702` queues TOMK 2023Q3 unconsolidated (62 cases / 37 tables)
+behind the existing corpus runs. Its live display remains unverified.

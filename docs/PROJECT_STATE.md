@@ -220,9 +220,9 @@ of a compound heading alone. The exact 35500cc8-to-c9134d44 retained adapter
 rebuilds table-dependent views without opening or extracting PDF pages. Bounded
 replay over all 384 pages of four retained reports changes tables only on
 TOMK 2023Q3 page 30 and preserves every existing table and source byte.
-Fresh cloud equality and publication of this repair remain required. Existing
-period/narrative/review publication runs are not restarted. The earlier
-reviewed-grid reader deployment `34138652324` has completed successfully.
+Fresh cloud equality is independently proved below; publication is queued.
+Existing period/narrative/review publication runs are not restarted. The
+earlier reviewed-grid reader deployment `34138652324` has completed successfully.
 
 The isolated staged source passes 2,920 Python tests (two skipped), 865 web
 tests, all nine standalone gates, Python/web lint, web types and mobile
@@ -3419,3 +3419,15 @@ reader at `/banks/[ticker]/calls/[period]`.
   `YYYY-M`, previously dropped). CPI, inflation expectations, REER and
   residents' FC repopulate on the next refresh. New series added: REER
   `TP.RK.T1.Y`.
+
+
+Delivered repair `e7c4770` passes CI `34142657725`; deployment `34142801505`
+succeeded. All five fresh read-only probes (`34142688368`, `34142698600`,
+`34142707866`, `34142716947`, `34142726635`) succeeded. Independent
+downloaded-artifact checks pass all 93 registered cases across eight reports
+and reproduce 47 unique complete-table reviews. Every original/native byte
+and the entire fresh structure equal retained replay on all 384 pages of
+the four comparison reports. Proof: `underline-cloud-independent-verification.json`
+under `docs/knowledge/2026-09-06-document-corpus/`. Scoped publication
+`34143241702` queues TOMK 2023Q3 unconsolidated (62 cases / 37 tables)
+behind the existing corpus runs. Its live display remains unverified.

@@ -552,3 +552,15 @@ cells using printed headings and borders. The expanded view shows each projected
 column separately; switching it off restores the original merged-cell display.
 Isolated amounts or dashes keep their physical line instead of acquiring an
 inferred row label. Header and numerical meanings still require review.
+
+
+Delivered repair `e7c4770` passes CI `34142657725`; deployment `34142801505`
+succeeded. All five fresh read-only probes (`34142688368`, `34142698600`,
+`34142707866`, `34142716947`, `34142726635`) succeeded. Independent
+downloaded-artifact checks pass all 93 registered cases across eight reports
+and reproduce 47 unique complete-table reviews. Every original/native byte
+and the entire fresh structure equal retained replay on all 384 pages of
+the four comparison reports. Proof: `underline-cloud-independent-verification.json`
+under `docs/knowledge/2026-09-06-document-corpus/`. Scoped publication
+`34143241702` queues TOMK 2023Q3 unconsolidated (62 cases / 37 tables)
+behind the existing corpus runs. Its live display remains unverified.
