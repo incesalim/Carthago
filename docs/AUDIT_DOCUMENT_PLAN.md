@@ -871,3 +871,16 @@ of detected tables.
   New capture reports/indexes carry named per-page structural diagnostics for
   corpus-wide repair ranking. Corrected cloud publication and fleet reconciliation
   remain pending; no complete-report approval is inferred from this table check.
+
+- 2026-09-07: rotation repair published by run 34098317752 at exact commit
+  8d9e449. Independent readback verifies the complete stored structure, unchanged
+  original/native bytes and physical text blocks on all 184 Garanti pages, and
+  conservation of ordered narrative span occurrences. All three source cases
+  pass, including the complete 16-row OCI table. Table-cell source mismatches
+  fall 5 to 0; line-source mismatches fall 7 to 1. Original page 19 is reobserved
+  directly. CI, deployment, 2,641 Python tests, 796 web tests and required checks
+  pass. Fresh authenticated admin inspection confirms the repaired table view;
+  the earlier sign-in blocker is cleared. Local deliverables include the entire
+  structured report and the specifically reviewed OCI table. Full registered
+  refresh 34098885624 now runs at the same exact commit. Hold this extraction
+  version steady until the run's complete filing outcomes can be reconciled.

@@ -16,7 +16,7 @@ coverage or known issues change.
 
 ## Complete audit document corpus (2026-09-07; content verification in progress)
 
-The next structural repair fixes two shared extraction defects: rotated pages
+Published repair `8d9e449` fixes two shared extraction defects: rotated pages
 now use a separate displayed-coordinate page copy for ruled tables, and numeric
 source-line links cannot borrow words from the preceding baseline. Garanti
 2022Q4 consolidated page 19 previously put OCI labels and figures in unrelated
@@ -26,7 +26,20 @@ Source bytes remain unchanged. Tests cover all four page rotations and close
 baselines. New capture reports and filing indexes retain per-page issue lists,
 mismatching table cells, unplaced numeric cells and candidate-method counts so
 fleet repairs can be ranked without another extraction. These are diagnostics,
-not semantic approval. Cloud publication of this repair is pending.
+not semantic approval. Publication `34098317752` is independently read back:
+all 184 original/native pages and physical text blocks are retained, all ordered
+narrative span occurrences survive, and the source annotations pass. Table-cell
+source mismatch observations fall from five to zero; line-source mismatch
+observations fall from seven to one. CI and deployment pass. A fresh authenticated
+admin review displays the corrected source-grid table, both headers and separated
+source rows. This clears the earlier session-access blocker; it does not approve
+every report passage. The complete 184-page structured JSON and reviewed OCI
+rows are available locally under `output/audit-corpus/GARAN_2022Q4_consolidated/`.
+
+Replacement full-corpus run `34098885624` is active at exact commit `8d9e449`.
+It covers all 1,146 registered filings, with acquisition disabled and no D1
+writes. Fleet completion, named failures and aggregate improvement counts remain
+pending. The extraction version is held steady while this run finishes.
 
 The first scope is the existing 38 banks and 2022Q1–2026Q2. All **1,146
 registered filings** are acquired and have published native source/structure
