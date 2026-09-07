@@ -2007,3 +2007,23 @@ the candidate does not cover a complete rectangle. A null outside the grid,
 a null covered by a merged cell, a printed empty cell, a dash and zero remain
 different source facts. Global unit witnesses do not convert count, percentage,
 rating or explicitly different-currency cells into financial amounts.
+
+The next derived view is `source-period-headers-1`. It groups the original words
+above witnessed table columns when every amount column has its own explicit
+current/prior-period phrase. Physical cells and figures are unchanged. Crossing
+words, incomplete source occurrence inventories, inconsistent grids and missing
+labels cannot produce a band; multiple valid bands remain competing candidates.
+New artifacts retain `table_period_headers_schema` and page-level
+`table_period_headers`; validation recomputes the full view and rejects missing
+pages, altered text/geometry/references and removal of the schema marker.
+
+`document_header_upgrade.py` supports only PyMuPDF 1.27.2.3 and the exact
+`ca66890e81ae8c2d52a87a701193d3ea46f73ac5d7819e5f2e3d3d8ab5cd12e4` to
+`dda3201c09e2f487cd437283bdc53388217cc9982a3fc7db9a41a7a2fbcdf82a`
+transition. It verifies the original/native/retained structure, adds the header
+view and checks the full result without opening or extracting any PDF pages.
+Capture results name `retained_period_header_upgrade` and zero
+`pdf_pages_extracted`. Exact cache reuse remains first; unsupported/missing bases
+use normal extraction and corrupt eligible bases fail. Read-only probes compare
+the complete replay JSON to complete fresh extraction when the base is retained.
+Cloud proof and publication are required before claiming this transition is live.

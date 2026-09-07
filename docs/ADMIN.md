@@ -74,6 +74,13 @@ It remains visible even when every character has a source reference: a row
 number touching a label and a clipped alphabetic word require different review.
 The source-line view carries these same fragments without restoring the whole
 word into both cells. Earlier captures keep their original word references.
+**Printed period headings** separately shows explicitly printed period labels
+at their original column positions, including a header whose missing dividers
+put both dates into one physical cell. Original cells remain visible below and
+source-word references are retained. Competing heading bands require review;
+this view does not fill missing dates from a neighbouring page. Empty printed
+cells and positions with no physical cell have distinct labels, alongside
+literal dashes and disclosed zero.
 Some partially ruled tables also offer a **Printed rules and text positions**
 alternative with complete grouped headings and literal period columns. It keeps
 blank cells separate from covered merged-header slots; all earlier candidates

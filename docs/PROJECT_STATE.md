@@ -140,6 +140,23 @@ not whole-filing semantic certification. Evidence is retained in
 Remaining work is corpus-wide physical and semantic completeness: every printed
 table, its headers/units/row-column associations and continuations; all prose,
 its ordering and analyst retrieval; and named unresolved source limitations.
+
+The next implemented repair adds a separate view of explicitly printed period
+headings. TOMK 2023Q3 solo page 26 retains its merged physical header but now
+associates the original current/prior labels and dates with their source columns.
+Pages 27–28 independently repeat the same dates; page 29 still has no printed
+dated header and receives none by inference. Four independently read source
+cases bring the benchmark to 59 cases across eight reports. A version-pinned
+ca66890e-to-dda3201c adapter adds this view from retained evidence without opening
+or extracting PDF pages; complete synthetic replay/fresh equality passes at all
+four rotations. The admin shows these heading candidates and distinguishes
+absent physical cells from printed blanks. Real retained structures across all
+384 EXIM/Garanti/TOMK pages preserve every previous field exactly; 41 selected
+source cases pass and original TOMK pages 26–29 were freshly reobserved. The
+isolated source passes 2,716 Python tests with two skips, all repository gates,
+799 web tests and web/mobile checks. Fresh cloud proof and publication are
+pending. The live base and queued region-repair runs keep their
+dispatched versions. Multi-page capital-table relationships remain unfinished.
 Passing selected cases, consistent hashes or an extraction run does not prove
 that end state. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the
 execution record. Independent evidence is retained under

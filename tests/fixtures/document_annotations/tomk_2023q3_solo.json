@@ -1905,6 +1905,158 @@
         "p5:contents55",
         "p5:contents56"
       ]
+    },
+    {
+      "id": "capital_printed_period_headers_p26",
+      "kind": "table_period_headers",
+      "page": 26,
+      "table_id": "p26:ruled0",
+      "headers": [
+        {
+          "table_id": "p26:ruled0",
+          "status": "unique_printed_band",
+          "bands": [
+            {
+              "source_row": 0,
+              "columns": [
+                {
+                  "column": 0,
+                  "text": "ÇEKİRDEK SERMAYE",
+                  "source_word_ids": [
+                    166,
+                    167
+                  ]
+                },
+                {
+                  "column": 1,
+                  "text": "Cari Dönem 30 Eylül 2023",
+                  "source_word_ids": [
+                    156,
+                    157,
+                    158,
+                    159,
+                    160
+                  ]
+                },
+                {
+                  "column": 2,
+                  "text": "Önceki Dönem 31 Aralık 2022",
+                  "source_word_ids": [
+                    161,
+                    162,
+                    163,
+                    164,
+                    165
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "source_review": "Original rendered capital-disclosure pages 26–29 independently viewed. Only printed dates are transcribed; page 29 has no repeated dated header. This review does not approve every capital-table cell or infer missing dates."
+    },
+    {
+      "id": "capital_printed_period_headers_p27",
+      "kind": "table_period_headers",
+      "page": 27,
+      "table_id": "p27:ruled0",
+      "headers": [
+        {
+          "table_id": "p27:ruled0",
+          "status": "unique_printed_band",
+          "bands": [
+            {
+              "source_row": 0,
+              "columns": [
+                {
+                  "column": 0,
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "column": 1,
+                  "text": "Cari Dönem 30 Eylül 2023",
+                  "source_word_ids": [
+                    41,
+                    42,
+                    43,
+                    44,
+                    45
+                  ]
+                },
+                {
+                  "column": 2,
+                  "text": "Önceki Dönem 31 Aralık 2022",
+                  "source_word_ids": [
+                    46,
+                    47,
+                    48,
+                    49,
+                    50
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "source_review": "Original rendered capital-disclosure pages 26–29 independently viewed. Only printed dates are transcribed; page 29 has no repeated dated header. This review does not approve every capital-table cell or infer missing dates."
+    },
+    {
+      "id": "capital_printed_period_headers_p28",
+      "kind": "table_period_headers",
+      "page": 28,
+      "table_id": "p28:ruled0",
+      "headers": [
+        {
+          "table_id": "p28:ruled0",
+          "status": "unique_printed_band",
+          "bands": [
+            {
+              "source_row": 1,
+              "columns": [
+                {
+                  "column": 0,
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "column": 1,
+                  "text": "Cari Dönem 30 Eylül 2023",
+                  "source_word_ids": [
+                    30,
+                    31,
+                    32,
+                    33,
+                    34
+                  ]
+                },
+                {
+                  "column": 2,
+                  "text": "Önceki Dönem 31 Aralık 2022",
+                  "source_word_ids": [
+                    35,
+                    36,
+                    37,
+                    38,
+                    39
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "source_review": "Original rendered capital-disclosure pages 26–29 independently viewed. Only printed dates are transcribed; page 29 has no repeated dated header. This review does not approve every capital-table cell or infer missing dates."
+    },
+    {
+      "id": "capital_printed_period_headers_p29",
+      "kind": "table_period_headers",
+      "page": 29,
+      "table_id": "p29:ruled0",
+      "headers": [],
+      "source_review": "Original rendered capital-disclosure pages 26–29 independently viewed. Only printed dates are transcribed; page 29 has no repeated dated header. This review does not approve every capital-table cell or infer missing dates."
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

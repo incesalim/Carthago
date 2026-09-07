@@ -74,3 +74,32 @@ it("keeps a split word's character ranges and its unresolved boundary visible", 
   expect(markup).toContain("row 1, column 1; row 1, column 2");
   expect(markup).toContain("before interpreting the cells");
 });
+
+it("distinguishes absent physical cells, printed blanks, dashes and disclosed zero", () => {
+  const table = { id: "p1:ruled0", method: "pymupdf_lines_strict", n_cols: 4, row_count: 1,
+    rows: [{ index: 0, cells: [null, "", "-", "0"].map((text, column) => ({ text, column, word_ids: [] })) }] };
+  const markup = renderToStaticMarkup(<TablePreview table={table} />);
+  expect(markup).toContain("[no physical cell]");
+  expect(markup).toContain("[empty source cell]");
+  expect(markup).toContain(">-</div>");
+  expect(markup).toContain(">0</div>");
+});
+
+it("shows source-positioned period labels while keeping the merged physical header", () => {
+  const table = { id: "p26:ruled0", method: "pymupdf_lines_strict", n_cols: 3, row_count: 1,
+    rows: [{ index: 0, cells: [{ column: 0, text: "Cari Dönem Önceki Dönem ÇEKİRDEK SERMAYE", word_ids: [1, 2] },
+      { column: 1, text: null, word_ids: [] }, { column: 2, text: null, word_ids: [] }] }] };
+  const periodHeaders = { table_id: table.id, status: "unique_printed_band", bands: [{ source_row: 0, columns: [
+    { column: 1, text: "Cari Dönem\n30 Eylül 2023", source_fragments: [{ word_id: 158, start: 0, end: 2, text: "30" }] },
+    { column: 2, text: "Önceki Dönem\n31 Aralık 2022", source_fragments: [{ word_id: 163, start: 0, end: 2, text: "31" }] },
+  ] }] };
+  const markup = renderToStaticMarkup(<TablePreview table={table} periodHeaders={periodHeaders} />);
+  expect(markup).toContain("Printed period headings");
+  expect(markup).toContain("Column 2");
+  expect(markup).toContain("30 Eylül 2023");
+  expect(markup).toContain("31 Aralık 2022");
+  expect(markup).toContain("source word 158, characters 1-2");
+  expect(markup.split("<tbody>")[1]).toContain("Cari Dönem Önceki Dönem ÇEKİRDEK SERMAYE");
+  const ambiguous = renderToStaticMarkup(<TablePreview table={table} periodHeaders={{ ...periodHeaders, status: "competing_printed_bands" }} />);
+  expect(ambiguous).toContain("More than one heading band is present");
+});

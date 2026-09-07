@@ -318,9 +318,9 @@ def main(argv: list[str] | None = None) -> int:
                         _write_json(structure_path, structure)
                         if args.from_r2 and not args.publish:
                             from src.audit_reports.document_corpus_store import CorpusStore
-                            from src.audit_reports.document_region_upgrade import compare_retained_regions
+                            from src.audit_reports.document_corpus_upgrade import compare_retained_structure
                             reader = CorpusStore(r2_storage.get_client(), r2_storage._bucket())
-                            result['retained_structure_comparison'] = compare_retained_regions(
+                            result['retained_structure_comparison'] = compare_retained_structure(
                                 pdf, records, structure, reader)
                         from src.audit_reports.document_benchmark import check_registered_annotations
                         benchmark = check_registered_annotations(structure, records, args.annotations_dir)

@@ -357,6 +357,19 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
                 failures.append({**prefix, 'kind': 'table_continuation_source_mismatch',
                                  'matching_candidates': len(matching)})
             continue
+        if case.get('kind') == 'table_period_headers':
+            from .document_table_headers import verify_period_headers
+            headers = pages[case['page']].get('table_period_headers', {})
+            observed = [{'table_id': t['table_id'], 'status': t['status'],
+                         'bands': [{'source_row': b['source_row'],
+                                    'columns': [{'column': c['column'], 'text': _text(c['text']),
+                                                 'source_word_ids': [p['word_id'] for p in c['source_fragments']]}
+                                                for c in b['columns']]}
+                                   for b in t['bands']]}
+                        for t in headers.get('tables', []) if t['table_id'] == case['table_id']]
+            if verify_period_headers(structure, evidence) or observed != case['headers']:
+                failures.append({**prefix, 'kind': 'period_header_source_mismatch'})
+            continue
         if case.get('kind') == 'document_navigation':
             from .document_navigation import verify_document_navigation
             nav = structure.get('navigation', {})

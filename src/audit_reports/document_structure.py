@@ -30,6 +30,7 @@ from .document_table_notes import table_note_links, verify_table_note_links
 from .document_navigation import NAVIGATION_VERSION, document_navigation, verify_document_navigation
 from .document_cell_fragments import link_cell_fragments, verify_cell_fragments, word_character_geometry
 from .document_table_regions import refine_ruled_regions, verify_region_refinement
+from .document_table_headers import add_period_headers, verify_period_headers
 
 STRUCTURE_VERSION = "document-structure-1"
 
@@ -50,6 +51,7 @@ def structure_engine() -> dict:
                  "document_navigation.py",
                  "document_cell_fragments.py",
                  "document_table_regions.py",
+                 "document_table_headers.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -411,6 +413,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
               "sections": sections, "contents_items": items, "pages": pages,
               "navigation_schema": NAVIGATION_VERSION, "navigation": navigation,
               "status": "structured_candidates", "semantic_verification": "not_performed"}
+    add_period_headers(result, evidence)
     # Dataclass tuples (markers, columns, note links) must have the same shape
     # before and after persistence. A cache hit returns exactly this JSON model.
     result = json.loads(json.dumps(result, ensure_ascii=False))
@@ -425,6 +428,7 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
     errors = []
     errors.extend(verify_document_navigation(structure, evidence))
     errors.extend(verify_table_context(structure['pages']))
+    errors.extend(verify_period_headers(structure, evidence))
     if structure.get("source") != evidence[0]["source"]:
         errors.append("source_identity_mismatch")
     if structure.get("evidence_artifact_sha256") != artifact_digest(evidence):

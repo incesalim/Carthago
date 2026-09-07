@@ -8,7 +8,7 @@ import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 import DocumentOriginPanel from "./DocumentOriginPanel";
 import DocumentContentReviews from "./DocumentContentReviews";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
-import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes } from "./DocumentTablePreview";
+import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes, type PeriodHeaders } from "./DocumentTablePreview";
 import DocumentNavigationPreview, { type Navigation } from "./DocumentNavigationPreview";
 
 const endpoint = "/api/admin/document-corpus";
@@ -19,6 +19,7 @@ const control = "border-b border-border bg-transparent px-1 py-1.5 text-xs text-
 type PagePreview = { manifest: { sections: { title: string; page_start: number; page_end: number }[]; navigation?: Navigation };
   page: { page: number; text_blocks: { id: string; text: string }[]; tables: Table[];
     table_source_rows?: { tables: SourceRows[] };
+    table_period_headers?: { tables: PeriodHeaders[] };
     table_notes?: { tables: TableNotes[] };
     table_context?: { tables: TableContext[]; continuations: { status: string; from_page: number;
       from_table_ids: string[]; to_table_id: string; title: string; column_identifiers: string[] }[] };
@@ -97,6 +98,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
         {preview.page.tables.map((table) => <TablePreview key={table.id} table={table}
           notes={preview.page.table_notes?.tables.find((notes) => notes.table_id === table.id)}
           sourceRows={preview.page.table_source_rows?.tables.find((rows) => rows.table_id === table.id)}
+          periodHeaders={preview.page.table_period_headers?.tables.find((headers) => headers.table_id === table.id)}
           context={preview.page.table_context?.tables.find((context) => context.table_id === table.id)} />)}
         {preview.page.tables.length === 0 && <p className="py-3 text-xs text-faint">No table detected. This does not establish that the source page contains no table.</p>}
         {preview.page.narrative_elements && <DocumentNarrativePreview elements={preview.page.narrative_elements} layout={preview.page.reading_layout} />}

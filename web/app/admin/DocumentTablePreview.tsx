@@ -16,6 +16,8 @@ export type SourceRows = { table_id: string; split_rows: { source_row: number; c
   lines: { index: number; cells: Cell[] }[] }[] };
 export type TableNotes = { table_id: string; links: { label: string; column: number; text: string;
   header_word_ids: (number | string)[]; header_source_fragments?: SourceFragment[]; marker_span_ids: (number | string)[]; text_span_ids: (number | string)[] }[] };
+export type PeriodHeaders = { table_id: string; status: string; bands: { source_row: number;
+  columns: { column: number; text: string; source_fragments: SourceFragment[] }[] }[] };
 
 function sourceReference(cell: Pick<Cell, "word_ids" | "source_fragments">, positioned = false) {
   return cell.source_fragments?.length
@@ -23,7 +25,7 @@ function sourceReference(cell: Pick<Cell, "word_ids" | "source_fragments">, posi
     : `${positioned ? "Positioned source pieces" : "Source words"}: ${cell.word_ids.join(", ")}`;
 }
 
-export default function DocumentTablePreview({ table, context, sourceRows, notes }: { table: Table; context?: TableContext; sourceRows?: SourceRows; notes?: TableNotes }) {
+export default function DocumentTablePreview({ table, context, sourceRows, notes, periodHeaders }: { table: Table; context?: TableContext; sourceRows?: SourceRows; notes?: TableNotes; periodHeaders?: PeriodHeaders }) {
   const [expandLines, setExpandLines] = useState(true);
   const positioned = table.method === "native_image_replacement_geometry";
   const numeric = table.method === "legacy_numeric_geometry" || positioned;
@@ -42,6 +44,18 @@ export default function DocumentTablePreview({ table, context, sourceRows, notes
       <span className="ml-2 font-normal text-faint">{positioned ? "PDF-linked label positions" : numeric ? "Numeric layout" : table.method === "segmented_rules_and_source_lines" ? "Printed rules and text positions" : "Ruled layout"} · unreviewed</span>
     </summary>
     {context?.heading && <p className="mt-2 text-xs font-medium">{context.heading.text}</p>}
+    {periodHeaders && <div className="mt-2 text-xs">
+      <p className="font-medium">Printed period headings</p>
+      <p className="mt-1 text-muted-foreground">These labels follow the words&apos; positions above the columns. The original cells are shown below.</p>
+      {periodHeaders.status === "competing_printed_bands" && <p className="mt-1 text-warning">More than one heading band is present. Check which applies before interpreting the amounts.</p>}
+      {periodHeaders.bands.map(band => <ul key={band.source_row} className="mt-1 space-y-1">
+        {band.columns.filter(column => column.column > 0).map(column => <li key={column.column}
+          title={sourceReference({ word_ids: [], source_fragments: column.source_fragments })}>
+          <span className="mr-2 text-faint">Column {column.column + 1}</span>
+          <span className="whitespace-pre-wrap">{column.text}</span>
+        </li>)}
+      </ul>)}
+    </div>}
     {!!table.word_boundary_observations?.length && <details className="mt-2 text-xs text-muted-foreground">
       <summary className="cursor-pointer">Boundary review: {table.word_boundary_observations.length} source {table.word_boundary_observations.length === 1 ? "word spans" : "words span"} more than one cell</summary>
       <p className="mt-1">Exact character references are retained. Check these boundaries against the original report before interpreting the cells.</p>
@@ -69,7 +83,7 @@ export default function DocumentTablePreview({ table, context, sourceRows, notes
             const anchor = !row.projected ? grid?.anchors.find((a) => a.row === row.index && a.column === c) : undefined;
             return <td key={c} rowSpan={anchor?.row_span} colSpan={anchor?.column_span} className="min-w-20 whitespace-pre-wrap p-2 font-mono">
             {row.cells.filter((cell) => (numeric ? cell.placement === "data" && cell.col_index === c : cell.column === c))
-              .map((cell, i) => <div key={i} title={sourceReference(cell, positioned)}>{cell.text || (row.sourceLine ? "[no text on this line]" : "[empty source cell]")}</div>)}
+              .map((cell, i) => <div key={i} title={sourceReference(cell, positioned)}>{cell.text === null ? "[no physical cell]" : cell.text || (row.sourceLine ? "[no text on this line]" : "[empty source cell]")}</div>)}
           </td>;
           })}
           {unplaced && <td className="p-2 font-mono text-warning">{row.cells.filter((c) => c.placement === "unplaced").map((c) => c.text).join("\n")}</td>}

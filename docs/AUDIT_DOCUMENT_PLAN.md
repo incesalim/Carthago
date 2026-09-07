@@ -1027,3 +1027,35 @@ of detected tables.
   source passes 2,690 tests with two skips, lint and all standalone gates.
   Web passes 797 tests, lint and type checking; mobile checks pass. These are
   regression results, not a claim that every report has been verified.
+
+- 2026-09-07: source-check commit `3264ef4` passes CI `34113318276` and deployment
+  `34113438394`. The still-running base refresh reaches 1,114 of 1,146 filings
+  with zero catalog capture failures. Region publication `34112697713` remains
+  pending and neither run has been replaced. Reviewed TOMK original capital
+  pages 26–29 again: page 26 physically combines its dated column headers into
+  one cell; three subsequent fragments still lack usable continuation links.
+
+- 2026-09-07: implemented separate source-positioned period-header bands. The
+  original physical cells remain unchanged; all native character occurrences
+  in the header band must be assigned once to consistent witnessed columns.
+  Every amount column needs an explicit printed period phrase. Conflicting
+  bands remain candidates and missing dates are not inherited. Four original
+  TOMK capital-page cases cover both dated headings on pages 26–28 and their
+  absence on page 29 (59 registered source cases). Added an exact ca66890e to
+  dda3201c replay that reuses retained evidence, opens/extracts zero PDF pages
+  and matches complete fresh synthetic structures at four rotations. The admin
+  exposes the dated headings with source references and differentiates absent
+  cells from printed blanks. Full checks, independent cloud proof and publication
+  remain pending; reviewed multi-page relationships are the next unresolved part.
+
+- 2026-09-07: exact LF-normalized header source matches pinned engine dda3201c
+  over 21 dependencies. Real retained ca66890e replay covers all 384 pages across
+  EXIM, Garanti and both TOMK probes, preserves every pre-existing field exactly
+  and passes all 41 selected source cases. Original TOMK pages 26–29 are freshly
+  reobserved. Ninety-four tables receive explicit header bands; that count does
+  not certify all those tables. Receipt: `period-header-real-replay-verification.json`.
+  The isolated source passes 2,716 Python tests (two skips), all standalone gates
+  and lint. Web passes 799 tests, lint and type checking; mobile checks pass.
+  Historical replay test fixtures now simulate their own pinned targets so a
+  newer adapter cannot accidentally participate in an older transition's test.
+  Independent fresh cloud comparison and publication remain pending.

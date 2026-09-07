@@ -27,7 +27,13 @@ def pair(tmp_path, monkeypatch, request):
         base = structure.build_document_structure(path, evidence)
     base['engine'] = deepcopy(upgrade.RAW_BASE_ENGINE if raw_base else upgrade.BASE_ENGINE)
     fresh = structure.build_document_structure(path, evidence)
-    monkeypatch.setattr(upgrade, 'TARGET_ENGINE', fresh['engine'])
+    # Simulate this historical transition's pinned target, not whichever newer
+    # adapter happens to own the current working tree's extraction fingerprint.
+    from src.audit_reports import document_corpus_upgrade as router
+    target = deepcopy(upgrade.TARGET_ENGINE)
+    fresh['engine'] = target
+    monkeypatch.setattr(upgrade, 'structure_engine', lambda: target)
+    monkeypatch.setattr(router, 'structure_engine', lambda: target)
     return path, evidence, base, fresh
 
 

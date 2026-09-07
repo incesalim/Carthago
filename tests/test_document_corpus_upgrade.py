@@ -38,9 +38,11 @@ def pair(tmp_path, monkeypatch, request):
         base = structure.build_document_structure(path, evidence)
     base['engine'] = deepcopy(upgrade.BASE_ENGINE)
     fresh = structure.build_document_structure(path, evidence)
-    # Windows worktree line endings differ from the cloud's pinned target hash.
-    # The production guard is exercised separately; this enables replay tests.
-    monkeypatch.setattr(upgrade, 'TARGET_ENGINE', fresh['engine'])
+    # Exercise this historical target independently of newer adapters and
+    # worktree line endings. The real cloud artifacts are checked separately.
+    target = deepcopy(upgrade.TARGET_ENGINE)
+    fresh['engine'] = target
+    monkeypatch.setattr(upgrade, 'structure_engine', lambda: target)
     return path, evidence, base, fresh
 
 

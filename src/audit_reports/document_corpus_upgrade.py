@@ -123,6 +123,13 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
         cached = store.cached_structure(evidence, target)
         if cached is not None:
             return cached, {'method': 'exact_engine_cache'}
+        from . import document_header_upgrade as headers
+        if target == headers.TARGET_ENGINE:
+            base = store.cached_structure(evidence, headers.BASE_ENGINE)
+            if base is not None:
+                upgraded = headers.upgrade_period_headers(pdf_path, evidence, base)
+                if upgraded is not None:
+                    return upgraded
         if target == TARGET_ENGINE:
             base = store.cached_structure(evidence, BASE_ENGINE)
             if base is not None:
@@ -138,3 +145,11 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
                     if upgraded is not None:
                         return upgraded
     return build_document_structure(pdf_path, evidence), {'method': 'fresh_extraction'}
+
+
+def compare_retained_structure(pdf_path, evidence, fresh, store):
+    from . import document_header_upgrade as headers
+    if fresh['engine'] == headers.TARGET_ENGINE:
+        return headers.compare_retained_headers(pdf_path, evidence, fresh, store)
+    from .document_region_upgrade import compare_retained_regions
+    return compare_retained_regions(pdf_path, evidence, fresh, store)
