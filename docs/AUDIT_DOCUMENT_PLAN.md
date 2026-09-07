@@ -1201,4 +1201,13 @@ of detected tables.
   and all 313 original physical rows retained. The benchmark has 74 selected
   cases across eight reports. This is further delivery toward the first whole
   report, not whole-report completion. Current extraction fleets and the queued
-  31-table publication remain unchanged; this P&L is not yet published live.
+  31-table publication remain unchanged. Delivered code at `0b654f6` passes the
+  full Python suite, 824 web tests, mobile checks and all nine standalone gates;
+  the final duplicate-candidate correction passes all 81 affected tests.
+  CI `34127002293` passes. Independent readback of read-only probe `34127039166`
+  confirms identical original bytes, all 51 native pages and the entire
+  structured extraction; all 43 TOMK cases and 22 complete table records match
+  pinned local replay. Single-filing publication `34127300076` is queued at
+  that tested commit after the existing publications. Live display remains
+  unverified. Receipt: `profit-loss-cloud-independent-verification.json` in
+  `docs/knowledge/2026-09-06-document-corpus/`.

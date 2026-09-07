@@ -114,8 +114,14 @@ bank's repeated XIII identifier, literal note `(11)` and the earnings-per-share
 source occurrences, placement and complete literal wording before serving them.
 The local `profit-loss-reviewed.html` is visually inspected; Python and Worker
 corruption tests reject dropped, duplicated, reordered, misassigned and merged
-rows. This addition is not in the pending `34124160052` publication and has not
-yet been verified live. It changes review processing, not PDF extraction.
+rows. CI `34127002293` passes at `0b654f6`. Independent readback of read-only
+probe `34127039166` confirms all 51 native pages and the entire structured
+extraction are unchanged, all 43 TOMK cases pass, and all 22 complete-table
+records exactly equal local replay against the pinned source annotations.
+Publication `34127300076` selects only TOMK 2023Q3 solo at that tested commit;
+it is queued after the existing corpus updates and the 31-table publication
+`34124160052`. The new P&L is not yet verified live. It changes review
+processing, not PDF extraction; the dda3201c extraction version is unchanged.
 Python-produced wire fixtures include original reviewed pages with explicit
 empty placeholders elsewhere solely for protocol tests. They are not complete
 report extracts. The new `annotated_only` capture input limits publication to
