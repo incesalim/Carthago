@@ -464,6 +464,11 @@ do not change. The expanded cohort now covers all 45 registered source cases
 across seven reports/692 pages. AKBNK and TOMK 2024Q1 navigation remain unresolved;
 the cases do not approve those section maps or whole-report content. The next
 registered-corpus refresh retains candidate/unverified states and prior history.
+Run `34092888903` is now processing the registered corpus in four Actions groups,
+with new acquisition disabled and no D1 writes. Its observed head is `fe7b669`,
+the exact broader-probe revision; the subsequent `f99e4ce` changes documentation
+only. Completion, per-filing failures and independent fleet reconciliation remain
+pending. Baseline corpus counts above are not a claim that this refresh finished.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

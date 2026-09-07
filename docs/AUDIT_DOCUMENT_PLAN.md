@@ -851,3 +851,9 @@ of detected tables.
   changing PDF bytes. Some navigation remains unresolved, and no whole filing
   is semantically certified. The next step is a registered-corpus candidate
   refresh retaining history and every unverified state, with no D1 publication.
+
+- 2026-09-07: registered-corpus candidate refresh `34092888903` is running in
+  four Actions groups at observed head `fe7b669` (same code as the later docs-only
+  commit `f99e4ce`). Scope is all registered filings, both filing bases, no new
+  acquisition and no D1 writes. Completion and independent reconciliation are
+  pending; source and semantic completeness are not inferred from dispatch.
