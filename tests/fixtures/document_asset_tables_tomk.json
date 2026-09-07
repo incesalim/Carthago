@@ -1,0 +1,8704 @@
+{
+  "fixture_scope": "Four retained ruled candidates and complete native page words/spans for source-association benchmarks; not a full capture artifact.",
+  "source": {
+    "bank_ticker": "TOMK",
+    "byte_count": 912865,
+    "kind": "unconsolidated",
+    "object_key": "tomk/TOMK_2023Q3_unconsolidated.pdf",
+    "pdf_sha256": "80dbb8e5a2b18675e84b2ed62fbbaf07c3dadebc5984ea36979ba0687b610c84",
+    "period": "2023Q3",
+    "source_url": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30092023.pdf"
+  },
+  "page": {
+    "page": 38,
+    "tables": [
+      {
+        "bbox": [
+          128.23777770996094,
+          202.03997802734375,
+          538.5712890625,
+          286.6499938964844
+        ],
+        "header_association_verified": false,
+        "header_external": false,
+        "header_names": [
+          "",
+          "Cari Dönem\n30 Eylül 2023",
+          null,
+          "Önceki Dönem\n31 Aralık 2022",
+          null
+        ],
+        "id": "p38:ruled0",
+        "image_rule_candidates": [],
+        "kind": "table_candidate",
+        "method": "pymupdf_lines_strict",
+        "n_cols": 5,
+        "review_status": "unreviewed",
+        "row_count": 7,
+        "rows": [
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  202.03997802734375,
+                  275.7859802246094,
+                  238.1300048828125
+                ],
+                "column": 0,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  202.03997802734375,
+                  412.75,
+                  228.40997314453125
+                ],
+                "column": 1,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Cari Dönem\n30 Eylül 2023",
+                "word_ids": [
+                  54,
+                  55,
+                  56,
+                  57,
+                  58
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 2,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  412.75,
+                  202.03997802734375,
+                  538.5712890625,
+                  228.40997314453125
+                ],
+                "column": 3,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Önceki Dönem\n31 Aralık 2022",
+                "word_ids": [
+                  59,
+                  60,
+                  61,
+                  62,
+                  63
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 4,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              }
+            ],
+            "index": 0
+          },
+          {
+            "cells": [
+              {
+                "bbox": null,
+                "column": 0,
+                "row": 1,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  228.40997314453125,
+                  344.86529541015625,
+                  238.1300048828125
+                ],
+                "column": 1,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "TP",
+                "word_ids": [
+                  64
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  228.40997314453125,
+                  412.75,
+                  238.1300048828125
+                ],
+                "column": 2,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "YP",
+                "word_ids": [
+                  65
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  228.40997314453125,
+                  476.4454650878906,
+                  238.1300048828125
+                ],
+                "column": 3,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "TP",
+                "word_ids": [
+                  66
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  228.40997314453125,
+                  538.5712890625,
+                  238.1300048828125
+                ],
+                "column": 4,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "YP",
+                "word_ids": [
+                  67
+                ]
+              }
+            ],
+            "index": 1
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  238.1300048828125,
+                  275.7859802246094,
+                  247.8499755859375
+                ],
+                "column": 0,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Bankalar",
+                "word_ids": [
+                  68
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  238.1300048828125,
+                  344.86529541015625,
+                  247.8499755859375
+                ],
+                "column": 1,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  238.1300048828125,
+                  412.75,
+                  247.8499755859375
+                ],
+                "column": 2,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  412.75,
+                  238.1300048828125,
+                  476.4454650878906,
+                  247.8499755859375
+                ],
+                "column": 3,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  238.1300048828125,
+                  538.5712890625,
+                  247.8499755859375
+                ],
+                "column": 4,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              }
+            ],
+            "index": 2
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  247.8499755859375,
+                  275.7859802246094,
+                  257.45001220703125
+                ],
+                "column": 0,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Yurtiçi",
+                "word_ids": [
+                  69
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  247.8499755859375,
+                  344.86529541015625,
+                  257.45001220703125
+                ],
+                "column": 1,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "374.626",
+                "word_ids": [
+                  70
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  247.8499755859375,
+                  412.75,
+                  257.45001220703125
+                ],
+                "column": 2,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "18.783",
+                "word_ids": [
+                  71
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  247.8499755859375,
+                  476.4454650878906,
+                  257.45001220703125
+                ],
+                "column": 3,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "1.004.154",
+                "word_ids": [
+                  72
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  247.8499755859375,
+                  538.5712890625,
+                  257.45001220703125
+                ],
+                "column": 4,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  73
+                ]
+              }
+            ],
+            "index": 3
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  257.45001220703125,
+                  275.7859802246094,
+                  267.16998291015625
+                ],
+                "column": 0,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Yurtdışı",
+                "word_ids": [
+                  74
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  257.45001220703125,
+                  344.86529541015625,
+                  267.16998291015625
+                ],
+                "column": 1,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  75
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  257.45001220703125,
+                  412.75,
+                  267.16998291015625
+                ],
+                "column": 2,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  76
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  257.45001220703125,
+                  476.4454650878906,
+                  267.16998291015625
+                ],
+                "column": 3,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  77
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  257.45001220703125,
+                  538.5712890625,
+                  267.16998291015625
+                ],
+                "column": 4,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  78
+                ]
+              }
+            ],
+            "index": 4
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  267.16998291015625,
+                  275.7859802246094,
+                  276.8900146484375
+                ],
+                "column": 0,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Yurtdışı Merkez ve Şubeler",
+                "word_ids": [
+                  79,
+                  80,
+                  81,
+                  82
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  267.16998291015625,
+                  344.86529541015625,
+                  276.8900146484375
+                ],
+                "column": 1,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  83
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  267.16998291015625,
+                  412.75,
+                  276.8900146484375
+                ],
+                "column": 2,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  84
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  267.16998291015625,
+                  476.4454650878906,
+                  276.8900146484375
+                ],
+                "column": 3,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  85
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  267.16998291015625,
+                  538.5712890625,
+                  276.8900146484375
+                ],
+                "column": 4,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  86
+                ]
+              }
+            ],
+            "index": 5
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  276.8900146484375,
+                  275.7859802246094,
+                  286.6499938964844
+                ],
+                "column": 0,
+                "row": 6,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Toplam",
+                "word_ids": [
+                  87
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  276.8900146484375,
+                  344.86529541015625,
+                  286.6499938964844
+                ],
+                "column": 1,
+                "row": 6,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "374.626",
+                "word_ids": [
+                  88
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  276.8900146484375,
+                  412.75,
+                  286.6499938964844
+                ],
+                "column": 2,
+                "row": 6,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "18.783",
+                "word_ids": [
+                  89
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  276.8900146484375,
+                  476.4454650878906,
+                  286.6499938964844
+                ],
+                "column": 3,
+                "row": 6,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "1.004.154",
+                "word_ids": [
+                  90
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  276.8900146484375,
+                  538.5712890625,
+                  286.6499938964844
+                ],
+                "column": 4,
+                "row": 6,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  91
+                ]
+              }
+            ],
+            "index": 6
+          }
+        ]
+      },
+      {
+        "bbox": [
+          128.23777770996094,
+          318.1099853515625,
+          538.5712890625,
+          402.22998046875
+        ],
+        "header_association_verified": false,
+        "header_external": false,
+        "header_names": [
+          "",
+          "Cari Dönem\n30 Eylül 2023",
+          null,
+          "Önceki Dönem\n31 Aralık 2022",
+          null
+        ],
+        "id": "p38:ruled1",
+        "image_rule_candidates": [],
+        "kind": "table_candidate",
+        "method": "pymupdf_lines_strict",
+        "n_cols": 5,
+        "review_status": "unreviewed",
+        "row_count": 6,
+        "rows": [
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  318.1099853515625,
+                  275.7859802246094,
+                  354.16998291015625
+                ],
+                "column": 0,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  318.1099853515625,
+                  412.75,
+                  344.4499816894531
+                ],
+                "column": 1,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Cari Dönem\n30 Eylül 2023",
+                "word_ids": [
+                  103,
+                  104,
+                  105,
+                  106,
+                  107
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 2,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  412.75,
+                  318.1099853515625,
+                  538.5712890625,
+                  344.4499816894531
+                ],
+                "column": 3,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Önceki Dönem\n31 Aralık 2022",
+                "word_ids": [
+                  108,
+                  109,
+                  110,
+                  111,
+                  112
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 4,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              }
+            ],
+            "index": 0
+          },
+          {
+            "cells": [
+              {
+                "bbox": null,
+                "column": 0,
+                "row": 1,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  344.4499816894531,
+                  344.86529541015625,
+                  354.16998291015625
+                ],
+                "column": 1,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "TP",
+                "word_ids": [
+                  113
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  344.4499816894531,
+                  412.75,
+                  354.16998291015625
+                ],
+                "column": 2,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "YP",
+                "word_ids": [
+                  114
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  344.4499816894531,
+                  476.4454650878906,
+                  354.16998291015625
+                ],
+                "column": 3,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "TP",
+                "word_ids": [
+                  115
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  344.4499816894531,
+                  538.5712890625,
+                  354.16998291015625
+                ],
+                "column": 4,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "YP",
+                "word_ids": [
+                  116
+                ]
+              }
+            ],
+            "index": 1
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  354.16998291015625,
+                  275.7859802246094,
+                  373.00994873046875
+                ],
+                "column": 0,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Gerçeğe Uygun Değer Farkı Kâr/Zarara\nYansıtılan Finansal Varlıklar (*)",
+                "word_ids": [
+                  117,
+                  118,
+                  119,
+                  120,
+                  121,
+                  122,
+                  123,
+                  124,
+                  125
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  354.16998291015625,
+                  344.86529541015625,
+                  373.00994873046875
+                ],
+                "column": 1,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "940.366",
+                "word_ids": [
+                  126
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  354.16998291015625,
+                  412.75,
+                  373.00994873046875
+                ],
+                "column": 2,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "12.319",
+                "word_ids": [
+                  127
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  354.16998291015625,
+                  476.4454650878906,
+                  373.00994873046875
+                ],
+                "column": 3,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "500.000",
+                "word_ids": [
+                  128
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  354.16998291015625,
+                  538.5712890625,
+                  373.00994873046875
+                ],
+                "column": 4,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  129
+                ]
+              }
+            ],
+            "index": 2
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  373.00994873046875,
+                  275.7859802246094,
+                  382.75
+                ],
+                "column": 0,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Diğer Kâr Payı ve Gelir Reeskontları",
+                "word_ids": [
+                  130,
+                  131,
+                  132,
+                  133,
+                  134,
+                  135
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  373.00994873046875,
+                  344.86529541015625,
+                  382.75
+                ],
+                "column": 1,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "84.061",
+                "word_ids": [
+                  136
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  373.00994873046875,
+                  412.75,
+                  382.75
+                ],
+                "column": 2,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "181",
+                "word_ids": [
+                  137
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  373.00994873046875,
+                  476.4454650878906,
+                  382.75
+                ],
+                "column": 3,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "2.767",
+                "word_ids": [
+                  138
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  373.00994873046875,
+                  538.5712890625,
+                  382.75
+                ],
+                "column": 4,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  139
+                ]
+              }
+            ],
+            "index": 3
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  382.75,
+                  275.7859802246094,
+                  392.469970703125
+                ],
+                "column": 0,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Değer Düşüş Karşılığı (-)",
+                "word_ids": [
+                  140,
+                  141,
+                  142,
+                  143
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  382.75,
+                  344.86529541015625,
+                  392.469970703125
+                ],
+                "column": 1,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  144
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  382.75,
+                  412.75,
+                  392.469970703125
+                ],
+                "column": 2,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  145
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  382.75,
+                  476.4454650878906,
+                  392.469970703125
+                ],
+                "column": 3,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  146
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  382.75,
+                  538.5712890625,
+                  392.469970703125
+                ],
+                "column": 4,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  147
+                ]
+              }
+            ],
+            "index": 4
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  392.469970703125,
+                  275.7859802246094,
+                  402.22998046875
+                ],
+                "column": 0,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Toplam",
+                "word_ids": [
+                  148
+                ]
+              },
+              {
+                "bbox": [
+                  275.7859802246094,
+                  392.469970703125,
+                  344.86529541015625,
+                  402.22998046875
+                ],
+                "column": 1,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "1.024.427",
+                "word_ids": [
+                  149
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  392.469970703125,
+                  412.75,
+                  402.22998046875
+                ],
+                "column": 2,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "12.500",
+                "word_ids": [
+                  150
+                ]
+              },
+              {
+                "bbox": [
+                  412.75,
+                  392.469970703125,
+                  476.4454650878906,
+                  402.22998046875
+                ],
+                "column": 3,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "502.767",
+                "word_ids": [
+                  151
+                ]
+              },
+              {
+                "bbox": [
+                  476.4454650878906,
+                  392.469970703125,
+                  538.5712890625,
+                  402.22998046875
+                ],
+                "column": 4,
+                "row": 5,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  152
+                ]
+              }
+            ],
+            "index": 5
+          }
+        ]
+      },
+      {
+        "bbox": [
+          128.23777770996094,
+          452.04998779296875,
+          538.5712890625,
+          519.0999755859375
+        ],
+        "header_association_verified": false,
+        "header_external": false,
+        "header_names": [
+          "",
+          "Cari Dönem\n30 Eylül 2023",
+          null,
+          null,
+          "Önceki Dönem\n31 Aralık 2022",
+          null,
+          null
+        ],
+        "id": "p38:ruled2",
+        "image_rule_candidates": [],
+        "kind": "table_candidate",
+        "method": "pymupdf_lines_strict",
+        "n_cols": 7,
+        "review_status": "unreviewed",
+        "row_count": 5,
+        "rows": [
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  452.04998779296875,
+                  252.52999877929688,
+                  489.90997314453125
+                ],
+                "column": 0,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  252.52999877929688,
+                  452.04998779296875,
+                  395.5,
+                  470.949951171875
+                ],
+                "column": 1,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Cari Dönem\n30 Eylül 2023",
+                "word_ids": [
+                  173,
+                  174,
+                  175,
+                  176,
+                  177
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 2,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": null,
+                "column": 3,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  395.5,
+                  452.04998779296875,
+                  538.5712890625,
+                  470.949951171875
+                ],
+                "column": 4,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Önceki Dönem\n31 Aralık 2022",
+                "word_ids": [
+                  178,
+                  179,
+                  180,
+                  181,
+                  182
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 5,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": null,
+                "column": 6,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              }
+            ],
+            "index": 0
+          },
+          {
+            "cells": [
+              {
+                "bbox": null,
+                "column": 0,
+                "row": 1,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  252.52999877929688,
+                  470.949951171875,
+                  300.28997802734375,
+                  489.90997314453125
+                ],
+                "column": 1,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Maliyet",
+                "word_ids": [
+                  183
+                ]
+              },
+              {
+                "bbox": [
+                  300.28997802734375,
+                  470.949951171875,
+                  344.86529541015625,
+                  489.90997314453125
+                ],
+                "column": 2,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Birikmiş\namortisman",
+                "word_ids": [
+                  184,
+                  185
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  470.949951171875,
+                  395.5,
+                  489.90997314453125
+                ],
+                "column": 3,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Net Değeri",
+                "word_ids": [
+                  186,
+                  187
+                ]
+              },
+              {
+                "bbox": [
+                  395.5,
+                  470.949951171875,
+                  443.6300048828125,
+                  489.90997314453125
+                ],
+                "column": 4,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Maliyet",
+                "word_ids": [
+                  188
+                ]
+              },
+              {
+                "bbox": [
+                  443.6300048828125,
+                  470.949951171875,
+                  491.739990234375,
+                  489.90997314453125
+                ],
+                "column": 5,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Birikmiş\namortisman",
+                "word_ids": [
+                  189,
+                  190
+                ]
+              },
+              {
+                "bbox": [
+                  491.739990234375,
+                  470.949951171875,
+                  538.5712890625,
+                  489.90997314453125
+                ],
+                "column": 6,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Net Değeri",
+                "word_ids": [
+                  191,
+                  192
+                ]
+              }
+            ],
+            "index": 1
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  489.90997314453125,
+                  252.52999877929688,
+                  499.62994384765625
+                ],
+                "column": 0,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Menkuller",
+                "word_ids": [
+                  193
+                ]
+              },
+              {
+                "bbox": [
+                  252.52999877929688,
+                  489.90997314453125,
+                  300.28997802734375,
+                  499.62994384765625
+                ],
+                "column": 1,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "9.338",
+                "word_ids": [
+                  194
+                ]
+              },
+              {
+                "bbox": [
+                  300.28997802734375,
+                  489.90997314453125,
+                  344.86529541015625,
+                  499.62994384765625
+                ],
+                "column": 2,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "797",
+                "word_ids": [
+                  195
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  489.90997314453125,
+                  395.5,
+                  499.62994384765625
+                ],
+                "column": 3,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "8.541",
+                "word_ids": [
+                  196
+                ]
+              },
+              {
+                "bbox": [
+                  395.5,
+                  489.90997314453125,
+                  443.6300048828125,
+                  499.62994384765625
+                ],
+                "column": 4,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "2.828",
+                "word_ids": [
+                  197
+                ]
+              },
+              {
+                "bbox": [
+                  443.6300048828125,
+                  489.90997314453125,
+                  491.739990234375,
+                  499.62994384765625
+                ],
+                "column": 5,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "9",
+                "word_ids": [
+                  198
+                ]
+              },
+              {
+                "bbox": [
+                  491.739990234375,
+                  489.90997314453125,
+                  538.5712890625,
+                  499.62994384765625
+                ],
+                "column": 6,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "2.819",
+                "word_ids": [
+                  199
+                ]
+              }
+            ],
+            "index": 2
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  499.62994384765625,
+                  252.52999877929688,
+                  509.3499755859375
+                ],
+                "column": 0,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Kullanım Hakkı Olan Menkuller",
+                "word_ids": [
+                  200,
+                  201,
+                  202,
+                  203
+                ]
+              },
+              {
+                "bbox": [
+                  252.52999877929688,
+                  499.62994384765625,
+                  300.28997802734375,
+                  509.3499755859375
+                ],
+                "column": 1,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "5.877",
+                "word_ids": [
+                  204
+                ]
+              },
+              {
+                "bbox": [
+                  300.28997802734375,
+                  499.62994384765625,
+                  344.86529541015625,
+                  509.3499755859375
+                ],
+                "column": 2,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "1.448",
+                "word_ids": [
+                  205
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  499.62994384765625,
+                  395.5,
+                  509.3499755859375
+                ],
+                "column": 3,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "4.429",
+                "word_ids": [
+                  206
+                ]
+              },
+              {
+                "bbox": [
+                  395.5,
+                  499.62994384765625,
+                  443.6300048828125,
+                  509.3499755859375
+                ],
+                "column": 4,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  207
+                ]
+              },
+              {
+                "bbox": [
+                  443.6300048828125,
+                  499.62994384765625,
+                  491.739990234375,
+                  509.3499755859375
+                ],
+                "column": 5,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  208
+                ]
+              },
+              {
+                "bbox": [
+                  491.739990234375,
+                  499.62994384765625,
+                  538.5712890625,
+                  509.3499755859375
+                ],
+                "column": 6,
+                "row": 3,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "-",
+                "word_ids": [
+                  209
+                ]
+              }
+            ],
+            "index": 3
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  509.3499755859375,
+                  252.52999877929688,
+                  519.0999755859375
+                ],
+                "column": 0,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Toplam",
+                "word_ids": [
+                  210
+                ]
+              },
+              {
+                "bbox": [
+                  252.52999877929688,
+                  509.3499755859375,
+                  300.28997802734375,
+                  519.0999755859375
+                ],
+                "column": 1,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "15.215",
+                "word_ids": [
+                  211
+                ]
+              },
+              {
+                "bbox": [
+                  300.28997802734375,
+                  509.3499755859375,
+                  344.86529541015625,
+                  519.0999755859375
+                ],
+                "column": 2,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "2.245",
+                "word_ids": [
+                  212
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  509.3499755859375,
+                  395.5,
+                  519.0999755859375
+                ],
+                "column": 3,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "12.970",
+                "word_ids": [
+                  213
+                ]
+              },
+              {
+                "bbox": [
+                  395.5,
+                  509.3499755859375,
+                  443.6300048828125,
+                  519.0999755859375
+                ],
+                "column": 4,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "2.828",
+                "word_ids": [
+                  214
+                ]
+              },
+              {
+                "bbox": [
+                  443.6300048828125,
+                  509.3499755859375,
+                  491.739990234375,
+                  519.0999755859375
+                ],
+                "column": 5,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "9",
+                "word_ids": [
+                  215
+                ]
+              },
+              {
+                "bbox": [
+                  491.739990234375,
+                  509.3499755859375,
+                  538.5712890625,
+                  519.0999755859375
+                ],
+                "column": 6,
+                "row": 4,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "2.819",
+                "word_ids": [
+                  216
+                ]
+              }
+            ],
+            "index": 4
+          }
+        ]
+      },
+      {
+        "bbox": [
+          128.23777770996094,
+          550.47998046875,
+          542.6800537109375,
+          598.0899658203125
+        ],
+        "header_association_verified": false,
+        "header_external": false,
+        "header_names": [
+          "",
+          "Cari Dönem\n30 Eylül 2023",
+          null,
+          null,
+          "Önceki Dönem\n31 Aralık 2022",
+          null,
+          null
+        ],
+        "id": "p38:ruled3",
+        "image_rule_candidates": [],
+        "kind": "table_candidate",
+        "method": "pymupdf_lines_strict",
+        "n_cols": 7,
+        "review_status": "unreviewed",
+        "row_count": 3,
+        "rows": [
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  550.47998046875,
+                  248.20999145507812,
+                  588.3399658203125
+                ],
+                "column": 0,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "",
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  248.20999145507812,
+                  550.47998046875,
+                  395.5,
+                  569.5
+                ],
+                "column": 1,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Cari Dönem\n30 Eylül 2023",
+                "word_ids": [
+                  224,
+                  225,
+                  226,
+                  227,
+                  228
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 2,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": null,
+                "column": 3,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  395.5,
+                  550.47998046875,
+                  542.6800537109375,
+                  569.5
+                ],
+                "column": 4,
+                "row": 0,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Önceki Dönem\n31 Aralık 2022",
+                "word_ids": [
+                  229,
+                  230,
+                  231,
+                  232,
+                  233
+                ]
+              },
+              {
+                "bbox": null,
+                "column": 5,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": null,
+                "column": 6,
+                "row": 0,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              }
+            ],
+            "index": 0
+          },
+          {
+            "cells": [
+              {
+                "bbox": null,
+                "column": 0,
+                "row": 1,
+                "slot_status": "absent_or_merged",
+                "source_text_matches": true,
+                "text": null,
+                "word_ids": []
+              },
+              {
+                "bbox": [
+                  248.20999145507812,
+                  569.5,
+                  297.16998291015625,
+                  588.3399658203125
+                ],
+                "column": 1,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Maliyet",
+                "word_ids": [
+                  234
+                ]
+              },
+              {
+                "bbox": [
+                  297.16998291015625,
+                  569.5,
+                  344.86529541015625,
+                  588.3399658203125
+                ],
+                "column": 2,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Birikmiş\namortisman",
+                "word_ids": [
+                  235,
+                  236
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  569.5,
+                  395.5,
+                  588.3399658203125
+                ],
+                "column": 3,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Net Değeri",
+                "word_ids": [
+                  237,
+                  238
+                ]
+              },
+              {
+                "bbox": [
+                  395.5,
+                  569.5,
+                  443.6300048828125,
+                  588.3399658203125
+                ],
+                "column": 4,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Maliyet",
+                "word_ids": [
+                  239
+                ]
+              },
+              {
+                "bbox": [
+                  443.6300048828125,
+                  569.5,
+                  491.739990234375,
+                  588.3399658203125
+                ],
+                "column": 5,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Birikmiş\namortisman",
+                "word_ids": [
+                  240,
+                  241
+                ]
+              },
+              {
+                "bbox": [
+                  491.739990234375,
+                  569.5,
+                  542.6800537109375,
+                  588.3399658203125
+                ],
+                "column": 6,
+                "row": 1,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Net Değeri",
+                "word_ids": [
+                  242,
+                  243
+                ]
+              }
+            ],
+            "index": 1
+          },
+          {
+            "cells": [
+              {
+                "bbox": [
+                  128.23777770996094,
+                  588.3399658203125,
+                  248.20999145507812,
+                  598.0899658203125
+                ],
+                "column": 0,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "Bilgisayar yazılımları",
+                "word_ids": [
+                  244,
+                  245
+                ]
+              },
+              {
+                "bbox": [
+                  248.20999145507812,
+                  588.3399658203125,
+                  297.16998291015625,
+                  598.0899658203125
+                ],
+                "column": 1,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "83.279",
+                "word_ids": [
+                  246
+                ]
+              },
+              {
+                "bbox": [
+                  297.16998291015625,
+                  588.3399658203125,
+                  344.86529541015625,
+                  598.0899658203125
+                ],
+                "column": 2,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "7.279",
+                "word_ids": [
+                  247
+                ]
+              },
+              {
+                "bbox": [
+                  344.86529541015625,
+                  588.3399658203125,
+                  395.5,
+                  598.0899658203125
+                ],
+                "column": 3,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "76.000",
+                "word_ids": [
+                  248
+                ]
+              },
+              {
+                "bbox": [
+                  395.5,
+                  588.3399658203125,
+                  443.6300048828125,
+                  598.0899658203125
+                ],
+                "column": 4,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "1.552",
+                "word_ids": [
+                  249
+                ]
+              },
+              {
+                "bbox": [
+                  443.6300048828125,
+                  588.3399658203125,
+                  491.739990234375,
+                  598.0899658203125
+                ],
+                "column": 5,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "7",
+                "word_ids": [
+                  250
+                ]
+              },
+              {
+                "bbox": [
+                  491.739990234375,
+                  588.3399658203125,
+                  542.6800537109375,
+                  598.0899658203125
+                ],
+                "column": 6,
+                "row": 2,
+                "slot_status": "present",
+                "source_text_matches": true,
+                "text": "1.545",
+                "word_ids": [
+                  251
+                ]
+              }
+            ],
+            "index": 2
+          }
+        ]
+      }
+    ]
+  },
+  "source_page": {
+    "page": 38,
+    "words": [
+      {
+        "bbox": [
+          86.064,
+          43.8033,
+          120.7186,
+          56.0246
+        ],
+        "block": 0,
+        "id": 0,
+        "line": 0,
+        "text": "T.O.M.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          124.58,
+          43.8033,
+          174.7126,
+          56.0246
+        ],
+        "block": 0,
+        "id": 1,
+        "line": 0,
+        "text": "KATILIM",
+        "word": 1
+      },
+      {
+        "bbox": [
+          178.46,
+          43.8033,
+          228.5927,
+          56.0246
+        ],
+        "block": 0,
+        "id": 2,
+        "line": 0,
+        "text": "BANKASI",
+        "word": 2
+      },
+      {
+        "bbox": [
+          232.49,
+          43.8033,
+          252.0639,
+          56.0246
+        ],
+        "block": 0,
+        "id": 3,
+        "line": 0,
+        "text": "A.Ş.",
+        "word": 3
+      },
+      {
+        "bbox": [
+          86.064,
+          70.9433,
+          97.104,
+          83.1646
+        ],
+        "block": 0,
+        "id": 4,
+        "line": 2,
+        "text": "30",
+        "word": 0
+      },
+      {
+        "bbox": [
+          99.864,
+          70.9433,
+          137.722,
+          83.1646
+        ],
+        "block": 0,
+        "id": 5,
+        "line": 2,
+        "text": "EYLÜL",
+        "word": 1
+      },
+      {
+        "bbox": [
+          140.42,
+          70.9433,
+          162.5,
+          83.1646
+        ],
+        "block": 0,
+        "id": 6,
+        "line": 2,
+        "text": "2023",
+        "word": 2
+      },
+      {
+        "bbox": [
+          165.26,
+          70.9433,
+          205.6554,
+          83.1646
+        ],
+        "block": 0,
+        "id": 7,
+        "line": 2,
+        "text": "TARİHİ",
+        "word": 3
+      },
+      {
+        "bbox": [
+          208.4154,
+          70.9433,
+          275.0859,
+          83.1646
+        ],
+        "block": 0,
+        "id": 8,
+        "line": 2,
+        "text": "İTİBARIYLA",
+        "word": 4
+      },
+      {
+        "bbox": [
+          277.7907,
+          70.9433,
+          344.395,
+          83.1646
+        ],
+        "block": 0,
+        "id": 9,
+        "line": 2,
+        "text": "KONSOLİDE",
+        "word": 5
+      },
+      {
+        "bbox": [
+          347.1108,
+          70.9433,
+          405.2254,
+          83.1646
+        ],
+        "block": 0,
+        "id": 10,
+        "line": 2,
+        "text": "OLMAYAN",
+        "word": 6
+      },
+      {
+        "bbox": [
+          408.07,
+          70.9433,
+          464.363,
+          83.1646
+        ],
+        "block": 0,
+        "id": 11,
+        "line": 2,
+        "text": "FİNANSAL",
+        "word": 7
+      },
+      {
+        "bbox": [
+          468.34,
+          70.9433,
+          537.9693,
+          83.1646
+        ],
+        "block": 0,
+        "id": 12,
+        "line": 2,
+        "text": "TABLOLARA",
+        "word": 8
+      },
+      {
+        "bbox": [
+          86.064,
+          83.9034,
+          128.9323,
+          96.1246
+        ],
+        "block": 0,
+        "id": 13,
+        "line": 3,
+        "text": "İLİŞKİN",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.86,
+          83.9034,
+          195.2691,
+          96.1246
+        ],
+        "block": 0,
+        "id": 14,
+        "line": 3,
+        "text": "AÇIKLAMA",
+        "word": 1
+      },
+      {
+        "bbox": [
+          199.49,
+          83.9034,
+          214.7737,
+          96.1246
+        ],
+        "block": 0,
+        "id": 15,
+        "line": 3,
+        "text": "VE",
+        "word": 2
+      },
+      {
+        "bbox": [
+          219.05,
+          83.9034,
+          285.0803,
+          96.1246
+        ],
+        "block": 0,
+        "id": 16,
+        "line": 3,
+        "text": "DİPNOTLAR",
+        "word": 3
+      },
+      {
+        "bbox": [
+          85.104,
+          96.5887,
+          115.3926,
+          106.0203
+        ],
+        "block": 0,
+        "id": 17,
+        "line": 4,
+        "text": "(Tutarlar",
+        "word": 0
+      },
+      {
+        "bbox": [
+          117.14,
+          96.5887,
+          130.8913,
+          106.0203
+        ],
+        "block": 0,
+        "id": 18,
+        "line": 4,
+        "text": "aksi",
+        "word": 1
+      },
+      {
+        "bbox": [
+          132.74,
+          96.5887,
+          184.1326,
+          106.0203
+        ],
+        "block": 0,
+        "id": 19,
+        "line": 4,
+        "text": "belirtilmedikçe",
+        "word": 2
+      },
+      {
+        "bbox": [
+          186.14,
+          96.5887,
+          198.3236,
+          106.0203
+        ],
+        "block": 0,
+        "id": 20,
+        "line": 4,
+        "text": "Bin",
+        "word": 3
+      },
+      {
+        "bbox": [
+          200.21,
+          96.5887,
+          216.7047,
+          106.0203
+        ],
+        "block": 0,
+        "id": 21,
+        "line": 4,
+        "text": "Türk",
+        "word": 4
+      },
+      {
+        "bbox": [
+          218.69,
+          96.5887,
+          238.4479,
+          106.0203
+        ],
+        "block": 0,
+        "id": 22,
+        "line": 4,
+        "text": "Lirası",
+        "word": 5
+      },
+      {
+        "bbox": [
+          240.41,
+          96.5887,
+          264.0019,
+          106.0203
+        ],
+        "block": 0,
+        "id": 23,
+        "line": 4,
+        "text": "(“TL”)",
+        "word": 6
+      },
+      {
+        "bbox": [
+          265.73,
+          96.5887,
+          287.0129,
+          106.0203
+        ],
+        "block": 0,
+        "id": 24,
+        "line": 4,
+        "text": "olarak",
+        "word": 7
+      },
+      {
+        "bbox": [
+          288.89,
+          96.5887,
+          305.8618,
+          106.0203
+        ],
+        "block": 0,
+        "id": 25,
+        "line": 4,
+        "text": "ifade",
+        "word": 8
+      },
+      {
+        "bbox": [
+          307.73,
+          96.5887,
+          345.3203,
+          106.0203
+        ],
+        "block": 0,
+        "id": 26,
+        "line": 4,
+        "text": "edilmiştir.)",
+        "word": 9
+      },
+      {
+        "bbox": [
+          307.37,
+          789.021,
+          316.43,
+          798.9839
+        ],
+        "block": 1,
+        "id": 27,
+        "line": 0,
+        "text": "32",
+        "word": 0
+      },
+      {
+        "bbox": [
+          284.09,
+          118.241,
+          322.8095,
+          128.2039
+        ],
+        "block": 2,
+        "id": 28,
+        "line": 1,
+        "text": "BEŞİNCİ",
+        "word": 0
+      },
+      {
+        "bbox": [
+          324.89,
+          118.241,
+          360.3705,
+          128.2039
+        ],
+        "block": 2,
+        "id": 29,
+        "line": 1,
+        "text": "BÖLÜM",
+        "word": 1
+      },
+      {
+        "bbox": [
+          85.104,
+          139.481,
+          139.464,
+          149.444
+        ],
+        "block": 2,
+        "id": 30,
+        "line": 3,
+        "text": "KONSOLİDE",
+        "word": 0
+      },
+      {
+        "bbox": [
+          142.94,
+          139.481,
+          190.469,
+          149.444
+        ],
+        "block": 2,
+        "id": 31,
+        "line": 3,
+        "text": "OLMAYAN",
+        "word": 1
+      },
+      {
+        "bbox": [
+          194.54,
+          139.481,
+          240.611,
+          149.444
+        ],
+        "block": 2,
+        "id": 32,
+        "line": 3,
+        "text": "FİNANSAL",
+        "word": 2
+      },
+      {
+        "bbox": [
+          244.37,
+          139.481,
+          301.2679,
+          149.444
+        ],
+        "block": 2,
+        "id": 33,
+        "line": 3,
+        "text": "TABLOLARA",
+        "word": 3
+      },
+      {
+        "bbox": [
+          304.97,
+          139.481,
+          340.034,
+          149.444
+        ],
+        "block": 2,
+        "id": 34,
+        "line": 3,
+        "text": "İLİŞKİN",
+        "word": 4
+      },
+      {
+        "bbox": [
+          343.87,
+          139.481,
+          394.8729,
+          149.444
+        ],
+        "block": 2,
+        "id": 35,
+        "line": 3,
+        "text": "AÇIKLAMA",
+        "word": 5
+      },
+      {
+        "bbox": [
+          398.59,
+          139.481,
+          411.073,
+          149.444
+        ],
+        "block": 2,
+        "id": 36,
+        "line": 3,
+        "text": "VE",
+        "word": 6
+      },
+      {
+        "bbox": [
+          414.55,
+          139.481,
+          468.5859,
+          149.444
+        ],
+        "block": 2,
+        "id": 37,
+        "line": 3,
+        "text": "DİPNOTLAR",
+        "word": 7
+      },
+      {
+        "bbox": [
+          85.104,
+          160.841,
+          91.024,
+          170.804
+        ],
+        "block": 2,
+        "id": 38,
+        "line": 5,
+        "text": "I.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          127.7,
+          160.841,
+          192.0345,
+          170.804
+        ],
+        "block": 2,
+        "id": 39,
+        "line": 6,
+        "text": "BİLANÇONUN",
+        "word": 0
+      },
+      {
+        "bbox": [
+          194.18,
+          160.841,
+          223.9435,
+          170.804
+        ],
+        "block": 2,
+        "id": 40,
+        "line": 6,
+        "text": "AKTİF",
+        "word": 1
+      },
+      {
+        "bbox": [
+          226.01,
+          160.841,
+          294.5395,
+          170.804
+        ],
+        "block": 2,
+        "id": 41,
+        "line": 6,
+        "text": "HESAPLARINA",
+        "word": 2
+      },
+      {
+        "bbox": [
+          296.69,
+          160.841,
+          333.3398,
+          170.804
+        ],
+        "block": 2,
+        "id": 42,
+        "line": 6,
+        "text": "İLİŞKİN",
+        "word": 3
+      },
+      {
+        "bbox": [
+          335.47,
+          160.841,
+          388.7975,
+          170.804
+        ],
+        "block": 2,
+        "id": 43,
+        "line": 6,
+        "text": "AÇIKLAMA",
+        "word": 4
+      },
+      {
+        "bbox": [
+          390.91,
+          160.841,
+          403.9403,
+          170.804
+        ],
+        "block": 2,
+        "id": 44,
+        "line": 6,
+        "text": "VE",
+        "word": 5
+      },
+      {
+        "bbox": [
+          406.03,
+          160.841,
+          462.4666,
+          170.804
+        ],
+        "block": 2,
+        "id": 45,
+        "line": 6,
+        "text": "DİPNOTLAR",
+        "word": 6
+      },
+      {
+        "bbox": [
+          127.7,
+          181.481,
+          134.51,
+          191.444
+        ],
+        "block": 3,
+        "id": 46,
+        "line": 0,
+        "text": "1.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          148.94,
+          181.481,
+          186.5922,
+          191.444
+        ],
+        "block": 3,
+        "id": 47,
+        "line": 1,
+        "text": "Bankalar",
+        "word": 0
+      },
+      {
+        "bbox": [
+          188.66,
+          181.481,
+          197.5809,
+          191.444
+        ],
+        "block": 3,
+        "id": 48,
+        "line": 1,
+        "text": "ve",
+        "word": 1
+      },
+      {
+        "bbox": [
+          199.73,
+          181.481,
+          220.6211,
+          191.444
+        ],
+        "block": 3,
+        "id": 49,
+        "line": 1,
+        "text": "diğer",
+        "word": 2
+      },
+      {
+        "bbox": [
+          222.77,
+          181.481,
+          240.4314,
+          191.444
+        ],
+        "block": 3,
+        "id": 50,
+        "line": 1,
+        "text": "mali",
+        "word": 3
+      },
+      {
+        "bbox": [
+          242.45,
+          181.481,
+          289.9863,
+          191.444
+        ],
+        "block": 3,
+        "id": 51,
+        "line": 1,
+        "text": "kuruluşlara",
+        "word": 4
+      },
+      {
+        "bbox": [
+          292.25,
+          181.481,
+          316.7885,
+          191.444
+        ],
+        "block": 3,
+        "id": 52,
+        "line": 1,
+        "text": "ilişkin",
+        "word": 5
+      },
+      {
+        "bbox": [
+          319.13,
+          181.481,
+          347.7798,
+          191.444
+        ],
+        "block": 3,
+        "id": 53,
+        "line": 1,
+        "text": "bilgiler",
+        "word": 6
+      },
+      {
+        "bbox": [
+          322.97,
+          210.0563,
+          338.6238,
+          218.9566
+        ],
+        "block": 4,
+        "id": 54,
+        "line": 1,
+        "text": "Cari",
+        "word": 0
+      },
+      {
+        "bbox": [
+          340.5856,
+          210.0563,
+          365.0191,
+          218.9566
+        ],
+        "block": 4,
+        "id": 55,
+        "line": 1,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          320.93,
+          219.3264,
+          329.0182,
+          228.2266
+        ],
+        "block": 4,
+        "id": 56,
+        "line": 2,
+        "text": "30",
+        "word": 0
+      },
+      {
+        "bbox": [
+          330.9961,
+          219.3264,
+          349.1744,
+          228.2266
+        ],
+        "block": 4,
+        "id": 57,
+        "line": 2,
+        "text": "Eylül",
+        "word": 1
+      },
+      {
+        "bbox": [
+          351.1362,
+          219.3264,
+          367.1519,
+          228.2266
+        ],
+        "block": 4,
+        "id": 58,
+        "line": 2,
+        "text": "2023",
+        "word": 2
+      },
+      {
+        "bbox": [
+          450.07,
+          210.0563,
+          474.6081,
+          218.9566
+        ],
+        "block": 5,
+        "id": 59,
+        "line": 0,
+        "text": "Önceki",
+        "word": 0
+      },
+      {
+        "bbox": [
+          476.5698,
+          210.0563,
+          501.0114,
+          218.9566
+        ],
+        "block": 5,
+        "id": 60,
+        "line": 0,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          450.43,
+          219.3264,
+          458.5182,
+          228.2266
+        ],
+        "block": 5,
+        "id": 61,
+        "line": 1,
+        "text": "31",
+        "word": 0
+      },
+      {
+        "bbox": [
+          460.4961,
+          219.3264,
+          482.7105,
+          228.2266
+        ],
+        "block": 5,
+        "id": 62,
+        "line": 1,
+        "text": "Aralık",
+        "word": 1
+      },
+      {
+        "bbox": [
+          484.7125,
+          219.3264,
+          500.7281,
+          228.2266
+        ],
+        "block": 5,
+        "id": 63,
+        "line": 1,
+        "text": "2022",
+        "word": 2
+      },
+      {
+        "bbox": [
+          329.71,
+          229.0463,
+          340.0224,
+          237.9466
+        ],
+        "block": 5,
+        "id": 64,
+        "line": 2,
+        "text": "TP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          398.47,
+          229.0463,
+          409.1424,
+          237.9466
+        ],
+        "block": 5,
+        "id": 65,
+        "line": 3,
+        "text": "YP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          462.7,
+          229.0463,
+          473.0125,
+          237.9466
+        ],
+        "block": 5,
+        "id": 66,
+        "line": 4,
+        "text": "TP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.38,
+          229.0463,
+          535.0524,
+          237.9466
+        ],
+        "block": 5,
+        "id": 67,
+        "line": 5,
+        "text": "YP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          238.7664,
+          160.956,
+          247.6666
+        ],
+        "block": 5,
+        "id": 68,
+        "line": 6,
+        "text": "Bankalar",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          248.3663,
+          154.7491,
+          257.2666
+        ],
+        "block": 5,
+        "id": 69,
+        "line": 7,
+        "text": "Yurtiçi",
+        "word": 0
+      },
+      {
+        "bbox": [
+          313.85,
+          248.3663,
+          339.9237,
+          257.2666
+        ],
+        "block": 5,
+        "id": 70,
+        "line": 8,
+        "text": "374.626",
+        "word": 0
+      },
+      {
+        "bbox": [
+          387.19,
+          248.3663,
+          409.2035,
+          257.2666
+        ],
+        "block": 5,
+        "id": 71,
+        "line": 9,
+        "text": "18.783",
+        "word": 0
+      },
+      {
+        "bbox": [
+          440.83,
+          248.3663,
+          472.8935,
+          257.2666
+        ],
+        "block": 5,
+        "id": 72,
+        "line": 10,
+        "text": "1.004.154",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          248.3663,
+          535.0973,
+          257.2666
+        ],
+        "block": 5,
+        "id": 73,
+        "line": 11,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          258.0864,
+          158.3591,
+          266.9866
+        ],
+        "block": 5,
+        "id": 74,
+        "line": 12,
+        "text": "Yurtdışı",
+        "word": 0
+      },
+      {
+        "bbox": [
+          337.27,
+          258.0864,
+          339.9473,
+          266.9866
+        ],
+        "block": 5,
+        "id": 75,
+        "line": 13,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          406.51,
+          258.0864,
+          409.1873,
+          266.9866
+        ],
+        "block": 5,
+        "id": 76,
+        "line": 14,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          470.26,
+          258.0864,
+          472.9373,
+          266.9866
+        ],
+        "block": 5,
+        "id": 77,
+        "line": 15,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          258.0864,
+          535.0973,
+          266.9866
+        ],
+        "block": 5,
+        "id": 78,
+        "line": 16,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          267.8063,
+          158.3591,
+          276.7066
+        ],
+        "block": 5,
+        "id": 79,
+        "line": 17,
+        "text": "Yurtdışı",
+        "word": 0
+      },
+      {
+        "bbox": [
+          160.22,
+          267.8063,
+          184.7742,
+          276.7066
+        ],
+        "block": 5,
+        "id": 80,
+        "line": 17,
+        "text": "Merkez",
+        "word": 1
+      },
+      {
+        "bbox": [
+          186.7199,
+          267.8063,
+          194.2534,
+          276.7066
+        ],
+        "block": 5,
+        "id": 81,
+        "line": 17,
+        "text": "ve",
+        "word": 2
+      },
+      {
+        "bbox": [
+          196.3116,
+          267.8063,
+          220.8015,
+          276.7066
+        ],
+        "block": 5,
+        "id": 82,
+        "line": 17,
+        "text": "Şubeler",
+        "word": 3
+      },
+      {
+        "bbox": [
+          337.27,
+          267.8063,
+          339.9473,
+          276.7066
+        ],
+        "block": 5,
+        "id": 83,
+        "line": 18,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          406.51,
+          267.8063,
+          409.1873,
+          276.7066
+        ],
+        "block": 5,
+        "id": 84,
+        "line": 19,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          470.26,
+          267.8063,
+          472.9373,
+          276.7066
+        ],
+        "block": 5,
+        "id": 85,
+        "line": 20,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          267.8063,
+          535.0973,
+          276.7066
+        ],
+        "block": 5,
+        "id": 86,
+        "line": 21,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          277.5264,
+          158.737,
+          286.4266
+        ],
+        "block": 5,
+        "id": 87,
+        "line": 22,
+        "text": "Toplam",
+        "word": 0
+      },
+      {
+        "bbox": [
+          313.85,
+          277.5264,
+          339.9237,
+          286.4266
+        ],
+        "block": 5,
+        "id": 88,
+        "line": 23,
+        "text": "374.626",
+        "word": 0
+      },
+      {
+        "bbox": [
+          387.19,
+          277.5264,
+          409.2035,
+          286.4266
+        ],
+        "block": 5,
+        "id": 89,
+        "line": 24,
+        "text": "18.783",
+        "word": 0
+      },
+      {
+        "bbox": [
+          440.83,
+          277.5264,
+          472.8935,
+          286.4266
+        ],
+        "block": 5,
+        "id": 90,
+        "line": 25,
+        "text": "1.004.154",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          277.5264,
+          535.0973,
+          286.4266
+        ],
+        "block": 5,
+        "id": 91,
+        "line": 26,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          127.7,
+          297.551,
+          134.51,
+          307.514
+        ],
+        "block": 6,
+        "id": 92,
+        "line": 0,
+        "text": "2.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          148.94,
+          297.551,
+          181.8312,
+          307.514
+        ],
+        "block": 6,
+        "id": 93,
+        "line": 1,
+        "text": "Gerçeğe",
+        "word": 0
+      },
+      {
+        "bbox": [
+          183.98,
+          297.551,
+          209.0382,
+          307.514
+        ],
+        "block": 6,
+        "id": 94,
+        "line": 1,
+        "text": "uygun",
+        "word": 1
+      },
+      {
+        "bbox": [
+          211.25,
+          297.551,
+          233.7096,
+          307.514
+        ],
+        "block": 6,
+        "id": 95,
+        "line": 1,
+        "text": "değer",
+        "word": 2
+      },
+      {
+        "bbox": [
+          235.73,
+          297.551,
+          255.5631,
+          307.514
+        ],
+        "block": 6,
+        "id": 96,
+        "line": 1,
+        "text": "farkı",
+        "word": 3
+      },
+      {
+        "bbox": [
+          257.57,
+          297.551,
+          300.9114,
+          307.514
+        ],
+        "block": 6,
+        "id": 97,
+        "line": 1,
+        "text": "kar/zarara",
+        "word": 4
+      },
+      {
+        "bbox": [
+          303.05,
+          297.551,
+          342.1964,
+          307.514
+        ],
+        "block": 6,
+        "id": 98,
+        "line": 1,
+        "text": "yansıtılan",
+        "word": 5
+      },
+      {
+        "bbox": [
+          344.35,
+          297.551,
+          376.2759,
+          307.514
+        ],
+        "block": 6,
+        "id": 99,
+        "line": 1,
+        "text": "finansal",
+        "word": 6
+      },
+      {
+        "bbox": [
+          378.43,
+          297.551,
+          418.6345,
+          307.514
+        ],
+        "block": 6,
+        "id": 100,
+        "line": 1,
+        "text": "varlıklara",
+        "word": 7
+      },
+      {
+        "bbox": [
+          420.79,
+          297.551,
+          445.4491,
+          307.514
+        ],
+        "block": 6,
+        "id": 101,
+        "line": 1,
+        "text": "ilişkin",
+        "word": 8
+      },
+      {
+        "bbox": [
+          447.55,
+          297.551,
+          476.3205,
+          307.514
+        ],
+        "block": 6,
+        "id": 102,
+        "line": 1,
+        "text": "bilgiler",
+        "word": 9
+      },
+      {
+        "bbox": [
+          323.33,
+          326.1263,
+          338.9838,
+          335.0266
+        ],
+        "block": 7,
+        "id": 103,
+        "line": 1,
+        "text": "Cari",
+        "word": 0
+      },
+      {
+        "bbox": [
+          340.9456,
+          326.1263,
+          365.3791,
+          335.0266
+        ],
+        "block": 7,
+        "id": 104,
+        "line": 1,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          321.29,
+          335.3663,
+          329.3782,
+          344.2666
+        ],
+        "block": 7,
+        "id": 105,
+        "line": 2,
+        "text": "30",
+        "word": 0
+      },
+      {
+        "bbox": [
+          331.3561,
+          335.3663,
+          349.5345,
+          344.2666
+        ],
+        "block": 7,
+        "id": 106,
+        "line": 2,
+        "text": "Eylül",
+        "word": 1
+      },
+      {
+        "bbox": [
+          351.4962,
+          335.3663,
+          367.5119,
+          344.2666
+        ],
+        "block": 7,
+        "id": 107,
+        "line": 2,
+        "text": "2023",
+        "word": 2
+      },
+      {
+        "bbox": [
+          450.07,
+          326.1263,
+          474.6081,
+          335.0266
+        ],
+        "block": 8,
+        "id": 108,
+        "line": 0,
+        "text": "Önceki",
+        "word": 0
+      },
+      {
+        "bbox": [
+          476.5698,
+          326.1263,
+          501.0114,
+          335.0266
+        ],
+        "block": 8,
+        "id": 109,
+        "line": 0,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          450.43,
+          335.3663,
+          458.5182,
+          344.2666
+        ],
+        "block": 8,
+        "id": 110,
+        "line": 1,
+        "text": "31",
+        "word": 0
+      },
+      {
+        "bbox": [
+          460.4961,
+          335.3663,
+          482.7105,
+          344.2666
+        ],
+        "block": 8,
+        "id": 111,
+        "line": 1,
+        "text": "Aralık",
+        "word": 1
+      },
+      {
+        "bbox": [
+          484.7125,
+          335.3663,
+          500.7281,
+          344.2666
+        ],
+        "block": 8,
+        "id": 112,
+        "line": 1,
+        "text": "2022",
+        "word": 2
+      },
+      {
+        "bbox": [
+          329.71,
+          345.0863,
+          340.0224,
+          353.9866
+        ],
+        "block": 8,
+        "id": 113,
+        "line": 3,
+        "text": "TP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          398.47,
+          345.0863,
+          409.1424,
+          353.9866
+        ],
+        "block": 8,
+        "id": 114,
+        "line": 4,
+        "text": "YP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          462.7,
+          345.0863,
+          473.0125,
+          353.9866
+        ],
+        "block": 8,
+        "id": 115,
+        "line": 5,
+        "text": "TP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          524.38,
+          345.0863,
+          535.0524,
+          353.9866
+        ],
+        "block": 8,
+        "id": 116,
+        "line": 6,
+        "text": "YP",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          354.8063,
+          158.7209,
+          363.7066
+        ],
+        "block": 8,
+        "id": 117,
+        "line": 7,
+        "text": "Gerçeğe",
+        "word": 0
+      },
+      {
+        "bbox": [
+          160.7791,
+          354.8063,
+          182.4309,
+          363.7066
+        ],
+        "block": 8,
+        "id": 118,
+        "line": 7,
+        "text": "Uygun",
+        "word": 1
+      },
+      {
+        "bbox": [
+          184.5132,
+          354.8063,
+          204.0906,
+          363.7066
+        ],
+        "block": 8,
+        "id": 119,
+        "line": 7,
+        "text": "Değer",
+        "word": 2
+      },
+      {
+        "bbox": [
+          206.09,
+          354.8063,
+          222.9579,
+          363.7066
+        ],
+        "block": 8,
+        "id": 120,
+        "line": 7,
+        "text": "Farkı",
+        "word": 3
+      },
+      {
+        "bbox": [
+          224.9197,
+          354.8063,
+          259.8937,
+          363.7066
+        ],
+        "block": 8,
+        "id": 121,
+        "line": 7,
+        "text": "Kâr/Zarara",
+        "word": 4
+      },
+      {
+        "bbox": [
+          132.02,
+          363.9263,
+          164.9358,
+          372.8266
+        ],
+        "block": 8,
+        "id": 122,
+        "line": 8,
+        "text": "Yansıtılan",
+        "word": 0
+      },
+      {
+        "bbox": [
+          167.0182,
+          363.9263,
+          194.0648,
+          372.8266
+        ],
+        "block": 8,
+        "id": 123,
+        "line": 8,
+        "text": "Finansal",
+        "word": 1
+      },
+      {
+        "bbox": [
+          196.0265,
+          363.9263,
+          224.9626,
+          372.8266
+        ],
+        "block": 8,
+        "id": 124,
+        "line": 8,
+        "text": "Varlıklar",
+        "word": 2
+      },
+      {
+        "bbox": [
+          226.97,
+          363.5993,
+          232.85,
+          369.1786
+        ],
+        "block": 8,
+        "id": 125,
+        "line": 8,
+        "text": "(*)",
+        "word": 3
+      },
+      {
+        "bbox": [
+          313.85,
+          363.9263,
+          339.9237,
+          372.8266
+        ],
+        "block": 8,
+        "id": 126,
+        "line": 9,
+        "text": "940.366",
+        "word": 0
+      },
+      {
+        "bbox": [
+          387.19,
+          363.9263,
+          409.2035,
+          372.8266
+        ],
+        "block": 8,
+        "id": 127,
+        "line": 10,
+        "text": "12.319",
+        "word": 0
+      },
+      {
+        "bbox": [
+          446.83,
+          363.9263,
+          472.9037,
+          372.8266
+        ],
+        "block": 8,
+        "id": 128,
+        "line": 11,
+        "text": "500.000",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          363.9263,
+          535.0973,
+          372.8266
+        ],
+        "block": 8,
+        "id": 129,
+        "line": 12,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          373.6664,
+          150.3914,
+          382.5666
+        ],
+        "block": 8,
+        "id": 130,
+        "line": 13,
+        "text": "Diğer",
+        "word": 0
+      },
+      {
+        "bbox": [
+          152.2648,
+          373.6664,
+          164.2926,
+          382.5666
+        ],
+        "block": 8,
+        "id": 131,
+        "line": 13,
+        "text": "Kâr",
+        "word": 1
+      },
+      {
+        "bbox": [
+          166.2865,
+          373.6664,
+          180.5093,
+          382.5666
+        ],
+        "block": 8,
+        "id": 132,
+        "line": 13,
+        "text": "Payı",
+        "word": 2
+      },
+      {
+        "bbox": [
+          182.4711,
+          373.6664,
+          190.0045,
+          382.5666
+        ],
+        "block": 8,
+        "id": 133,
+        "line": 13,
+        "text": "ve",
+        "word": 3
+      },
+      {
+        "bbox": [
+          192.0628,
+          373.6664,
+          208.5287,
+          382.5666
+        ],
+        "block": 8,
+        "id": 134,
+        "line": 13,
+        "text": "Gelir",
+        "word": 4
+      },
+      {
+        "bbox": [
+          210.4101,
+          373.6664,
+          250.8835,
+          382.5666
+        ],
+        "block": 8,
+        "id": 135,
+        "line": 13,
+        "text": "Reeskontları",
+        "word": 5
+      },
+      {
+        "bbox": [
+          317.93,
+          373.6664,
+          339.9435,
+          382.5666
+        ],
+        "block": 8,
+        "id": 136,
+        "line": 14,
+        "text": "84.061",
+        "word": 0
+      },
+      {
+        "bbox": [
+          397.15,
+          373.6664,
+          409.2019,
+          382.5666
+        ],
+        "block": 8,
+        "id": 137,
+        "line": 15,
+        "text": "181",
+        "word": 0
+      },
+      {
+        "bbox": [
+          454.87,
+          373.6664,
+          472.9117,
+          382.5666
+        ],
+        "block": 8,
+        "id": 138,
+        "line": 16,
+        "text": "2.767",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          373.6664,
+          535.0973,
+          382.5666
+        ],
+        "block": 8,
+        "id": 139,
+        "line": 17,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          383.3864,
+          151.71,
+          392.2866
+        ],
+        "block": 8,
+        "id": 140,
+        "line": 18,
+        "text": "Değer",
+        "word": 0
+      },
+      {
+        "bbox": [
+          153.7039,
+          383.3864,
+          173.6029,
+          392.2866
+        ],
+        "block": 8,
+        "id": 141,
+        "line": 18,
+        "text": "Düşüş",
+        "word": 1
+      },
+      {
+        "bbox": [
+          175.5164,
+          383.3864,
+          203.5278,
+          392.2866
+        ],
+        "block": 8,
+        "id": 142,
+        "line": 18,
+        "text": "Karşılığı",
+        "word": 2
+      },
+      {
+        "bbox": [
+          205.6021,
+          383.3864,
+          213.6873,
+          392.2866
+        ],
+        "block": 8,
+        "id": 143,
+        "line": 18,
+        "text": "(-)",
+        "word": 3
+      },
+      {
+        "bbox": [
+          337.27,
+          383.3864,
+          339.9473,
+          392.2866
+        ],
+        "block": 8,
+        "id": 144,
+        "line": 19,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          406.51,
+          383.3864,
+          409.1873,
+          392.2866
+        ],
+        "block": 8,
+        "id": 145,
+        "line": 20,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          470.26,
+          383.3864,
+          472.9373,
+          392.2866
+        ],
+        "block": 8,
+        "id": 146,
+        "line": 21,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          383.3864,
+          535.0973,
+          392.2866
+        ],
+        "block": 8,
+        "id": 147,
+        "line": 22,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.02,
+          393.1064,
+          158.737,
+          402.0066
+        ],
+        "block": 8,
+        "id": 148,
+        "line": 23,
+        "text": "Toplam",
+        "word": 0
+      },
+      {
+        "bbox": [
+          307.85,
+          393.1064,
+          339.9135,
+          402.0066
+        ],
+        "block": 8,
+        "id": 149,
+        "line": 24,
+        "text": "1.024.427",
+        "word": 0
+      },
+      {
+        "bbox": [
+          387.19,
+          393.1064,
+          409.2035,
+          402.0066
+        ],
+        "block": 8,
+        "id": 150,
+        "line": 25,
+        "text": "12.500",
+        "word": 0
+      },
+      {
+        "bbox": [
+          446.83,
+          393.1064,
+          472.9037,
+          402.0066
+        ],
+        "block": 8,
+        "id": 151,
+        "line": 26,
+        "text": "502.767",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          393.1064,
+          535.0973,
+          402.0066
+        ],
+        "block": 8,
+        "id": 152,
+        "line": 27,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          121.1,
+          413.0286,
+          129.1806,
+          420.7333
+        ],
+        "block": 8,
+        "id": 153,
+        "line": 30,
+        "text": "(*)",
+        "word": 0
+      },
+      {
+        "bbox": [
+          132.74,
+          413.0286,
+          155.9725,
+          420.7333
+        ],
+        "block": 8,
+        "id": 154,
+        "line": 30,
+        "text": "Gerçeğe",
+        "word": 1
+      },
+      {
+        "bbox": [
+          157.789,
+          413.0286,
+          176.7341,
+          420.7333
+        ],
+        "block": 8,
+        "id": 155,
+        "line": 30,
+        "text": "Uygun",
+        "word": 2
+      },
+      {
+        "bbox": [
+          178.5437,
+          413.0286,
+          195.6027,
+          420.7333
+        ],
+        "block": 8,
+        "id": 156,
+        "line": 30,
+        "text": "Değer",
+        "word": 3
+      },
+      {
+        "bbox": [
+          197.3635,
+          413.0286,
+          212.1257,
+          420.7333
+        ],
+        "block": 8,
+        "id": 157,
+        "line": 30,
+        "text": "Farkı",
+        "word": 4
+      },
+      {
+        "bbox": [
+          214.01,
+          413.0286,
+          244.6618,
+          420.7333
+        ],
+        "block": 8,
+        "id": 158,
+        "line": 30,
+        "text": "Kâr/Zarara",
+        "word": 5
+      },
+      {
+        "bbox": [
+          246.4783,
+          413.0286,
+          275.1396,
+          420.7333
+        ],
+        "block": 8,
+        "id": 159,
+        "line": 30,
+        "text": "Yansıtılan",
+        "word": 6
+      },
+      {
+        "bbox": [
+          276.9353,
+          413.0286,
+          300.5784,
+          420.7333
+        ],
+        "block": 8,
+        "id": 160,
+        "line": 30,
+        "text": "Finansal",
+        "word": 7
+      },
+      {
+        "bbox": [
+          302.3532,
+          413.0286,
+          327.5763,
+          420.7333
+        ],
+        "block": 8,
+        "id": 161,
+        "line": 30,
+        "text": "Varlıklar",
+        "word": 8
+      },
+      {
+        "bbox": [
+          329.47,
+          413.0286,
+          338.0378,
+          420.7333
+        ],
+        "block": 8,
+        "id": 162,
+        "line": 30,
+        "text": "TL",
+        "word": 9
+      },
+      {
+        "bbox": [
+          339.7778,
+          413.0286,
+          352.9739,
+          420.7333
+        ],
+        "block": 8,
+        "id": 163,
+        "line": 30,
+        "text": "cinsi",
+        "word": 10
+      },
+      {
+        "bbox": [
+          354.7487,
+          413.0286,
+          376.3734,
+          420.7333
+        ],
+        "block": 8,
+        "id": 164,
+        "line": 30,
+        "text": "Yatırım",
+        "word": 11
+      },
+      {
+        "bbox": [
+          378.1413,
+          413.0286,
+          414.2359,
+          420.7333
+        ],
+        "block": 8,
+        "id": 165,
+        "line": 30,
+        "text": "Fonları’ndan",
+        "word": 12
+      },
+      {
+        "bbox": [
+          416.0316,
+          413.0286,
+          454.3533,
+          420.7333
+        ],
+        "block": 8,
+        "id": 166,
+        "line": 30,
+        "text": "oluşmaktadır.",
+        "word": 13
+      },
+      {
+        "bbox": [
+          127.7,
+          431.491,
+          134.51,
+          441.454
+        ],
+        "block": 9,
+        "id": 167,
+        "line": 0,
+        "text": "3.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          148.94,
+          431.491,
+          175.4924,
+          441.454
+        ],
+        "block": 9,
+        "id": 168,
+        "line": 1,
+        "text": "Maddi",
+        "word": 0
+      },
+      {
+        "bbox": [
+          177.62,
+          431.491,
+          202.1956,
+          441.454
+        ],
+        "block": 9,
+        "id": 169,
+        "line": 1,
+        "text": "duran",
+        "word": 1
+      },
+      {
+        "bbox": [
+          204.29,
+          431.491,
+          244.5037,
+          441.454
+        ],
+        "block": 9,
+        "id": 170,
+        "line": 1,
+        "text": "varlıklara",
+        "word": 2
+      },
+      {
+        "bbox": [
+          246.65,
+          431.491,
+          271.3184,
+          441.454
+        ],
+        "block": 9,
+        "id": 171,
+        "line": 1,
+        "text": "ilişkin",
+        "word": 3
+      },
+      {
+        "bbox": [
+          273.53,
+          431.491,
+          321.5953,
+          441.454
+        ],
+        "block": 9,
+        "id": 172,
+        "line": 1,
+        "text": "açıklamalar",
+        "word": 4
+      },
+      {
+        "bbox": [
+          302.93,
+          452.7463,
+          318.5838,
+          461.6466
+        ],
+        "block": 10,
+        "id": 173,
+        "line": 1,
+        "text": "Cari",
+        "word": 0
+      },
+      {
+        "bbox": [
+          320.5456,
+          452.7463,
+          344.9791,
+          461.6466
+        ],
+        "block": 10,
+        "id": 174,
+        "line": 1,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          300.89,
+          461.8663,
+          308.9782,
+          470.7666
+        ],
+        "block": 10,
+        "id": 175,
+        "line": 2,
+        "text": "30",
+        "word": 0
+      },
+      {
+        "bbox": [
+          310.9561,
+          461.8663,
+          329.1345,
+          470.7666
+        ],
+        "block": 10,
+        "id": 176,
+        "line": 2,
+        "text": "Eylül",
+        "word": 1
+      },
+      {
+        "bbox": [
+          331.0962,
+          461.8663,
+          347.1119,
+          470.7666
+        ],
+        "block": 10,
+        "id": 177,
+        "line": 2,
+        "text": "2023",
+        "word": 2
+      },
+      {
+        "bbox": [
+          441.55,
+          452.7463,
+          466.088,
+          461.6466
+        ],
+        "block": 11,
+        "id": 178,
+        "line": 0,
+        "text": "Önceki",
+        "word": 0
+      },
+      {
+        "bbox": [
+          468.0498,
+          452.7463,
+          492.4914,
+          461.6466
+        ],
+        "block": 11,
+        "id": 179,
+        "line": 0,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          441.91,
+          461.8663,
+          449.9982,
+          470.7666
+        ],
+        "block": 11,
+        "id": 180,
+        "line": 1,
+        "text": "31",
+        "word": 0
+      },
+      {
+        "bbox": [
+          451.9761,
+          461.8663,
+          474.1906,
+          470.7666
+        ],
+        "block": 11,
+        "id": 181,
+        "line": 1,
+        "text": "Aralık",
+        "word": 1
+      },
+      {
+        "bbox": [
+          476.1925,
+          461.8663,
+          492.2082,
+          470.7666
+        ],
+        "block": 11,
+        "id": 182,
+        "line": 1,
+        "text": "2022",
+        "word": 2
+      },
+      {
+        "bbox": [
+          270.53,
+          480.8264,
+          296.8288,
+          489.7266
+        ],
+        "block": 12,
+        "id": 183,
+        "line": 1,
+        "text": "Maliyet",
+        "word": 0
+      },
+      {
+        "bbox": [
+          314.45,
+          471.5863,
+          344.3186,
+          480.4866
+        ],
+        "block": 13,
+        "id": 184,
+        "line": 0,
+        "text": "Birikmiş",
+        "word": 0
+      },
+      {
+        "bbox": [
+          303.05,
+          480.8264,
+          344.4399,
+          489.7266
+        ],
+        "block": 13,
+        "id": 185,
+        "line": 1,
+        "text": "amortisman",
+        "word": 0
+      },
+      {
+        "bbox": [
+          355.51,
+          480.8264,
+          367.5378,
+          489.7266
+        ],
+        "block": 13,
+        "id": 186,
+        "line": 2,
+        "text": "Net",
+        "word": 0
+      },
+      {
+        "bbox": [
+          369.5317,
+          480.8264,
+          392.1562,
+          489.7266
+        ],
+        "block": 13,
+        "id": 187,
+        "line": 2,
+        "text": "Değeri",
+        "word": 1
+      },
+      {
+        "bbox": [
+          413.59,
+          480.8264,
+          439.8888,
+          489.7266
+        ],
+        "block": 13,
+        "id": 188,
+        "line": 3,
+        "text": "Maliyet",
+        "word": 0
+      },
+      {
+        "bbox": [
+          457.51,
+          471.5863,
+          487.3786,
+          480.4866
+        ],
+        "block": 14,
+        "id": 189,
+        "line": 0,
+        "text": "Birikmiş",
+        "word": 0
+      },
+      {
+        "bbox": [
+          446.11,
+          480.8264,
+          487.4999,
+          489.7266
+        ],
+        "block": 14,
+        "id": 190,
+        "line": 1,
+        "text": "amortisman",
+        "word": 0
+      },
+      {
+        "bbox": [
+          498.46,
+          480.8264,
+          510.4878,
+          489.7266
+        ],
+        "block": 14,
+        "id": 191,
+        "line": 2,
+        "text": "Net",
+        "word": 0
+      },
+      {
+        "bbox": [
+          512.4817,
+          480.8264,
+          535.1063,
+          489.7266
+        ],
+        "block": 14,
+        "id": 192,
+        "line": 2,
+        "text": "Değeri",
+        "word": 1
+      },
+      {
+        "bbox": [
+          131.3,
+          490.5464,
+          164.3525,
+          499.4466
+        ],
+        "block": 14,
+        "id": 193,
+        "line": 3,
+        "text": "Menkuller",
+        "word": 0
+      },
+      {
+        "bbox": [
+          278.69,
+          490.5464,
+          296.7318,
+          499.4466
+        ],
+        "block": 14,
+        "id": 194,
+        "line": 4,
+        "text": "9.338",
+        "word": 0
+      },
+      {
+        "bbox": [
+          332.35,
+          490.5464,
+          344.4019,
+          499.4466
+        ],
+        "block": 14,
+        "id": 195,
+        "line": 5,
+        "text": "797",
+        "word": 0
+      },
+      {
+        "bbox": [
+          374.11,
+          490.5464,
+          392.1517,
+          499.4466
+        ],
+        "block": 14,
+        "id": 196,
+        "line": 6,
+        "text": "8.541",
+        "word": 0
+      },
+      {
+        "bbox": [
+          421.75,
+          490.5464,
+          439.7917,
+          499.4466
+        ],
+        "block": 14,
+        "id": 197,
+        "line": 7,
+        "text": "2.828",
+        "word": 0
+      },
+      {
+        "bbox": [
+          483.46,
+          490.5464,
+          487.48,
+          499.4466
+        ],
+        "block": 14,
+        "id": 198,
+        "line": 8,
+        "text": "9",
+        "word": 0
+      },
+      {
+        "bbox": [
+          517.06,
+          490.5464,
+          535.1018,
+          499.4466
+        ],
+        "block": 14,
+        "id": 199,
+        "line": 9,
+        "text": "2.819",
+        "word": 0
+      },
+      {
+        "bbox": [
+          131.3,
+          500.2664,
+          161.643,
+          509.1666
+        ],
+        "block": 14,
+        "id": 200,
+        "line": 10,
+        "text": "Kullanım",
+        "word": 0
+      },
+      {
+        "bbox": [
+          163.653,
+          500.2664,
+          183.0616,
+          509.1666
+        ],
+        "block": 14,
+        "id": 201,
+        "line": 10,
+        "text": "Hakkı",
+        "word": 1
+      },
+      {
+        "bbox": [
+          185.1359,
+          500.2664,
+          200.6692,
+          509.1666
+        ],
+        "block": 14,
+        "id": 202,
+        "line": 10,
+        "text": "Olan",
+        "word": 2
+      },
+      {
+        "bbox": [
+          202.6471,
+          500.2664,
+          236.0292,
+          509.1666
+        ],
+        "block": 14,
+        "id": 203,
+        "line": 10,
+        "text": "Menkuller",
+        "word": 3
+      },
+      {
+        "bbox": [
+          278.69,
+          500.2664,
+          296.7318,
+          509.1666
+        ],
+        "block": 14,
+        "id": 204,
+        "line": 11,
+        "text": "5.877",
+        "word": 0
+      },
+      {
+        "bbox": [
+          326.33,
+          500.2664,
+          344.3717,
+          509.1666
+        ],
+        "block": 14,
+        "id": 205,
+        "line": 12,
+        "text": "1.448",
+        "word": 0
+      },
+      {
+        "bbox": [
+          374.11,
+          500.2664,
+          392.1517,
+          509.1666
+        ],
+        "block": 14,
+        "id": 206,
+        "line": 13,
+        "text": "4.429",
+        "word": 0
+      },
+      {
+        "bbox": [
+          437.11,
+          500.2664,
+          439.7873,
+          509.1666
+        ],
+        "block": 14,
+        "id": 207,
+        "line": 14,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          484.78,
+          500.2664,
+          487.4573,
+          509.1666
+        ],
+        "block": 14,
+        "id": 208,
+        "line": 15,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          532.42,
+          500.2664,
+          535.0973,
+          509.1666
+        ],
+        "block": 14,
+        "id": 209,
+        "line": 16,
+        "text": "-",
+        "word": 0
+      },
+      {
+        "bbox": [
+          131.3,
+          509.8663,
+          158.017,
+          518.7666
+        ],
+        "block": 14,
+        "id": 210,
+        "line": 17,
+        "text": "Toplam",
+        "word": 0
+      },
+      {
+        "bbox": [
+          274.73,
+          509.8663,
+          296.7435,
+          518.7666
+        ],
+        "block": 14,
+        "id": 211,
+        "line": 18,
+        "text": "15.215",
+        "word": 0
+      },
+      {
+        "bbox": [
+          326.33,
+          509.8663,
+          344.3717,
+          518.7666
+        ],
+        "block": 14,
+        "id": 212,
+        "line": 19,
+        "text": "2.245",
+        "word": 0
+      },
+      {
+        "bbox": [
+          370.15,
+          509.8663,
+          392.1635,
+          518.7666
+        ],
+        "block": 14,
+        "id": 213,
+        "line": 20,
+        "text": "12.970",
+        "word": 0
+      },
+      {
+        "bbox": [
+          421.75,
+          509.8663,
+          439.7917,
+          518.7666
+        ],
+        "block": 14,
+        "id": 214,
+        "line": 21,
+        "text": "2.828",
+        "word": 0
+      },
+      {
+        "bbox": [
+          483.46,
+          509.8663,
+          487.48,
+          518.7666
+        ],
+        "block": 14,
+        "id": 215,
+        "line": 22,
+        "text": "9",
+        "word": 0
+      },
+      {
+        "bbox": [
+          517.06,
+          509.8663,
+          535.1018,
+          518.7666
+        ],
+        "block": 14,
+        "id": 216,
+        "line": 23,
+        "text": "2.819",
+        "word": 0
+      },
+      {
+        "bbox": [
+          127.7,
+          530.041,
+          134.51,
+          540.0039
+        ],
+        "block": 15,
+        "id": 217,
+        "line": 0,
+        "text": "4.",
+        "word": 0
+      },
+      {
+        "bbox": [
+          148.94,
+          530.041,
+          175.4924,
+          540.0039
+        ],
+        "block": 15,
+        "id": 218,
+        "line": 1,
+        "text": "Maddi",
+        "word": 0
+      },
+      {
+        "bbox": [
+          177.62,
+          530.041,
+          212.1075,
+          540.0039
+        ],
+        "block": 15,
+        "id": 219,
+        "line": 1,
+        "text": "olmayan",
+        "word": 1
+      },
+      {
+        "bbox": [
+          214.37,
+          530.041,
+          238.9363,
+          540.0039
+        ],
+        "block": 15,
+        "id": 220,
+        "line": 1,
+        "text": "duran",
+        "word": 2
+      },
+      {
+        "bbox": [
+          241.01,
+          530.041,
+          281.2144,
+          540.0039
+        ],
+        "block": 15,
+        "id": 221,
+        "line": 1,
+        "text": "varlıklara",
+        "word": 3
+      },
+      {
+        "bbox": [
+          283.49,
+          530.041,
+          308.0284,
+          540.0039
+        ],
+        "block": 15,
+        "id": 222,
+        "line": 1,
+        "text": "ilişkin",
+        "word": 4
+      },
+      {
+        "bbox": [
+          310.13,
+          530.041,
+          358.316,
+          540.0039
+        ],
+        "block": 15,
+        "id": 223,
+        "line": 1,
+        "text": "açıklamalar",
+        "word": 5
+      },
+      {
+        "bbox": [
+          300.77,
+          551.1763,
+          316.4238,
+          560.0766
+        ],
+        "block": 16,
+        "id": 224,
+        "line": 1,
+        "text": "Cari",
+        "word": 0
+      },
+      {
+        "bbox": [
+          318.3856,
+          551.1763,
+          342.8191,
+          560.0766
+        ],
+        "block": 16,
+        "id": 225,
+        "line": 1,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          298.61,
+          560.4163,
+          306.6982,
+          569.3166
+        ],
+        "block": 16,
+        "id": 226,
+        "line": 2,
+        "text": "30",
+        "word": 0
+      },
+      {
+        "bbox": [
+          308.6761,
+          560.4163,
+          326.8544,
+          569.3166
+        ],
+        "block": 16,
+        "id": 227,
+        "line": 2,
+        "text": "Eylül",
+        "word": 1
+      },
+      {
+        "bbox": [
+          328.8162,
+          560.4163,
+          344.8318,
+          569.3166
+        ],
+        "block": 16,
+        "id": 228,
+        "line": 2,
+        "text": "2023",
+        "word": 2
+      },
+      {
+        "bbox": [
+          443.47,
+          551.1763,
+          468.0081,
+          560.0766
+        ],
+        "block": 17,
+        "id": 229,
+        "line": 0,
+        "text": "Önceki",
+        "word": 0
+      },
+      {
+        "bbox": [
+          470.02,
+          551.1763,
+          494.4616,
+          560.0766
+        ],
+        "block": 17,
+        "id": 230,
+        "line": 0,
+        "text": "Dönem",
+        "word": 1
+      },
+      {
+        "bbox": [
+          443.71,
+          560.4163,
+          451.7982,
+          569.3166
+        ],
+        "block": 17,
+        "id": 231,
+        "line": 1,
+        "text": "31",
+        "word": 0
+      },
+      {
+        "bbox": [
+          453.7761,
+          560.4163,
+          475.9905,
+          569.3166
+        ],
+        "block": 17,
+        "id": 232,
+        "line": 1,
+        "text": "Aralık",
+        "word": 1
+      },
+      {
+        "bbox": [
+          477.9925,
+          560.4163,
+          494.0081,
+          569.3166
+        ],
+        "block": 17,
+        "id": 233,
+        "line": 1,
+        "text": "2022",
+        "word": 2
+      },
+      {
+        "bbox": [
+          267.53,
+          579.2563,
+          293.8288,
+          588.1566
+        ],
+        "block": 18,
+        "id": 234,
+        "line": 1,
+        "text": "Maliyet",
+        "word": 0
+      },
+      {
+        "bbox": [
+          312.77,
+          570.1364,
+          342.6385,
+          579.0366
+        ],
+        "block": 19,
+        "id": 235,
+        "line": 0,
+        "text": "Birikmiş",
+        "word": 0
+      },
+      {
+        "bbox": [
+          301.37,
+          579.2563,
+          342.7599,
+          588.1566
+        ],
+        "block": 19,
+        "id": 236,
+        "line": 1,
+        "text": "amortisman",
+        "word": 0
+      },
+      {
+        "bbox": [
+          355.27,
+          579.2563,
+          367.2978,
+          588.1566
+        ],
+        "block": 19,
+        "id": 237,
+        "line": 2,
+        "text": "Net",
+        "word": 0
+      },
+      {
+        "bbox": [
+          369.2917,
+          579.2563,
+          391.9162,
+          588.1566
+        ],
+        "block": 19,
+        "id": 238,
+        "line": 2,
+        "text": "Değeri",
+        "word": 1
+      },
+      {
+        "bbox": [
+          414.67,
+          579.2563,
+          440.9688,
+          588.1566
+        ],
+        "block": 19,
+        "id": 239,
+        "line": 3,
+        "text": "Maliyet",
+        "word": 0
+      },
+      {
+        "bbox": [
+          460.06,
+          570.1364,
+          489.9286,
+          579.0366
+        ],
+        "block": 20,
+        "id": 240,
+        "line": 0,
+        "text": "Birikmiş",
+        "word": 0
+      },
+      {
+        "bbox": [
+          448.63,
+          579.2563,
+          490.0199,
+          588.1566
+        ],
+        "block": 20,
+        "id": 241,
+        "line": 1,
+        "text": "amortisman",
+        "word": 0
+      },
+      {
+        "bbox": [
+          502.54,
+          579.2563,
+          514.5678,
+          588.1566
+        ],
+        "block": 20,
+        "id": 242,
+        "line": 2,
+        "text": "Net",
+        "word": 0
+      },
+      {
+        "bbox": [
+          516.5617,
+          579.2563,
+          539.1863,
+          588.1566
+        ],
+        "block": 20,
+        "id": 243,
+        "line": 2,
+        "text": "Değeri",
+        "word": 1
+      },
+      {
+        "bbox": [
+          131.3,
+          588.9764,
+          163.8621,
+          597.8766
+        ],
+        "block": 20,
+        "id": 244,
+        "line": 3,
+        "text": "Bilgisayar",
+        "word": 0
+      },
+      {
+        "bbox": [
+          165.6228,
+          588.9764,
+          199.7768,
+          597.8766
+        ],
+        "block": 20,
+        "id": 245,
+        "line": 3,
+        "text": "yazılımları",
+        "word": 1
+      },
+      {
+        "bbox": [
+          271.73,
+          588.9764,
+          293.7435,
+          597.8766
+        ],
+        "block": 20,
+        "id": 246,
+        "line": 4,
+        "text": "83.279",
+        "word": 0
+      },
+      {
+        "bbox": [
+          324.65,
+          588.9764,
+          342.6917,
+          597.8766
+        ],
+        "block": 20,
+        "id": 247,
+        "line": 5,
+        "text": "7.279",
+        "word": 0
+      },
+      {
+        "bbox": [
+          369.91,
+          588.9764,
+          391.9235,
+          597.8766
+        ],
+        "block": 20,
+        "id": 248,
+        "line": 6,
+        "text": "76.000",
+        "word": 0
+      },
+      {
+        "bbox": [
+          422.83,
+          588.9764,
+          440.8717,
+          597.8766
+        ],
+        "block": 20,
+        "id": 249,
+        "line": 7,
+        "text": "1.552",
+        "word": 0
+      },
+      {
+        "bbox": [
+          485.98,
+          588.9764,
+          490.0,
+          597.8766
+        ],
+        "block": 20,
+        "id": 250,
+        "line": 8,
+        "text": "7",
+        "word": 0
+      },
+      {
+        "bbox": [
+          521.14,
+          588.9764,
+          539.1818,
+          597.8766
+        ],
+        "block": 20,
+        "id": 251,
+        "line": 9,
+        "text": "1.545",
+        "word": 0
+      }
+    ],
+    "spans": [
+      {
+        "bbox": [
+          86.064,
+          43.8033,
+          257.45,
+          56.0246
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 0,
+        "line": 0,
+        "size": 11.04,
+        "span": 0,
+        "text": "T.O.M. KATILIM BANKASI A.Ş.  "
+      },
+      {
+        "bbox": [
+          86.064,
+          57.3633,
+          88.824,
+          69.5846
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 1,
+        "line": 1,
+        "size": 11.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          86.064,
+          70.9433,
+          540.7,
+          83.1646
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 2,
+        "line": 2,
+        "size": 11.04,
+        "span": 0,
+        "text": "30 EYLÜL 2023 TARİHİ İTİBARIYLA KONSOLİDE OLMAYAN FİNANSAL TABLOLARA "
+      },
+      {
+        "bbox": [
+          86.064,
+          83.9034,
+          287.81,
+          96.1246
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 3,
+        "line": 3,
+        "size": 11.04,
+        "span": 0,
+        "text": "İLİŞKİN AÇIKLAMA VE DİPNOTLAR "
+      },
+      {
+        "bbox": [
+          85.104,
+          96.5887,
+          345.3203,
+          106.0203
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 4,
+        "line": 4,
+        "size": 8.52,
+        "span": 0,
+        "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+      },
+      {
+        "bbox": [
+          345.31,
+          94.3434,
+          348.07,
+          106.5646
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 5,
+        "line": 4,
+        "size": 11.04,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          307.37,
+          789.021,
+          318.62,
+          798.9839
+        ],
+        "block": 1,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 6,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "32 "
+      },
+      {
+        "bbox": [
+          85.104,
+          790.9933,
+          87.474,
+          801.4877
+        ],
+        "block": 1,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 7,
+        "line": 1,
+        "size": 9.48,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          322.37,
+          107.921,
+          324.6902,
+          117.884
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 8,
+        "line": 0,
+        "size": 9.1393,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          284.09,
+          118.241,
+          360.3705,
+          128.2039
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 9,
+        "line": 1,
+        "size": 9.1393,
+        "span": 0,
+        "text": "BEŞİNCİ BÖLÜM"
+      },
+      {
+        "bbox": [
+          360.67,
+          118.241,
+          362.92,
+          128.2039
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 10,
+        "line": 1,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          128.6133,
+          87.474,
+          139.1077
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 11,
+        "line": 2,
+        "size": 9.48,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          139.481,
+          470.83,
+          149.444
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 12,
+        "line": 3,
+        "size": 9.0,
+        "span": 0,
+        "text": "KONSOLİDE OLMAYAN FİNANSAL TABLOLARA İLİŞKİN AÇIKLAMA VE DİPNOTLAR "
+      },
+      {
+        "bbox": [
+          85.104,
+          149.9733,
+          87.474,
+          160.4677
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 13,
+        "line": 4,
+        "size": 9.48,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          160.841,
+          93.4242,
+          170.804
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 14,
+        "line": 5,
+        "size": 9.1393,
+        "span": 0,
+        "text": "I. "
+      },
+      {
+        "bbox": [
+          127.7,
+          160.841,
+          462.4666,
+          170.804
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 15,
+        "line": 6,
+        "size": 9.1393,
+        "span": 0,
+        "text": "BİLANÇONUN AKTİF HESAPLARINA İLİŞKİN AÇIKLAMA VE DİPNOTLAR"
+      },
+      {
+        "bbox": [
+          462.7,
+          160.841,
+          464.95,
+          170.804
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 16,
+        "line": 6,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          171.161,
+          87.354,
+          181.124
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 17,
+        "line": 7,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          181.481,
+          134.51,
+          191.444
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 18,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "1."
+      },
+      {
+        "bbox": [
+          134.66,
+          181.355,
+          137.2316,
+          191.39
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 19,
+        "line": 0,
+        "size": 9.1242,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          148.94,
+          181.481,
+          347.7798,
+          191.444
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 20,
+        "line": 1,
+        "size": 9.1393,
+        "span": 0,
+        "text": "Bankalar ve diğer mali kuruluşlara ilişkin bilgiler"
+      },
+      {
+        "bbox": [
+          347.95,
+          181.481,
+          350.2,
+          191.444
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 21,
+        "line": 1,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          191.801,
+          87.354,
+          201.764
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 22,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          132.02,
+          215.8163,
+          136.07,
+          224.7166
+        ],
+        "block": 4,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 23,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          322.97,
+          210.0563,
+          369.04,
+          218.9566
+        ],
+        "block": 4,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 24,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Cari Dönem  "
+      },
+      {
+        "bbox": [
+          320.93,
+          219.3264,
+          369.16,
+          228.2266
+        ],
+        "block": 4,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 25,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "30 Eylül 2023 "
+      },
+      {
+        "bbox": [
+          450.07,
+          210.0563,
+          505.03,
+          218.9566
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 26,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Önceki Dönem  "
+      },
+      {
+        "bbox": [
+          450.43,
+          219.3264,
+          502.75,
+          228.2266
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 27,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "31 Aralık 2022 "
+      },
+      {
+        "bbox": [
+          329.71,
+          229.0463,
+          341.92,
+          237.9466
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 28,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "TP "
+      },
+      {
+        "bbox": [
+          398.47,
+          229.0463,
+          411.16,
+          237.9466
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 29,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "YP "
+      },
+      {
+        "bbox": [
+          462.7,
+          229.0463,
+          474.91,
+          237.9466
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 30,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "TP "
+      },
+      {
+        "bbox": [
+          524.38,
+          229.0463,
+          537.07,
+          237.9466
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 31,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "YP "
+      },
+      {
+        "bbox": [
+          132.02,
+          238.7664,
+          162.95,
+          247.6666
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 32,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bankalar "
+      },
+      {
+        "bbox": [
+          132.02,
+          248.3663,
+          156.71,
+          257.2666
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 33,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "Yurtiçi "
+      },
+      {
+        "bbox": [
+          313.85,
+          248.3663,
+          341.92,
+          257.2666
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 34,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "374.626 "
+      },
+      {
+        "bbox": [
+          387.19,
+          248.3663,
+          411.16,
+          257.2666
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 35,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": "18.783 "
+      },
+      {
+        "bbox": [
+          440.83,
+          248.3663,
+          474.91,
+          257.2666
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 36,
+        "line": 10,
+        "size": 8.04,
+        "span": 0,
+        "text": "1.004.154 "
+      },
+      {
+        "bbox": [
+          532.42,
+          248.3663,
+          537.07,
+          257.2666
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 37,
+        "line": 11,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          132.02,
+          258.0864,
+          160.31,
+          266.9866
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 38,
+        "line": 12,
+        "size": 8.04,
+        "span": 0,
+        "text": "Yurtdışı "
+      },
+      {
+        "bbox": [
+          337.27,
+          258.0864,
+          341.92,
+          266.9866
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 39,
+        "line": 13,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          406.51,
+          258.0864,
+          411.16,
+          266.9866
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 40,
+        "line": 14,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          470.26,
+          258.0864,
+          474.91,
+          266.9866
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 41,
+        "line": 15,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          532.42,
+          258.0864,
+          537.07,
+          266.9866
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 42,
+        "line": 16,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          132.02,
+          267.8063,
+          222.74,
+          276.7066
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 43,
+        "line": 17,
+        "size": 8.04,
+        "span": 0,
+        "text": "Yurtdışı Merkez ve Şubeler "
+      },
+      {
+        "bbox": [
+          337.27,
+          267.8063,
+          341.92,
+          276.7066
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 44,
+        "line": 18,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          406.51,
+          267.8063,
+          411.16,
+          276.7066
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 45,
+        "line": 19,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          470.26,
+          267.8063,
+          474.91,
+          276.7066
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 46,
+        "line": 20,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          532.42,
+          267.8063,
+          537.07,
+          276.7066
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 47,
+        "line": 21,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          132.02,
+          277.5264,
+          162.71,
+          286.4266
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 48,
+        "line": 22,
+        "size": 8.04,
+        "span": 0,
+        "text": "Toplam  "
+      },
+      {
+        "bbox": [
+          313.85,
+          277.5264,
+          341.92,
+          286.4266
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 49,
+        "line": 23,
+        "size": 8.04,
+        "span": 0,
+        "text": "374.626 "
+      },
+      {
+        "bbox": [
+          387.19,
+          277.5264,
+          411.16,
+          286.4266
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 50,
+        "line": 24,
+        "size": 8.04,
+        "span": 0,
+        "text": "18.783 "
+      },
+      {
+        "bbox": [
+          440.83,
+          277.5264,
+          474.91,
+          286.4266
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 51,
+        "line": 25,
+        "size": 8.04,
+        "span": 0,
+        "text": "1.004.154 "
+      },
+      {
+        "bbox": [
+          532.42,
+          277.5264,
+          537.07,
+          286.4266
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 52,
+        "line": 26,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          85.104,
+          287.231,
+          87.354,
+          297.194
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 53,
+        "line": 27,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          297.551,
+          134.51,
+          307.514
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 54,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "2."
+      },
+      {
+        "bbox": [
+          134.66,
+          297.425,
+          137.2316,
+          307.46
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 55,
+        "line": 0,
+        "size": 9.1242,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          148.94,
+          297.551,
+          476.3205,
+          307.514
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 56,
+        "line": 1,
+        "size": 9.1393,
+        "span": 0,
+        "text": "Gerçeğe uygun değer farkı kar/zarara yansıtılan finansal varlıklara ilişkin bilgiler"
+      },
+      {
+        "bbox": [
+          476.5,
+          297.551,
+          478.75,
+          307.514
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 57,
+        "line": 1,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          307.8709,
+          87.354,
+          317.834
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 58,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          132.02,
+          327.0863,
+          136.07,
+          335.9866
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 59,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          323.33,
+          326.1263,
+          369.4,
+          335.0266
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 60,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Cari Dönem  "
+      },
+      {
+        "bbox": [
+          321.29,
+          335.3663,
+          369.52,
+          344.2666
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 61,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "30 Eylül 2023 "
+      },
+      {
+        "bbox": [
+          450.07,
+          326.1263,
+          505.03,
+          335.0266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 62,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Önceki Dönem  "
+      },
+      {
+        "bbox": [
+          450.43,
+          335.3663,
+          502.75,
+          344.2666
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 63,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "31 Aralık 2022 "
+      },
+      {
+        "bbox": [
+          132.02,
+          345.0863,
+          136.07,
+          353.9866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 64,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          329.71,
+          345.0863,
+          341.92,
+          353.9866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 65,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "TP "
+      },
+      {
+        "bbox": [
+          398.47,
+          345.0863,
+          411.16,
+          353.9866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 66,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "YP "
+      },
+      {
+        "bbox": [
+          462.7,
+          345.0863,
+          474.91,
+          353.9866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 67,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "TP "
+      },
+      {
+        "bbox": [
+          524.38,
+          345.0863,
+          537.07,
+          353.9866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 68,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "YP "
+      },
+      {
+        "bbox": [
+          132.02,
+          354.8063,
+          261.98,
+          363.7066
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 69,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "Gerçeğe Uygun Değer Farkı Kâr/Zarara "
+      },
+      {
+        "bbox": [
+          132.02,
+          363.9263,
+          227.06,
+          372.8266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 70,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "Yansıtılan Finansal Varlıklar "
+      },
+      {
+        "bbox": [
+          226.97,
+          363.5993,
+          232.85,
+          369.1786
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 5,
+        "font": "TimesNewRomanPSMT",
+        "id": 71,
+        "line": 8,
+        "size": 5.04,
+        "span": 1,
+        "text": "(*)"
+      },
+      {
+        "bbox": [
+          232.73,
+          363.9263,
+          234.74,
+          372.8266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 72,
+        "line": 8,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          313.85,
+          363.9263,
+          341.92,
+          372.8266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 73,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": "940.366 "
+      },
+      {
+        "bbox": [
+          387.19,
+          363.9263,
+          411.16,
+          372.8266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 74,
+        "line": 10,
+        "size": 8.04,
+        "span": 0,
+        "text": "12.319 "
+      },
+      {
+        "bbox": [
+          446.83,
+          363.9263,
+          474.91,
+          372.8266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 75,
+        "line": 11,
+        "size": 8.04,
+        "span": 0,
+        "text": "500.000 "
+      },
+      {
+        "bbox": [
+          532.42,
+          363.9263,
+          537.07,
+          372.8266
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 76,
+        "line": 12,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          132.02,
+          373.6664,
+          252.98,
+          382.5666
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 77,
+        "line": 13,
+        "size": 8.04,
+        "span": 0,
+        "text": "Diğer Kâr Payı ve Gelir Reeskontları "
+      },
+      {
+        "bbox": [
+          317.93,
+          373.6664,
+          341.92,
+          382.5666
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 78,
+        "line": 14,
+        "size": 8.04,
+        "span": 0,
+        "text": "84.061 "
+      },
+      {
+        "bbox": [
+          397.15,
+          373.6664,
+          411.16,
+          382.5666
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 79,
+        "line": 15,
+        "size": 8.04,
+        "span": 0,
+        "text": "181 "
+      },
+      {
+        "bbox": [
+          454.87,
+          373.6664,
+          474.91,
+          382.5666
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 80,
+        "line": 16,
+        "size": 8.04,
+        "span": 0,
+        "text": "2.767 "
+      },
+      {
+        "bbox": [
+          532.42,
+          373.6664,
+          537.07,
+          382.5666
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 81,
+        "line": 17,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          132.02,
+          383.3864,
+          215.66,
+          392.2866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 82,
+        "line": 18,
+        "size": 8.04,
+        "span": 0,
+        "text": "Değer Düşüş Karşılığı (-) "
+      },
+      {
+        "bbox": [
+          337.27,
+          383.3864,
+          341.92,
+          392.2866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 83,
+        "line": 19,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          406.51,
+          383.3864,
+          411.16,
+          392.2866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 84,
+        "line": 20,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          470.26,
+          383.3864,
+          474.91,
+          392.2866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 85,
+        "line": 21,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          532.42,
+          383.3864,
+          537.07,
+          392.2866
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 86,
+        "line": 22,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          132.02,
+          393.1064,
+          162.71,
+          402.0066
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 87,
+        "line": 23,
+        "size": 8.04,
+        "span": 0,
+        "text": "Toplam  "
+      },
+      {
+        "bbox": [
+          307.85,
+          393.1064,
+          341.92,
+          402.0066
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 88,
+        "line": 24,
+        "size": 8.04,
+        "span": 0,
+        "text": "1.024.427 "
+      },
+      {
+        "bbox": [
+          387.19,
+          393.1064,
+          411.16,
+          402.0066
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 89,
+        "line": 25,
+        "size": 8.04,
+        "span": 0,
+        "text": "12.500 "
+      },
+      {
+        "bbox": [
+          446.83,
+          393.1064,
+          474.91,
+          402.0066
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 90,
+        "line": 26,
+        "size": 8.04,
+        "span": 0,
+        "text": "502.767 "
+      },
+      {
+        "bbox": [
+          532.42,
+          393.1064,
+          537.07,
+          402.0066
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 91,
+        "line": 27,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          85.104,
+          402.811,
+          87.354,
+          412.774
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 92,
+        "line": 28,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          413.0286,
+          86.844,
+          420.7333
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 93,
+        "line": 29,
+        "size": 6.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          121.1,
+          413.0286,
+          456.25,
+          420.7333
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 94,
+        "line": 30,
+        "size": 6.96,
+        "span": 0,
+        "text": "(*)  Gerçeğe Uygun Değer Farkı Kâr/Zarara Yansıtılan Finansal Varlıklar TL cinsi Yatırım Fonları’ndan oluşmaktadır. "
+      },
+      {
+        "bbox": [
+          85.104,
+          421.171,
+          87.354,
+          431.134
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 95,
+        "line": 31,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          431.491,
+          134.51,
+          441.454
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 96,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "3."
+      },
+      {
+        "bbox": [
+          134.66,
+          431.365,
+          137.2316,
+          441.4
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 97,
+        "line": 0,
+        "size": 9.1242,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          148.94,
+          431.491,
+          321.5953,
+          441.454
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 98,
+        "line": 1,
+        "size": 9.1393,
+        "span": 0,
+        "text": "Maddi duran varlıklara ilişkin açıklamalar"
+      },
+      {
+        "bbox": [
+          321.77,
+          431.491,
+          324.02,
+          441.454
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 99,
+        "line": 1,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          441.931,
+          87.354,
+          451.894
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 100,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          131.3,
+          457.3063,
+          135.35,
+          466.2066
+        ],
+        "block": 10,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 101,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          302.93,
+          452.7463,
+          346.96,
+          461.6466
+        ],
+        "block": 10,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 102,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Cari Dönem "
+      },
+      {
+        "bbox": [
+          300.89,
+          461.8663,
+          349.12,
+          470.7666
+        ],
+        "block": 10,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 103,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "30 Eylül 2023 "
+      },
+      {
+        "bbox": [
+          441.55,
+          452.7463,
+          494.47,
+          461.6466
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 104,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Önceki Dönem "
+      },
+      {
+        "bbox": [
+          441.91,
+          461.8663,
+          494.23,
+          470.7666
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 105,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "31 Aralık 2022 "
+      },
+      {
+        "bbox": [
+          131.3,
+          476.2664,
+          135.35,
+          485.1666
+        ],
+        "block": 12,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 106,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          270.53,
+          480.8264,
+          298.7,
+          489.7266
+        ],
+        "block": 12,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 107,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Maliyet "
+      },
+      {
+        "bbox": [
+          314.45,
+          471.5863,
+          346.3286,
+          480.4866
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 108,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Birikmiş "
+      },
+      {
+        "bbox": [
+          303.05,
+          480.8264,
+          346.36,
+          489.7266
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 109,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "amortisman "
+      },
+      {
+        "bbox": [
+          355.51,
+          480.8264,
+          394.12,
+          489.7266
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 110,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Net Değeri "
+      },
+      {
+        "bbox": [
+          413.59,
+          480.8264,
+          441.76,
+          489.7266
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 111,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "Maliyet "
+      },
+      {
+        "bbox": [
+          457.51,
+          471.5863,
+          489.3886,
+          480.4866
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 112,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Birikmiş "
+      },
+      {
+        "bbox": [
+          446.11,
+          480.8264,
+          489.43,
+          489.7266
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 113,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "amortisman "
+      },
+      {
+        "bbox": [
+          498.46,
+          480.8264,
+          537.07,
+          489.7266
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 114,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Net Değeri "
+      },
+      {
+        "bbox": [
+          131.3,
+          490.5464,
+          166.19,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 115,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "Menkuller "
+      },
+      {
+        "bbox": [
+          278.69,
+          490.5464,
+          298.7,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 116,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "9.338 "
+      },
+      {
+        "bbox": [
+          332.35,
+          490.5464,
+          346.36,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 117,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "797 "
+      },
+      {
+        "bbox": [
+          374.11,
+          490.5464,
+          394.12,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 118,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "8.541 "
+      },
+      {
+        "bbox": [
+          421.75,
+          490.5464,
+          441.76,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 119,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "2.828 "
+      },
+      {
+        "bbox": [
+          483.46,
+          490.5464,
+          489.43,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 120,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "9 "
+      },
+      {
+        "bbox": [
+          517.06,
+          490.5464,
+          537.07,
+          499.4466
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 121,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": "2.819 "
+      },
+      {
+        "bbox": [
+          131.3,
+          500.2664,
+          237.98,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 122,
+        "line": 10,
+        "size": 8.04,
+        "span": 0,
+        "text": "Kullanım Hakkı Olan Menkuller "
+      },
+      {
+        "bbox": [
+          278.69,
+          500.2664,
+          298.7,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 123,
+        "line": 11,
+        "size": 8.04,
+        "span": 0,
+        "text": "5.877 "
+      },
+      {
+        "bbox": [
+          326.33,
+          500.2664,
+          346.36,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 124,
+        "line": 12,
+        "size": 8.04,
+        "span": 0,
+        "text": "1.448 "
+      },
+      {
+        "bbox": [
+          374.11,
+          500.2664,
+          394.12,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 125,
+        "line": 13,
+        "size": 8.04,
+        "span": 0,
+        "text": "4.429 "
+      },
+      {
+        "bbox": [
+          437.11,
+          500.2664,
+          441.76,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 126,
+        "line": 14,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          484.78,
+          500.2664,
+          489.43,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 127,
+        "line": 15,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          532.42,
+          500.2664,
+          537.07,
+          509.1666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 128,
+        "line": 16,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          131.3,
+          509.8663,
+          159.95,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 129,
+        "line": 17,
+        "size": 8.04,
+        "span": 0,
+        "text": "Toplam "
+      },
+      {
+        "bbox": [
+          274.73,
+          509.8663,
+          298.7,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 130,
+        "line": 18,
+        "size": 8.04,
+        "span": 0,
+        "text": "15.215 "
+      },
+      {
+        "bbox": [
+          326.33,
+          509.8663,
+          346.36,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 131,
+        "line": 19,
+        "size": 8.04,
+        "span": 0,
+        "text": "2.245 "
+      },
+      {
+        "bbox": [
+          370.15,
+          509.8663,
+          394.12,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 132,
+        "line": 20,
+        "size": 8.04,
+        "span": 0,
+        "text": "12.970 "
+      },
+      {
+        "bbox": [
+          421.75,
+          509.8663,
+          441.76,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 133,
+        "line": 21,
+        "size": 8.04,
+        "span": 0,
+        "text": "2.828 "
+      },
+      {
+        "bbox": [
+          483.46,
+          509.8663,
+          489.43,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 134,
+        "line": 22,
+        "size": 8.04,
+        "span": 0,
+        "text": "9 "
+      },
+      {
+        "bbox": [
+          517.06,
+          509.8663,
+          537.07,
+          518.7666
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 135,
+        "line": 23,
+        "size": 8.04,
+        "span": 0,
+        "text": "2.819 "
+      },
+      {
+        "bbox": [
+          85.104,
+          519.721,
+          87.354,
+          529.684
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 136,
+        "line": 24,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          127.7,
+          530.041,
+          134.51,
+          540.0039
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 137,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "4."
+      },
+      {
+        "bbox": [
+          134.66,
+          529.9149,
+          137.2316,
+          539.95
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 138,
+        "line": 0,
+        "size": 9.1242,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          148.94,
+          530.041,
+          358.316,
+          540.0039
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 139,
+        "line": 1,
+        "size": 9.1393,
+        "span": 0,
+        "text": "Maddi olmayan duran varlıklara ilişkin açıklamalar"
+      },
+      {
+        "bbox": [
+          358.51,
+          530.041,
+          360.76,
+          540.0039
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 140,
+        "line": 1,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          540.361,
+          87.354,
+          550.324
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 141,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          131.3,
+          555.7363,
+          135.35,
+          564.6366
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 142,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          300.77,
+          551.1763,
+          344.8,
+          560.0766
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 143,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Cari Dönem "
+      },
+      {
+        "bbox": [
+          298.61,
+          560.4163,
+          346.84,
+          569.3166
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 144,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "30 Eylül 2023 "
+      },
+      {
+        "bbox": [
+          443.47,
+          551.1763,
+          496.39,
+          560.0766
+        ],
+        "block": 17,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 145,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Önceki Dönem "
+      },
+      {
+        "bbox": [
+          443.71,
+          560.4163,
+          496.03,
+          569.3166
+        ],
+        "block": 17,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 146,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "31 Aralık 2022 "
+      },
+      {
+        "bbox": [
+          131.3,
+          574.6964,
+          135.35,
+          583.5966
+        ],
+        "block": 18,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 147,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          267.53,
+          579.2563,
+          295.7,
+          588.1566
+        ],
+        "block": 18,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 148,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Maliyet "
+      },
+      {
+        "bbox": [
+          312.77,
+          570.1364,
+          344.6486,
+          579.0366
+        ],
+        "block": 19,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 149,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Birikmiş "
+      },
+      {
+        "bbox": [
+          301.37,
+          579.2563,
+          344.68,
+          588.1566
+        ],
+        "block": 19,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 150,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "amortisman "
+      },
+      {
+        "bbox": [
+          355.27,
+          579.2563,
+          393.88,
+          588.1566
+        ],
+        "block": 19,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 151,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Net Değeri "
+      },
+      {
+        "bbox": [
+          414.67,
+          579.2563,
+          442.84,
+          588.1566
+        ],
+        "block": 19,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 152,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "Maliyet "
+      },
+      {
+        "bbox": [
+          460.06,
+          570.1364,
+          491.9386,
+          579.0366
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 153,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Birikmiş "
+      },
+      {
+        "bbox": [
+          448.63,
+          579.2563,
+          491.95,
+          588.1566
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 154,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "amortisman "
+      },
+      {
+        "bbox": [
+          502.54,
+          579.2563,
+          541.15,
+          588.1566
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 20,
+        "font": "TimesNewRomanPS-BoldMT",
+        "id": 155,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Net Değeri "
+      },
+      {
+        "bbox": [
+          131.3,
+          588.9764,
+          201.74,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 156,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bilgisayar yazılımları "
+      },
+      {
+        "bbox": [
+          271.73,
+          588.9764,
+          295.7,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 157,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "83.279 "
+      },
+      {
+        "bbox": [
+          324.65,
+          588.9764,
+          344.68,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 158,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "7.279 "
+      },
+      {
+        "bbox": [
+          369.91,
+          588.9764,
+          393.88,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 159,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "76.000 "
+      },
+      {
+        "bbox": [
+          422.83,
+          588.9764,
+          442.84,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 160,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "1.552 "
+      },
+      {
+        "bbox": [
+          485.98,
+          588.9764,
+          491.95,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 161,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "7 "
+      },
+      {
+        "bbox": [
+          521.14,
+          588.9764,
+          541.15,
+          597.8766
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 162,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": "1.545 "
+      },
+      {
+        "bbox": [
+          85.104,
+          598.5786,
+          86.844,
+          606.2833
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 163,
+        "line": 10,
+        "size": 6.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          85.104,
+          606.6186,
+          86.844,
+          614.3233
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 164,
+        "line": 11,
+        "size": 6.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          229.13,
+          606.6186,
+          230.87,
+          614.3233
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 165,
+        "line": 12,
+        "size": 6.96,
+        "span": 0,
+        "text": " "
+      }
+    ]
+  }
+}

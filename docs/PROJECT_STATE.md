@@ -372,8 +372,22 @@ rewritten. An independent six-note source case, including the wrapped final note
 raises TOMK's benchmark to 19 cases. Missing, duplicated, shifted or substituted
 source associations fail or remain unlinked. Across the retained 51 pages, only
 page 15 has this candidate relationship. The admin displays the complete numbered
-explanations next to the table with their column references. Cloud publication
-and live authenticated display checks remain pending; meanings are unverified.
+explanations next to the table with their column references. Cloud probe
+`34080486986` independently verifies all 51 unchanged native pages, all earlier
+structure, six complete source-note links and 19 source cases. Publication/replay
+`34080668719` matches the verified probe and retains all nine checked object
+versions on replay. CI/deploy at `22cc62b` pass. Live authenticated display
+checks remain pending; meanings are unverified.
+
+Four page-38 asset-detail tables were independently transcribed from the original
+render: bank placements, fair-value assets, tangible assets and software assets.
+All 121 table slots already match the retained ruled candidates, including the
+merged current/prior headings, explicit blanks and literal dashes. Complete-table
+regressions now also bind their thousand-TL units and the investment-fund asterisk
+qualification. Removing a table, swapping repeated source occurrences, inventing
+zeroes or changing units fails the relevant source case. TOMK now has 23 source
+cases; the four new cases do not alter extraction or certify the whole report.
+Cloud verification of the expanded benchmark remains pending.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

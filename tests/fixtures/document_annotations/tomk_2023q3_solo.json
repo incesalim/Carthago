@@ -856,6 +856,358 @@
           ]
         }
       ]
+    },
+    {
+      "id": "complete-bank-placement-table",
+      "bbox": [
+        127,
+        201,
+        540,
+        288
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          null,
+          "Önceki Dönem 31 Aralık 2022",
+          null
+        ],
+        [
+          null,
+          "TP",
+          "YP",
+          "TP",
+          "YP"
+        ],
+        [
+          "Bankalar",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Yurtiçi",
+          "374.626",
+          "18.783",
+          "1.004.154",
+          "-"
+        ],
+        [
+          "Yurtdışı",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Yurtdışı Merkez ve Şubeler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam",
+          "374.626",
+          "18.783",
+          "1.004.154",
+          "-"
+        ]
+      ],
+      "kind": "complete_physical_table",
+      "page": 38,
+      "method": "pymupdf_lines_strict",
+      "source_text_regions": [
+        {
+          "bbox": [
+            84,
+            96,
+            347,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete-fair-value-asset-table-and-source-qualification",
+      "bbox": [
+        127,
+        317,
+        540,
+        404
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          null,
+          "Önceki Dönem 31 Aralık 2022",
+          null
+        ],
+        [
+          null,
+          "TP",
+          "YP",
+          "TP",
+          "YP"
+        ],
+        [
+          "Gerçeğe Uygun Değer Farkı Kâr/Zarara Yansıtılan Finansal Varlıklar (*)",
+          "940.366",
+          "12.319",
+          "500.000",
+          "-"
+        ],
+        [
+          "Diğer Kâr Payı ve Gelir Reeskontları",
+          "84.061",
+          "181",
+          "2.767",
+          "-"
+        ],
+        [
+          "Değer Düşüş Karşılığı (-)",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam",
+          "1.024.427",
+          "12.500",
+          "502.767",
+          "-"
+        ]
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            84,
+            96,
+            347,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            120,
+            412,
+            458,
+            422
+          ],
+          "text": "(*) Gerçeğe Uygun Değer Farkı Kâr/Zarara Yansıtılan Finansal Varlıklar TL cinsi Yatırım Fonları’ndan oluşmaktadır."
+        }
+      ],
+      "kind": "complete_physical_table",
+      "page": 38,
+      "method": "pymupdf_lines_strict"
+    },
+    {
+      "id": "complete-tangible-asset-table",
+      "bbox": [
+        127,
+        451,
+        540,
+        521
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 3
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 3
+        }
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          null,
+          null,
+          "Önceki Dönem 31 Aralık 2022",
+          null,
+          null
+        ],
+        [
+          null,
+          "Maliyet",
+          "Birikmiş amortisman",
+          "Net Değeri",
+          "Maliyet",
+          "Birikmiş amortisman",
+          "Net Değeri"
+        ],
+        [
+          "Menkuller",
+          "9.338",
+          "797",
+          "8.541",
+          "2.828",
+          "9",
+          "2.819"
+        ],
+        [
+          "Kullanım Hakkı Olan Menkuller",
+          "5.877",
+          "1.448",
+          "4.429",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam",
+          "15.215",
+          "2.245",
+          "12.970",
+          "2.828",
+          "9",
+          "2.819"
+        ]
+      ],
+      "kind": "complete_physical_table",
+      "page": 38,
+      "method": "pymupdf_lines_strict",
+      "source_text_regions": [
+        {
+          "bbox": [
+            84,
+            96,
+            347,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete-software-asset-table",
+      "bbox": [
+        127,
+        549,
+        544,
+        600
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 3
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 3
+        }
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          null,
+          null,
+          "Önceki Dönem 31 Aralık 2022",
+          null,
+          null
+        ],
+        [
+          null,
+          "Maliyet",
+          "Birikmiş amortisman",
+          "Net Değeri",
+          "Maliyet",
+          "Birikmiş amortisman",
+          "Net Değeri"
+        ],
+        [
+          "Bilgisayar yazılımları",
+          "83.279",
+          "7.279",
+          "76.000",
+          "1.552",
+          "7",
+          "1.545"
+        ]
+      ],
+      "kind": "complete_physical_table",
+      "page": 38,
+      "method": "pymupdf_lines_strict",
+      "source_text_regions": [
+        {
+          "bbox": [
+            84,
+            96,
+            347,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

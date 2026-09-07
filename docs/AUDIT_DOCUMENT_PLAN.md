@@ -777,3 +777,14 @@ of detected tables.
   unlinked or fail validation. Only page 15 gains the relationship across the
   retained 51 pages. Admin rendering preserves full text and column references;
   cloud verification/publication and authenticated display remain pending.
+
+- 2026-09-07: note-link probe `34080486986` independently verifies all 51 native
+  pages, unchanged prior structure, six complete source explanations and 19
+  cases. Publication/replay `34080668719` matches the probe and leaves all nine
+  checked object versions unchanged. CI/deploy at `22cc62b` pass.
+- 2026-09-07: independently transcribed the four page-38 asset tables and checked
+  all 121 slots, merged period headings, units and the source investment-fund
+  qualification. The retained ruled candidates already match; no extractor
+  change is needed. Added four full-table cases and omission, repeated-occurrence,
+  invented-zero and unit mutations. The benchmark now has 23 cases; cloud
+  verification of those additional cases remains pending.
