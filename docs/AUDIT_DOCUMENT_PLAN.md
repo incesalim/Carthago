@@ -765,3 +765,15 @@ of detected tables.
   pages. Whole-table omission, swapped repeated values, invented zeroes, shifted
   columns, truncated headings and changed units are rejected. Full Python, 791
   web tests, lint/type and mobile checks pass. Cloud verification remains pending.
+
+- 2026-09-07: deferred-tax probe `34079635094` independently verifies all 51
+  original/native pages, unchanged earlier tables and prose, committed engine
+  and 18 source cases. Publication/replay `34079793061` matches the probe and
+  preserves all eight observed object versions. CI/deploy at `e8fafbd` pass.
+- 2026-09-07: independently matched all six equity-column numbers to the six
+  complete source explanations on page 15, retaining the wrapped final paragraph.
+  Added source-linked table-note candidates and an exact occurrence/paragraph
+  benchmark. Missing, ambiguous, duplicated or shifted associations remain
+  unlinked or fail validation. Only page 15 gains the relationship across the
+  retained 51 pages. Admin rendering preserves full text and column references;
+  cloud verification/publication and authenticated display remain pending.

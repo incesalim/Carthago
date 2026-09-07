@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import fixture from "../../../tests/fixtures/document_equity_preview_wire.json";
 import taxFixture from "../../../tests/fixtures/document_segmented_tax_preview_wire.json";
+import noteFixture from "../../../tests/fixtures/document_equity_notes_preview_wire.json";
 import TablePreview from "./DocumentTablePreview";
 
 describe("equity source lines in vertically spanning cells", () => {
@@ -41,4 +42,16 @@ it("keeps both tax header groups and distinguishes blank net slots from merged s
   expect(rows.at(-1)).toContain("11.936");
   expect(rows[4]).toContain("55.203");
   expect(markup).toContain("Printed rules and text positions");
+});
+
+it("shows each complete numbered explanation next to its original column reference", () => {
+  const markup = renderToStaticMarkup(<TablePreview {...fixture} notes={noteFixture} />);
+  const notes = markup.split("<ol")[1].split("</ol>")[0];
+  expect(notes.match(/<li\b/g)).toHaveLength(6);
+  expect(notes).toContain("Duran varlıklar birikmiş yeniden değerleme");
+  expect(notes).toContain("tutarları ifade eder)");
+  expect(notes).toContain("Column 6");
+  expect(notes).toContain("Column 11");
+  expect(markup).toContain("interpretation still needs review");
+  expect(markup.split("<tbody>")[1].split("</tbody>")[0].match(/Dönem Sonu Bakiyesi\s+\(III/g)).toHaveLength(1);
 });

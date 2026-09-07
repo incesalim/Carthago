@@ -8,7 +8,7 @@ import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 import DocumentOriginPanel from "./DocumentOriginPanel";
 import DocumentContentReviews from "./DocumentContentReviews";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
-import TablePreview, { type Table, type TableContext, type SourceRows } from "./DocumentTablePreview";
+import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes } from "./DocumentTablePreview";
 
 const endpoint = "/api/admin/document-corpus";
 const id = (f: CorpusFiling) => `${f.bank_ticker}|${f.period}|${f.kind}`;
@@ -18,6 +18,7 @@ const control = "border-b border-border bg-transparent px-1 py-1.5 text-xs text-
 type PagePreview = { manifest: { sections: { title: string; page_start: number; page_end: number }[] };
   page: { page: number; text_blocks: { id: string; text: string }[]; tables: Table[];
     table_source_rows?: { tables: SourceRows[] };
+    table_notes?: { tables: TableNotes[] };
     table_context?: { tables: TableContext[]; continuations: { status: string; from_page: number;
       from_table_ids: string[]; to_table_id: string; title: string; column_identifiers: string[] }[] };
     reading_layout?: ReadingLayout;
@@ -92,6 +93,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
         </div>)}
         <h4 className="border-b border-border py-2 text-xs font-semibold">Table candidates · {count(preview.page.tables.length)}</h4>
         {preview.page.tables.map((table) => <TablePreview key={table.id} table={table}
+          notes={preview.page.table_notes?.tables.find((notes) => notes.table_id === table.id)}
           sourceRows={preview.page.table_source_rows?.tables.find((rows) => rows.table_id === table.id)}
           context={preview.page.table_context?.tables.find((context) => context.table_id === table.id)} />)}
         {preview.page.tables.length === 0 && <p className="py-3 text-xs text-faint">No table detected. This does not establish that the source page contains no table.</p>}

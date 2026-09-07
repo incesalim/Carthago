@@ -56,6 +56,10 @@ Some partially ruled tables also offer a **Printed rules and text positions**
 alternative with complete grouped headings and literal period columns. It keeps
 blank cells separate from covered merged-header slots; all earlier candidates
 remain available for comparison. This reconstruction still requires source review.
+Where printed column numbers match a complete adjacent note sequence, **Numbered
+source explanations** shows each full paragraph and its column reference beneath
+the table. These are suggested source relationships; ambiguous matches remain
+unlinked, and the original markers and paragraphs stay in the text view.
 The complete physical text remains accessible underneath. Table counts
 are detector candidates, potentially overlapping; they are never a completeness
 denominator. Reading order, headers and narrative roles remain unreviewed.

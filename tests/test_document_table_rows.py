@@ -197,7 +197,7 @@ def test_equity_source_cases_fail_before_grouping_and_reject_a_minted_row_witnes
     from src.audit_reports.document_benchmark import check_annotations
     page, source, identity = equity
     annotation = json.loads((Path(__file__).parent / 'fixtures/document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
-    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 15]
+    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 15 and c.get('kind') == 'source_table_line']
     assert len(annotation['cases']) == 4
     structure, evidence = {'source': identity, 'pages': [page]}, [{'source': identity}, source]
     assert not check_annotations(structure, evidence, annotation)['passed']

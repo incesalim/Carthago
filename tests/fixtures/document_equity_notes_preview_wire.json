@@ -1,0 +1,232 @@
+{
+  "table_id": "p15:ruled0",
+  "links": [
+    {
+      "label": "1",
+      "header_row": 1,
+      "column": 5,
+      "header_word_ids": [
+        67
+      ],
+      "header_bbox": [
+        323.0899963378906,
+        148.5800018310547,
+        354.7699890136719,
+        171.53001403808594
+      ],
+      "marker_element_id": "p15:narrative37",
+      "marker_span_ids": [
+        382,
+        383
+      ],
+      "marker_bbox": [
+        32.88,
+        331.2112,
+        39.9749,
+        339.0134
+      ],
+      "text_element_id": "p15:narrative38",
+      "text_span_ids": [
+        384,
+        385
+      ],
+      "text_bbox": [
+        54.24,
+        331.3087,
+        235.4,
+        339.0134
+      ],
+      "text": "Duran varlıklar birikmiş yeniden değerleme artışları/azalışları, "
+    },
+    {
+      "label": "2",
+      "header_row": 1,
+      "column": 6,
+      "header_word_ids": [
+        68
+      ],
+      "header_bbox": [
+        354.7699890136719,
+        148.5800018310547,
+        380.45001220703125,
+        171.53001403808594
+      ],
+      "marker_element_id": "p15:narrative39",
+      "marker_span_ids": [
+        386,
+        387
+      ],
+      "marker_bbox": [
+        32.88,
+        340.5712,
+        39.9749,
+        348.3734
+      ],
+      "text_element_id": "p15:narrative40",
+      "text_span_ids": [
+        388
+      ],
+      "text_bbox": [
+        54.24,
+        340.6686,
+        272.15,
+        348.3734
+      ],
+      "text": "Tanımlanmış fayda planlarının birikmiş yeniden ölçüm kazançları/kayıpları, "
+    },
+    {
+      "label": "3",
+      "header_row": 1,
+      "column": 7,
+      "header_word_ids": [
+        69
+      ],
+      "header_bbox": [
+        380.45001220703125,
+        148.5800018310547,
+        419.8299865722656,
+        171.53001403808594
+      ],
+      "marker_element_id": "p15:narrative41",
+      "marker_span_ids": [
+        389,
+        390
+      ],
+      "marker_bbox": [
+        32.88,
+        349.8112,
+        39.9749,
+        357.6133
+      ],
+      "text_element_id": "p15:narrative42",
+      "text_span_ids": [
+        391
+      ],
+      "text_bbox": [
+        54.24,
+        349.9086,
+        714.28,
+        357.6133
+      ],
+      "text": "Diğer (özkaynak yöntemiyle değerlenen yatırımların diğer kapsamlı gelirinden kâr/zararda sınıflandırılmayacak payları ile diğer kâr veya zarar olarak yeniden sınıflandırılmayacak diğer kapsamlı gelir unsurlarının birikmiş tutarları), "
+    },
+    {
+      "label": "4",
+      "header_row": 1,
+      "column": 8,
+      "header_word_ids": [
+        70
+      ],
+      "header_bbox": [
+        419.8299865722656,
+        148.5800018310547,
+        439.2699890136719,
+        171.53001403808594
+      ],
+      "marker_element_id": "p15:narrative43",
+      "marker_span_ids": [
+        392,
+        393
+      ],
+      "marker_bbox": [
+        32.88,
+        359.0512,
+        39.9749,
+        366.8534
+      ],
+      "text_element_id": "p15:narrative44",
+      "text_span_ids": [
+        394,
+        395
+      ],
+      "text_bbox": [
+        54.24,
+        359.1487,
+        142.64,
+        366.8534
+      ],
+      "text": "Yabancı para çevirim farkları, "
+    },
+    {
+      "label": "5",
+      "header_row": 1,
+      "column": 9,
+      "header_word_ids": [
+        71
+      ],
+      "header_bbox": [
+        439.2699890136719,
+        148.5800018310547,
+        470.7099914550781,
+        171.53001403808594
+      ],
+      "marker_element_id": "p15:narrative45",
+      "marker_span_ids": [
+        396,
+        397
+      ],
+      "marker_bbox": [
+        32.88,
+        368.2912,
+        39.9749,
+        376.0934
+      ],
+      "text_element_id": "p15:narrative46",
+      "text_span_ids": [
+        398
+      ],
+      "text_bbox": [
+        54.24,
+        368.3887,
+        482.29,
+        376.0934
+      ],
+      "text": "Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan finansal varlıkların birikmiş yeniden değerleme ve/veya sınıflandırma kazançları/kayıpları, "
+    },
+    {
+      "label": "6",
+      "header_row": 1,
+      "column": 10,
+      "header_word_ids": [
+        72
+      ],
+      "header_bbox": [
+        470.7099914550781,
+        148.5800018310547,
+        510.54998779296875,
+        171.53001403808594
+      ],
+      "marker_element_id": "p15:narrative47",
+      "marker_span_ids": [
+        399,
+        400
+      ],
+      "marker_bbox": [
+        32.88,
+        377.5612,
+        39.9749,
+        385.3633
+      ],
+      "text_element_id": "p15:narrative48",
+      "text_span_ids": [
+        401,
+        402
+      ],
+      "text_bbox": [
+        54.24,
+        377.6586,
+        805.14,
+        394.6034
+      ],
+      "text": "Diğer (nakit akış riskinden korunma kazançları/kayıpları, özkaynak yöntemiyle değerlenen yatırımların diğer kapsamlı gelirinden kâr/zararda sınıflandırılacak payları ve diğer kâr veya zarar olarak yeniden sınıflandırılacak diğer kapsamlı gelir unsurlarının birikmiş \ntutarları ifade eder) "
+    }
+  ],
+  "source_region": [
+    32.88,
+    331.2112,
+    805.14,
+    394.6034
+  ],
+  "method": "ordered_column_numbers_and_adjacent_source_note_sequence",
+  "semantic_verification": "not_performed"
+}

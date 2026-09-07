@@ -1898,3 +1898,13 @@ records carry `segmented_tables_schema`; validation recomputes every alternative
 from retained source geometry, including detection of a removed table. Older
 captures remain readable. Complete-table annotations separately check every
 slot, source word and contextual unit against independently transcribed regions.
+
+`table_notes` preserves candidate links from numbered column identifiers to a
+complete adjacent sequence of standalone numbered markers and paragraphs. All
+markers and paragraphs must have unique source-line alignment, fit the table's
+horizontal extent and remain close and ordered. Competing table interpretations,
+duplicated markers or missing notes leave the sequence unlinked. Links retain
+header word IDs, marker/paragraph span IDs, literal text and source rectangles.
+Validation recomputes these references; independent `table_note_links` annotations
+check exact numbered occurrences and complete transcribed paragraphs. Original
+narrative and header cells remain unchanged, and meaning remains unverified.

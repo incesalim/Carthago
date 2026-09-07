@@ -27,6 +27,7 @@ from .document_table_context import table_context, verify_table_context
 from .document_table_rows import table_source_rows, verify_table_source_rows
 from .document_reading_layout import reading_layout, verify_reading_layout
 from .document_segmented_tables import segmented_table_candidates, verify_segmented_tables
+from .document_table_notes import table_note_links, verify_table_note_links
 from .prose import role_from_title
 
 STRUCTURE_VERSION = "document-structure-1"
@@ -44,6 +45,7 @@ def structure_engine() -> dict:
                  "document_table_rows.py",
                  "document_reading_layout.py",
                  "document_segmented_tables.py",
+                 "document_table_notes.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -379,6 +381,8 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
         page['reading_layout'] = reading_layout(page, page_source)
     for page, context in zip(pages, table_context(pages), strict=True):
         page['table_context'] = context
+    for page, page_source in zip(pages, evidence[1:], strict=True):
+        page['table_notes'] = table_note_links(page, page_source)
     assert_source()
     result = {"schema_version": STRUCTURE_VERSION, "engine": structure_engine(),
               "source": source, "evidence_artifact_sha256": artifact_digest(evidence),
@@ -409,10 +413,13 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
             errors.append(prefix + 'missing_table_source_rows')
         if any('reading_layout' in p for p in structure['pages']) and 'reading_layout' not in page:
             errors.append(prefix + 'missing_reading_layout')
+        if any('table_notes' in p for p in structure['pages']) and 'table_notes' not in page:
+            errors.append(prefix + 'missing_table_notes')
         errors.extend(prefix + error for error in verify_narrative(page, source))
         errors.extend(prefix + error for error in verify_reading_layout(page, source))
         errors.extend(prefix + error for error in verify_table_source_rows(page, source))
         errors.extend(prefix + error for error in verify_segmented_tables(page, source))
+        errors.extend(prefix + error for error in verify_table_note_links(page, source))
         spans = {s["id"]: s for s in source["spans"]}
         used = Counter()
         for block in page["text_blocks"]:

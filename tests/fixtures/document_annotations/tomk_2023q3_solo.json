@@ -723,6 +723,139 @@
           "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
         }
       ]
+    },
+    {
+      "id": "six-equity-column-numbers-linked-to-complete-source-explanations",
+      "kind": "table_note_links",
+      "page": 15,
+      "links": [
+        {
+          "label": "1",
+          "column": 5,
+          "header_row": 1,
+          "header_word_ids": [
+            67
+          ],
+          "text": "Duran varlıklar birikmiş yeniden değerleme artışları/azalışları,",
+          "marker_bbox": [
+            32,
+            330,
+            41,
+            340
+          ],
+          "text_bbox": [
+            53,
+            330,
+            237,
+            341
+          ]
+        },
+        {
+          "label": "2",
+          "column": 6,
+          "header_row": 1,
+          "header_word_ids": [
+            68
+          ],
+          "text": "Tanımlanmış fayda planlarının birikmiş yeniden ölçüm kazançları/kayıpları,",
+          "marker_bbox": [
+            32,
+            340,
+            41,
+            350
+          ],
+          "text_bbox": [
+            53,
+            340,
+            274,
+            350
+          ]
+        },
+        {
+          "label": "3",
+          "column": 7,
+          "header_row": 1,
+          "header_word_ids": [
+            69
+          ],
+          "text": "Diğer (özkaynak yöntemiyle değerlenen yatırımların diğer kapsamlı gelirinden kâr/zararda sınıflandırılmayacak payları ile diğer kâr veya zarar olarak yeniden sınıflandırılmayacak diğer kapsamlı gelir unsurlarının birikmiş tutarları),",
+          "marker_bbox": [
+            32,
+            349,
+            41,
+            359
+          ],
+          "text_bbox": [
+            53,
+            349,
+            716,
+            359
+          ]
+        },
+        {
+          "label": "4",
+          "column": 8,
+          "header_row": 1,
+          "header_word_ids": [
+            70
+          ],
+          "text": "Yabancı para çevirim farkları,",
+          "marker_bbox": [
+            32,
+            358,
+            41,
+            368
+          ],
+          "text_bbox": [
+            53,
+            358,
+            145,
+            368
+          ]
+        },
+        {
+          "label": "5",
+          "column": 9,
+          "header_row": 1,
+          "header_word_ids": [
+            71
+          ],
+          "text": "Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan finansal varlıkların birikmiş yeniden değerleme ve/veya sınıflandırma kazançları/kayıpları,",
+          "marker_bbox": [
+            32,
+            368,
+            41,
+            378
+          ],
+          "text_bbox": [
+            53,
+            368,
+            484,
+            378
+          ]
+        },
+        {
+          "label": "6",
+          "column": 10,
+          "header_row": 1,
+          "header_word_ids": [
+            72
+          ],
+          "text": "Diğer (nakit akış riskinden korunma kazançları/kayıpları, özkaynak yöntemiyle değerlenen yatırımların diğer kapsamlı gelirinden kâr/zararda sınıflandırılacak payları ve diğer kâr veya zarar olarak yeniden sınıflandırılacak diğer kapsamlı gelir unsurlarının birikmiş tutarları ifade eder)",
+          "marker_bbox": [
+            32,
+            377,
+            41,
+            387
+          ],
+          "text_bbox": [
+            53,
+            377,
+            807,
+            396
+          ]
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

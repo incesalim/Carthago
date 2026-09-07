@@ -127,6 +127,34 @@ def _source_line_matches(case, page, source):
     return matches
 
 
+def _table_note_matches(case, page, source):
+    from .document_table_notes import table_note_links
+    from .document_narrative import verify_narrative
+    view = page.get('table_notes')
+    if view is None or view != table_note_links(page, source) or verify_narrative(page, source):
+        return []
+    words = {w['id']: w for w in source['words']}
+    matches = []
+    for table in view['tables']:
+        if len(table['links']) != len(case['links']):
+            continue
+        good = True
+        for link, expected in zip(table['links'], case['links'], strict=True):
+            if (any(link[key] != expected[key] for key in ('label', 'column', 'header_row', 'header_word_ids'))
+                    or _text(link['text']) != _text(expected['text'])
+                    or any(i not in words for i in link['header_word_ids'])
+                    or _text(' '.join(words[i]['text'] for i in link['header_word_ids'])) != link['label']):
+                good = False
+                break
+            for field in ('marker_bbox', 'text_bbox'):
+                box, bounds = link[field], expected[field]
+                if not (bounds[0] <= box[0] <= box[2] <= bounds[2] and bounds[1] <= box[1] <= box[3] <= bounds[3]):
+                    good = False
+        if good:
+            matches.append(table['table_id'])
+    return matches
+
+
 def _narrative_matches(case, page, sources, pages):
     elements = {e["id"]: (p["page"], e) for p in pages.values() for e in p.get("narrative_elements", [])}
 
@@ -241,6 +269,12 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
         if case.get('kind') == 'reading_layout':
             if not _reading_layout_matches(case, pages[case['page']], sources[case['page']]):
                 failures.append({**prefix, 'kind': 'reading_layout_source_mismatch'})
+            continue
+        if case.get('kind') == 'table_note_links':
+            matching = _table_note_matches(case, pages[case['page']], sources[case['page']])
+            if len(matching) != 1:
+                failures.append({**prefix, 'kind': 'table_note_source_mismatch',
+                                 'matching_candidates': len(matching)})
             continue
         if case.get("kind") in SOURCE_CASE_KINDS:
             source = sources[case["page"]]

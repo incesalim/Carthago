@@ -18,8 +18,9 @@ coverage or known issues change.
 
 The first scope is the existing 38 banks and 2022Q1–2026Q2. All **1,146
 registered filings** are acquired and have published native source/structure
-artifacts: **119,772 pages, 308,126,554 native characters, 2,241,656 physical text
-blocks and 197,883 table candidates**. These are preservation/candidate counts.
+artifacts. The reconciled baseline contains **119,772 pages, 308,126,554 native characters, 2,241,656 physical text
+blocks and 197,883 table candidates**. These are baseline preservation/candidate counts; later structural repairs
+are published for named filings below and have not been rolled across the fleet.
 **Zero whole filings are semantically verified; the analytical lanes are unchanged.**
 
 The initial register had 1,101 explicit URLs and R2 had 1,117 acquired PDFs.
@@ -355,8 +356,24 @@ to 55.202. No correction or financial interpretation is inferred. Corrupted
 headers, rule witnesses, repeated-value occurrences, blank-to-zero substitutions,
 omitted tables and changed units fail validation or the source benchmark.
 Across the 51 retained TOMK pages, only page 39 gets this new alternative.
-Full Python, 791 web tests, lint/type and mobile checks pass. Cloud verification,
-publication and live authenticated display remain pending.
+Full Python, 791 web tests, lint/type and mobile checks pass. Cloud probe
+`34079635094` independently verifies the PDF/native bytes, fresh original page 39,
+all retained earlier tables and prose, the exact committed engine and 18 source
+cases. Publication/replay `34079793061` matches the probe; all eight observed
+object versions remain unchanged on replay. CI/deploy at `e8fafbd` pass.
+Live authenticated display review remains pending.
+
+A further source view links TOMK's six equity-column numbers to their complete
+adjacent explanations on page 15. It requires ordered column identifiers, unique
+marker/paragraph alignment, a complete adjacent note sequence and no competing
+table or paragraph. Each link retains the exact header word occurrence, marker
+and paragraph span IDs, literal text and geometry; the original content is never
+rewritten. An independent six-note source case, including the wrapped final note,
+raises TOMK's benchmark to 19 cases. Missing, duplicated, shifted or substituted
+source associations fail or remain unlinked. Across the retained 51 pages, only
+page 15 has this candidate relationship. The admin displays the complete numbered
+explanations next to the table with their column references. Cloud publication
+and live authenticated display checks remain pending; meanings are unverified.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

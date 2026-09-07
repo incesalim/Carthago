@@ -11,7 +11,9 @@ export type TableContext = { table_id: string; heading: { text: string } | null;
 export type SourceRows = { table_id: string; split_rows: { source_row: number; column_projection?: { header_row: number };
   row_group?: { source_rows: number[] };
   lines: { index: number; cells: Cell[] }[] }[] };
-export default function DocumentTablePreview({ table, context, sourceRows }: { table: Table; context?: TableContext; sourceRows?: SourceRows }) {
+export type TableNotes = { table_id: string; links: { label: string; column: number; text: string;
+  header_word_ids: (number | string)[]; marker_span_ids: (number | string)[]; text_span_ids: (number | string)[] }[] };
+export default function DocumentTablePreview({ table, context, sourceRows, notes }: { table: Table; context?: TableContext; sourceRows?: SourceRows; notes?: TableNotes }) {
   const [expandLines, setExpandLines] = useState(true);
   const positioned = table.method === "native_image_replacement_geometry";
   const numeric = table.method === "legacy_numeric_geometry" || positioned;
@@ -57,5 +59,14 @@ export default function DocumentTablePreview({ table, context, sourceRows }: { t
         </tr>)}</tbody>
       </table>
     </div>
+    {notes && notes.links.length > 0 && <div className="mt-3 text-xs">
+      <p className="font-medium">Numbered source explanations</p>
+      <p className="mt-1 text-faint">Suggested links follow the printed column numbers and adjacent notes. Source wording is retained; interpretation still needs review.</p>
+      <ol className="mt-2 space-y-2">{notes.links.map((link) => <li key={link.column}
+        title={`Header source words: ${link.header_word_ids.join(", ")}; note source spans: ${[...link.marker_span_ids, ...link.text_span_ids].join(", ")}`}>
+        <span className="mr-2 font-mono">{link.label}.</span><span className="whitespace-pre-wrap leading-relaxed">{link.text.trim()}</span>
+        <span className="ml-2 text-faint">Column {link.column + 1}</span>
+      </li>)}</ol>
+    </div>}
   </details>;
 }
