@@ -18,7 +18,7 @@ coverage or known issues change.
 
 The first scope is **1,146 registered filings across 38 banks, 2022Q1–2026Q2**.
 All have acquired PDFs, preserved originals/native evidence and published
-candidate structure. **Zero whole filings are semantically verified.** Older
+candidate structure. **Zero whole filings have completed source-content verification.** Older
 history and additional banks follow completion of this registered corpus.
 
 The completed full refresh `34098885624` at `8d9e449` reconciles all 1,146
@@ -83,10 +83,9 @@ records equal fresh benchmark replay against four retained full PDF evidence
 packages. The additional ten-table review at `68ae767` passes CI `34123877149`
 and independent cloud readback `34123893259`: all 51 TOMK native pages and the
 entire structured extraction remain identical, all 42 TOMK cases pass, and its
-21 table records exactly equal independent replay. Restricted publication
-`34124160052` is queued at this tested commit behind the two existing corpus
-runs. The earlier review-only publication `34122513206` was cancelled while
-pending with no jobs or writes, so one updated publication carries all reviews.
+21 table records exactly equal independent replay. Restricted publication `34124160052` was superseded before any job started
+by the combined publication `34133467871` described below. The earlier
+review-only publication `34122513206` was also cancelled while pending.
 Passed complete-table annotations produce receipt records bound to
 both exact stored page views. The private reader validates grid slots, context,
 word occurrences, logical assignments and source/capture identity before serving
@@ -97,7 +96,7 @@ duplicated Cari Dönem header on its tax-loss table remains literal, alongside
 the distinct printed dates. Wrong digits, dates, currencies, missing references,
 covered slots and dash/zero substitutions fail the new checks. The ten new
 tables and corrected report-level review description are included in the
-pending restricted publication; their live display is not yet verified.
+combined publication `34133467871`; their live display is not yet verified.
 The four independently captured reports now provide 39 reviewed tables in
 `output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
 348 physical rows and 1,352 slots. The reviewed views contain 472 rows and
@@ -118,10 +117,9 @@ rows. CI `34127002293` passes at `0b654f6`. Independent readback of read-only
 probe `34127039166` confirms all 51 native pages and the entire structured
 extraction are unchanged, all 43 TOMK cases pass, and all 22 complete-table
 records exactly equal local replay against the pinned source annotations.
-Publication `34127300076` selects only TOMK 2023Q3 solo at that tested commit;
-it is queued after the existing corpus updates and the 31-table publication
-`34124160052`. The new P&L is not yet verified live. It changes review
-processing, not PDF extraction; the dda3201c extraction version is unchanged.
+Single-filing publication `34127300076` was superseded before any job
+started by combined publication `34133467871`. The P&L remains unverified
+live. Its printed-row review changes no PDF extraction or analytical facts.
 
 Further local source review covers complete TOMK comprehensive income (PDF
 page 14), cash flow (page 16), five management tables and all four management
@@ -143,7 +141,22 @@ The retained dda3201c-to-35500cc8 adapter rebuilds narrative, reading layout,
 table context and note links without extracting PDF pages. Local replay over
 all 384 pages of the four retained reports preserves native evidence, every
 table/cell and all other page fields; existing and new selected cases pass.
-Fresh cloud equality and corpus publication for this new version remain pending.
+Code `c6e4a90` passes the full Python suite, 831 web tests, mobile checks and
+all nine standalone gates. CI `34132777804` and deployment `34132920796` pass.
+Independent downloads of fresh probes `34132813060`, `34132820844`,
+`34132827954` and `34132840168` exactly match all 384 pages of retained
+replay and original/native bytes. Probe `34132849295` covers the four other
+annotated filings. All eight downloaded reports pass source/structure accounting
+and exactly reproduce all 85 selected benchmark cases and 39 table records.
+This validates the repair and selected reviews, not whole-report fidelity.
+
+**Combined publication `34133467871` is queued at `c6e4a90` for all 1,146
+registered filings**, after the existing region and period-heading fleets.
+The two superseded review-only jobs had no jobs or writes when cancelled.
+The live admin still reports 1,146 preserved/structured and zero fully verified;
+new narrative/review data has not yet been verified there. Two completed region
+shards independently reconcile 561 unique outcomes with no metadata errors;
+the other 585 remain outside that partial result.
 Local reviewed prose is in `management-prose-reviewed.json`; a combined readable
 page is `management-source-reviewed.html` under the TOMK 2023Q3 output directory.
 Python-produced wire fixtures include original reviewed pages with explicit

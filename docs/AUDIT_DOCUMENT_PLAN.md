@@ -1231,3 +1231,20 @@ of detected tables.
   version of the rule. The final rule requires a numerical envelope around
   multiple separate ruled tables; genuine financial-table labels retain their
   membership. The inspected Garanti source region is now a regression fixture.
+
+- Delivered the narrative/statements batch at `c6e4a90`. Final full Python,
+  web lint/types/831 tests, mobile checks and nine standalone gates pass.
+  CI `34132777804` and deployment `34132920796` pass. Independently compared
+  all original/native bytes and entire fresh structures from probes
+  `34132813060`, `34132820844`, `34132827954`, `34132840168` with all 384
+  retained replay pages. The four other annotated filings in `34132849295`
+  also pass source/structure accounting and pinned benchmark replay. All
+  85 selected cases and 39 complete table records agree. Combined publication
+  `34133467871` covers all 1,146 registered filings after the existing region
+  and period-heading fleets. Cancelled only superseded review jobs
+  `34124160052`/`34127300076`, each still pending with zero jobs.
+  Live content remains unverified; whole-report source fidelity remains open.
+  Independently reconciled the two finished region shards: 561 distinct
+  published outcomes, zero metadata errors, 585 outside the partial result.
+  Receipt: `narrative-cloud-independent-verification.json`; new local management
+  prose/table delivery is available alongside the complete reviewed collection.

@@ -2071,3 +2071,12 @@ this version after the pending period-header fleet has supplied its exact
 base, without restarting the earlier corpus runs. Source-review annotations
 may explicitly retain unassigned printed marks; they do not infer a financial
 row association or certify the entire report.
+
+Fresh cloud probes at `c6e4a90` independently match all 384 retained sample
+pages, and the full eight-filing source benchmark passes all 85 cases. Combined
+publication `34133467871` queues this version for all registered filings after
+region `34112697713` and period-heading `34116379265`. It supersedes pending
+review-only publications `34124160052` and `34127300076`; neither had started
+a job when cancelled. Do not dispatch duplicate runs while this queue drains.
+Receipt: `narrative-cloud-independent-verification.json` under
+`docs/knowledge/2026-09-06-document-corpus/`.
