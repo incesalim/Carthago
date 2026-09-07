@@ -41,7 +41,15 @@ remain distinct. Its captured counts do not claim completeness of printed
 content, reading order or financial meaning. Existing analytical lanes remain
 unchanged; this work does not write their D1 partitions.
 
-**Combined character/region publication `34112697713` is running at `3f3f763`.**
+**Combined character/region publication `34112697713` finished at `3f3f763`
+with 1,145 successful updates and one R2 read timeout.** All 1,146 outcomes
+are present exactly once. Successful filings retain their original hashes,
+native-artifact digests and text counts. ZIRAAT 2023Q4 solo retains its previous
+published capture; its newer publication failed while reading storage.
+Read-only fresh probe `34133959596` subsequently succeeds. Independent
+download checks all 151 pages, source/structure accounting and identical
+original/native artifact digests. This is not whole-report content approval. The running
+period-heading fleet already selects that filing for another publication attempt.
 It upgrades retained c6e429ce structures to ca66890e without repeating the entire
 native capture. Independent original/fresh/replay comparisons cover all 267
 EXIM/Garanti pages. Full downloaded-artifact probes across EXIM, Garanti and two
@@ -50,8 +58,7 @@ occurrences. Eight tables changed literal or empty-slot structure; all 241 slots
 were checked against original source pages and registered as regressions.
 CI `34110701474` and deployment `34110814831` pass.
 
-**Period-heading publication `34116379265` is queued at `a0a026a` behind that
-running repair.** The exact ca66890e-to-dda3201c adapter opens/extracts no PDF
+**Period-heading publication `34116379265` is running at `a0a026a`.** The exact ca66890e-to-dda3201c adapter opens/extracts no PDF
 pages. Independent readback of fresh cloud probes `34115439703`, `34115442398`,
 `34115445430` and `34115448020` matches the entire locally replayed structures
 on all 384 pages, with identical original/native records and 41 selected source
@@ -151,12 +158,12 @@ and exactly reproduce all 85 selected benchmark cases and 39 table records.
 This validates the repair and selected reviews, not whole-report fidelity.
 
 **Combined publication `34133467871` is queued at `c6e4a90` for all 1,146
-registered filings**, after the existing region and period-heading fleets.
+registered filings**, after the running period-heading fleet.
 The two superseded review-only jobs had no jobs or writes when cancelled.
-The live admin still reports 1,146 preserved/structured and zero fully verified;
-new narrative/review data has not yet been verified there. Two completed region
-shards independently reconcile 561 unique outcomes with no metadata errors;
-the other 585 remain outside that partial result.
+The refreshed live admin reports 1,146 preserved/structured, zero fully verified
+and one failed update. New narrative/review data has not yet been verified
+there. All four completed region shards independently reconcile 1,146 unique
+outcomes; the only unsuccessful update is the named Ziraat storage timeout.
 Local reviewed prose is in `management-prose-reviewed.json`; a combined readable
 page is `management-source-reviewed.html` under the TOMK 2023Q3 output directory.
 Python-produced wire fixtures include original reviewed pages with explicit
@@ -177,6 +184,8 @@ in [OPERATIONS.md](OPERATIONS.md).
 See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the execution record.
 Independent receipts are under `docs/knowledge/2026-09-06-document-corpus/`,
 including `registered-base-refresh-independent-reconciliation.json`,
+`registered-region-refresh-independent-reconciliation.json`,
+`narrative-cloud-independent-verification.json`,
 `region-direct-independent-verification.json` and
 `period-header-cloud-independent-verification.json`.
 

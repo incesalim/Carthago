@@ -2067,7 +2067,7 @@ tables unchanged and extracts zero PDF pages. Both original source identity
 and complete structure accounting are checked before reuse. Read-only probes
 compare the entire replay with fresh extraction when that exact base exists;
 unsupported revisions continue through the established fresh path. Publish
-this version after the pending period-header fleet has supplied its exact
+this version after the period-header fleet has supplied its exact
 base, without restarting the earlier corpus runs. Source-review annotations
 may explicitly retain unassigned printed marks; they do not infer a financial
 row association or certify the entire report.
@@ -2080,3 +2080,13 @@ review-only publications `34124160052` and `34127300076`; neither had started
 a job when cancelled. Do not dispatch duplicate runs while this queue drains.
 Receipt: `narrative-cloud-independent-verification.json` under
 `docs/knowledge/2026-09-06-document-corpus/`.
+
+Region fleet `34112697713` completed with 1,145 successful updates and one
+R2 read timeout on ZIRAAT 2023Q4 solo. All 1,146 outcomes are reconciled, with
+that filing's previous published source retained. The running period fleet
+and queued narrative fleet already select it, so no duplicate publication was
+dispatched. Fresh read-only probe `34133959596` succeeds; its downloaded
+artifacts independently pass all 151 pages of source/structure accounting and
+match the prior original/native digests. The timeout does not establish a source
+defect. Receipt: `ziraat-timeout-independent-verification.json` in the same
+internal evidence directory.

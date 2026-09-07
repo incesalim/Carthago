@@ -1248,3 +1248,17 @@ of detected tables.
   published outcomes, zero metadata errors, 585 outside the partial result.
   Receipt: `narrative-cloud-independent-verification.json`; new local management
   prose/table delivery is available alongside the complete reviewed collection.
+
+- The region fleet has now finished. All 1,146 outcomes are independently
+  reconciled exactly once: 1,145 published updates and one R2 read timeout for
+  ZIRAAT 2023Q4 solo. Successful filings keep the original hashes, native
+  artifact digests and text counts. That filing's prior capture was preserved.
+  Read-only fresh probe `34133959596` succeeds; independent downloads verify
+  all 151 pages, source/structure accounting and identical original/native
+  digests. The running period-heading fleet and queued combined narrative
+  publication already select it for publication, so neither fleet was restarted
+  and no duplicate publication was added. The refreshed admin shows 1,146
+  preserved/structured, zero fully verified and one failed latest update.
+  Receipts: `registered-region-refresh-independent-reconciliation.json` and
+  `ziraat-timeout-independent-verification.json`. This successful source retry
+  does not add a whole-report content certification.
