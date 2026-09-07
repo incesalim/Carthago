@@ -168,15 +168,22 @@ export const STATEMENTS: Record<string, StatementSpec> = {
     columns: [
       "cet1_capital", "additional_tier1_capital", "tier1_capital", "tier2_capital",
       "total_capital", "total_rwa", "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio", "source_page",
+      "total_buffer_requirement_ratio", "capital_conservation_buffer_ratio",
+      "countercyclical_buffer_ratio", "systemic_buffer_ratio", "cet1_available_buffer_ratio",
+      "buffer_source_json",
     ],
     rowIdentity: [],
     numericColumns: [
       "cet1_capital", "additional_tier1_capital", "tier1_capital", "tier2_capital",
       "total_capital", "total_rwa", "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio",
+      "total_buffer_requirement_ratio", "capital_conservation_buffer_ratio",
+      "countercyclical_buffer_ratio", "systemic_buffer_ratio", "cet1_available_buffer_ratio",
     ],
     hasPeriodType: true,
     hasSourcePage: true,
-    caveats: ["ratios are PERCENT numbers (16.2 = 16.2%); capital and RWA are thousand TL", "the prior column is the prior YEAR-END for every quarter"],
+    caveats: ["ratios are PERCENT numbers (16.2 = 16.2%); capital and RWA are thousand TL", "the prior column is the prior YEAR-END for every quarter",
+      "selected figures, not full-table coverage; buffer percentages are source-disclosed, not derived",
+      "buffer_source_json carries each buffer's literal cell and PDF page; NULL is not zero"],
   },
   liquidity: {
     table: "bank_audit_liquidity",

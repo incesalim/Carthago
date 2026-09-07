@@ -1388,6 +1388,72 @@ def _check_capital_row(res: ValidationResult, cur: dict, *, completeness: bool,
         res.add_fail("cap_rwa_missing", "total_rwa dropped (mandatory on §4 table)",
                      expected=0.0, actual=0.0)
 
+    # A printed dash is retained as NULL. It can contribute nil to this
+    # identity only when the captured literal cell proves the disclosure;
+    # an absent/unknown component must never be silently treated as zero.
+    import json
+    try:
+        buffer_source = json.loads(cur.get("buffer_source_json") or "{}")
+    except (ValueError, TypeError):
+        buffer_source = {}
+    if not isinstance(buffer_source, dict):
+        buffer_source = {}
+    from .capital_buffers import BUFFER_FIELDS, parse_buffer_value
+    for buffer_field in BUFFER_FIELDS:
+        source = buffer_source.get(buffer_field, {})
+        value = cur.get(buffer_field)
+        if isinstance(source, dict) and source.get("status") == "conflicting_rows":
+            res.add_fail("cap_buffer_conflict", buffer_field + label_suffix, expected=0.0, actual=1.0)
+            continue
+        sources = source.get("sources") if isinstance(source, dict) else None
+        if not isinstance(sources, list) or not sources:
+            if value is not None:
+                res.add_fail("cap_buffer_source_missing", buffer_field + label_suffix,
+                             expected=0.0, actual=value)
+            continue
+        for witness in sources:
+            if (not isinstance(witness, dict) or not isinstance(witness.get("raw_value"), str)
+                    or not isinstance(witness.get("source_page"), int)
+                    or witness["source_page"] <= 0):
+                res.add_fail("cap_buffer_source_missing", buffer_field + label_suffix,
+                             expected=0.0, actual=1.0)
+                continue
+            literal = parse_buffer_value(witness["raw_value"])
+            if literal != value:
+                if literal is None or value is None:
+                    # ValidationResult's numeric fields cannot represent NULL.
+                    # Report a failed agreement flag, not a fabricated zero.
+                    res.add_fail("cap_buffer_source_value", buffer_field + label_suffix
+                                 + f" literal agreement (source {witness['raw_value']!r}, stored {value!r})",
+                                 expected=1.0, actual=0.0)
+                else:
+                    res.add_fail("cap_buffer_source_value", buffer_field + label_suffix,
+                                 expected=literal, actual=value)
+    components = []
+    for buffer_field in ("capital_conservation_buffer_ratio", "countercyclical_buffer_ratio",
+                  "systemic_buffer_ratio"):
+        value = cur.get(buffer_field)
+        source = buffer_source.get(buffer_field, {})
+        if value is not None and value < 0:
+            res.add_fail("cap_buffer_sign", buffer_field + label_suffix, expected=0.0, actual=value)
+        if value is None and isinstance(source, dict) and source.get("status") == "read":
+            literals = source.get("sources", [])
+            if literals and all(isinstance(s, dict) and s.get("raw_value") in
+                                ("-", "–", "—", "--", "---") for s in literals):
+                value = 0.0
+        components.append(value)
+    total_buffer = cur.get("total_buffer_requirement_ratio")
+    if total_buffer is not None and all(v is not None for v in components):
+        expected = sum(components)
+        if abs(total_buffer - expected) <= 0.025:
+            res.add_pass()
+        else:
+            res.add_fail("cap_buffer_composition", "Buffer requirement = conservation + "
+                         "countercyclical + systemic buffers" + label_suffix,
+                         expected=expected, actual=total_buffer)
+    elif total_buffer is not None or any(v is not None for v in components):
+        res.add_skip()
+
 
 # ===========================================================================
 # §4 liquidity validation

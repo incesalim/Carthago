@@ -269,7 +269,10 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
     "bank_audit_loans_by_sector": frozenset({"source_page"}),
     "bank_audit_npl_movement": frozenset({"source_page"}),
     "bank_audit_capital": frozenset({
-        "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio", "source_page"}),
+        "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio", "source_page",
+        "total_buffer_requirement_ratio", "capital_conservation_buffer_ratio",
+        "countercyclical_buffer_ratio", "systemic_buffer_ratio", "cet1_available_buffer_ratio",
+        "buffer_source_json"}),
     "bank_audit_liquidity": frozenset({
         "leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page"}),
     "bank_audit_fx_position": frozenset({"source_page"}),

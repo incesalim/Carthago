@@ -447,6 +447,12 @@ CREATE TABLE IF NOT EXISTS bank_audit_capital (
     cet1_ratio               REAL,                 -- percent
     tier1_ratio              REAL,                 -- percent
     capital_adequacy_ratio   REAL,                 -- CAR, percent
+    total_buffer_requirement_ratio REAL,
+    capital_conservation_buffer_ratio REAL,
+    countercyclical_buffer_ratio REAL,
+    systemic_buffer_ratio REAL,
+    cet1_available_buffer_ratio REAL,
+    buffer_source_json TEXT,                      -- literal cells and page evidence
     source_page              INTEGER,
     extracted_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (bank_ticker, period, kind, period_type)
@@ -784,6 +790,12 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # Added 2026-08-31 (migration 0045): source-disclosed adjustments after
     # Tier1 + Tier2. Old rows remain NULL until their own partition is repaired.
     ("bank_audit_capital", "capital_deductions", "REAL"),
+    ("bank_audit_capital", "total_buffer_requirement_ratio", "REAL"),
+    ("bank_audit_capital", "capital_conservation_buffer_ratio", "REAL"),
+    ("bank_audit_capital", "countercyclical_buffer_ratio", "REAL"),
+    ("bank_audit_capital", "systemic_buffer_ratio", "REAL"),
+    ("bank_audit_capital", "cet1_available_buffer_ratio", "REAL"),
+    ("bank_audit_capital", "buffer_source_json", "TEXT"),
 ]
 
 

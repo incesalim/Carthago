@@ -16,6 +16,20 @@ coverage or known issues change.
 
 ## Complete audit document corpus (2026-09-07; content verification in progress)
 
+**Delivery direction, 2026-09-07:** further standalone corpus expansion is paused
+at the user's request. Preserve the reviewed outputs and use them to improve the
+existing analytical lanes. The first unshipped increment retains all 34 financial
+rows on TOMK 2024Q1's equity page, including the printed +1,288 OCI closing cell
+that fails arithmetic; the former parser returned 33 rows. TOMK 2023Q3's 17-row
+matrix keeps all values and complete TMS/formula labels. Five capital-buffer
+percentages, literal cells and their PDF pages are wired into the existing
+capital loader and analyst tools. Migration 0048, deployment and scoped cloud
+re-extraction remain pending; production data is unchanged by these edits.
+The legacy `build_capital_full.py` still builds a separate local table and is
+not the website's capital-serving path. Its aggregate checks do not establish
+full source-row coverage. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md)
+for the revised priority.
+
 The first scope is **1,146 registered filings across 38 banks, 2022Q1–2026Q2**.
 All have acquired PDFs, preserved originals/native evidence and published
 candidate structure. **Zero whole filings have completed source-content verification.** Older

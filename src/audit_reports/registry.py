@@ -99,7 +99,7 @@ REGISTRY: list[StatementType] = [
                   "bank_audit_npl_movement", None, "npl_movement", section="5",
                   is_core=False, present_min_rows=1, has_validator=True,
                   validation_statement="npl_movement", sort_order=80),
-    StatementType("capital", "Capital adequacy (§4)",
+    StatementType("capital", "Capital adequacy — selected figures (§4)",
                   "bank_audit_capital", None, "capital", section="4",
                   is_core=False, present_min_rows=1, has_validator=True,
                   validation_statement="capital", sort_order=90),

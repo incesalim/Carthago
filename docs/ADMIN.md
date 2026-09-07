@@ -21,6 +21,13 @@ observations stay in the origin history, and acquisitions are unchanged.
 
 The existing audit coverage matrix measures predefined analytical lanes. A green
 cell does not certify that every table or passage in the filing was captured.
+The matrix now states explicitly that summary lanes cover selected disclosures;
+the capital registry label also says “selected figures”. The equity parser can
+retain a complete source row that fails arithmetic, which remains a validation
+problem rather than disappearing from the statement. Capital-buffer percentages
+have field-level literal/page evidence in `buffer_source_json`; their rollout
+requires migration 0048 and scoped re-extraction. Adding the fields does not
+certify or populate every historical capital disclosure.
 The separate complete-document corpus is under active implementation in
 [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md). Its source preservation and
 candidate structure run through `build-document-corpus.yml`. The **Complete audit

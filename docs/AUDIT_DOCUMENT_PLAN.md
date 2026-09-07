@@ -1,6 +1,24 @@
 # Complete audit document corpus
 
-Status: active implementation, begun 2026-09-06.
+Status: source preservation and reviewed examples retained; further standalone
+corpus expansion paused by user direction on 2026-09-07. Active work now improves
+the existing analytical extraction lanes using those examples as source tests.
+
+## Current delivery priority (2026-09-07)
+
+Keep the existing corpus outputs as evidence. Do not add another standalone
+annotation batch or replace the website lanes wholesale. First repair omissions
+in the equity statement and extend the capital summary with the reviewed buffer
+disclosures. Source completeness and arithmetic validity remain distinct: retain
+a completely read, inconsistent equity row so validation can report what the
+filing actually prints. Coverage must describe selected figures where that is
+all a lane captures.
+
+The first code increment retains TOMK 2024Q1's source-discrepant closing equity
+row and adds five capital-buffer percentages plus literal/page evidence to the
+existing capital table and analyst tools. Deployment, migration 0048 and scoped
+cloud re-extraction are separate pending steps; no historical D1 population or
+full capital-table completeness is claimed by this implementation.
 
 ## Objective and scope
 

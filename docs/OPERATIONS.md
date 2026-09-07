@@ -13,6 +13,28 @@ machine involvement is required for routine refreshes.
 
 ## Schedules
 
+### Pending equity/capital increment (2026-09-07)
+
+Migration `0048_capital_buffers.sql` adds five nullable percentage fields and
+`buffer_source_json` to the existing capital table. Apply the versioned migration
+before deploying analyst queries or publishing new capital rows. Old rows remain
+NULL and keep their original timestamps. No new workflow, secret or environment
+key is introduced. Coordinate rollout with the separate release-pipeline work
+and its pending migration 0047; do not include that task's uncommitted changes.
+
+Use `reextract-statement.yml` for the first exact-partition cloud trials:
+capital, `TOMK:2023Q3:unconsolidated`, and equity_change,
+`TOMK:2024Q1:unconsolidated`. Start with `dry_run=true`, `only_failing=false`,
+`force=true` and `require_passing=true`, restricted to those exact partitions.
+The force setting here selects a single known source case, never a whole lane.
+Inspect the run log before a write run. The TOMK 2024Q1 printed equity row
+remains arithmetically inconsistent and must not be published by disabling
+`require_passing`; the dry-run candidate is evidence for further review.
+The capital source should yield current/prior total buffer 4/4, conservation
+2.5/2.5, a literal countercyclical dash/NULL, systemic 1.5/1.5 and available CET1
+89.75/94.79, all on PDF page 29. This is selected-disclosure expansion, not
+full-capital-table verification. No rollout has been performed for this increment.
+
 | When | Workflow | What it does |
 |---|---|---|
 | After audit acquisition/refresh + manual | `build-document-corpus.yml` | Preserve original audit PDFs and versioned source-page evidence in `document-corpus/v1/` on R2. Inputs `banks=ALL`, optional `period`, `limit=0`, `publish=true`. Uses existing `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; optional local `R2_BUCKET` overrides the default bucket. Separate `audit-document-corpus` concurrency group; no D1 or analytical snapshot writes. Reuses only evidence matching current PDF bytes and current engine; retains every source revision and failed filing. Run artifacts contain inventory and outcomes. Successful source preservation does not certify table/prose correctness. |

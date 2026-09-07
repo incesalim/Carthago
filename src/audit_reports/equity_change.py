@@ -647,6 +647,19 @@ _EQ_GLUED_RX = re.compile(r'^([IVX]{1,5}|\d{1,2}\.\d{1,2})\.(.+)$')
 _EQ_GLUED_NUM_RX = re.compile(r'^(\d{1,2}\.\d{1,2})(?=[^\W\d_])(.+)$')
 
 
+def _equity_source_label(text: str) -> str:
+    """Cut at a complete value grid, preserving citations and formula punctuation."""
+    region = _value_region(text)
+    if region and len(_NUM_RX.findall(region)) >= 10:
+        offset = _mask_label_refs(text).find(region)
+        if offset > 0:
+            label = _CALENDAR_DATE_RX.sub('', text[:offset])
+            label = _SECTION_REF_RX.sub('', label)
+            return ' '.join(label.split())
+    # Incomplete/wrapped reconstructions still use the established fallback.
+    return _NUM_RX.sub('', _mask_label_refs(text)).rstrip('()-, ').strip()
+
+
 def _eq_split(line: str) -> tuple[str | None, str]:
     """Return (marker, label) for an equity-table row, or (None, '') to skip.
 
@@ -662,8 +675,7 @@ def _eq_split(line: str) -> tuple[str | None, str]:
     # The formula reaching XI is unambiguous and, unlike the word "Bakiye",
     # cannot occur on the opening I. row, so give it priority over marker scan.
     if _EQ_CLOSING_FORMULA_RX.search(line[:100]):
-        clean = _mask_label_refs(line)
-        return None, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+        return None, _equity_source_label(line)
 
     # A clipped roman marker can turn III into II (ZIRAATK). The adjusted
     # balance's explicit I+II formula is unambiguous, just like the closing
@@ -671,11 +683,11 @@ def _eq_split(line: str) -> tuple[str | None, str]:
     if (re.match(r'^II\.?\s+', line)
             and _EQ_ADJUSTED_FORMULA_RX.search(line[:100])
             and re.search(r'BAK[Iİ]YE|BALANCE', line[:100], re.I)):
-        clean = _mask_label_refs(line)
+        clean = line
         hier_m = _LINE_HIER_RX.match(clean)
         if hier_m:
             clean = clean[hier_m.end():]
-        return 'III.', _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+        return 'III.', _equity_source_label(clean)
 
     # The same clipped marker column can lose the last digit of 2.x / 11.x.
     # These five BRSA subrows have distinct labels. Resolve only those labels;
@@ -684,8 +696,7 @@ def _eq_split(line: str) -> tuple[str | None, str]:
     if clipped:
         for marker, label_rx in _EQ_CLIPPED_SUB_LABELS:
             if marker.startswith(clipped[1] + '.') and label_rx.search(clipped[2]):
-                clean = _mask_label_refs(clipped[2])
-                return marker, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+                return marker, _equity_source_label(clipped[2])
 
     toks = line.split()
     for i, tok in enumerate(toks[:6]):
@@ -700,17 +711,16 @@ def _eq_split(line: str) -> tuple[str | None, str]:
                 marker_core, rest = m.group(1), m.group(2)
         if marker_core is None:
             continue
-        after = _mask_label_refs((rest + ' ' + ' '.join(toks[i + 1:])).strip())
+        after = (rest + ' ' + ' '.join(toks[i + 1:])).strip()
         for canonical, label_rx in _EQ_CLIPPED_ROMAN_LABELS:
             if canonical.startswith(marker_core) and label_rx.search(after):
                 marker_core = canonical
                 break
         marker = marker_core + '.' if marker_core in _EQ_ROMANS else marker_core
-        label = _NUM_RX.sub('', after).rstrip('()-, ').strip()
+        label = _equity_source_label(after)
         return marker, label
     if _eq_is_closing(line):
-        clean = _mask_label_refs(line)
-        return None, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+        return None, _equity_source_label(line)
     return None, ''
 
 
@@ -1264,7 +1274,8 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         pdfplumber's x-clustering could read."""
 
     def _parse_with(lines: list[str], nc: int,
-                    grid: dict[int, list[float | None]] | None = None
+                    grid: dict[int, list[float | None]] | None = None,
+                    *, preserve_complete: bool = False,
                     ) -> list[EquityChangeRow]:
         result: list[EquityChangeRow] = []
         order = 0
@@ -1298,6 +1309,20 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                     stranded = name
                 continue
             fitted = tokens if grid is not None else _try_fit(tokens, nc)
+            if (preserve_complete and fitted is None
+                    and (marker or (name and _eq_is_closing(line)))):
+                # Capture a complete, explicitly labelled source vector even
+                # when the filing does not foot. TOMK 2024Q1 prints +1,288 in
+                # its closing OCI column where the chain implies -1,288. The
+                # validator must report that discrepancy against the retained
+                # row; discarding the row conceals what the PDF actually says.
+                # No padding, inferred figures, or alternative-width fitting:
+                # require every token to come directly from the printed grid.
+                literal = [parse_num(t.strip()) for t in _NUM_RX.findall(
+                    _value_region(_norm_dashes(line)))]
+                if len(literal) == nc and literal == tokens and all(
+                        value is not None for value in literal):
+                    fitted = literal
             if fitted is None:
                 continue
             # TAKAS prints its opening values on the date-range line directly
@@ -1454,6 +1479,25 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         best = win_c if win_s[2] >= fullest - 2 else max(candidates, key=len)
     else:
         best = max(candidates, key=len)   # exactly the previous behaviour
+
+    # Preserve inconsistent printed rows only AFTER all established geometry
+    # repairs have run. Otherwise a complete-looking line with a wrapped digit
+    # can make the total-only chain pass and prevent the visible-digit repair.
+    # A fuller source reading may add rows but cannot replace any selected
+    # row's values or reorder the existing sequence.
+    def signature(row: EquityChangeRow) -> tuple:
+        return (row.hierarchy, *(value for key, value in vars(row).items()
+                                if key not in {'order', 'hierarchy', 'name',
+                                               'period_type', 'source_page'}))
+
+    for lines in recons:
+        captured = _parse_with(lines, n_cols, preserve_complete=True)
+        if len(captured) <= len(best):
+            continue
+        remaining = iter(signature(row) for row in captured)
+        if all(any(item == signature(row) for item in remaining) for row in best):
+            best = captured
+
     # Mid-page split: some PDFs print both the current and prior equity tables on
     # a single page, so every row arrives tagged with the same period_type.  Find
     # the boundary, then label each block by the dates on the page (not the located

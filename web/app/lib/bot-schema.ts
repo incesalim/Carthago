@@ -93,8 +93,14 @@ bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
 
 bank_audit_capital(bank_ticker, period, kind, period_type, cet1_ratio,
     tier1_ratio, capital_adequacy_ratio, cet1_capital, tier1_capital,
-    tier2_capital, total_capital, total_rwa)
+    tier2_capital, total_capital, total_rwa,
+    total_buffer_requirement_ratio, capital_conservation_buffer_ratio,
+    countercyclical_buffer_ratio, systemic_buffer_ratio, cet1_available_buffer_ratio,
+    buffer_source_json)
   • Ratios are PERCENT (16.2 = 16.2%). Capital/RWA are thousand TL.
+  • Selected figures, not the complete capital disclosure. Buffer ratios are
+    source-disclosed, not calculated. NULL is not zero; buffer_source_json holds
+    literal cells and their PDF pages, including dashes and conflicting readings.
 
 bank_audit_liquidity(bank_ticker, period, kind, period_type,
     leverage_ratio, lcr_total, lcr_fc, nsfr)   -- ratios in percent

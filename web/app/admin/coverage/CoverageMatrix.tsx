@@ -493,6 +493,11 @@ export default function CoverageMatrix() {
         }
         className="mb-2"
       />
+      <p className="mb-3 text-[12px] text-muted-foreground">
+        Status covers each lane’s stored figures and checks. Capital, liquidity and
+        other summary lanes capture selected disclosures; a passing cell does not
+        certify that every row, column or note in the source table was captured.
+      </p>
 
       {loading ? (
         <p className="text-[12px] text-muted-foreground">Loading…</p>

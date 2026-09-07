@@ -151,9 +151,27 @@ function truncateRows<T>(rows: T[], warnings: string[]): T[] {
 
 function collectPages(rows: Record<string, unknown>[]): number[] {
   const pages = new Set<number>();
+  const add = (page: unknown) => {
+    if (typeof page === "number" && Number.isInteger(page) && page > 0) pages.add(page);
+  };
   for (const r of rows) {
-    const p = r["source_page"];
-    if (typeof p === "number" && Number.isFinite(p)) pages.add(p);
+    add(r["source_page"]);
+    // Buffer disclosures often continue on a later page than the headline
+    // capital figures. Carry their own evidence pages into analyst citations.
+    if (typeof r.buffer_source_json === "string") {
+      try {
+        const evidence = JSON.parse(r.buffer_source_json);
+        if (evidence && typeof evidence === "object" && !Array.isArray(evidence)) {
+          for (const item of Object.values(evidence)) {
+            if (item && typeof item === "object" && "sources" in item && Array.isArray(item.sources)) {
+              for (const source of item.sources) {
+                if (source && typeof source === "object") add(source.source_page);
+              }
+            }
+          }
+        }
+      } catch { /* Older or malformed evidence must not hide the stored row. */ }
+    }
   }
   return [...pages].sort((a, b) => a - b);
 }
@@ -238,7 +256,7 @@ export const TOOLS: ToolSpec[] = [
   },
   {
     name: "get_statement_rows",
-    description: "The COMPLETE rows of one statement for the partition — every column the registry allows, nothing curated away. Read the caveats in the result.",
+    description: "The stored rows of one statement for the partition, including every allowed column. Summary lanes cover selected figures; read the coverage caveats in the result.",
     params: [
       P_BANK, P_PERIOD, P_KIND,
       { name: "statement", type: "string", required: true, enum: Object.keys(STATEMENTS), description: "which statement" },
@@ -286,8 +304,10 @@ export const TOOLS: ToolSpec[] = [
       if (a.section != null) { where += " AND section = ?"; binds.push(a.section); }
       if (a.currency != null) { where += " AND currency = ?"; binds.push(a.currency); }
       const idCols = spec.rowIdentity.length ? spec.rowIdentity.join(", ") + ", " : "";
+      const bufferEvidence = a.statement === "capital" && cols.some((column) => column.includes("buffer"))
+        ? ", source_page, buffer_source_json" : "";
       const rows = await ctx.db.all<Record<string, unknown>>(
-        `SELECT period, ${idCols}${cols.join(", ")} FROM ${spec.table} WHERE ${where} ORDER BY period`,
+        `SELECT period, ${idCols}${cols.join(", ")}${bufferEvidence} FROM ${spec.table} WHERE ${where} ORDER BY period`,
         binds,
       );
       let filtered = rows;
@@ -301,7 +321,8 @@ export const TOOLS: ToolSpec[] = [
       }
       const out = truncateRows(filtered, warnings);
       if (!out.length && !warnings.length) warnings.push("no history rows found");
-      return { data: out, warnings, tables: [spec.table], rows: filtered.length };
+      return { data: out, warnings, tables: [spec.table], rows: filtered.length,
+        sourcePages: bufferEvidence ? collectPages(filtered) : undefined };
     },
   },
   {

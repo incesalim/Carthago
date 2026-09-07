@@ -201,6 +201,12 @@ class CapitalRow:
     cet1_ratio: float | None = None
     tier1_ratio: float | None = None
     capital_adequacy_ratio: float | None = None
+    total_buffer_requirement_ratio: float | None = None
+    capital_conservation_buffer_ratio: float | None = None
+    countercyclical_buffer_ratio: float | None = None
+    systemic_buffer_ratio: float | None = None
+    cet1_available_buffer_ratio: float | None = None
+    buffer_source_json: str | None = None
 
 
 @dataclass
@@ -620,8 +626,9 @@ def extract_from_pdf(pdf_path: str = "") -> CapitalReport:
 
     get_lines, fn, doc = _fitz_lines(pdf_path)
     try:
-        evidence_lines = [line for i in range(start, min(fn, start + _MAX_SECTION_PAGES))
+        evidence_pages = [(i + 1, line) for i in range(start, min(fn, start + _MAX_SECTION_PAGES))
                           for line in get_lines(i)]
+        evidence_lines = [line for _, line in evidence_pages]
     finally:
         doc.close()
 
@@ -653,6 +660,11 @@ def extract_from_pdf(pdf_path: str = "") -> CapitalReport:
 
     _repair_displaced_rows(current, prior, evidence_lines)
 
+    from .capital_buffers import parse_buffers
+    buffer_current, buffer_prior = parse_buffers(evidence_pages)
+    current.update(buffer_current)
+    prior.update(buffer_prior)
+
     if current:
         rep.rows.append(CapitalRow(period_type="current", **current))
     if any(v is not None for v in prior.values()):
@@ -670,6 +682,9 @@ def extract(pdf_path: str | Path) -> CapitalReport:
 _VALUE_COLS = [
     "cet1_capital", "additional_tier1_capital", "tier1_capital", "tier2_capital",
     "capital_deductions", "total_capital", "total_rwa", "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio",
+    "total_buffer_requirement_ratio", "capital_conservation_buffer_ratio",
+    "countercyclical_buffer_ratio", "systemic_buffer_ratio", "cet1_available_buffer_ratio",
+    "buffer_source_json",
 ]
 
 
@@ -684,10 +699,6 @@ def upsert(
     commit: bool = True,
 ) -> int:
     cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM bank_audit_capital WHERE bank_ticker=? AND period=? AND kind=?",
-        (bank_ticker, period, kind),
-    )
     cols = ["bank_ticker", "period", "kind", "period_type", *_VALUE_COLS, "source_page"]
     ph = ", ".join("?" for _ in cols)
     rows = [(
@@ -698,6 +709,17 @@ def upsert(
     # Normalise to canonical `bin` BEFORE the insert; the factor comes
     # from the caller because this function has no PDF to read.
     rows = unit.scale_rows("bank_audit_capital", cols, rows)
+    existing = cur.execute(
+        f"SELECT {', '.join(cols)} FROM bank_audit_capital "
+        "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY period_type",
+        (bank_ticker, period, kind),
+    ).fetchall()
+    if [tuple(row) for row in existing] == sorted((tuple(row) for row in rows), key=lambda row: row[3]):
+        return len(rows)  # unchanged content keeps its original extracted_at
+    cur.execute(
+        "DELETE FROM bank_audit_capital WHERE bank_ticker=? AND period=? AND kind=?",
+        (bank_ticker, period, kind),
+    )
     if rows:
         cur.executemany(
             f"INSERT INTO bank_audit_capital ({', '.join(cols)}) VALUES ({ph})", rows
