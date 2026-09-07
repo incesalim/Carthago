@@ -508,6 +508,126 @@
         "391.720",
         "-"
       ]
+    },
+    {
+      "id": "equity-opening-balance",
+      "kind": "source_table_line",
+      "page": 15,
+      "bbox": [
+        32,
+        192,
+        809,
+        201
+      ],
+      "columns": [
+        "I. Önceki Dönem Sonu Bakiyesi",
+        "1.500.000",
+        "-",
+        "-",
+        "-",
+        "-",
+        "(6)",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "(1.870)",
+        "1.498.124",
+        "-",
+        "1.498.124"
+      ]
+    },
+    {
+      "id": "equity-comprehensive-income",
+      "kind": "source_table_line",
+      "page": 15,
+      "bbox": [
+        32,
+        229,
+        809,
+        238
+      ],
+      "columns": [
+        "IV. Toplam Kapsamlı Gelir",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "1",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "148.071",
+        "148.072",
+        "-",
+        "148.072"
+      ]
+    },
+    {
+      "id": "equity-reclassification",
+      "kind": "source_table_line",
+      "page": 15,
+      "bbox": [
+        32,
+        272,
+        809,
+        281
+      ],
+      "columns": [
+        "X. Diğer Değişiklikler Nedeniyle Artış /Azalış",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "(1.870)",
+        "1.870",
+        "-",
+        "-",
+        "-"
+      ]
+    },
+    {
+      "id": "equity-closing-balance",
+      "kind": "source_table_line",
+      "page": 15,
+      "bbox": [
+        32,
+        310,
+        809,
+        319
+      ],
+      "columns": [
+        "Dönem Sonu Bakiyesi (III+IV+…...+X+XI)",
+        "1.500.000",
+        "-",
+        "-",
+        "-",
+        "-",
+        "(5)",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "(1.870)",
+        "148.071",
+        "1.646.196",
+        "-",
+        "1.646.196"
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

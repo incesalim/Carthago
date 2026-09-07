@@ -1,0 +1,6589 @@
+{
+  "table": {
+    "bbox": [
+      33.11040115356445,
+      126.2439956665039,
+      807.0095825195312,
+      318.922607421875
+    ],
+    "header_association_verified": false,
+    "header_external": false,
+    "header_names": [
+      "ÖZKAYNAK KALEMLERİNDEKİ\nDEĞİŞİKLİKLER",
+      "",
+      null,
+      null,
+      null,
+      "Kâr veya Zararda Yeniden\nSınıflandırılmayacak Birikmiş Diğer\nKapsamlı Gelirler ve Giderler",
+      null,
+      null,
+      "Kâr veya Zararda Yeniden\nSınıflandırılacak Birikmiş Diğer\nKapsamlı Gelirler ve Giderler",
+      null,
+      null,
+      "",
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "id": "p15:ruled0",
+    "image_rule_candidates": [],
+    "kind": "table_candidate",
+    "method": "pymupdf_lines_strict",
+    "n_cols": 17,
+    "review_status": "unreviewed",
+    "row_count": 4,
+    "rows": [
+      {
+        "cells": [
+          {
+            "bbox": [
+              33.11040115356445,
+              126.2439956665039,
+              179.05999755859375,
+              171.53001403808594
+            ],
+            "column": 0,
+            "row": 0,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "ÖZKAYNAK KALEMLERİNDEKİ\nDEĞİŞİKLİKLER",
+            "word_ids": [
+              51,
+              52,
+              53
+            ]
+          },
+          {
+            "bbox": [
+              179.05999755859375,
+              126.2439956665039,
+              323.0899963378906,
+              148.5800018310547
+            ],
+            "column": 1,
+            "row": 0,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "",
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 2,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 3,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 4,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": [
+              323.0899963378906,
+              126.2439956665039,
+              419.8299865722656,
+              148.5800018310547
+            ],
+            "column": 5,
+            "row": 0,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Kâr veya Zararda Yeniden\nSınıflandırılmayacak Birikmiş Diğer\nKapsamlı Gelirler ve Giderler",
+            "word_ids": [
+              29,
+              30,
+              31,
+              32,
+              33,
+              34,
+              35,
+              36,
+              37,
+              38,
+              39
+            ]
+          },
+          {
+            "bbox": null,
+            "column": 6,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 7,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": [
+              419.8299865722656,
+              126.2439956665039,
+              510.54998779296875,
+              148.5800018310547
+            ],
+            "column": 8,
+            "row": 0,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Kâr veya Zararda Yeniden\nSınıflandırılacak Birikmiş Diğer\nKapsamlı Gelirler ve Giderler",
+            "word_ids": [
+              40,
+              41,
+              42,
+              43,
+              44,
+              45,
+              46,
+              47,
+              48,
+              49,
+              50
+            ]
+          },
+          {
+            "bbox": null,
+            "column": 9,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 10,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": [
+              510.54998779296875,
+              126.2439956665039,
+              807.0095825195312,
+              148.5800018310547
+            ],
+            "column": 11,
+            "row": 0,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "",
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 12,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 13,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 14,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 15,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": null,
+            "column": 16,
+            "row": 0,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          }
+        ],
+        "index": 0
+      },
+      {
+        "cells": [
+          {
+            "bbox": null,
+            "column": 0,
+            "row": 1,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": [
+              179.05999755859375,
+              148.5800018310547,
+              209.66000366210938,
+              171.53001403808594
+            ],
+            "column": 1,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Ödenmiş\nSermaye",
+            "word_ids": [
+              54,
+              55
+            ]
+          },
+          {
+            "bbox": [
+              209.66000366210938,
+              148.5800018310547,
+              247.3699951171875,
+              171.53001403808594
+            ],
+            "column": 2,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Hisse Senedi\nİhraç Primleri",
+            "word_ids": [
+              56,
+              57,
+              58,
+              59
+            ]
+          },
+          {
+            "bbox": [
+              247.3699951171875,
+              148.5800018310547,
+              283.010009765625,
+              171.53001403808594
+            ],
+            "column": 3,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Hisse Senedi\nİptal Kârları",
+            "word_ids": [
+              60,
+              61,
+              62,
+              63
+            ]
+          },
+          {
+            "bbox": [
+              283.010009765625,
+              148.5800018310547,
+              323.0899963378906,
+              171.53001403808594
+            ],
+            "column": 4,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Diğer Sermaye\nYedekleri",
+            "word_ids": [
+              64,
+              65,
+              66
+            ]
+          },
+          {
+            "bbox": [
+              323.0899963378906,
+              148.5800018310547,
+              354.7699890136719,
+              171.53001403808594
+            ],
+            "column": 5,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1",
+            "word_ids": [
+              67
+            ]
+          },
+          {
+            "bbox": [
+              354.7699890136719,
+              148.5800018310547,
+              380.45001220703125,
+              171.53001403808594
+            ],
+            "column": 6,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "2",
+            "word_ids": [
+              68
+            ]
+          },
+          {
+            "bbox": [
+              380.45001220703125,
+              148.5800018310547,
+              419.8299865722656,
+              171.53001403808594
+            ],
+            "column": 7,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "3",
+            "word_ids": [
+              69
+            ]
+          },
+          {
+            "bbox": [
+              419.8299865722656,
+              148.5800018310547,
+              439.2699890136719,
+              171.53001403808594
+            ],
+            "column": 8,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "4",
+            "word_ids": [
+              70
+            ]
+          },
+          {
+            "bbox": [
+              439.2699890136719,
+              148.5800018310547,
+              470.7099914550781,
+              171.53001403808594
+            ],
+            "column": 9,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "5",
+            "word_ids": [
+              71
+            ]
+          },
+          {
+            "bbox": [
+              470.7099914550781,
+              148.5800018310547,
+              510.54998779296875,
+              171.53001403808594
+            ],
+            "column": 10,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "6",
+            "word_ids": [
+              72
+            ]
+          },
+          {
+            "bbox": [
+              510.54998779296875,
+              148.5800018310547,
+              546.9099731445312,
+              171.53001403808594
+            ],
+            "column": 11,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Kar\nYedekleri",
+            "word_ids": [
+              73,
+              74
+            ]
+          },
+          {
+            "bbox": [
+              546.9099731445312,
+              148.5800018310547,
+              603.8200073242188,
+              171.53001403808594
+            ],
+            "column": 12,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Geçmiş Dönem\nKârı / (Zararı)",
+            "word_ids": [
+              75,
+              76,
+              77,
+              78,
+              79
+            ]
+          },
+          {
+            "bbox": [
+              603.8200073242188,
+              148.5800018310547,
+              649.1799926757812,
+              171.53001403808594
+            ],
+            "column": 13,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Dönem Net\nKar veya Zararı",
+            "word_ids": [
+              80,
+              81,
+              82,
+              83,
+              84
+            ]
+          },
+          {
+            "bbox": [
+              649.1799926757812,
+              148.5800018310547,
+              710.6199951171875,
+              171.53001403808594
+            ],
+            "column": 14,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Azınlık Payları\nHariç Toplam Özkaynak",
+            "word_ids": [
+              85,
+              86,
+              87,
+              88,
+              89
+            ]
+          },
+          {
+            "bbox": [
+              710.6199951171875,
+              148.5800018310547,
+              736.7999877929688,
+              171.53001403808594
+            ],
+            "column": 15,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Azınlık\nPayları",
+            "word_ids": [
+              90,
+              91
+            ]
+          },
+          {
+            "bbox": [
+              736.7999877929688,
+              148.5800018310547,
+              807.0095825195312,
+              171.53001403808594
+            ],
+            "column": 16,
+            "row": 1,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "Toplam\nÖzkaynak",
+            "word_ids": [
+              92,
+              93
+            ]
+          }
+        ],
+        "index": 1
+      },
+      {
+        "cells": [
+          {
+            "bbox": [
+              33.11040115356445,
+              171.53001403808594,
+              179.05999755859375,
+              318.922607421875
+            ],
+            "column": 0,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "CARİ DÖNEM\n30.09.2023\nI. Önceki Dönem Sonu Bakiyesi\nII. TMS 8 Uyarınca Yapılan Düzeltmeler\n2.1 Hataların Düzeltilmesinin Etkisi\n2.2 Muhasebe Politikasında Yapılan Değişikliklerin Etkisi\nIII. Yeni Bakiye (I+II)\nIV. Toplam Kapsamlı Gelir\nV. Nakden Gerçekleştirilen Sermaye Artırımı\nVI. İç Kaynaklardan Gerçekleştirilen Sermaye Artırımı\nVII. Ödenmiş Sermaye Enflasyon Düzeltme Farkı\nVIII. Hisse Senedine Dönüştürülebilir Tahviller\nIX. Sermaye Benzeri Borçlanma Araçları\nX. Diğer Değişiklikler Nedeniyle Artış /Azalış\nXI. Kâr Dağıtımı\n11.1 Dağıtılan Temettü\n11.2 Yedeklere Aktarılan Tutarlar\n11.3 Diğer\nDönem Sonu Bakiyesi (III+IV+…...+X+XI)",
+            "word_ids": [
+              94,
+              95,
+              96,
+              97,
+              98,
+              99,
+              100,
+              101,
+              118,
+              119,
+              120,
+              121,
+              122,
+              123,
+              140,
+              141,
+              142,
+              143,
+              160,
+              161,
+              162,
+              163,
+              164,
+              165,
+              182,
+              183,
+              184,
+              185,
+              202,
+              203,
+              204,
+              205,
+              222,
+              223,
+              224,
+              225,
+              226,
+              243,
+              244,
+              245,
+              246,
+              247,
+              248,
+              265,
+              266,
+              267,
+              268,
+              269,
+              270,
+              287,
+              288,
+              289,
+              290,
+              291,
+              308,
+              309,
+              310,
+              311,
+              312,
+              329,
+              330,
+              331,
+              332,
+              333,
+              334,
+              351,
+              352,
+              353,
+              370,
+              371,
+              372,
+              389,
+              390,
+              391,
+              392,
+              409,
+              410,
+              427,
+              428,
+              429,
+              430
+            ]
+          },
+          {
+            "bbox": [
+              179.05999755859375,
+              171.53001403808594,
+              209.66000366210938,
+              311.1100158691406
+            ],
+            "column": 1,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1.500.000\n-\n-\n-\n1.500.000\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              102,
+              124,
+              144,
+              166,
+              186,
+              206,
+              227,
+              249,
+              271,
+              292,
+              313,
+              335,
+              354,
+              373,
+              393,
+              411
+            ]
+          },
+          {
+            "bbox": [
+              209.66000366210938,
+              171.53001403808594,
+              247.3699951171875,
+              311.1100158691406
+            ],
+            "column": 2,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              103,
+              125,
+              145,
+              167,
+              187,
+              207,
+              228,
+              250,
+              272,
+              293,
+              314,
+              336,
+              355,
+              374,
+              394,
+              412
+            ]
+          },
+          {
+            "bbox": [
+              247.3699951171875,
+              171.53001403808594,
+              283.010009765625,
+              311.1100158691406
+            ],
+            "column": 3,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              104,
+              126,
+              146,
+              168,
+              188,
+              208,
+              229,
+              251,
+              273,
+              294,
+              315,
+              337,
+              356,
+              375,
+              395,
+              413
+            ]
+          },
+          {
+            "bbox": [
+              283.010009765625,
+              171.53001403808594,
+              323.0899963378906,
+              311.1100158691406
+            ],
+            "column": 4,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              105,
+              127,
+              147,
+              169,
+              189,
+              209,
+              230,
+              252,
+              274,
+              295,
+              316,
+              338,
+              357,
+              376,
+              396,
+              414
+            ]
+          },
+          {
+            "bbox": [
+              323.0899963378906,
+              171.53001403808594,
+              354.7699890136719,
+              311.1100158691406
+            ],
+            "column": 5,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              106,
+              128,
+              148,
+              170,
+              190,
+              210,
+              231,
+              253,
+              275,
+              296,
+              317,
+              339,
+              358,
+              377,
+              397,
+              415
+            ]
+          },
+          {
+            "bbox": [
+              354.7699890136719,
+              171.53001403808594,
+              380.45001220703125,
+              311.1100158691406
+            ],
+            "column": 6,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "(6)\n-\n-\n-\n(6)\n1\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              107,
+              129,
+              149,
+              171,
+              191,
+              211,
+              232,
+              254,
+              276,
+              297,
+              318,
+              340,
+              359,
+              378,
+              398,
+              416
+            ]
+          },
+          {
+            "bbox": [
+              380.45001220703125,
+              171.53001403808594,
+              419.8299865722656,
+              311.1100158691406
+            ],
+            "column": 7,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              108,
+              130,
+              150,
+              172,
+              192,
+              212,
+              233,
+              255,
+              277,
+              298,
+              319,
+              341,
+              360,
+              379,
+              399,
+              417
+            ]
+          },
+          {
+            "bbox": [
+              419.8299865722656,
+              171.53001403808594,
+              439.2699890136719,
+              311.1100158691406
+            ],
+            "column": 8,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              109,
+              131,
+              151,
+              173,
+              193,
+              213,
+              234,
+              256,
+              278,
+              299,
+              320,
+              342,
+              361,
+              380,
+              400,
+              418
+            ]
+          },
+          {
+            "bbox": [
+              439.2699890136719,
+              171.53001403808594,
+              470.7099914550781,
+              311.1100158691406
+            ],
+            "column": 9,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              110,
+              132,
+              152,
+              174,
+              194,
+              214,
+              235,
+              257,
+              279,
+              300,
+              321,
+              343,
+              362,
+              381,
+              401,
+              419
+            ]
+          },
+          {
+            "bbox": [
+              470.7099914550781,
+              171.53001403808594,
+              510.54998779296875,
+              311.1100158691406
+            ],
+            "column": 10,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              111,
+              133,
+              153,
+              175,
+              195,
+              215,
+              236,
+              258,
+              280,
+              301,
+              322,
+              344,
+              363,
+              382,
+              402,
+              420
+            ]
+          },
+          {
+            "bbox": [
+              510.54998779296875,
+              171.53001403808594,
+              546.9099731445312,
+              311.1100158691406
+            ],
+            "column": 11,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              112,
+              134,
+              154,
+              176,
+              196,
+              216,
+              237,
+              259,
+              281,
+              302,
+              323,
+              345,
+              364,
+              383,
+              403,
+              421
+            ]
+          },
+          {
+            "bbox": [
+              546.9099731445312,
+              171.53001403808594,
+              603.8200073242188,
+              311.1100158691406
+            ],
+            "column": 12,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n(1.870)\n-\n-\n-\n-",
+            "word_ids": [
+              113,
+              135,
+              155,
+              177,
+              197,
+              217,
+              238,
+              260,
+              282,
+              303,
+              324,
+              346,
+              365,
+              384,
+              404,
+              422
+            ]
+          },
+          {
+            "bbox": [
+              603.8200073242188,
+              171.53001403808594,
+              649.1799926757812,
+              311.1100158691406
+            ],
+            "column": 13,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "(1.870)\n-\n-\n-\n(1.870)\n148.071\n-\n-\n-\n-\n-\n1.870\n-\n-\n-\n-",
+            "word_ids": [
+              114,
+              136,
+              156,
+              178,
+              198,
+              218,
+              239,
+              261,
+              283,
+              304,
+              325,
+              347,
+              366,
+              385,
+              405,
+              423
+            ]
+          },
+          {
+            "bbox": [
+              649.1799926757812,
+              171.53001403808594,
+              710.6199951171875,
+              311.1100158691406
+            ],
+            "column": 14,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1.498.124\n-\n-\n-\n1.498.124\n148.072\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              115,
+              137,
+              157,
+              179,
+              199,
+              219,
+              240,
+              262,
+              284,
+              305,
+              326,
+              348,
+              367,
+              386,
+              406,
+              424
+            ]
+          },
+          {
+            "bbox": [
+              710.6199951171875,
+              171.53001403808594,
+              736.7999877929688,
+              311.1100158691406
+            ],
+            "column": 15,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              116,
+              138,
+              158,
+              180,
+              200,
+              220,
+              241,
+              263,
+              285,
+              306,
+              327,
+              349,
+              368,
+              387,
+              407,
+              425
+            ]
+          },
+          {
+            "bbox": [
+              736.7999877929688,
+              171.53001403808594,
+              807.0095825195312,
+              311.1100158691406
+            ],
+            "column": 16,
+            "row": 2,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1.498.124\n-\n-\n-\n1.498.124\n148.072\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-",
+            "word_ids": [
+              117,
+              139,
+              159,
+              181,
+              201,
+              221,
+              242,
+              264,
+              286,
+              307,
+              328,
+              350,
+              369,
+              388,
+              408,
+              426
+            ]
+          }
+        ],
+        "index": 2
+      },
+      {
+        "cells": [
+          {
+            "bbox": null,
+            "column": 0,
+            "row": 3,
+            "slot_status": "absent_or_merged",
+            "source_text_matches": true,
+            "text": null,
+            "word_ids": []
+          },
+          {
+            "bbox": [
+              179.05999755859375,
+              311.1100158691406,
+              209.66000366210938,
+              318.922607421875
+            ],
+            "column": 1,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1.500.000",
+            "word_ids": [
+              431
+            ]
+          },
+          {
+            "bbox": [
+              209.66000366210938,
+              311.1100158691406,
+              247.3699951171875,
+              318.922607421875
+            ],
+            "column": 2,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              432
+            ]
+          },
+          {
+            "bbox": [
+              247.3699951171875,
+              311.1100158691406,
+              283.010009765625,
+              318.922607421875
+            ],
+            "column": 3,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              433
+            ]
+          },
+          {
+            "bbox": [
+              283.010009765625,
+              311.1100158691406,
+              323.0899963378906,
+              318.922607421875
+            ],
+            "column": 4,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              434
+            ]
+          },
+          {
+            "bbox": [
+              323.0899963378906,
+              311.1100158691406,
+              354.7699890136719,
+              318.922607421875
+            ],
+            "column": 5,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              435
+            ]
+          },
+          {
+            "bbox": [
+              354.7699890136719,
+              311.1100158691406,
+              380.45001220703125,
+              318.922607421875
+            ],
+            "column": 6,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "(5)",
+            "word_ids": [
+              436
+            ]
+          },
+          {
+            "bbox": [
+              380.45001220703125,
+              311.1100158691406,
+              419.8299865722656,
+              318.922607421875
+            ],
+            "column": 7,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              437
+            ]
+          },
+          {
+            "bbox": [
+              419.8299865722656,
+              311.1100158691406,
+              439.2699890136719,
+              318.922607421875
+            ],
+            "column": 8,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              438
+            ]
+          },
+          {
+            "bbox": [
+              439.2699890136719,
+              311.1100158691406,
+              470.7099914550781,
+              318.922607421875
+            ],
+            "column": 9,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              439
+            ]
+          },
+          {
+            "bbox": [
+              470.7099914550781,
+              311.1100158691406,
+              510.54998779296875,
+              318.922607421875
+            ],
+            "column": 10,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              440
+            ]
+          },
+          {
+            "bbox": [
+              510.54998779296875,
+              311.1100158691406,
+              546.9099731445312,
+              318.922607421875
+            ],
+            "column": 11,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              441
+            ]
+          },
+          {
+            "bbox": [
+              546.9099731445312,
+              311.1100158691406,
+              603.8200073242188,
+              318.922607421875
+            ],
+            "column": 12,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "(1.870)",
+            "word_ids": [
+              442
+            ]
+          },
+          {
+            "bbox": [
+              603.8200073242188,
+              311.1100158691406,
+              649.1799926757812,
+              318.922607421875
+            ],
+            "column": 13,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "148.071",
+            "word_ids": [
+              443
+            ]
+          },
+          {
+            "bbox": [
+              649.1799926757812,
+              311.1100158691406,
+              710.6199951171875,
+              318.922607421875
+            ],
+            "column": 14,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1.646.196",
+            "word_ids": [
+              444
+            ]
+          },
+          {
+            "bbox": [
+              710.6199951171875,
+              311.1100158691406,
+              736.7999877929688,
+              318.922607421875
+            ],
+            "column": 15,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "-",
+            "word_ids": [
+              445
+            ]
+          },
+          {
+            "bbox": [
+              736.7999877929688,
+              311.1100158691406,
+              807.0095825195312,
+              318.922607421875
+            ],
+            "column": 16,
+            "row": 3,
+            "slot_status": "present",
+            "source_text_matches": true,
+            "text": "1.646.196",
+            "word_ids": [
+              446
+            ]
+          }
+        ],
+        "index": 3
+      }
+    ]
+  },
+  "context": {
+    "column_identifiers": {
+      "cells": [
+        {
+          "bbox": [
+            179.05999755859375,
+            148.5800018310547,
+            209.66000366210938,
+            171.53001403808594
+          ],
+          "column": 1,
+          "text": "Ödenmiş\nSermaye",
+          "word_ids": [
+            54,
+            55
+          ]
+        },
+        {
+          "bbox": [
+            209.66000366210938,
+            148.5800018310547,
+            247.3699951171875,
+            171.53001403808594
+          ],
+          "column": 2,
+          "text": "Hisse Senedi\nİhraç Primleri",
+          "word_ids": [
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        {
+          "bbox": [
+            247.3699951171875,
+            148.5800018310547,
+            283.010009765625,
+            171.53001403808594
+          ],
+          "column": 3,
+          "text": "Hisse Senedi\nİptal Kârları",
+          "word_ids": [
+            60,
+            61,
+            62,
+            63
+          ]
+        },
+        {
+          "bbox": [
+            283.010009765625,
+            148.5800018310547,
+            323.0899963378906,
+            171.53001403808594
+          ],
+          "column": 4,
+          "text": "Diğer Sermaye\nYedekleri",
+          "word_ids": [
+            64,
+            65,
+            66
+          ]
+        },
+        {
+          "bbox": [
+            323.0899963378906,
+            148.5800018310547,
+            354.7699890136719,
+            171.53001403808594
+          ],
+          "column": 5,
+          "text": "1",
+          "word_ids": [
+            67
+          ]
+        },
+        {
+          "bbox": [
+            354.7699890136719,
+            148.5800018310547,
+            380.45001220703125,
+            171.53001403808594
+          ],
+          "column": 6,
+          "text": "2",
+          "word_ids": [
+            68
+          ]
+        },
+        {
+          "bbox": [
+            380.45001220703125,
+            148.5800018310547,
+            419.8299865722656,
+            171.53001403808594
+          ],
+          "column": 7,
+          "text": "3",
+          "word_ids": [
+            69
+          ]
+        },
+        {
+          "bbox": [
+            419.8299865722656,
+            148.5800018310547,
+            439.2699890136719,
+            171.53001403808594
+          ],
+          "column": 8,
+          "text": "4",
+          "word_ids": [
+            70
+          ]
+        },
+        {
+          "bbox": [
+            439.2699890136719,
+            148.5800018310547,
+            470.7099914550781,
+            171.53001403808594
+          ],
+          "column": 9,
+          "text": "5",
+          "word_ids": [
+            71
+          ]
+        },
+        {
+          "bbox": [
+            470.7099914550781,
+            148.5800018310547,
+            510.54998779296875,
+            171.53001403808594
+          ],
+          "column": 10,
+          "text": "6",
+          "word_ids": [
+            72
+          ]
+        },
+        {
+          "bbox": [
+            510.54998779296875,
+            148.5800018310547,
+            546.9099731445312,
+            171.53001403808594
+          ],
+          "column": 11,
+          "text": "Kar\nYedekleri",
+          "word_ids": [
+            73,
+            74
+          ]
+        },
+        {
+          "bbox": [
+            546.9099731445312,
+            148.5800018310547,
+            603.8200073242188,
+            171.53001403808594
+          ],
+          "column": 12,
+          "text": "Geçmiş Dönem\nKârı / (Zararı)",
+          "word_ids": [
+            75,
+            76,
+            77,
+            78,
+            79
+          ]
+        },
+        {
+          "bbox": [
+            603.8200073242188,
+            148.5800018310547,
+            649.1799926757812,
+            171.53001403808594
+          ],
+          "column": 13,
+          "text": "Dönem Net\nKar veya Zararı",
+          "word_ids": [
+            80,
+            81,
+            82,
+            83,
+            84
+          ]
+        },
+        {
+          "bbox": [
+            649.1799926757812,
+            148.5800018310547,
+            710.6199951171875,
+            171.53001403808594
+          ],
+          "column": 14,
+          "text": "Azınlık Payları\nHariç Toplam Özkaynak",
+          "word_ids": [
+            85,
+            86,
+            87,
+            88,
+            89
+          ]
+        },
+        {
+          "bbox": [
+            710.6199951171875,
+            148.5800018310547,
+            736.7999877929688,
+            171.53001403808594
+          ],
+          "column": 15,
+          "text": "Azınlık\nPayları",
+          "word_ids": [
+            90,
+            91
+          ]
+        },
+        {
+          "bbox": [
+            736.7999877929688,
+            148.5800018310547,
+            807.0095825195312,
+            171.53001403808594
+          ],
+          "column": 16,
+          "text": "Toplam\nÖzkaynak",
+          "word_ids": [
+            92,
+            93
+          ]
+        }
+      ],
+      "labels": [
+        "Ödenmiş Sermaye",
+        "Hisse Senedi İhraç Primleri",
+        "Hisse Senedi İptal Kârları",
+        "Diğer Sermaye Yedekleri",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Kar Yedekleri",
+        "Geçmiş Dönem Kârı / (Zararı)",
+        "Dönem Net Kar veya Zararı",
+        "Azınlık Payları Hariç Toplam Özkaynak",
+        "Azınlık Payları",
+        "Toplam Özkaynak"
+      ],
+      "row": 1
+    },
+    "heading": {
+      "bbox": [
+        39.96,
+        75.9834,
+        452.59,
+        101.1646
+      ],
+      "element_id": "p15:narrative1",
+      "page": 15,
+      "source_span_ids": [
+        2,
+        3
+      ],
+      "text": "30 EYLÜL 2023 TARİHİNDE SONA EREN HESAP DÖNEMİNE AİT KONSOLİDE \nOLMAYAN ÖZKAYNAKLAR DEĞİŞİM TABLOSU "
+    },
+    "physical_grid": {
+      "anchors": [
+        {
+          "column": 0,
+          "column_span": 1,
+          "row": 0,
+          "row_span": 2
+        },
+        {
+          "column": 1,
+          "column_span": 4,
+          "row": 0,
+          "row_span": 1
+        },
+        {
+          "column": 5,
+          "column_span": 3,
+          "row": 0,
+          "row_span": 1
+        },
+        {
+          "column": 8,
+          "column_span": 3,
+          "row": 0,
+          "row_span": 1
+        },
+        {
+          "column": 11,
+          "column_span": 6,
+          "row": 0,
+          "row_span": 1
+        },
+        {
+          "column": 1,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 2,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 3,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 4,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 5,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 6,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 7,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 8,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 9,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 10,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 11,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 12,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 13,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 14,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 15,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 16,
+          "column_span": 1,
+          "row": 1,
+          "row_span": 1
+        },
+        {
+          "column": 0,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 2
+        },
+        {
+          "column": 1,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 2,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 3,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 4,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 5,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 6,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 7,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 8,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 9,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 10,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 11,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 12,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 13,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 14,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 15,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 16,
+          "column_span": 1,
+          "row": 2,
+          "row_span": 1
+        },
+        {
+          "column": 1,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 2,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 3,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 4,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 5,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 6,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 7,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 8,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 9,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 10,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 11,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 12,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 13,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 14,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 15,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        },
+        {
+          "column": 16,
+          "column_span": 1,
+          "row": 3,
+          "row_span": 1
+        }
+      ],
+      "covered_slots": [
+        {
+          "anchor": [
+            0,
+            1
+          ],
+          "column": 2,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            1
+          ],
+          "column": 3,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            1
+          ],
+          "column": 4,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            5
+          ],
+          "column": 6,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            5
+          ],
+          "column": 7,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            8
+          ],
+          "column": 9,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            8
+          ],
+          "column": 10,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            11
+          ],
+          "column": 12,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            11
+          ],
+          "column": 13,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            11
+          ],
+          "column": 14,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            11
+          ],
+          "column": 15,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            11
+          ],
+          "column": 16,
+          "row": 0
+        },
+        {
+          "anchor": [
+            0,
+            0
+          ],
+          "column": 0,
+          "row": 1
+        },
+        {
+          "anchor": [
+            2,
+            0
+          ],
+          "column": 0,
+          "row": 3
+        }
+      ],
+      "method": "cell_rectangles_on_shared_grid",
+      "semantic_verification": "not_performed",
+      "x_edges": [
+        33.11040115356445,
+        179.05999755859375,
+        209.66000366210938,
+        247.3699951171875,
+        283.010009765625,
+        323.0899963378906,
+        354.7699890136719,
+        380.45001220703125,
+        419.8299865722656,
+        439.2699890136719,
+        470.7099914550781,
+        510.54998779296875,
+        546.9099731445312,
+        603.8200073242188,
+        649.1799926757812,
+        710.6199951171875,
+        736.7999877929688,
+        807.0095825195312
+      ],
+      "y_edges": [
+        126.2439956665039,
+        148.5800018310547,
+        171.53001403808594,
+        311.1100158691406,
+        318.922607421875
+      ]
+    },
+    "table_id": "p15:ruled0"
+  },
+  "sourceRows": {
+    "table_id": "p15:ruled0",
+    "split_rows": [
+      {
+        "source_row": 2,
+        "lines": [
+          {
+            "index": 0,
+            "bbox": [
+              33.11040115356445,
+              179.2117,
+              807.0095825195312,
+              185.3223
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "CARİ DÖNEM",
+                "word_ids": [
+                  94,
+                  95
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  179.2117,
+                  179.05999755859375,
+                  185.3223
+                ]
+              },
+              {
+                "column": 1,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  179.05999755859375,
+                  179.2117,
+                  209.66000366210938,
+                  185.3223
+                ]
+              },
+              {
+                "column": 2,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  209.66000366210938,
+                  179.2117,
+                  247.3699951171875,
+                  185.3223
+                ]
+              },
+              {
+                "column": 3,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  247.3699951171875,
+                  179.2117,
+                  283.010009765625,
+                  185.3223
+                ]
+              },
+              {
+                "column": 4,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  283.010009765625,
+                  179.2117,
+                  323.0899963378906,
+                  185.3223
+                ]
+              },
+              {
+                "column": 5,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  323.0899963378906,
+                  179.2117,
+                  354.7699890136719,
+                  185.3223
+                ]
+              },
+              {
+                "column": 6,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  354.7699890136719,
+                  179.2117,
+                  380.45001220703125,
+                  185.3223
+                ]
+              },
+              {
+                "column": 7,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  380.45001220703125,
+                  179.2117,
+                  419.8299865722656,
+                  185.3223
+                ]
+              },
+              {
+                "column": 8,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  419.8299865722656,
+                  179.2117,
+                  439.2699890136719,
+                  185.3223
+                ]
+              },
+              {
+                "column": 9,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  439.2699890136719,
+                  179.2117,
+                  470.7099914550781,
+                  185.3223
+                ]
+              },
+              {
+                "column": 10,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  470.7099914550781,
+                  179.2117,
+                  510.54998779296875,
+                  185.3223
+                ]
+              },
+              {
+                "column": 11,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  510.54998779296875,
+                  179.2117,
+                  546.9099731445312,
+                  185.3223
+                ]
+              },
+              {
+                "column": 12,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  546.9099731445312,
+                  179.2117,
+                  603.8200073242188,
+                  185.3223
+                ]
+              },
+              {
+                "column": 13,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  603.8200073242188,
+                  179.2117,
+                  649.1799926757812,
+                  185.3223
+                ]
+              },
+              {
+                "column": 14,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  649.1799926757812,
+                  179.2117,
+                  710.6199951171875,
+                  185.3223
+                ]
+              },
+              {
+                "column": 15,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  710.6199951171875,
+                  179.2117,
+                  736.7999877929688,
+                  185.3223
+                ]
+              },
+              {
+                "column": 16,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  736.7999877929688,
+                  179.2117,
+                  807.0095825195312,
+                  185.3223
+                ]
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "bbox": [
+              33.11040115356445,
+              186.5317,
+              807.0095825195312,
+              192.6423
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "30.09.2023",
+                "word_ids": [
+                  96
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  186.5317,
+                  179.05999755859375,
+                  192.6423
+                ]
+              },
+              {
+                "column": 1,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  179.05999755859375,
+                  186.5317,
+                  209.66000366210938,
+                  192.6423
+                ]
+              },
+              {
+                "column": 2,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  209.66000366210938,
+                  186.5317,
+                  247.3699951171875,
+                  192.6423
+                ]
+              },
+              {
+                "column": 3,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  247.3699951171875,
+                  186.5317,
+                  283.010009765625,
+                  192.6423
+                ]
+              },
+              {
+                "column": 4,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  283.010009765625,
+                  186.5317,
+                  323.0899963378906,
+                  192.6423
+                ]
+              },
+              {
+                "column": 5,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  323.0899963378906,
+                  186.5317,
+                  354.7699890136719,
+                  192.6423
+                ]
+              },
+              {
+                "column": 6,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  354.7699890136719,
+                  186.5317,
+                  380.45001220703125,
+                  192.6423
+                ]
+              },
+              {
+                "column": 7,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  380.45001220703125,
+                  186.5317,
+                  419.8299865722656,
+                  192.6423
+                ]
+              },
+              {
+                "column": 8,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  419.8299865722656,
+                  186.5317,
+                  439.2699890136719,
+                  192.6423
+                ]
+              },
+              {
+                "column": 9,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  439.2699890136719,
+                  186.5317,
+                  470.7099914550781,
+                  192.6423
+                ]
+              },
+              {
+                "column": 10,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  470.7099914550781,
+                  186.5317,
+                  510.54998779296875,
+                  192.6423
+                ]
+              },
+              {
+                "column": 11,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  510.54998779296875,
+                  186.5317,
+                  546.9099731445312,
+                  192.6423
+                ]
+              },
+              {
+                "column": 12,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  546.9099731445312,
+                  186.5317,
+                  603.8200073242188,
+                  192.6423
+                ]
+              },
+              {
+                "column": 13,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  603.8200073242188,
+                  186.5317,
+                  649.1799926757812,
+                  192.6423
+                ]
+              },
+              {
+                "column": 14,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  649.1799926757812,
+                  186.5317,
+                  710.6199951171875,
+                  192.6423
+                ]
+              },
+              {
+                "column": 15,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  710.6199951171875,
+                  186.5317,
+                  736.7999877929688,
+                  192.6423
+                ]
+              },
+              {
+                "column": 16,
+                "text": "",
+                "word_ids": [],
+                "bbox": [
+                  736.7999877929688,
+                  186.5317,
+                  807.0095825195312,
+                  192.6423
+                ]
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "bbox": [
+              33.11040115356445,
+              193.8517,
+              807.0095825195312,
+              199.9623
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "I. Önceki Dönem Sonu Bakiyesi",
+                "word_ids": [
+                  97,
+                  98,
+                  99,
+                  100,
+                  101
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  193.8517,
+                  179.05999755859375,
+                  199.9623
+                ]
+              },
+              {
+                "column": 1,
+                "text": "1.500.000",
+                "word_ids": [
+                  102
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  193.8517,
+                  209.66000366210938,
+                  199.9623
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  103
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  193.8517,
+                  247.3699951171875,
+                  199.9623
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  104
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  193.8517,
+                  283.010009765625,
+                  199.9623
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  105
+                ],
+                "bbox": [
+                  283.010009765625,
+                  193.8517,
+                  323.0899963378906,
+                  199.9623
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  106
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  193.8517,
+                  354.7699890136719,
+                  199.9623
+                ]
+              },
+              {
+                "column": 6,
+                "text": "(6)",
+                "word_ids": [
+                  107
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  193.8517,
+                  380.45001220703125,
+                  199.9623
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  108
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  193.8517,
+                  419.8299865722656,
+                  199.9623
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  109
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  193.8517,
+                  439.2699890136719,
+                  199.9623
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  110
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  193.8517,
+                  470.7099914550781,
+                  199.9623
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  111
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  193.8517,
+                  510.54998779296875,
+                  199.9623
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  112
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  193.8517,
+                  546.9099731445312,
+                  199.9623
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  113
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  193.8517,
+                  603.8200073242188,
+                  199.9623
+                ]
+              },
+              {
+                "column": 13,
+                "text": "(1.870)",
+                "word_ids": [
+                  114
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  193.8517,
+                  649.1799926757812,
+                  199.9623
+                ]
+              },
+              {
+                "column": 14,
+                "text": "1.498.124",
+                "word_ids": [
+                  115
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  193.8517,
+                  710.6199951171875,
+                  199.9623
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  116
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  193.8517,
+                  736.7999877929688,
+                  199.9623
+                ]
+              },
+              {
+                "column": 16,
+                "text": "1.498.124",
+                "word_ids": [
+                  117
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  193.8517,
+                  807.0095825195312,
+                  199.9623
+                ]
+              }
+            ]
+          },
+          {
+            "index": 3,
+            "bbox": [
+              33.11040115356445,
+              201.0517,
+              807.0095825195312,
+              207.1623
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "II. TMS 8 Uyarınca Yapılan Düzeltmeler",
+                "word_ids": [
+                  118,
+                  119,
+                  120,
+                  121,
+                  122,
+                  123
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  201.0517,
+                  179.05999755859375,
+                  207.1623
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  124
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  201.0517,
+                  209.66000366210938,
+                  207.1623
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  125
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  201.0517,
+                  247.3699951171875,
+                  207.1623
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  126
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  201.0517,
+                  283.010009765625,
+                  207.1623
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  127
+                ],
+                "bbox": [
+                  283.010009765625,
+                  201.0517,
+                  323.0899963378906,
+                  207.1623
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  128
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  201.0517,
+                  354.7699890136719,
+                  207.1623
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  129
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  201.0517,
+                  380.45001220703125,
+                  207.1623
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  130
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  201.0517,
+                  419.8299865722656,
+                  207.1623
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  131
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  201.0517,
+                  439.2699890136719,
+                  207.1623
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  132
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  201.0517,
+                  470.7099914550781,
+                  207.1623
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  133
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  201.0517,
+                  510.54998779296875,
+                  207.1623
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  134
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  201.0517,
+                  546.9099731445312,
+                  207.1623
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  135
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  201.0517,
+                  603.8200073242188,
+                  207.1623
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  136
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  201.0517,
+                  649.1799926757812,
+                  207.1623
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  137
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  201.0517,
+                  710.6199951171875,
+                  207.1623
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  138
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  201.0517,
+                  736.7999877929688,
+                  207.1623
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  139
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  201.0517,
+                  807.0095825195312,
+                  207.1623
+                ]
+              }
+            ]
+          },
+          {
+            "index": 4,
+            "bbox": [
+              33.11040115356445,
+              208.3717,
+              807.0095825195312,
+              214.4823
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "2.1 Hataların Düzeltilmesinin Etkisi",
+                "word_ids": [
+                  140,
+                  141,
+                  142,
+                  143
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  208.3717,
+                  179.05999755859375,
+                  214.4823
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  144
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  208.3717,
+                  209.66000366210938,
+                  214.4823
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  145
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  208.3717,
+                  247.3699951171875,
+                  214.4823
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  146
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  208.3717,
+                  283.010009765625,
+                  214.4823
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  147
+                ],
+                "bbox": [
+                  283.010009765625,
+                  208.3717,
+                  323.0899963378906,
+                  214.4823
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  148
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  208.3717,
+                  354.7699890136719,
+                  214.4823
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  149
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  208.3717,
+                  380.45001220703125,
+                  214.4823
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  150
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  208.3717,
+                  419.8299865722656,
+                  214.4823
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  151
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  208.3717,
+                  439.2699890136719,
+                  214.4823
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  152
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  208.3717,
+                  470.7099914550781,
+                  214.4823
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  153
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  208.3717,
+                  510.54998779296875,
+                  214.4823
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  154
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  208.3717,
+                  546.9099731445312,
+                  214.4823
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  155
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  208.3717,
+                  603.8200073242188,
+                  214.4823
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  156
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  208.3717,
+                  649.1799926757812,
+                  214.4823
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  157
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  208.3717,
+                  710.6199951171875,
+                  214.4823
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  158
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  208.3717,
+                  736.7999877929688,
+                  214.4823
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  159
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  208.3717,
+                  807.0095825195312,
+                  214.4823
+                ]
+              }
+            ]
+          },
+          {
+            "index": 5,
+            "bbox": [
+              33.11040115356445,
+              215.5717,
+              807.0095825195312,
+              221.6823
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "2.2 Muhasebe Politikasında Yapılan Değişikliklerin Etkisi",
+                "word_ids": [
+                  160,
+                  161,
+                  162,
+                  163,
+                  164,
+                  165
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  215.5717,
+                  179.05999755859375,
+                  221.6823
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  166
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  215.5717,
+                  209.66000366210938,
+                  221.6823
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  167
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  215.5717,
+                  247.3699951171875,
+                  221.6823
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  168
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  215.5717,
+                  283.010009765625,
+                  221.6823
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  169
+                ],
+                "bbox": [
+                  283.010009765625,
+                  215.5717,
+                  323.0899963378906,
+                  221.6823
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  170
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  215.5717,
+                  354.7699890136719,
+                  221.6823
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  171
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  215.5717,
+                  380.45001220703125,
+                  221.6823
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  172
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  215.5717,
+                  419.8299865722656,
+                  221.6823
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  173
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  215.5717,
+                  439.2699890136719,
+                  221.6823
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  174
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  215.5717,
+                  470.7099914550781,
+                  221.6823
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  175
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  215.5717,
+                  510.54998779296875,
+                  221.6823
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  176
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  215.5717,
+                  546.9099731445312,
+                  221.6823
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  177
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  215.5717,
+                  603.8200073242188,
+                  221.6823
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  178
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  215.5717,
+                  649.1799926757812,
+                  221.6823
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  179
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  215.5717,
+                  710.6199951171875,
+                  221.6823
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  180
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  215.5717,
+                  736.7999877929688,
+                  221.6823
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  181
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  215.5717,
+                  807.0095825195312,
+                  221.6823
+                ]
+              }
+            ]
+          },
+          {
+            "index": 6,
+            "bbox": [
+              33.11040115356445,
+              222.8917,
+              807.0095825195312,
+              229.0023
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "III. Yeni Bakiye (I+II)",
+                "word_ids": [
+                  182,
+                  183,
+                  184,
+                  185
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  222.8917,
+                  179.05999755859375,
+                  229.0023
+                ]
+              },
+              {
+                "column": 1,
+                "text": "1.500.000",
+                "word_ids": [
+                  186
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  222.8917,
+                  209.66000366210938,
+                  229.0023
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  187
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  222.8917,
+                  247.3699951171875,
+                  229.0023
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  188
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  222.8917,
+                  283.010009765625,
+                  229.0023
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  189
+                ],
+                "bbox": [
+                  283.010009765625,
+                  222.8917,
+                  323.0899963378906,
+                  229.0023
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  190
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  222.8917,
+                  354.7699890136719,
+                  229.0023
+                ]
+              },
+              {
+                "column": 6,
+                "text": "(6)",
+                "word_ids": [
+                  191
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  222.8917,
+                  380.45001220703125,
+                  229.0023
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  192
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  222.8917,
+                  419.8299865722656,
+                  229.0023
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  193
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  222.8917,
+                  439.2699890136719,
+                  229.0023
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  194
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  222.8917,
+                  470.7099914550781,
+                  229.0023
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  195
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  222.8917,
+                  510.54998779296875,
+                  229.0023
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  196
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  222.8917,
+                  546.9099731445312,
+                  229.0023
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  197
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  222.8917,
+                  603.8200073242188,
+                  229.0023
+                ]
+              },
+              {
+                "column": 13,
+                "text": "(1.870)",
+                "word_ids": [
+                  198
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  222.8917,
+                  649.1799926757812,
+                  229.0023
+                ]
+              },
+              {
+                "column": 14,
+                "text": "1.498.124",
+                "word_ids": [
+                  199
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  222.8917,
+                  710.6199951171875,
+                  229.0023
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  200
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  222.8917,
+                  736.7999877929688,
+                  229.0023
+                ]
+              },
+              {
+                "column": 16,
+                "text": "1.498.124",
+                "word_ids": [
+                  201
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  222.8917,
+                  807.0095825195312,
+                  229.0023
+                ]
+              }
+            ]
+          },
+          {
+            "index": 7,
+            "bbox": [
+              33.11040115356445,
+              230.2117,
+              807.0095825195312,
+              236.3223
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "IV. Toplam Kapsamlı Gelir",
+                "word_ids": [
+                  202,
+                  203,
+                  204,
+                  205
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  230.2117,
+                  179.05999755859375,
+                  236.3223
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  206
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  230.2117,
+                  209.66000366210938,
+                  236.3223
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  207
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  230.2117,
+                  247.3699951171875,
+                  236.3223
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  208
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  230.2117,
+                  283.010009765625,
+                  236.3223
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  209
+                ],
+                "bbox": [
+                  283.010009765625,
+                  230.2117,
+                  323.0899963378906,
+                  236.3223
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  210
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  230.2117,
+                  354.7699890136719,
+                  236.3223
+                ]
+              },
+              {
+                "column": 6,
+                "text": "1",
+                "word_ids": [
+                  211
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  230.2117,
+                  380.45001220703125,
+                  236.3223
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  212
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  230.2117,
+                  419.8299865722656,
+                  236.3223
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  213
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  230.2117,
+                  439.2699890136719,
+                  236.3223
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  214
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  230.2117,
+                  470.7099914550781,
+                  236.3223
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  215
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  230.2117,
+                  510.54998779296875,
+                  236.3223
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  216
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  230.2117,
+                  546.9099731445312,
+                  236.3223
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  217
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  230.2117,
+                  603.8200073242188,
+                  236.3223
+                ]
+              },
+              {
+                "column": 13,
+                "text": "148.071",
+                "word_ids": [
+                  218
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  230.2117,
+                  649.1799926757812,
+                  236.3223
+                ]
+              },
+              {
+                "column": 14,
+                "text": "148.072",
+                "word_ids": [
+                  219
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  230.2117,
+                  710.6199951171875,
+                  236.3223
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  220
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  230.2117,
+                  736.7999877929688,
+                  236.3223
+                ]
+              },
+              {
+                "column": 16,
+                "text": "148.072",
+                "word_ids": [
+                  221
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  230.2117,
+                  807.0095825195312,
+                  236.3223
+                ]
+              }
+            ]
+          },
+          {
+            "index": 8,
+            "bbox": [
+              33.11040115356445,
+              237.4117,
+              807.0095825195312,
+              243.5223
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "V. Nakden Gerçekleştirilen Sermaye Artırımı",
+                "word_ids": [
+                  222,
+                  223,
+                  224,
+                  225,
+                  226
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  237.4117,
+                  179.05999755859375,
+                  243.5223
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  227
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  237.4117,
+                  209.66000366210938,
+                  243.5223
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  228
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  237.4117,
+                  247.3699951171875,
+                  243.5223
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  229
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  237.4117,
+                  283.010009765625,
+                  243.5223
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  230
+                ],
+                "bbox": [
+                  283.010009765625,
+                  237.4117,
+                  323.0899963378906,
+                  243.5223
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  231
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  237.4117,
+                  354.7699890136719,
+                  243.5223
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  232
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  237.4117,
+                  380.45001220703125,
+                  243.5223
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  233
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  237.4117,
+                  419.8299865722656,
+                  243.5223
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  234
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  237.4117,
+                  439.2699890136719,
+                  243.5223
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  235
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  237.4117,
+                  470.7099914550781,
+                  243.5223
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  236
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  237.4117,
+                  510.54998779296875,
+                  243.5223
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  237
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  237.4117,
+                  546.9099731445312,
+                  243.5223
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  238
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  237.4117,
+                  603.8200073242188,
+                  243.5223
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  239
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  237.4117,
+                  649.1799926757812,
+                  243.5223
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  240
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  237.4117,
+                  710.6199951171875,
+                  243.5223
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  241
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  237.4117,
+                  736.7999877929688,
+                  243.5223
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  242
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  237.4117,
+                  807.0095825195312,
+                  243.5223
+                ]
+              }
+            ]
+          },
+          {
+            "index": 9,
+            "bbox": [
+              33.11040115356445,
+              244.7317,
+              807.0095825195312,
+              250.8423
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "VI. İç Kaynaklardan Gerçekleştirilen Sermaye Artırımı",
+                "word_ids": [
+                  243,
+                  244,
+                  245,
+                  246,
+                  247,
+                  248
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  244.7317,
+                  179.05999755859375,
+                  250.8423
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  249
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  244.7317,
+                  209.66000366210938,
+                  250.8423
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  250
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  244.7317,
+                  247.3699951171875,
+                  250.8423
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  251
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  244.7317,
+                  283.010009765625,
+                  250.8423
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  252
+                ],
+                "bbox": [
+                  283.010009765625,
+                  244.7317,
+                  323.0899963378906,
+                  250.8423
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  253
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  244.7317,
+                  354.7699890136719,
+                  250.8423
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  254
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  244.7317,
+                  380.45001220703125,
+                  250.8423
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  255
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  244.7317,
+                  419.8299865722656,
+                  250.8423
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  256
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  244.7317,
+                  439.2699890136719,
+                  250.8423
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  257
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  244.7317,
+                  470.7099914550781,
+                  250.8423
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  258
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  244.7317,
+                  510.54998779296875,
+                  250.8423
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  259
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  244.7317,
+                  546.9099731445312,
+                  250.8423
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  260
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  244.7317,
+                  603.8200073242188,
+                  250.8423
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  261
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  244.7317,
+                  649.1799926757812,
+                  250.8423
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  262
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  244.7317,
+                  710.6199951171875,
+                  250.8423
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  263
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  244.7317,
+                  736.7999877929688,
+                  250.8423
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  264
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  244.7317,
+                  807.0095825195312,
+                  250.8423
+                ]
+              }
+            ]
+          },
+          {
+            "index": 10,
+            "bbox": [
+              33.11040115356445,
+              251.9317,
+              807.0095825195312,
+              258.0423
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "VII. Ödenmiş Sermaye Enflasyon Düzeltme Farkı",
+                "word_ids": [
+                  265,
+                  266,
+                  267,
+                  268,
+                  269,
+                  270
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  251.9317,
+                  179.05999755859375,
+                  258.0423
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  271
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  251.9317,
+                  209.66000366210938,
+                  258.0423
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  272
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  251.9317,
+                  247.3699951171875,
+                  258.0423
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  273
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  251.9317,
+                  283.010009765625,
+                  258.0423
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  274
+                ],
+                "bbox": [
+                  283.010009765625,
+                  251.9317,
+                  323.0899963378906,
+                  258.0423
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  275
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  251.9317,
+                  354.7699890136719,
+                  258.0423
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  276
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  251.9317,
+                  380.45001220703125,
+                  258.0423
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  277
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  251.9317,
+                  419.8299865722656,
+                  258.0423
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  278
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  251.9317,
+                  439.2699890136719,
+                  258.0423
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  279
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  251.9317,
+                  470.7099914550781,
+                  258.0423
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  280
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  251.9317,
+                  510.54998779296875,
+                  258.0423
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  281
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  251.9317,
+                  546.9099731445312,
+                  258.0423
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  282
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  251.9317,
+                  603.8200073242188,
+                  258.0423
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  283
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  251.9317,
+                  649.1799926757812,
+                  258.0423
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  284
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  251.9317,
+                  710.6199951171875,
+                  258.0423
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  285
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  251.9317,
+                  736.7999877929688,
+                  258.0423
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  286
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  251.9317,
+                  807.0095825195312,
+                  258.0423
+                ]
+              }
+            ]
+          },
+          {
+            "index": 11,
+            "bbox": [
+              33.11040115356445,
+              259.2517,
+              807.0095825195312,
+              265.3623
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "VIII. Hisse Senedine Dönüştürülebilir Tahviller",
+                "word_ids": [
+                  287,
+                  288,
+                  289,
+                  290,
+                  291
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  259.2517,
+                  179.05999755859375,
+                  265.3623
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  292
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  259.2517,
+                  209.66000366210938,
+                  265.3623
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  293
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  259.2517,
+                  247.3699951171875,
+                  265.3623
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  294
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  259.2517,
+                  283.010009765625,
+                  265.3623
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  295
+                ],
+                "bbox": [
+                  283.010009765625,
+                  259.2517,
+                  323.0899963378906,
+                  265.3623
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  296
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  259.2517,
+                  354.7699890136719,
+                  265.3623
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  297
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  259.2517,
+                  380.45001220703125,
+                  265.3623
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  298
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  259.2517,
+                  419.8299865722656,
+                  265.3623
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  299
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  259.2517,
+                  439.2699890136719,
+                  265.3623
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  300
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  259.2517,
+                  470.7099914550781,
+                  265.3623
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  301
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  259.2517,
+                  510.54998779296875,
+                  265.3623
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  302
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  259.2517,
+                  546.9099731445312,
+                  265.3623
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  303
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  259.2517,
+                  603.8200073242188,
+                  265.3623
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  304
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  259.2517,
+                  649.1799926757812,
+                  265.3623
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  305
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  259.2517,
+                  710.6199951171875,
+                  265.3623
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  306
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  259.2517,
+                  736.7999877929688,
+                  265.3623
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  307
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  259.2517,
+                  807.0095825195312,
+                  265.3623
+                ]
+              }
+            ]
+          },
+          {
+            "index": 12,
+            "bbox": [
+              33.11040115356445,
+              266.5917,
+              807.0095825195312,
+              272.7023
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "IX. Sermaye Benzeri Borçlanma Araçları",
+                "word_ids": [
+                  308,
+                  309,
+                  310,
+                  311,
+                  312
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  266.5917,
+                  179.05999755859375,
+                  272.7023
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  313
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  266.5917,
+                  209.66000366210938,
+                  272.7023
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  314
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  266.5917,
+                  247.3699951171875,
+                  272.7023
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  315
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  266.5917,
+                  283.010009765625,
+                  272.7023
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  316
+                ],
+                "bbox": [
+                  283.010009765625,
+                  266.5917,
+                  323.0899963378906,
+                  272.7023
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  317
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  266.5917,
+                  354.7699890136719,
+                  272.7023
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  318
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  266.5917,
+                  380.45001220703125,
+                  272.7023
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  319
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  266.5917,
+                  419.8299865722656,
+                  272.7023
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  320
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  266.5917,
+                  439.2699890136719,
+                  272.7023
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  321
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  266.5917,
+                  470.7099914550781,
+                  272.7023
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  322
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  266.5917,
+                  510.54998779296875,
+                  272.7023
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  323
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  266.5917,
+                  546.9099731445312,
+                  272.7023
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  324
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  266.5917,
+                  603.8200073242188,
+                  272.7023
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  325
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  266.5917,
+                  649.1799926757812,
+                  272.7023
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  326
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  266.5917,
+                  710.6199951171875,
+                  272.7023
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  327
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  266.5917,
+                  736.7999877929688,
+                  272.7023
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  328
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  266.5917,
+                  807.0095825195312,
+                  272.7023
+                ]
+              }
+            ]
+          },
+          {
+            "index": 13,
+            "bbox": [
+              33.11040115356445,
+              273.7917,
+              807.0095825195312,
+              279.9023
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "X. Diğer Değişiklikler Nedeniyle Artış /Azalış",
+                "word_ids": [
+                  329,
+                  330,
+                  331,
+                  332,
+                  333,
+                  334
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  273.7917,
+                  179.05999755859375,
+                  279.9023
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  335
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  273.7917,
+                  209.66000366210938,
+                  279.9023
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  336
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  273.7917,
+                  247.3699951171875,
+                  279.9023
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  337
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  273.7917,
+                  283.010009765625,
+                  279.9023
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  338
+                ],
+                "bbox": [
+                  283.010009765625,
+                  273.7917,
+                  323.0899963378906,
+                  279.9023
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  339
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  273.7917,
+                  354.7699890136719,
+                  279.9023
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  340
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  273.7917,
+                  380.45001220703125,
+                  279.9023
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  341
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  273.7917,
+                  419.8299865722656,
+                  279.9023
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  342
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  273.7917,
+                  439.2699890136719,
+                  279.9023
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  343
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  273.7917,
+                  470.7099914550781,
+                  279.9023
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  344
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  273.7917,
+                  510.54998779296875,
+                  279.9023
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  345
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  273.7917,
+                  546.9099731445312,
+                  279.9023
+                ]
+              },
+              {
+                "column": 12,
+                "text": "(1.870)",
+                "word_ids": [
+                  346
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  273.7917,
+                  603.8200073242188,
+                  279.9023
+                ]
+              },
+              {
+                "column": 13,
+                "text": "1.870",
+                "word_ids": [
+                  347
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  273.7917,
+                  649.1799926757812,
+                  279.9023
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  348
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  273.7917,
+                  710.6199951171875,
+                  279.9023
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  349
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  273.7917,
+                  736.7999877929688,
+                  279.9023
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  350
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  273.7917,
+                  807.0095825195312,
+                  279.9023
+                ]
+              }
+            ]
+          },
+          {
+            "index": 14,
+            "bbox": [
+              33.11040115356445,
+              281.1117,
+              807.0095825195312,
+              287.2223
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "XI. Kâr Dağıtımı",
+                "word_ids": [
+                  351,
+                  352,
+                  353
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  281.1117,
+                  179.05999755859375,
+                  287.2223
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  354
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  281.1117,
+                  209.66000366210938,
+                  287.2223
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  355
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  281.1117,
+                  247.3699951171875,
+                  287.2223
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  356
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  281.1117,
+                  283.010009765625,
+                  287.2223
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  357
+                ],
+                "bbox": [
+                  283.010009765625,
+                  281.1117,
+                  323.0899963378906,
+                  287.2223
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  358
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  281.1117,
+                  354.7699890136719,
+                  287.2223
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  359
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  281.1117,
+                  380.45001220703125,
+                  287.2223
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  360
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  281.1117,
+                  419.8299865722656,
+                  287.2223
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  361
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  281.1117,
+                  439.2699890136719,
+                  287.2223
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  362
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  281.1117,
+                  470.7099914550781,
+                  287.2223
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  363
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  281.1117,
+                  510.54998779296875,
+                  287.2223
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  364
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  281.1117,
+                  546.9099731445312,
+                  287.2223
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  365
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  281.1117,
+                  603.8200073242188,
+                  287.2223
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  366
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  281.1117,
+                  649.1799926757812,
+                  287.2223
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  367
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  281.1117,
+                  710.6199951171875,
+                  287.2223
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  368
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  281.1117,
+                  736.7999877929688,
+                  287.2223
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  369
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  281.1117,
+                  807.0095825195312,
+                  287.2223
+                ]
+              }
+            ]
+          },
+          {
+            "index": 15,
+            "bbox": [
+              33.11040115356445,
+              288.3117,
+              807.0095825195312,
+              294.4223
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "11.1 Dağıtılan Temettü",
+                "word_ids": [
+                  370,
+                  371,
+                  372
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  288.3117,
+                  179.05999755859375,
+                  294.4223
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  373
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  288.3117,
+                  209.66000366210938,
+                  294.4223
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  374
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  288.3117,
+                  247.3699951171875,
+                  294.4223
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  375
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  288.3117,
+                  283.010009765625,
+                  294.4223
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  376
+                ],
+                "bbox": [
+                  283.010009765625,
+                  288.3117,
+                  323.0899963378906,
+                  294.4223
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  377
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  288.3117,
+                  354.7699890136719,
+                  294.4223
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  378
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  288.3117,
+                  380.45001220703125,
+                  294.4223
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  379
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  288.3117,
+                  419.8299865722656,
+                  294.4223
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  380
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  288.3117,
+                  439.2699890136719,
+                  294.4223
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  381
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  288.3117,
+                  470.7099914550781,
+                  294.4223
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  382
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  288.3117,
+                  510.54998779296875,
+                  294.4223
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  383
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  288.3117,
+                  546.9099731445312,
+                  294.4223
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  384
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  288.3117,
+                  603.8200073242188,
+                  294.4223
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  385
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  288.3117,
+                  649.1799926757812,
+                  294.4223
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  386
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  288.3117,
+                  710.6199951171875,
+                  294.4223
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  387
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  288.3117,
+                  736.7999877929688,
+                  294.4223
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  388
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  288.3117,
+                  807.0095825195312,
+                  294.4223
+                ]
+              }
+            ]
+          },
+          {
+            "index": 16,
+            "bbox": [
+              33.11040115356445,
+              295.6317,
+              807.0095825195312,
+              301.7423
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "11.2 Yedeklere Aktarılan Tutarlar",
+                "word_ids": [
+                  389,
+                  390,
+                  391,
+                  392
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  295.6317,
+                  179.05999755859375,
+                  301.7423
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  393
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  295.6317,
+                  209.66000366210938,
+                  301.7423
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  394
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  295.6317,
+                  247.3699951171875,
+                  301.7423
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  395
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  295.6317,
+                  283.010009765625,
+                  301.7423
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  396
+                ],
+                "bbox": [
+                  283.010009765625,
+                  295.6317,
+                  323.0899963378906,
+                  301.7423
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  397
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  295.6317,
+                  354.7699890136719,
+                  301.7423
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  398
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  295.6317,
+                  380.45001220703125,
+                  301.7423
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  399
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  295.6317,
+                  419.8299865722656,
+                  301.7423
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  400
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  295.6317,
+                  439.2699890136719,
+                  301.7423
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  401
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  295.6317,
+                  470.7099914550781,
+                  301.7423
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  402
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  295.6317,
+                  510.54998779296875,
+                  301.7423
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  403
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  295.6317,
+                  546.9099731445312,
+                  301.7423
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  404
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  295.6317,
+                  603.8200073242188,
+                  301.7423
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  405
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  295.6317,
+                  649.1799926757812,
+                  301.7423
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  406
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  295.6317,
+                  710.6199951171875,
+                  301.7423
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  407
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  295.6317,
+                  736.7999877929688,
+                  301.7423
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  408
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  295.6317,
+                  807.0095825195312,
+                  301.7423
+                ]
+              }
+            ]
+          },
+          {
+            "index": 17,
+            "bbox": [
+              33.11040115356445,
+              302.9517,
+              807.0095825195312,
+              309.0623
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "11.3 Diğer",
+                "word_ids": [
+                  409,
+                  410
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  302.9517,
+                  179.05999755859375,
+                  309.0623
+                ]
+              },
+              {
+                "column": 1,
+                "text": "-",
+                "word_ids": [
+                  411
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  302.9517,
+                  209.66000366210938,
+                  309.0623
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  412
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  302.9517,
+                  247.3699951171875,
+                  309.0623
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  413
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  302.9517,
+                  283.010009765625,
+                  309.0623
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  414
+                ],
+                "bbox": [
+                  283.010009765625,
+                  302.9517,
+                  323.0899963378906,
+                  309.0623
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  415
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  302.9517,
+                  354.7699890136719,
+                  309.0623
+                ]
+              },
+              {
+                "column": 6,
+                "text": "-",
+                "word_ids": [
+                  416
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  302.9517,
+                  380.45001220703125,
+                  309.0623
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  417
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  302.9517,
+                  419.8299865722656,
+                  309.0623
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  418
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  302.9517,
+                  439.2699890136719,
+                  309.0623
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  419
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  302.9517,
+                  470.7099914550781,
+                  309.0623
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  420
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  302.9517,
+                  510.54998779296875,
+                  309.0623
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  421
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  302.9517,
+                  546.9099731445312,
+                  309.0623
+                ]
+              },
+              {
+                "column": 12,
+                "text": "-",
+                "word_ids": [
+                  422
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  302.9517,
+                  603.8200073242188,
+                  309.0623
+                ]
+              },
+              {
+                "column": 13,
+                "text": "-",
+                "word_ids": [
+                  423
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  302.9517,
+                  649.1799926757812,
+                  309.0623
+                ]
+              },
+              {
+                "column": 14,
+                "text": "-",
+                "word_ids": [
+                  424
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  302.9517,
+                  710.6199951171875,
+                  309.0623
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  425
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  302.9517,
+                  736.7999877929688,
+                  309.0623
+                ]
+              },
+              {
+                "column": 16,
+                "text": "-",
+                "word_ids": [
+                  426
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  302.9517,
+                  807.0095825195312,
+                  309.0623
+                ]
+              }
+            ]
+          },
+          {
+            "index": 18,
+            "bbox": [
+              33.11040115356445,
+              311.5917,
+              807.0095825195312,
+              317.7023
+            ],
+            "cells": [
+              {
+                "column": 0,
+                "text": "Dönem Sonu Bakiyesi (III+IV+…...+X+XI)",
+                "word_ids": [
+                  427,
+                  428,
+                  429,
+                  430
+                ],
+                "bbox": [
+                  33.11040115356445,
+                  311.5917,
+                  179.05999755859375,
+                  317.7023
+                ]
+              },
+              {
+                "column": 1,
+                "text": "1.500.000",
+                "word_ids": [
+                  431
+                ],
+                "bbox": [
+                  179.05999755859375,
+                  311.5917,
+                  209.66000366210938,
+                  317.7023
+                ]
+              },
+              {
+                "column": 2,
+                "text": "-",
+                "word_ids": [
+                  432
+                ],
+                "bbox": [
+                  209.66000366210938,
+                  311.5917,
+                  247.3699951171875,
+                  317.7023
+                ]
+              },
+              {
+                "column": 3,
+                "text": "-",
+                "word_ids": [
+                  433
+                ],
+                "bbox": [
+                  247.3699951171875,
+                  311.5917,
+                  283.010009765625,
+                  317.7023
+                ]
+              },
+              {
+                "column": 4,
+                "text": "-",
+                "word_ids": [
+                  434
+                ],
+                "bbox": [
+                  283.010009765625,
+                  311.5917,
+                  323.0899963378906,
+                  317.7023
+                ]
+              },
+              {
+                "column": 5,
+                "text": "-",
+                "word_ids": [
+                  435
+                ],
+                "bbox": [
+                  323.0899963378906,
+                  311.5917,
+                  354.7699890136719,
+                  317.7023
+                ]
+              },
+              {
+                "column": 6,
+                "text": "(5)",
+                "word_ids": [
+                  436
+                ],
+                "bbox": [
+                  354.7699890136719,
+                  311.5917,
+                  380.45001220703125,
+                  317.7023
+                ]
+              },
+              {
+                "column": 7,
+                "text": "-",
+                "word_ids": [
+                  437
+                ],
+                "bbox": [
+                  380.45001220703125,
+                  311.5917,
+                  419.8299865722656,
+                  317.7023
+                ]
+              },
+              {
+                "column": 8,
+                "text": "-",
+                "word_ids": [
+                  438
+                ],
+                "bbox": [
+                  419.8299865722656,
+                  311.5917,
+                  439.2699890136719,
+                  317.7023
+                ]
+              },
+              {
+                "column": 9,
+                "text": "-",
+                "word_ids": [
+                  439
+                ],
+                "bbox": [
+                  439.2699890136719,
+                  311.5917,
+                  470.7099914550781,
+                  317.7023
+                ]
+              },
+              {
+                "column": 10,
+                "text": "-",
+                "word_ids": [
+                  440
+                ],
+                "bbox": [
+                  470.7099914550781,
+                  311.5917,
+                  510.54998779296875,
+                  317.7023
+                ]
+              },
+              {
+                "column": 11,
+                "text": "-",
+                "word_ids": [
+                  441
+                ],
+                "bbox": [
+                  510.54998779296875,
+                  311.5917,
+                  546.9099731445312,
+                  317.7023
+                ]
+              },
+              {
+                "column": 12,
+                "text": "(1.870)",
+                "word_ids": [
+                  442
+                ],
+                "bbox": [
+                  546.9099731445312,
+                  311.5917,
+                  603.8200073242188,
+                  317.7023
+                ]
+              },
+              {
+                "column": 13,
+                "text": "148.071",
+                "word_ids": [
+                  443
+                ],
+                "bbox": [
+                  603.8200073242188,
+                  311.5917,
+                  649.1799926757812,
+                  317.7023
+                ]
+              },
+              {
+                "column": 14,
+                "text": "1.646.196",
+                "word_ids": [
+                  444
+                ],
+                "bbox": [
+                  649.1799926757812,
+                  311.5917,
+                  710.6199951171875,
+                  317.7023
+                ]
+              },
+              {
+                "column": 15,
+                "text": "-",
+                "word_ids": [
+                  445
+                ],
+                "bbox": [
+                  710.6199951171875,
+                  311.5917,
+                  736.7999877929688,
+                  317.7023
+                ]
+              },
+              {
+                "column": 16,
+                "text": "1.646.196",
+                "word_ids": [
+                  446
+                ],
+                "bbox": [
+                  736.7999877929688,
+                  311.5917,
+                  807.0095825195312,
+                  317.7023
+                ]
+              }
+            ]
+          }
+        ],
+        "row_group": {
+          "method": "source_words_in_vertical_cell_spans",
+          "source_rows": [
+            2,
+            3
+          ],
+          "spanning_cells": [
+            {
+              "row": 2,
+              "column": 0,
+              "row_span": 2,
+              "column_span": 1
+            }
+          ],
+          "physical_cells_unchanged": true,
+          "semantic_verification": "not_performed"
+        }
+      }
+    ]
+  }
+}

@@ -1879,3 +1879,11 @@ The projection stores header-row and drawing-occurrence witnesses. It does not
 alter physical cells or parse figures. Isolated value/dash lines remain separate;
 logical accounting rows are still unverified. Source benchmarks recheck literal
 column text and full word occurrences against independently transcribed regions.
+
+Vertical cell spans may connect multiple physical rows into one source-line group.
+The derived `row_group` retains the exact source-row IDs and spanning-cell
+witnesses. All words must occur exactly once inside their original columns and
+unambiguous source baseline bands; horizontal merges in the group are rejected.
+The admin displays each grouped source line once, including a closing balance
+whose label cell spans an earlier row. Turning off the line view restores the
+original row/column spans. These relationships do not certify logical rows.

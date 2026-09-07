@@ -102,6 +102,22 @@ def _project_columns(row, table, grid, source, by_id):
                      'semantic_verification': 'not_performed'}
 
 
+def _row_bands(table, grid):
+    """Keep rows touched by a vertical cell span together in the line view."""
+    ends = list(range(1, len(table['rows']) + 1))
+    for anchor in grid['anchors']:
+        ends[anchor['row']] = max(ends[anchor['row']], anchor['row'] + anchor['row_span'])
+    start = 0
+    while start < len(ends):
+        stop = ends[start]
+        for index in range(start + 1, len(ends)):
+            if index >= stop:
+                break
+            stop = max(stop, ends[index])
+        yield table['rows'][start:stop]
+        start = stop
+
+
 def table_source_rows(page: dict, source: dict) -> dict:
     results = []
     for table in page['tables']:
@@ -117,14 +133,30 @@ def table_source_rows(page: dict, source: dict) -> dict:
                        for i in c['word_ids']) for c in cells)):
             continue
         split = []
-        for row in table['rows']:
-            anchors = [a for a in grid['anchors'] if a['row'] == row['index']]
-            refs = [i for c in row['cells'] for i in c['word_ids']]
+        for band in _row_bands(table, grid):
+            row = band[0]
+            row_ids = [r['index'] for r in band]
+            anchors = [a for a in grid['anchors'] if a['row'] in row_ids]
+            band_cells = [c for r in band for c in r['cells']]
+            refs = [i for c in band_cells for i in c['word_ids']]
             lines = _lines([by_id[i] for i in refs])
             if lines is None or len(lines) < 8:
                 continue
             projection = None
-            if (len(anchors) == table['n_cols']
+            row_group = None
+            if len(band) > 1:
+                if any(a['column_span'] != 1 for a in anchors):
+                    continue
+                columns = {i: c['column'] for c in band_cells for i in c['word_ids']}
+                # A spanning cell supplies its actual column, not a guessed
+                # assignment across a border. Reject words crossing that column.
+                if any(by_id[i]['bbox'][0] < grid['x_edges'][c] - .75
+                       or by_id[i]['bbox'][2] > grid['x_edges'][c + 1] + .75 for i, c in columns.items()):
+                    continue
+                row_group = {'method': 'source_words_in_vertical_cell_spans', 'source_rows': row_ids,
+                             'spanning_cells': [a for a in anchors if a['row_span'] > 1],
+                             'physical_cells_unchanged': True, 'semantic_verification': 'not_performed'}
+            elif (len(anchors) == table['n_cols']
                     and all(a['row_span'] == a['column_span'] == 1 for a in anchors)):
                 columns = {i: c['column'] for c in row['cells'] for i in c['word_ids']}
             else:
@@ -143,6 +175,7 @@ def table_source_rows(page: dict, source: dict) -> dict:
                                'bbox': [grid['x_edges'][c], top, grid['x_edges'][c + 1], bottom]}
                               for c in range(table['n_cols'])]})
             split.append({'source_row': row['index'], 'lines': rendered,
+                          **({'row_group': row_group} if row_group is not None else {}),
                           **({'column_projection': projection} if projection is not None else {})})
         if split:
             results.append({'table_id': table['id'], 'split_rows': split})

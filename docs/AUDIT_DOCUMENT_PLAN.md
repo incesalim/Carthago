@@ -734,3 +734,21 @@ of detected tables.
   registered locators and retained their previous URLs/listing review context.
   The denominator stays 1,146; acquired PDFs and main indexes are untouched.
   Cloud source-origin proof and the two new edition captures remain pending.
+
+- 2026-09-07: final origin publication `34077439751` independently verifies all
+  three remaining sources and 15 retained objects. All 1,146 registered filings
+  now have an official PDF comparison: 1,094 have a byte agreement, 53 an observed
+  different PDF, one overlaps and zero have neither. All 53 observed editions
+  independently reconcile: 5,378 pages, 13,623,066 native characters, 102,888
+  blocks, 13,024 table candidates, 47 selected recovery pages and 19,190 OCR words.
+  No main filing or acquired PDF is replaced.
+- 2026-09-07: all 14 new archive declarations pass independent byte/source checks:
+  14 pages, 3,689 native characters and 2,026 OCR words. Four native identities
+  are supported and ten remain unresolved. The observed attachment count is now
+  30 associations. Recovery artifact checks do not certify recognition accuracy.
+- 2026-09-07: TOMK page 15's vertically spanning label cell now exposes one group
+  of 19 source lines across 17 columns, keeping the closing balance once and all
+  original cells intact. Four independent source cases, whole-word conservation,
+  ambiguity mutations and admin rendering checks pass locally. Only this page's
+  line view changes across the retained 51-page report. Cloud verification and
+  publication remain pending; table meanings and header-note links are unverified.

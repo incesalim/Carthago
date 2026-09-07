@@ -170,9 +170,15 @@ checked for every attachment; all 24 recovery pages in the two earlier probes
 also match their independently inspected artifacts. Replay `34069765929` preserves
 all 31 observed object versions. Both Anadolu declaration identity receipts are
 also backfilled (`34069767466` / `34069769140`); their image-only native identity
-remains unresolved and prior artifacts retain their versions. All 16 identified
-related archive associations are captured. No whole attachment is semantically
-approved, and unresolved origin downloads may contain additional attachments.
+remains unresolved and prior artifacts retain their versions. Those initial 16 related archive associations are captured. All 14 additional
+Anadolubank/TSKB responsibility declarations also now pass independent readback:
+14 distinct one-page PDFs, 3,689 native characters and 2,026 OCR words. Original,
+native, structure, identity and recovery artifact bytes and source/page bindings
+were checked against their retained archives. Four native identities are supported;
+ten remain unresolved because native text is insufficient. Main indexes and
+acquisition versions are unchanged. All 30 observed archive associations are
+captured; this does not establish that every possible attachment was discovered.
+No whole attachment is semantically approved or every OCR word certified.
 
 Three open TOMK 2023Q3 content notes now retain seven exact source passages:
 capital ratios 93,93 / 93,75 / 93,90, the prior own-funds discrepancy and adjacent
@@ -222,7 +228,7 @@ history retention and unchanged acquisitions. That published rollup was
 **1,071 filings with byte agreement**, 15 with a different PDF (one overlaps),
 and 61 with neither outcome. Exact follow-up `34074745326` has now independently
 reconciled all 61 filings and 288 stored objects: 14 matches, 30 different PDFs
-and 17 unresolved sources. The current rollup is **1,085 filings with byte
+and 17 unresolved sources. That intermediate rollup was **1,085 filings with byte
 agreement**, **45 with a different PDF**, one overlap (ATBANK), and **17 with
 neither outcome**. Fourteen unresolved downloads contain two PDFs. Eight Anadolubank
 archives include the exact acquired financial report; six TSKB report covers
@@ -230,15 +236,19 @@ independently match their bank, period and basis but have different PDF bytes.
 Source-bound selections retain the exact URL, archive hash, member hash and
 review witness. Cloud follow-up `34076924747` independently reconciles all 14
 against 71 stored objects: eight matches and six different PDFs, all with source
-identity support and unchanged main/acquisition versions. Published coverage is
-now **1,093 agreements**, **51 different-PDF filings**, one overlap and **three
-with neither outcome**. The six additional TSKB editions and 14 attachments are
-capturing separately. For the final three sources, independent bank-site probes
-match AKTIF 2025Q3 solo and identify different official EXIM 2025Q3 solo and
-HALKB 2026Q2 solo PDFs. Their covers were visually checked. The latter two
-registered locators now point to those bank-listed PDFs; prior URLs remain in
-registry history and retained observations. Cloud origin publication and capture
-of those two additional editions are pending.
+identity support and unchanged main/acquisition versions. That intermediate coverage was
+1,093 agreements, 51 different-PDF filings, one overlap and three with neither
+outcome. Final comparison `34077439751` independently reconciles the last three
+filings and all 15 retained objects against bank-listed source probes: AKTIF
+2025Q3 solo matches acquired bytes; EXIM 2025Q3 solo and HALKB 2026Q2 solo differ.
+All three rendered covers match their bank, period and basis. The latter two
+registered locators now use those bank-listed PDFs; previous URLs, unavailable
+responses and the DOCX-only regulator archive remain in retained history.
+Every registered filing now has a retained official PDF comparison: **1,094
+have byte agreement**, **53 have an observed different PDF**, **one overlaps**
+(ATBANK), and **zero have neither outcome**. The union is exactly 1,146 filings.
+Main filing index bytes/versions and acquisitions remain unchanged. The findings
+do not settle source contradictions, edition meaning or content accuracy.
 
 `capture-document-edition.yml` is implemented for an exact historical origin
 observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
@@ -252,10 +262,11 @@ original/native/structure accounting and exact Git engine checks, plus four
 fresh original-page comparisons. It retains 195,952 native characters, 987 text
 blocks and 183 table candidates; no pages were flagged for recovery. Publication/replay
 `34074261461` is independently verified against the probe and preserves all seven
-observed object versions. Full independent readback of all **45 observed editions**
-now passes: **4,435 pages**, **11,193,374 native characters**, **83,154 physical
-text blocks** and **11,073 table candidates**. Selected recovery covers **46 pages**
-and **18,862 OCR words**. Main filing index bytes/versions and acquisitions remained
+observed object versions. Full independent readback of all **53 observed editions**
+now passes: **5,378 pages**, **13,623,066 native characters**, **102,888 physical
+text blocks** and **13,024 table candidates**. Selected recovery covers **47 pages**
+and **19,190 OCR words**. This includes all six additional TSKB reports and the
+final Eximbank/Halkbank editions. Main filing index bytes/versions and acquisitions remained
 unchanged. These checks establish artifact accounting and source bindings, not
 complete table detection or accurate recognition of every word. CI/deployment at
 `d23d76e` pass; live admin inspection still awaits the user renewing the expired session.
@@ -296,8 +307,8 @@ The admin can toggle these source lines; wrapped labels remain physical lines,
 not certified accounting rows. Cloud probe `34064705881` passes all four cases;
 all 51 original/native page artifacts remain identical and each added line view
 was independently rebuilt. Assets, liabilities, P&L and OCI now expose 47, 47,
-64 and 17 physical body lines respectively. Equity and logical cash-flow row associations,
-and the authenticated live display remain pending. The source-line view itself
+64 and 17 physical body lines respectively. Equity source-line handling is described below. Logical accounting-row
+associations and the authenticated live display remain pending. The source-line view itself
 is now published with the five-case FX repair.
 
 A new, separate column projection handles the TOMK cash-flow body's physical
@@ -313,6 +324,18 @@ Publication/replay `34075859884` matches that probe, retains three open source
 content notes and leaves all six observed object versions unchanged on replay.
 Python suite, 788 web tests, lint and type checks pass; authenticated UI review
 remains pending. This geometric projection does not certify logical accounting rows.
+
+A vertical cell span in TOMK's page-15 equity statement previously prevented
+the source-line view. The new view groups physical rows touched by that span,
+requires exact word conservation and unique original-column containment, and
+retains all original cells. It exposes 19 source lines across the label and 16
+amount columns, including the closing balance once. Four independently
+transcribed opening/movement/closing source cases raise TOMK's benchmark to 17
+cases. Missing, duplicated, misplaced or overlapping content rejects the view.
+All 51 retained page structures were compared locally; only page 15's line view
+changes. Admin rendering tests preserve both merged headers and all body columns.
+Cloud probe/publication and live authenticated display checks remain pending.
+Header-note meaning and accounting-row semantics remain unverified.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
@@ -338,7 +361,7 @@ within table text. Publication/replay `34066695808` matches the independent
 seven-case probe and leaves all four checked object versions unchanged.
 Authenticated live inspection remains pending.
 
-Remaining work: resolve fresh-origin exceptions and reconcile the revised recovery fleet; establish
+Remaining work: establish
 whole-document physical and semantic coverage with independently reviewed source
 benchmarks; verify table headers/units/row-column associations and continuations;
 verify prose structure/order and analyst retrieval. Older history and additional

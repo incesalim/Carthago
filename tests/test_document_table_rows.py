@@ -148,3 +148,60 @@ def test_independent_cashflow_source_cases_require_the_projected_columns(cashflo
     saved = page['table_source_rows']['tables'][0]['split_rows'][0]
     saved['column_projection']['rule_witnesses'][0]['source_drawing_ids'].pop()
     assert verify_table_source_rows(page, source) == ['table_source_rows_mismatch']
+
+
+@pytest.fixture
+def equity():
+    fixture = json.loads((Path(__file__).parent / 'fixtures/document_equity_source_rows_tomk.json').read_text(encoding='utf-8'))
+    return fixture['pages'][0], fixture['source_pages'][0], fixture['source']
+
+
+def test_equity_spanning_label_cell_keeps_body_and_final_balance_once(equity):
+    page, source, _identity = equity
+    original = copy.deepcopy(page)
+    result = table_source_rows(page, source)
+    assert page == original and len(result['tables']) == 1
+    split = result['tables'][0]['split_rows'][0]
+    assert split['source_row'] == 2 and split['row_group']['source_rows'] == [2, 3]
+    assert split['row_group']['spanning_cells'] == [{'row': 2, 'column': 0, 'row_span': 2, 'column_span': 1}]
+    assert len(split['lines']) == 19 and all(len(line['cells']) == 17 for line in split['lines'])
+    assert [c['text'] for c in split['lines'][18]['cells']] == [
+        'Dönem Sonu Bakiyesi (III+IV+…...+X+XI)', '1.500.000', '-', '-', '-', '-', '(5)', '-', '-', '-', '-', '-',
+        '(1.870)', '148.071', '1.646.196', '-', '1.646.196']
+    table = next(t for t in page['tables'] if t['id'] == 'p15:ruled0')
+    expected = Counter(i for row in table['rows'][2:4] for c in row['cells'] for i in c['word_ids'])
+    observed = Counter(i for line in split['lines'] for c in line['cells'] for i in c['word_ids'])
+    assert expected == observed and all(n == 1 for n in observed.values())
+    assert not observed.keys() & {i for row in table['rows'][:2] for c in row['cells'] for i in c['word_ids']}
+    assert result['logical_rows_verified'] is False
+
+
+@pytest.mark.parametrize('mutation', ['missing_balance', 'duplicate_balance', 'broken_span', 'cross_column', 'overlap_lines'])
+def test_equity_line_group_abstains_on_incomplete_or_ambiguous_source(equity, mutation):
+    page, source, _identity = equity
+    table = next(t for t in page['tables'] if t['id'] == 'p15:ruled0')
+    last = table['rows'][3]['cells'][16]
+    if mutation == 'missing_balance': last['word_ids'] = []
+    if mutation == 'duplicate_balance': last['word_ids'].append(last['word_ids'][0])
+    if mutation == 'broken_span': table['rows'][2]['cells'][0]['bbox'][3] -= 1
+    if mutation == 'cross_column':
+        word = next(w for w in source['words'] if w['id'] == table['rows'][2]['cells'][13]['word_ids'][0])
+        word['bbox'][0] = 602
+    if mutation == 'overlap_lines':
+        word = next(w for w in source['words'] if w['id'] == last['word_ids'][0])
+        word['bbox'][1] -= 6
+    assert table_source_rows(page, source)['tables'] == []
+
+
+def test_equity_source_cases_fail_before_grouping_and_reject_a_minted_row_witness(equity):
+    from src.audit_reports.document_benchmark import check_annotations
+    page, source, identity = equity
+    annotation = json.loads((Path(__file__).parent / 'fixtures/document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 15]
+    assert len(annotation['cases']) == 4
+    structure, evidence = {'source': identity, 'pages': [page]}, [{'source': identity}, source]
+    assert not check_annotations(structure, evidence, annotation)['passed']
+    page['table_source_rows'] = table_source_rows(page, source)
+    assert check_annotations(structure, evidence, annotation)['passed']
+    page['table_source_rows']['tables'][0]['split_rows'][0]['row_group']['source_rows'].pop()
+    assert verify_table_source_rows(page, source) == ['table_source_rows_mismatch']

@@ -49,6 +49,9 @@ Tall ruled body cells can expose a separate source-line view with the original
 column positions and merged headers. Use the checkbox to return to physical
 cells. Blank positions mean no text on that line; no zero is inferred. Wrapped
 labels remain separate lines and accounting-row associations require review.
+When a label cell spans several physical rows, the line view keeps the group
+together in its original columns and displays its closing balance once. Turning
+the checkbox off restores the original cell spans.
 The complete physical text remains accessible underneath. Table counts
 are detector candidates, potentially overlapping; they are never a completeness
 denominator. Reading order, headers and narrative roles remain unreviewed.
