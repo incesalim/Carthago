@@ -11,6 +11,7 @@ vi.mock("@/app/lib/admin-auth", () => ({ requireAdminOr403: mocks.gate }));
 vi.mock("@/app/lib/document-corpus", () => import("./document-corpus"));
 vi.mock("@/app/lib/document-recovery", () => import("./document-recovery"));
 vi.mock("@/app/lib/document-related", () => import("./document-related"));
+vi.mock("@/app/lib/document-editions", () => import("./document-editions"));
 import { GET } from "../api/admin/document-recovery/route";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_recovery_wire.json", import.meta.url), "utf8"));

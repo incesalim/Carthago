@@ -142,6 +142,10 @@
     "capture-related-documents.yml": {
       "state": "active",
       "reason": "Manual capture of other PDFs in a verified report archive. Optional publication uses separate related-document indexes and source-bound recovery; primary filing indexes and analytical data stay unchanged."
+    },
+    "capture-document-edition.yml": {
+      "state": "active",
+      "reason": "Manual capture of one exact retained different-PDF origin observation. Separate edition indexes, native structure and selected recovery; no acquired filing replacement or analytical writes."
     }
   }
 }

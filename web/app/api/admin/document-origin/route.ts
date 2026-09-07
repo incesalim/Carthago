@@ -1,6 +1,6 @@
 import { requireAdminOr403 } from "@/app/lib/admin-auth";
 import { getCorpusBucket, parseFiling } from "@/app/lib/document-corpus";
-import { getOriginReview } from "@/app/lib/document-origin";
+import { getOriginReview, getOriginObservations } from "@/app/lib/document-origin";
 import { readRecoveryArtifact } from "@/app/lib/document-recovery";
 
 export const dynamic = "force-dynamic";
@@ -16,13 +16,19 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const filing = parseFiling(params.get("filing") ?? "");
   const artifact = params.get("artifact");
+  const observation = params.get("observation");
+  if (observation !== null && !/^[a-f0-9]{64}$/.test(observation)) return json({ error: "Invalid source observation." }, 400);
   if (!filing || artifact !== null && !["origin_pdf", "transport", "source_listing"].includes(artifact)) {
     return json({ error: "Choose a registered filing and an available source artifact." }, 400);
   }
   const bucket = await getCorpusBucket();
   if (!bucket) return json({ error: "Document storage is not connected." }, 503);
   try {
-    const review = await getOriginReview(bucket, filing);
+    if (!artifact && !observation) {
+      const observations = await getOriginObservations(bucket, filing);
+      return json({ review: observations.find(o => o.current)?.review ?? null, observations });
+    }
+    const review = await getOriginReview(bucket, filing, observation ?? undefined);
     if (!artifact) return json({ review });
     const entry = artifact === "origin_pdf" ? review?.origin_pdf : artifact === "source_listing" ? review?.source_listing : review?.transport;
     if (!entry) return json({ error: "This source observation has no retained artifact of that kind." }, 404);

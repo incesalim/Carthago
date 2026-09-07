@@ -3,7 +3,9 @@ import { CORPUS_PREFIX, type CorpusBucket, type FilingIdentity } from "./documen
 import { readRecoveryArtifact } from "./document-recovery";
 import regulatorNames from "../../../data/banks/bddk_audit_registry_names.json";
 
+export type OriginReference = { key: string; sha256: string; bytes: number; checked_at: string; status: string; acquisition_sha256: string | null };
 type Artifact = { key: string; sha256: string; bytes: number };
+export type OriginObservation = { reference: OriginReference; current: boolean; review: OriginReview };
 export type OriginReview = {
   schema_version: "document-origin-review-1"; filing: FilingIdentity; checked_at: string;
   status: "matches_acquired_bytes" | "same_pdf_after_acquisition_wrapper" | "different_pdf_revision"
@@ -24,7 +26,7 @@ const time = (v: unknown): v is string => typeof v === "string" && /(?:Z|\+00:00
 const statuses = new Set(["matches_acquired_bytes", "same_pdf_after_acquisition_wrapper", "different_pdf_revision",
   "acquisition_missing", "origin_unavailable", "origin_needs_review"]);
 
-export async function getOriginReview(bucket: CorpusBucket, filing: FilingIdentity): Promise<OriginReview | null> {
+async function getOriginIndex(bucket: CorpusBucket, filing: FilingIdentity) {
   const base = `${CORPUS_PREFIX}origins/${filing.bank_ticker}/${filing.period}/${filing.kind}/`;
   const object = await bucket.get(base + "index.json");
   if (!object) return null;
@@ -34,11 +36,38 @@ export async function getOriginReview(bucket: CorpusBucket, filing: FilingIdenti
       || index.semantically_verified !== false || !Array.isArray(index.revisions) || !record(index.current)) {
     throw new Error("Invalid origin index binding");
   }
-  const current = index.current;
-  if (!hash(current.sha256) || current.key !== `${base}${current.sha256}.json` || !count(current.bytes)
-      || !time(current.checked_at) || !statuses.has(String(current.status))
-      || !index.revisions.some(r => record(r) && ["key", "sha256", "bytes", "checked_at", "status", "acquisition_sha256"]
-        .every(k => r[k] === current[k]))) throw new Error("Invalid origin revision");
+  const fields = ["key", "sha256", "bytes", "checked_at", "status", "acquisition_sha256"];
+  if (!index.revisions.length || index.revisions.length > 1000
+      || new Set(index.revisions.map(r => record(r) ? r.sha256 : null)).size !== index.revisions.length
+      || !index.revisions.every(r => record(r) && hash(r.sha256) && r.key === `${base}${r.sha256}.json`
+        && count(r.bytes) && r.bytes <= 8_000_000 && time(r.checked_at) && statuses.has(String(r.status))
+        && (r.acquisition_sha256 === null || hash(r.acquisition_sha256)))
+      || !index.revisions.some(r => record(r) && fields.every(k => r[k] === (index.current as Record<string, unknown>)[k]))) {
+    throw new Error("Invalid origin revision history");
+  }
+  return { current: index.current as OriginReference, revisions: index.revisions as OriginReference[] };
+}
+
+export async function getOriginReview(bucket: CorpusBucket, filing: FilingIdentity, observation?: string): Promise<OriginReview | null> {
+  if (observation !== undefined && !hash(observation)) throw new Error("Invalid origin observation digest");
+  const index = await getOriginIndex(bucket, filing);
+  if (!index) return null;
+  const reference = observation ? index.revisions.find(r => r.sha256 === observation) : index.current;
+  if (!reference) throw new Error("Observation is absent from retained origin history");
+  return readOriginReview(bucket, filing, reference);
+}
+
+export async function getOriginObservations(bucket: CorpusBucket, filing: FilingIdentity): Promise<OriginObservation[]> {
+  const index = await getOriginIndex(bucket, filing);
+  if (!index) return [];
+  const results: OriginObservation[] = [];
+  for (const reference of [...index.revisions].sort((a, b) => b.checked_at.localeCompare(a.checked_at) || b.sha256.localeCompare(a.sha256))) {
+    results.push({ reference, current: reference.sha256 === index.current.sha256, review: await readOriginReview(bucket, filing, reference) });
+  }
+  return results;
+}
+
+async function readOriginReview(bucket: CorpusBucket, filing: FilingIdentity, current: OriginReference): Promise<OriginReview> {
   const bytes = await readRecoveryArtifact(bucket, current as Artifact);
   const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   if (!record(value) || value.schema_version !== "document-origin-review-1" || !sameFiling(value.filing, filing)

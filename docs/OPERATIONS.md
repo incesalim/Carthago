@@ -1795,3 +1795,33 @@ linked in the immutable origin receipt. Earlier observations and acquired PDFs
 remain retained. A missing/ambiguous listing row or archive is a named failure.
 The admin can download the retained listing through `artifact=source_listing`;
 it is served as an attachment after its byte checksum is checked.
+
+
+`capture-document-edition.yml` runs `scripts/capture_document_edition.py` in
+Actions. Inputs are `filing` (BANK|YYYYQn|basis), `observation` (the exact SHA-256
+of a retained `different_pdf_revision` origin receipt) and `publish` (default
+false). The shell adapters are `FILING`, `OBSERVATION` and `PUBLISH`; existing
+R2 secrets supply access. No acquisition lookup or D1 write is performed.
+
+Before capture, the edition reader verifies membership in retained origin
+history, the immutable receipt, actual transport/ZIP selection, selected PDF
+and optional regulator-listing row. Native/structured artifacts remain under
+`sources/<pdf_sha256>/`; the independent index lives at
+`document-corpus/v1/editions/BANK/PERIOD/basis/<pdf_sha256>.json`. It retains all
+origin-observation references attached to that edition. Matching bytes are
+reused; unchanged publication leaves object versions alone. Acquisition objects,
+main filing indexes and prior origin observations are not replaced.
+
+The existing recovery selector scans every edition page and names each selected
+page outcome; source-pixel OCR and table candidates remain unverified. No flagged
+pages means only that the detector did not flag a page. The report artifact is
+`audit-document-edition-report` (30 days); read-only captures also retain
+`audit-document-edition-evidence` (7 days). A named processing failure fails the
+run while preserving successfully written evidence.
+
+The private origin route returns all verified observations and accepts
+`observation=<receipt_sha256>` for an exact historical receipt or artifact. The
+corpus/recovery readers accept `edition=<receipt_sha256>` for a separate edition,
+or `related=<member_sha256>&origin=<receipt_sha256>` for an attachment in that
+historical archive. Ambiguous source selectors are rejected. An edition is not
+inferred to be a correction, translation, authoritative version or replacement.

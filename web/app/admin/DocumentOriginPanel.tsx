@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { OriginReview } from "@/app/lib/document-origin";
+import type { OriginReview, OriginObservation } from "@/app/lib/document-origin";
 import DocumentRelatedPanel from "./DocumentRelatedPanel";
+import DocumentEditionPanel from "./DocumentEditionPanel";
 
 const labels: Record<OriginReview["status"], string> = {
   matches_acquired_bytes: "Fresh official download matches the acquired PDF",
@@ -14,25 +15,37 @@ const labels: Record<OriginReview["status"], string> = {
 };
 
 export default function DocumentOriginPanel({ filing, sourceHash }: { filing: string; sourceHash?: string }) {
-  const [state, setState] = useState<{ filing: string; review?: OriginReview | null; error?: string } | null>(null);
-  const url = `/api/admin/document-origin?filing=${encodeURIComponent(filing)}`;
+  const [state, setState] = useState<{ filing: string; observations?: OriginObservation[]; error?: string } | null>(null);
+  const [selected, setSelected] = useState("");
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/admin/document-origin?filing=${encodeURIComponent(filing)}`, { cache: "no-store", signal: controller.signal })
       .then(async response => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? "The official-source comparison could not be loaded.");
-        setState({ filing, review: body.review });
+        setState({ filing, observations: body.observations });
       }).catch(error => { if (!controller.signal.aborted) setState({ filing, error: error.message }); });
     return () => controller.abort();
   }, [filing]);
   const current = state?.filing === filing ? state : null;
-  const review = current?.review;
+  const observations = current?.observations ?? [];
+  const active = observations.find(o => o.reference.sha256 === selected) ?? observations.find(o => o.current);
+  const review = active?.review;
+  const url = `/api/admin/document-origin?filing=${encodeURIComponent(filing)}${active ? `&observation=${active.reference.sha256}` : ""}`;
   return <div className="mt-3 border-y border-border py-3 text-xs">
     <h4 className="font-semibold">Official-source comparison</h4>
     {!current && <p className="mt-1 text-faint">Loading source observation…</p>}
     {current?.error && <p className="mt-1 text-warning" role="alert">{current.error}</p>}
     {current && !current.error && !review && <p className="mt-1 text-muted-foreground">No fresh official-source comparison has been retained for this filing.</p>}
+    {observations.length > 1 && <>
+      <label className="mt-2 block">Retained source observation <select className="ml-2 max-w-full border-b border-border bg-transparent py-1 text-foreground"
+        value={active?.reference.sha256 ?? ""} onChange={event => setSelected(event.target.value)}>
+        {observations.map(o => <option key={o.reference.sha256} value={o.reference.sha256}>
+          {o.reference.checked_at} · {o.review.source_listing ? "Regulator" : "Registered URL"} · {labels[o.review.status]}
+        </option>)}
+      </select></label>
+      <p className="mt-1 text-muted-foreground">{observations.length} observations retained. Source agreement and a different edition can both be recorded for this filing.</p>
+    </>}
     {review && <>
       <p className="mt-1">{labels[review.status]}.</p>
       <p className="mt-1 text-faint">Observed {review.checked_at} · Text and table verification remains pending.</p>
@@ -46,7 +59,8 @@ export default function DocumentOriginPanel({ filing, sourceHash }: { filing: st
         {review.transport && <a className="text-primary hover:underline" href={`${url}&artifact=transport`}>Download original response</a>}
         <a className="text-primary hover:underline" href={url} target="_blank" rel="noreferrer">Comparison evidence</a>
       </div>
-      {review.selection?.unselected_pdf_members?.map(member => <DocumentRelatedPanel key={`${member.name}:${member.sha256}`} filing={filing} member={member} />)}
+      {review.status === "different_pdf_revision" && active && <DocumentEditionPanel key={active.reference.sha256} filing={filing} observation={active.reference.sha256} />}
+      {review.selection?.unselected_pdf_members?.map(member => <DocumentRelatedPanel key={`${active?.reference.sha256}:${member.name}:${member.sha256}`} filing={filing} member={member} observation={active?.reference.sha256} />)}
     </>}
   </div>;
 }

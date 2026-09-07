@@ -643,3 +643,18 @@ of detected tables.
   independent comparison with the four source probes. The lean CI environment
   exposed an unnecessary HTML-library import; the built-in parser replacement
   matches all 1,142 registered listing rows and requires no CI dependency change.
+
+
+- 2026-09-07: BDDK publication `34072061577` independently verifies 21 unique
+  retained objects, immutable receipt histories and unchanged acquisition/main
+  native bindings for all four source probes. Only VAKBN/ZIRAATK add new filing
+  agreements; ATBANK retains both a bank-site match and different regulator PDF.
+  The broader 72-filing VAKBN/ZIRAATK comparison `34072441306` reports 67 matches,
+  three different PDFs and two non-PDF responses; independent readback is in progress.
+- 2026-09-07: implemented capture of an exact observed different PDF into a
+  separate edition index, with native/structure reuse and named selected recovery
+  outcomes. Source-bound history, transport, archive/PDF/listing bytes and local
+  replacement rejection have regression coverage. Admin readers retain all origin
+  observations, historical attachment access and separate edition access. Python
+  focused tests and all 788 web tests pass; cloud capture/readback and live UI
+  verification remain pending. Acquired filing indexes are never switched.

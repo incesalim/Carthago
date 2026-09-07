@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import type { RelatedRevision } from "@/app/lib/document-related";
 import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 
-export default function DocumentRelatedPanel({ filing, member }: {
-  filing: string; member: { name: string; bytes: number; sha256: string };
+export default function DocumentRelatedPanel({ filing, member, observation }: {
+  filing: string; member: { name: string; bytes: number; sha256: string }; observation?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [state, setState] = useState<{ key: string; revision?: RelatedRevision; error?: string } | null>(null);
-  const query = `filing=${encodeURIComponent(filing)}&related=${member.sha256}`;
+  const query = `filing=${encodeURIComponent(filing)}&related=${member.sha256}${observation ? `&origin=${observation}` : ""}`;
   useEffect(() => {
     if (!open) return;
     const controller = new AbortController();
@@ -45,7 +45,7 @@ export default function DocumentRelatedPanel({ filing, member }: {
           <a className="text-primary hover:underline" href={`/api/admin/document-corpus?${query}&artifact=source&page=${page}`} target="_blank" rel="noreferrer">Native page evidence</a>
           {current.revision.structure_current && <a className="text-primary hover:underline" href={`/api/admin/document-corpus?${query}&artifact=structure`}>Download related structure</a>}
         </div>
-        <DocumentRecoveryPanel filing={filing} page={page} related={member.sha256} />
+        <DocumentRecoveryPanel filing={filing} page={page} related={member.sha256} origin={observation} />
       </>}
     </>}
   </details>;

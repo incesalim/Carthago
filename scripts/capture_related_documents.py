@@ -21,7 +21,7 @@ from src.audit_reports.document_structure import build_document_structure, struc
 from build_document_corpus import _write_bytes, _write_json  # noqa: E402
 
 
-def recover_pages(store, original, filing, page_count, output, publish):
+def recover_pages(store, original, filing, page_count, output, publish, *, selection=None):
     from src.audit_reports import document_ocr as ocr
     from src.audit_reports.document_recovery import RecoveryStore, make_packet, recovery_identity, verify_packet
     from src.audit_reports.document_recovery_tables import capture_recovery_tables
@@ -30,14 +30,22 @@ def recover_pages(store, original, filing, page_count, output, publish):
 
     recovery = RecoveryStore(store)
     source = source_identity(original, filing)
+    if selection is None:
+        selection = {'method': 'all_related_document_pages', 'page_count': page_count,
+                     'pages': list(range(1, page_count + 1)), 'selection_completeness_verified': True}
+    pages = selection['pages']
+    if (selection['page_count'] != page_count or pages != sorted(set(pages))
+            or any(type(p) is not int or not 1 <= p <= page_count for p in pages)):
+        raise ValueError('Recovery selection differs from the source page inventory')
+    if publish:
+        recovery.record_selection(source, selection)
+    if not pages:
+        return []
     model_directory = output.parent.parent / 'models'
     lock = ocr.ensure_models(model_directory)
     engine = recovery_identity(ocr._engine(lock, 300, 'eng+tur'), None)
-    if publish:
-        recovery.record_selection(source, {'method': 'all_related_document_pages', 'page_count': page_count,
-            'pages': list(range(1, page_count + 1)), 'selection_completeness_verified': True})
     outcomes = []
-    for number in range(1, page_count + 1):
+    for number in pages:
         try:
             cached = recovery.cached(source, number, engine, original, None)
             if cached:

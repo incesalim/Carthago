@@ -8,9 +8,9 @@ export type RelatedRevision = CorpusRevision & { archive_identity?: {
   status: string; claim_page: number | null; observed_periods: string[]; issues: string[];
 } };
 
-export async function getRelatedRevision(bucket: CorpusBucket, filing: FilingIdentity, memberHash: string): Promise<RelatedRevision | null> {
+export async function getRelatedRevision(bucket: CorpusBucket, filing: FilingIdentity, memberHash: string, observation?: string): Promise<RelatedRevision | null> {
   if (!/^[a-f0-9]{64}$/.test(memberHash)) throw new Error("Invalid related document hash");
-  const origin = await getOriginReview(bucket, filing);
+  const origin = await getOriginReview(bucket, filing, observation);
   const members = origin?.selection?.unselected_pdf_members?.filter(m => m.sha256 === memberHash) ?? [];
   if (!origin?.transport || !origin.origin_pdf || members.length !== 1) {
     throw new Error("Related document is absent or ambiguous in the verified source archive");

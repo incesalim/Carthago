@@ -2,6 +2,7 @@
 import { requireAdminOr403 } from "@/app/lib/admin-auth";
 import { getCorpusBucket, getCorpusCatalog, getCorpusRevision, parseFiling, readVerifiedPage } from "@/app/lib/document-corpus";
 import { getRelatedRevision } from "@/app/lib/document-related";
+import { getEditionRevision } from "@/app/lib/document-editions";
 import { getContentReviews } from "@/app/lib/document-content-review";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,10 @@ export async function GET(req: Request) {
   if (!filing) return json({ error: "Use BANK|YYYYQn|consolidated or unconsolidated." }, 400);
   const artifact = params.get("artifact");
   const related = params.get("related");
+  const edition = params.get("edition");
+  const origin = params.get("origin");
+  if (edition !== null && (!/^[a-f0-9]{64}$/.test(edition) || related !== null)
+      || origin !== null && (!related || !/^[a-f0-9]{64}$/.test(origin))) return json({ error: "Choose one valid document source." }, 400);
   if (related !== null && !/^[a-f0-9]{64}$/.test(related)) return json({ error: "Invalid related document." }, 400);
   if (artifact !== null && !["original", "source", "structure", "reviews"].includes(artifact)) {
     return json({ error: "Unknown document artifact." }, 400);
@@ -27,12 +32,13 @@ export async function GET(req: Request) {
   const bucket = await getCorpusBucket();
   if (!bucket) return json({ error: "Document storage is not connected." }, 503);
   try {
-    const revision = related ? await getRelatedRevision(bucket, filing, related) : await getCorpusRevision(bucket, filing);
-    if (!revision) return json({ error: related ? "This related PDF has not been captured yet."
+    const revision = edition ? await getEditionRevision(bucket, filing, edition)
+      : related ? await getRelatedRevision(bucket, filing, related, origin ?? undefined) : await getCorpusRevision(bucket, filing);
+    if (!revision) return json({ error: edition ? "This observed edition has not been captured yet." : related ? "This related PDF has not been captured yet."
       : "This filing has no successful source capture yet." }, 404);
     if (!artifact) return json({ revision });
     if (artifact === "reviews") {
-      if (related) return json({ error: "Content notes for related attachments are not registered here." }, 400);
+      if (related || edition) return json({ error: "Content notes for this separate source are not registered here." }, 400);
       return json({ source: revision.source, scope: "registered_open_notes_only",
         semantically_verified: false, findings: await getContentReviews(bucket, filing, revision) });
     }

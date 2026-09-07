@@ -1,0 +1,65 @@
+name: Capture observed audit PDF edition
+
+on:
+  workflow_dispatch:
+    inputs:
+      filing:
+        description: "BANK|YYYYQn|consolidated or unconsolidated"
+        type: string
+        required: true
+      observation:
+        description: "Exact SHA-256 of a retained different-PDF origin observation"
+        type: string
+        required: true
+      publish:
+        description: "Retain this edition in a separate index, leaving the acquired filing unchanged"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ inputs.publish && format('audit-edition-{0}', inputs.filing) || format('audit-edition-probe-{0}', github.run_id) }}
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Preserve the exact observed edition and selected recovery pages
+        env:
+          FILING: ${{ inputs.filing }}
+          OBSERVATION: ${{ inputs.observation }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          args=(--filing "$FILING" --observation "$OBSERVATION")
+          [ "$PUBLISH" = "true" ] && args+=(--publish)
+          python scripts/capture_document_edition.py "${args[@]}"
+      - name: Keep the source binding and every selected page outcome
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audit-document-edition-report
+          path: data/audit_capture/edition-v1/edition-results.json
+          retention-days: 30
+      - name: Keep read-only edition originals and evidence
+        if: always() && !inputs.publish
+        uses: actions/upload-artifact@v7
+        with:
+          name: audit-document-edition-evidence
+          path: data/audit_capture/edition-v1/sources/
+          retention-days: 7

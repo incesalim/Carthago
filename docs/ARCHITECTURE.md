@@ -25,8 +25,10 @@ independent comparison indexes. Differences never replace historical acquisition
 byte agreement never certifies contents. `capture-related-documents.yml` reads
 verified retained archives and preserves every other PDF in its own archive/member
 index, reusing native evidence and source-bound OCR without moving the primary
-filing index. The active work is tracked in
-[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md).
+filing index. Separate observed PDF editions use `capture-document-edition.yml`, bound to an
+exact retained origin receipt and indexed by filing/PDF hash without replacing
+the main acquired filing. The admin can select historical observations, related
+archive members and captured editions. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md).
 
 ```
               ┌─── BDDK API ────┐    ┌─── Bank IR sites ────┐    ┌─── TCMB EVDS ────┐

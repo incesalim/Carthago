@@ -194,8 +194,24 @@ its full 88-page revision comparison is pending. Alternate-source origin receipt
 publication is now implemented with a retained exact regulator-listing witness.
 Read-only cloud probe `34071549110` matches all independently retained PDF and
 transport bytes and exact listing rows. The dependency-free parser also matches
-all 1,142 registered listing rows; publication remains pending. These probes do
-not replace the registered URLs or alter the published origin-agreement count.
+all 1,142 registered listing rows. Publication `34072061577` is independently
+verified against 21 retained R2 objects: all four origin receipts, originals,
+transports and listing bytes match their source probes; historical observations,
+acquisition metadata and main native PDF bindings remain unchanged. VAKBN and
+ZIRAATK add two filing agreements. AKTIF and ATBANK already had bank-site byte
+agreement; ATBANK also has a different regulator edition, so agreement and
+observed-difference sets overlap. The 72-filing VAKBN/ZIRAATK regulator comparison
+`34072441306` reports 67 matches, three different PDFs and two non-PDF responses;
+independent artifact reconciliation is in progress and these outcomes are not yet counted.
+
+`capture-document-edition.yml` is implemented for an exact historical origin
+observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
+and any regulator listing, then preserves full native/structure capture and
+selected recovery pages under a PDF-specific edition index. It never replaces
+the acquired filing. The private reader now exposes all retained origin
+observations and can address an edition or archive attachment through its exact
+historical observation. Python source-binding/replay tests and all 788 web tests
+pass; real-edition cloud capture and deployed UI verification remain pending.
 
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has
@@ -241,8 +257,8 @@ The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
 Page-33 liquidity summaries also show differing TP+YP figures. These observations
 are retained with source pages in the internal visual review, without changing
-any original or declaring one value authoritative. A general analyst-facing
-content-review ledger is still needed.
+any original or declaring one value authoritative. The three source-bound open notes described above retain these findings;
+whole-report reconciliation and financial interpretation remain pending.
 
 A separate whitespace-partition reading view now retains every narrative element
 once while ordering the auditor letter before its contact footer, joining seven

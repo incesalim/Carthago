@@ -455,3 +455,16 @@ has been captured. The archive's reporting period is context, not a substitute f
 the attachment's date. A retained conflicting claim remains visible alongside the
 original PDF and source pages. Receipt hashes and exact native/container bindings
 are checked; malformed or substituted reviews fail instead of clearing a conflict.
+
+
+The official-source comparison has a retained-observation selector. A later
+matching download does not hide earlier different PDFs or unavailable sources.
+Each observation opens its own verified receipt, original response, official PDF
+and regulator listing when present. Related archive members are resolved through
+that exact observation rather than whichever download happened most recently.
+
+A different-PDF observation offers a separate edition browser when capture exists:
+original PDF page, native page evidence, page/full structure and selected recovered
+text. It displays capture absence explicitly, never substituting the acquired
+filing. The version difference still needs interpretation; this view does not
+label it a correction, translation or replacement or promote its tables to series.

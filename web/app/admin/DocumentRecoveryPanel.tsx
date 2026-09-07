@@ -6,8 +6,10 @@ import type { RecoveryPage } from "@/app/lib/document-recovery";
 type Result = { status: "ready"; page: RecoveryPage; last_attempt?: { status: string; error?: string } }
   | { status: "not_started" | "source_not_captured"; last_attempt?: { status: string; error?: string } };
 
-export default function DocumentRecoveryPanel({ filing, page, related }: { filing: string; page: number; related?: string }) {
-  const query = `filing=${encodeURIComponent(filing)}&page=${page}${related ? `&related=${related}` : ""}`;
+export default function DocumentRecoveryPanel({ filing, page, related, origin, edition }: {
+  filing: string; page: number; related?: string; origin?: string; edition?: string;
+}) {
+  const query = `filing=${encodeURIComponent(filing)}&page=${page}${related ? `&related=${related}` : ""}${origin ? `&origin=${origin}` : ""}${edition ? `&edition=${edition}` : ""}`;
   const key = query;
   const [state, setState] = useState<{ key: string; value?: Result; error?: string } | null>(null);
   useEffect(() => {
