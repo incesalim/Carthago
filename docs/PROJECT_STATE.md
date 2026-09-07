@@ -72,7 +72,14 @@ blank amounts and the percentage row retain their source meaning. It is the
 47th registered source case. The earlier whole-word artifact fails this case;
 character references pass while source-reference, omission, zero, unit and period
 mutations fail. Tall-cell line views and admin references preserve these same
-character ranges. Cloud verification/publication of this repair remain pending.
+character ranges. Read-only probes `34103521140` and `34103531482` at `172a9d7`
+independently preserve all 117 native pages, physical text blocks, prior table
+text and narrative source occurrences. All 26 selected cases pass. Every new
+glyph reference is checked against its original PDF: 30 cells across three
+pages. CI `34103437882` and deployment `34103556689` pass; both automatic
+recovery follow-ups correctly skip recovery for these unpublished probes.
+Publication of the new report artifacts and live boundary-review inspection
+remain pending while the older full-corpus refresh finishes.
 The reviewed table is under `output/audit-corpus/TOMK_2024Q1_unconsolidated/`.
 
 Remaining work is corpus-wide physical and semantic completeness: every printed
@@ -85,7 +92,8 @@ execution record. Independent evidence is retained under
 `registered-native-final-reconciliation.json`,
 `registered-quality-independent-reconciliation.json`,
 `rotation-publication-independent-verification.json` and
-`cell-fragments-source-verification.json`.
+`cell-fragments-source-verification.json`; the complete cloud probe checks are in
+`cell-fragments-cloud-independent-verification.json`.
 
 
 ## Data coverage in D1

@@ -912,3 +912,20 @@ of detected tables.
   Local focused Python and admin tests pass. Full checks and read-only cloud
   probes are next; publication remains pending. Read-only probes use a separate
   workflow concurrency group and cannot alter the running 8d9e449 corpus refresh.
+
+- 2026-09-07: repair `172a9d7` passes CI `34103437882` and deployment
+  `34103556689`. Read-only TOMK probes `34103521140` / `34103531482` pass
+  independent readback of all 117 native pages, all prior physical blocks and
+  table text, narrative span occurrences, and 26 selected source cases. Every
+  newly linked glyph is checked against the original PDF: 30 cells on three
+  pages. The 2024Q1 prior-period liquidity table benefits as well as the reviewed
+  current-period table. Recovery follow-ups skip these unpublished sources.
+  All 2,658 workspace Python tests and 797 web tests pass, with web/mobile checks.
+  Isolated staged-source lint passes; the only isolated-suite failure was a
+  missing workflow name in the condensed status document, corrected and checked
+  by all six documentation tests. Unrelated untracked scratch scripts remain
+  separate. Full registered refresh `34098885624` is still running at 8d9e449;
+  report-artifact publication and authenticated boundary-review inspection remain
+  pending. Next, reconcile that run and apply the validated repair across the
+  corpus; investigate reuse of retained structures with explicit version and
+  equivalence checks to avoid repeatedly parsing unaffected PDF pages.
