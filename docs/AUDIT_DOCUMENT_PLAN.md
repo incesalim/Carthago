@@ -841,3 +841,13 @@ of detected tables.
   Authenticated admin display remains pending. Original TOMK pages 26–29 have
   been inspected for the next full-grid/continuation review; no link is approved
   merely from adjacency or a repeated period heading.
+
+- 2026-09-07: additional probes `34092256559`, `34092260814`, `34092264952`,
+  `34092268623` independently verify the remaining 17 registered source cases.
+  All seven annotated reports now pass 45 selected cases across 692 native pages.
+  Original/native R2 bytes and fresh source-page inventories/pixels match.
+  Akbank's replacement-text render comparison uses a separate fresh document
+  handle; extracting before rendering changes the in-memory image cache without
+  changing PDF bytes. Some navigation remains unresolved, and no whole filing
+  is semantically certified. The next step is a registered-corpus candidate
+  refresh retaining history and every unverified state, with no D1 publication.

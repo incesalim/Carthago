@@ -452,6 +452,19 @@ Authenticated admin display still requires sign-in. These are 28 selected source
 checks; no whole filing is semantically verified. Broader format checks and
 TOMK's four-page capital-table continuation remain unfinished.
 
+Four further read-only probes at `fe7b669` pass independent artifact/source
+checks: AKBNK 2026Q1 solo (`34092256559`, seven cases/90 pages), ALBRK 2026Q1
+solo (`34092260814`, four/95), QNBFB 2026Q1 solo (`34092264952`, five/108), and
+TOMK 2024Q1 solo (`34092268623`, one/66). Their current original/native R2 bytes
+match the probes; original page inventories and fresh render pixels match.
+Akbank's replacement-text page requires separate document handles for extraction
+and rendering: inspecting text first alters its in-memory render result, while
+a fresh byte snapshot is pixel-identical to the cloud review. The source bytes
+do not change. The expanded cohort now covers all 45 registered source cases
+across seven reports/692 pages. AKBNK and TOMK 2024Q1 navigation remain unresolved;
+the cases do not approve those section maps or whole-report content. The next
+registered-corpus refresh retains candidate/unverified states and prior history.
+
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
 Page-33 liquidity summaries also show differing TP+YP figures. These observations
