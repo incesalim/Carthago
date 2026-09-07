@@ -17,156 +17,79 @@ coverage or known issues change.
 ## Complete audit document corpus (2026-09-07; content verification in progress)
 
 The first scope is **1,146 registered filings across 38 banks, 2022Q1–2026Q2**.
-All have acquired PDFs and published original/native evidence plus candidate
-structure through `build-document-corpus.yml`. The last completed independent reconciliation covers **119,772 pages,
-308,126,554 native characters and 2,241,656 physical text blocks**. Its 197,883
-table candidates can overlap and are not a count of every printed table.
-**Zero whole filings are semantically verified.** Older history and additional
-banks follow completion of this registered corpus; analytical lanes are unchanged.
+All have acquired PDFs, preserved originals/native evidence and published
+candidate structure. **Zero whole filings are semantically verified.** Older
+history and additional banks follow completion of this registered corpus.
 
-The preserved originals, native spans/words, images and drawings remain the
-source evidence. Separate candidates retain physical cells and merged slots,
-source lines inside tall cells, table continuations, complete prose, reading
-order, contents/body navigation and numbered explanations. OCR and vector-text
-recoveries retain their own sources and uncertainties. The authenticated admin
-can inspect the original PDF alongside these artifacts and review flags. Absence,
-blank text, merged slots, dashes and disclosed zero remain distinct.
+The completed full refresh `34098885624` at `8d9e449` reconciles all 1,146
+outcomes exactly once, with no missing/duplicate filings or metadata errors.
+All PDF hashes and native counts agree with the independent source baseline:
+**119,772 pages, 308,126,554 characters and 2,241,656 physical text blocks**.
+There are **320,433 overlapping table candidates**, not that many distinct
+printed tables. This is reconciliation of completed run metadata, not a new
+byte-read of every published artifact or content certification. On the same
+sources, pages with line/source mismatch observations fell from 747 to 175;
+table-cell/source mismatch observations fell from 341 to 269. Named diagnostics
+and original source limitations remain visible.
 
-The completed read-only review `34059243171` checked every acquisition/original
-copy and native/structure artifact against the reconciled PDF identities. Its
-identity and recovery findings remain source-bound observations, not complete
-content certification. Explicit registry gaps, independently observed source
-editions, attachment associations and source disagreements are recorded in the
-internal evidence folder. Original revisions and recovery history are retained;
-none is replaced merely because another source URL now returns different bytes.
-Supporting workflows are `capture-document-edition.yml`,
-`capture-related-documents.yml`, `review-document-origins.yml` and
-`recover-document-corpus.yml`; their operating controls are in
-[OPERATIONS.md](OPERATIONS.md).
+The authenticated admin separates registered, acquired, preserved, structured,
+fully verified, failed and outdated filings. It serves original PDFs, source
+page evidence and full structured reports. It shows physical/merged/absent cells,
+source-linked table rows, printed period headings, narrative candidates, section
+navigation and unresolved review notes. Blank text, dashes and disclosed zero
+remain distinct. Its captured counts do not claim completeness of printed
+content, reading order or financial meaning. Existing analytical lanes remain
+unchanged; this work does not write their D1 partitions.
 
-Published repair `8d9e449` corrects rotated ruled-table coordinates and numerical
-source lines borrowing preceding-baseline words. Independent readback of
-`34098317752` preserves all 184 Garanti 2022Q4 consolidated native pages, physical
-text blocks and ordered narrative span occurrences. All three selected source
-cases pass, including the full page-19 OCI table: units, periods, merged cells
-and 16 label/current/prior rows. Its table-cell mismatch observations fall from
-five to zero and line-source observations from seven to one. CI/deployment and
-fresh authenticated admin inspection pass. The complete structured report and
-reviewed OCI table are available under `output/audit-corpus/GARAN_2022Q4_consolidated/`.
+**Combined character/region publication `34112697713` is running at `3f3f763`.**
+It upgrades retained c6e429ce structures to ca66890e without repeating the entire
+native capture. Independent original/fresh/replay comparisons cover all 267
+EXIM/Garanti pages. Full downloaded-artifact probes across EXIM, Garanti and two
+TOMK filings preserve all 384 native pages, physical blocks and narrative span
+occurrences. Eight tables changed literal or empty-slot structure; all 241 slots
+were checked against original source pages and registered as regressions.
+CI `34110701474` and deployment `34110814831` pass.
 
-**Full refresh `34098885624` remains in progress at exact commit `8d9e449`.**
-It covers all registered filings without acquisition or D1 writes. Do not report
-fleet improvement from partial outcomes or cancel it to restart another version.
-Capture results now carry named per-page diagnostics for the next repair queue.
-Completion, failure reconciliation and independent verification of that complete
-run remain pending. A read-only probe of newer code does not publish artifacts
-and uses a separate concurrency group.
+**Period-heading publication `34116379265` is queued at `a0a026a` behind that
+running repair.** The exact ca66890e-to-dda3201c adapter opens/extracts no PDF
+pages. Independent readback of fresh cloud probes `34115439703`, `34115442398`,
+`34115445430` and `34115448020` matches the entire locally replayed structures
+on all 384 pages, with identical original/native records and 41 selected source
+cases passing. The cloud probes have no supported retained R2 base; equality
+is independently established against the actual local retained ca66890e
+artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
+are not yet published across the corpus. Neither running/queued fleet is
+restarted for subsequent source annotations.
 
-Character references for words spanning ruled-cell borders are now implemented
-and locally checked. The repair retains the literal table text and a mandatory
-boundary-review observation; it does not treat an alphabetic word clipped into
-an amount cell as a verified logical value. Fresh TOMK source pages reproduce the
-retained native evidence exactly. The 2024Q1 liquidity table independently matches
-all 186 physical slots, five merged regions, title, period and unit witnesses;
-blank amounts and the percentage row retain their source meaning. It is the
-47th registered source case. The earlier whole-word artifact fails this case;
-character references pass while source-reference, omission, zero, unit and period
-mutations fail. Tall-cell line views and admin references preserve these same
-character ranges. Read-only probes `34103521140` and `34103531482` at `172a9d7`
-independently preserve all 117 native pages, physical text blocks, prior table
-text and narrative source occurrences. All 26 selected cases pass. Every new
-glyph reference is checked against its original PDF: 30 cells across three
-pages. CI `34103437882` and deployment `34103556689` pass; both automatic
-recovery follow-ups correctly skip recovery for these unpublished probes.
-Publication of the new report artifacts and live boundary-review inspection
-remain pending while the older full-corpus refresh finishes.
-The reviewed table is under `output/audit-corpus/TOMK_2024Q1_unconsolidated/`.
+The source benchmark now contains **63 selected cases across eight reports**.
+The latest four independently transcribed TOMK 2023Q3 capital fragments cover
+all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
+restores the word finansal, whose final letter physically crosses into an amount
+cell, and separates page 26's dated labels inside a merged physical header.
+Every source character remains present exactly once. Printed wording mistakes
+and inconsistent bank figures are retained. A reviewed four-page connection
+supplies page 29's period association from page 28, explicitly recording that
+page 29 prints no dated heading. This relation is specific to the reviewed PDF.
+The 107-row table, original physical cells, source references, connected context
+and discrepancy notes are available locally as JSON and a readable HTML under
+`output/audit-corpus/TOMK_2023Q3_unconsolidated/capital-disclosure-source-reviewed.*`.
+It is a named disclosure review, not whole-report or financial-series approval.
 
-The retained-structure adapter in the queued capture supports the exact `c6e429ce` to
-`9d4a83ae` extraction transition, both using PyMuPDF 1.27.2.3. It reuses
-byte-verified structure, reads original glyphs on affected ruled-table pages,
-and recomputes dependent references. Changed sources or unsupported engines
-cannot take this path. Independent fresh cloud probe `34105876696` at `e7248da`
-matches the replay's entire 83-page EXIM 2023Q3 solo structure and all native
-records exactly. Replay inspected one page and took 2.6 seconds locally. The
-source render also confirms an unresolved detected-border error on page 70:
-the amount 153.702.651 is split between label and amount cells. Mandatory
-boundary-review observations remain; exact replay does not approve that table.
-Commit `6aae99a` passes CI `34106739090`; its intermediate full-corpus publication
-`34106960090` was cancelled while still pending with no jobs started, after the
-combined repair passed independent cloud comparison. Corpus-wide reuse and
-timing have not yet been measured. A bounded source-region prototype fixes
-the EXIM border; all 25 slots, three merged headings, date, units and complete
-footnote are independently checked. Its local export is
-`output/audit-corpus/EXIM_2023Q3_unconsolidated/borrowing-maturity-table.json`.
-The original candidate fails the complete-table case; the corrected extraction
-passes, while corrupted variants fail. General region isolation is now
-implemented: each table is reobserved in a bounded region, with exactly one
-candidate, the same complete source-word region and conserved characters.
-Ambiguity or source loss keeps the original candidate. The complete EXIM table,
-its date/units and full footnote are now a permanent regression. Seven further
-complete source grids bring the benchmark to 55 cases across eight reports.
-All eight tables whose literal or empty-slot structure changed in the 384-page
-probe sample were checked against rendered originals: 241 slots, including
-hedging liabilities, market/operational risk, branch statistics and credit ratings.
-The reviewed TOMK liquidity and Garanti OCI cases still pass. Explicitly reviewed
-gaps outside a printed grid remain distinct from merged slots and printed blanks;
-the regression checker does not require those tables to be rectangular.
-Current code also supports an exact `9d4a83ae` to `ca66890e` retained-region
-replay, rebuilding dependent tables, prose/layout and context without repeating
-native capture or initial grid detection. Read-only cloud probes compare it
-against the entire fresh extraction when a matching retained base exists;
-absence is explicitly reported and never counted as equivalence. Synthetic
-full-output comparisons pass at all four page rotations. Fresh cloud probes at
-`03af3cb` independently retain all 384 original/native pages, physical blocks and
-ordered narrative span occurrences across EXIM, Garanti and two TOMK reports.
-All 30 selected source cases pass; CI `34109724552` and deployment `34109971304`
-pass. The probes find no retained 9d4a83ae base, so they do not establish replay
-equivalence. Subsequent probes `34110722949` and `34110725855` at `3f3f763`
-establish complete direct replay/fresh equality across all 267 EXIM/Garanti pages.
-Independent artifact readback confirms both base digests, all originals/native
-records, the complete fresh structures and preserved physical blocks/prose.
-A combined replay from the current
-`c6e429ce` base is also implemented: its initial grids/numeric/native data are
-identical to 9d4a83ae before character linking. Both paths pass complete synthetic
-comparisons at all rotations. CI `34110701474` and deployment `34110814831` pass.
-Combined full-corpus publication `34112697713` is queued at exactly `3f3f763`
-behind the unchanged running base refresh `34098885624`. At 10:41 UTC the live
-catalog has 1,010 refreshed filings and 136 remaining on the preceding engine,
-with zero recorded capture failures. This is progress on structure preservation,
-not whole-filing semantic certification. Evidence is retained in
-`region-direct-independent-verification.json` in the internal corpus folder.
+Remaining work is every printed table's coverage and logical structure across
+the corpus, complete prose ordering and analyst retrieval, whole-report source
+review, and resolution or explicit enumeration of nonnative source limitations.
+No successful run, consistent hash or selected benchmark certifies that end
+state. Source identity, alternate editions and recovery evidence remain in the
+separate corpus. Operational controls for `build-document-corpus.yml`,
+`capture-document-edition.yml`, `capture-related-documents.yml`,
+`review-document-origins.yml` and `recover-document-corpus.yml` are documented
+in [OPERATIONS.md](OPERATIONS.md).
 
-Remaining work is corpus-wide physical and semantic completeness: every printed
-table, its headers/units/row-column associations and continuations; all prose,
-its ordering and analyst retrieval; and named unresolved source limitations.
-
-The next implemented repair adds a separate view of explicitly printed period
-headings. TOMK 2023Q3 solo page 26 retains its merged physical header but now
-associates the original current/prior labels and dates with their source columns.
-Pages 27–28 independently repeat the same dates; page 29 still has no printed
-dated header and receives none by inference. Four independently read source
-cases bring the benchmark to 59 cases across eight reports. A version-pinned
-ca66890e-to-dda3201c adapter adds this view from retained evidence without opening
-or extracting PDF pages; complete synthetic replay/fresh equality passes at all
-four rotations. The admin shows these heading candidates and distinguishes
-absent physical cells from printed blanks. Real retained structures across all
-384 EXIM/Garanti/TOMK pages preserve every previous field exactly; 41 selected
-source cases pass and original TOMK pages 26–29 were freshly reobserved. The
-isolated source passes 2,716 Python tests with two skips, all repository gates,
-799 web tests and web/mobile checks. Fresh cloud proof and publication are
-pending. The live base and queued region-repair runs keep their
-dispatched versions. Multi-page capital-table relationships remain unfinished.
-Passing selected cases, consistent hashes or an extraction run does not prove
-that end state. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the
-execution record. Independent evidence is retained under
-`docs/knowledge/2026-09-06-document-corpus/`, including
-`registered-native-final-reconciliation.json`,
-`registered-quality-independent-reconciliation.json`,
-`rotation-publication-independent-verification.json` and
-`cell-fragments-source-verification.json`; the complete cloud probe checks are in
-`cell-fragments-cloud-independent-verification.json` and
-`retained-upgrade-independent-verification.json`.
+See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the execution record.
+Independent receipts are under `docs/knowledge/2026-09-06-document-corpus/`,
+including `registered-base-refresh-independent-reconciliation.json`,
+`region-direct-independent-verification.json` and
+`period-header-cloud-independent-verification.json`.
 
 
 ## Data coverage in D1

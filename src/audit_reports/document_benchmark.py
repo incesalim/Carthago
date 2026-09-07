@@ -161,13 +161,26 @@ def _complete_table_matches(case, page, source):
                     continue
                 box = cell['bbox']
                 pieces = cell_word_fragments(cell, words)
+                from .document_table_rows import _lines
+                # A merged header can paint one column before the other while
+                # its physical cell text reads across each printed baseline.
+                lines = _lines([{**p, 'id': (p['word_id'], p['start'], p['end'])} for p in pieces]) if pieces else []
+                source_orders = {_text(' '.join(p['text'] for p in pieces))}
+                if lines is not None:
+                    source_orders.add(_text(' '.join(p['text'] for line in lines for p in line)))
                 if (box is None or not (bounds[0] <= box[0] <= box[2] <= bounds[2]
                                        and bounds[1] <= box[1] <= box[3] <= bounds[3])
-                        or _text(' '.join(p['text'] for p in pieces)) != _text(text)
+                        or _text(text) not in source_orders
                         or any(not inside(p['bbox'], box) for p in pieces)):
                     good = False
                 actual_characters.update((p['word_id'], i) for p in pieces for i in range(p['start'], p['end']))
         if good and actual_characters == expected_characters:
+            if 'logical_rows' in case:
+                from .document_table_review import reviewed_logical_rows
+                try:
+                    reviewed_logical_rows(table, source, case)
+                except (ValueError, KeyError, TypeError, IndexError):
+                    continue
             if 'source_line_rows' in case:
                 from .document_table_rows import table_source_rows
                 projected = table_source_rows(page, source)

@@ -1059,3 +1059,49 @@ of detected tables.
   Historical replay test fixtures now simulate their own pinned targets so a
   newer adapter cannot accidentally participate in an older transition's test.
   Independent fresh cloud comparison and publication remain pending.
+
+- 2026-09-07: full base refresh `34098885624` completed successfully at 11:12 UTC.
+  Independent reconciliation of all four report artifacts finds exactly 1,146
+  registered outcomes, unchanged PDF hashes/native counts and no metadata errors.
+  It covers 119,772 pages, 308,126,554 characters, 2,241,656 text blocks and 320,433
+  overlapping table candidates. Line/source mismatch pages fall 747→175 and
+  table-cell/source mismatch pages 341→269. These are same-source diagnostic
+  comparisons, not full content approval or a new R2 byte-read of every artifact.
+  Combined region/character publication `34112697713` then started unchanged.
+
+- 2026-09-07: all four fresh period-heading probes at `a0a026a` pass independent
+  original/native readback and complete JSON equality against real retained local
+  replay across 384 pages. All 41 selected source cases and source-render hashes
+  pass. CI `34115396870` and deployment `34115519475` pass. Publication
+  `34116379265` is queued at the tested commit behind live run `34112697713`.
+  Both keep their versions; there is no D1 or acquisition write. The live admin
+  confirms all 1,146 source/structure records and explicitly zero fully verified.
+
+- 2026-09-07: independently transcribed all four TOMK capital fragments, 107 rows
+  and 321 physical slots. Magnified original reinspection corrected four manual
+  wording errors before registration, retaining the bank's printed Özkaynakdan
+  typo. One remaining physical border splits finansal into finansa and l. Added
+  explicit source-reviewed logical rows that restore that word and separate
+  page 26's period headings, preserving all physical cells and exact character
+  occurrence inventories. Wrong figures, rows, columns, source occurrences,
+  omissions, duplicates, dates, units and source explanations fail regression
+  checks. The complete-grid checker now accepts independently annotated printed
+  baseline order as well as PDF paint order inside a merged cell. It still
+  requires exact literal grid text and source occurrence conservation.
+  Four complete-table annotations bring the benchmark to 63 source cases.
+  A local readable HTML and structured JSON deliver the connected capital table,
+  context paragraphs, source references and retained contradictions. Page 29's
+  inherited period association is an explicit reviewed connection for this PDF,
+  not an automatic cross-document rule. Whole-filing verification remains open.
+
+- 2026-09-07: the capital review passes the full isolated staged Python suite
+  (two expected skips), lint and every standalone repository gate. The workspace
+  Python suite also passes. Workspace-wide lint encounters nine unrelated `PY`
+  tokens in the concurrent task's untracked scratch files; the isolated owned
+  source is clean and those files remain untouched. Web passes all 799 tests,
+  lint and type checking; mobile lint/type/token checks pass. Rechecking the four
+  downloaded cloud reports with the expanded benchmark passes all 45 selected
+  cases, including the four complete capital fragments. The extraction engine
+  remains exactly dda3201c; no new fleet extraction is queued for these reviews.
+  The local HTML was inspected in the browser and retains all four tables and
+  source links. The complete corpus goal remains active and unfinished.

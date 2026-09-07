@@ -2057,6 +2057,755 @@
       "table_id": "p29:ruled0",
       "headers": [],
       "source_review": "Original rendered capital-disclosure pages 26–29 independently viewed. Only printed dates are transcribed; page 29 has no repeated dated header. This review does not approve every capital-table cell or infer missing dates."
+    },
+    {
+      "id": "complete_capital_disclosure_page_26",
+      "kind": "complete_physical_table",
+      "page": 26,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        126,
+        337,
+        539,
+        643
+      ],
+      "rows": [
+        [
+          "Cari Dönem Önceki Dönem 30 Eylül 2023 31 Aralık 2022 ÇEKİRDEK SERMAYE",
+          null,
+          null
+        ],
+        [
+          "Bankanın tasfiyesi halinde alacak hakkı açısından diğer tüm alacaklardan sonra gelen ödenmiş Sermaye",
+          "1.500.000",
+          "1.500.000"
+        ],
+        [
+          "Hisse senedi ihraç primleri",
+          "-",
+          "-"
+        ],
+        [
+          "Yedek akçeler",
+          "-",
+          "-"
+        ],
+        [
+          "Türkiye Muhasebe Standartları (TMS) uyarınca özkaynaklara yansıtılan kazançlar",
+          "-",
+          "-"
+        ],
+        [
+          "Kâr",
+          "148.071",
+          "-"
+        ],
+        [
+          "Net Dönem Kârı",
+          "148.071",
+          "-"
+        ],
+        [
+          "Geçmiş Yıllar Kârı",
+          "-",
+          "-"
+        ],
+        [
+          "İştirakler, bağlı ortaklıklar ve birlikte kontrol edilen ortaklıklardan bedelsiz olarak edinilen ve dönem kârı içerisinde muhasebeleştirilmeyen hisseler",
+          "-",
+          "-"
+        ],
+        [
+          "İndirimler Öncesi Çekirdek Sermaye",
+          "1.648.071",
+          "1.500.000"
+        ],
+        [
+          "Çekirdek Sermayeden Yapılacak İndirimler",
+          "89.811",
+          "3.423"
+        ],
+        [
+          "Bankaların Özkaynaklarına İlişkin Yönetmeliğin 9 uncu maddesinin birinci fıkrasının (i) bendi uyarınca hesaplanan değerleme ayarlamaları",
+          "-",
+          "-"
+        ],
+        [
+          "Net dönem zararı ile geçmiş yıllar zararı toplamının yedek akçelerle karşılanamayan kısmı ile TMS uyarınca özkaynaklara yansıtılan kayıplar",
+          "1.875",
+          "1.876"
+        ],
+        [
+          "Faaliyet kiralaması geliştirme maliyetleri",
+          "-",
+          "-"
+        ],
+        [
+          "İlgili ertelenmiş vergi yükümlülüğü ile mahsup edildikten sonra kalan şerefiye",
+          "76.000",
+          "-"
+        ],
+        [
+          "İpotek hizmeti sunma hakları hariç olmak üzere ilgili ertelenmiş vergi yükümlülüğü ile mahsup edildikten sonra kalan diğer maddi olmayan duran varlıklar",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici farklara dayanan ertelenmiş vergi varlıkları hariç olmak üzere gelecek dönemlerde elde edilecek vergilendirilebilir gelirlere dayanan ertelenmiş vergi varlığının, ilgili ertelenmiş vergi yükümlülüğü ile mahsup edildikten sonra kalan kısmı",
+          "11.936",
+          "1.547"
+        ],
+        [
+          "Gerçeğe uygun değeri üzerinden izlenmeyen varlık veya yükümlülüklerin nakit akış riskinden korunma işlemine konu edilmesi halinde ortaya çıkan farklar",
+          "-",
+          "-"
+        ],
+        [
+          "Kredi Riskine Esas Tutarın İçsel Derecelendirmeye Dayalı Yaklaşımlar ile Hesaplanmasına İlişkin Tebliğ uyarınca hesaplanan toplam beklenen kayıp tutarının, toplam karşılık tutarını aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Menkul kıymetleştirme işlemlerinden kaynaklanan kazançlar",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [
+        {
+          "column": 0,
+          "column_span": 3,
+          "row": 0,
+          "row_span": 1
+        }
+      ],
+      "source_review": "All rows and literal cells independently read from the rendered original PDF on 2026-09-07. Magnified original reinspection corrected four manual wording errors; the printed typo Özkaynakdan is retained. Physical and logical cell assignments are separate.",
+      "logical_rows": [
+        {
+          "row": 0,
+          "cells": [
+            {
+              "text": "ÇEKİRDEK SERMAYE",
+              "source_word_ids": [
+                166,
+                167
+              ]
+            },
+            {
+              "text": "Cari Dönem 30 Eylül 2023",
+              "source_word_ids": [
+                156,
+                157,
+                158,
+                159,
+                160
+              ]
+            },
+            {
+              "text": "Önceki Dönem 31 Aralık 2022",
+              "source_word_ids": [
+                161,
+                162,
+                163,
+                164,
+                165
+              ]
+            }
+          ],
+          "source_review": "Printed dates align with the two amount columns while the physical header cell is merged."
+        }
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_capital_disclosure_page_27",
+      "kind": "complete_physical_table",
+      "page": 27,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        85,
+        160,
+        539,
+        694
+      ],
+      "rows": [
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 31 Aralık 2022"
+        ],
+        [
+          "Bankanın yükümlülüklerinin gerçeğe uygun değerlerinde, kredi değerliliğindeki değişikliklere bağlı olarak oluşan farklar sonucu ortaya çıkan gerçekleşmemiş kazançlar ve kayıplar",
+          "-",
+          "-"
+        ],
+        [
+          "Tanımlanmış fayda plan varlıklarının net tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "Bankanın kendi çekirdek sermayesine yapmış olduğu doğrudan veya dolaylı yatırımlar",
+          "-",
+          "-"
+        ],
+        [
+          "Kanunun 56’ncı maddesinin dördüncü fıkrasına aykırı olarak edinilen paylar",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10 veya daha azına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların özkaynak unsurlarına yapılan yatırımların net uzun pozisyonları toplamının, bankanın çekirdek sermayesinin %10’unu aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10’dan daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların çekirdek sermaye unsurlarına yapılan yatırımların net uzun pozisyonlarının çekirdek sermayenin %10’unu aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "İpotek hizmeti sunma haklarının çekirdek sermayenin %10’unu aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici farklara dayanan ertelenmiş vergi varlıklarının çekirdek sermayenin %10’unu aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Bankaların Özkaynaklarına İlişkin Yönetmeliğin Geçici 2’nci maddesinin ikinci fıkrası uyarınca çekirdek sermayenin %15’ini aşan tutarlar",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10’dan daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların çekirdek sermaye unsurlarına yapılan yatırımların net uzun pozisyonlarından kaynaklanan aşım tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "İpotek hizmeti sunma haklarından kaynaklanan aşım tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici farklara dayanan ertelenmiş vergi varlıklarından kaynaklanan aşım tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "Kurulca belirlenecek diğer kalemler",
+          "-",
+          "-"
+        ],
+        [
+          "Yeterli ilave ana sermaye veya katkı sermaye bulunmaması halinde çekirdek sermayeden indirim yapılacak tutar",
+          "-",
+          "-"
+        ],
+        [
+          "Çekirdek Sermayeden Yapılan İndirimler Toplamı",
+          "89.811",
+          "3.423"
+        ],
+        [
+          "Çekirdek Sermaye Toplamı",
+          "1.558.260",
+          "1.496.577"
+        ],
+        [
+          "İLAVE ANA SERMAYE",
+          "",
+          ""
+        ],
+        [
+          "Çekirdek sermayeye dahil edilmeyen imtiyazlı paylara tekabül eden sermaye ile bunlara ilişkin ihraç primleri",
+          "-",
+          "-"
+        ],
+        [
+          "Kurumca uygun görülen borçlanma araçları ve bunlara ilişkin ihraç primleri",
+          "-",
+          "-"
+        ],
+        [
+          "Kurumca uygun görülen borçlanma araçları ve bunlara ilişkin ihraç primleri (Geçici Madde 4 kapsamında olanlar)",
+          "-",
+          "-"
+        ],
+        [
+          "İndirimler Öncesi İlave Ana Sermaye",
+          "-",
+          "-"
+        ],
+        [
+          "İlave Ana Sermayeden Yapılacak İndirimler",
+          "",
+          ""
+        ],
+        [
+          "Bankanın kendi ilave ana sermayesine yapmış olduğu doğrudan veya dolaylı yatırımlar",
+          "-",
+          "-"
+        ],
+        [
+          "Bankanın ilave ana sermaye kalemlerine yatırım yapan bankalar ile finansal kuruluşlar tarafından ihraç edilen ve Yönetmeliğin 7’nci maddesinde belirtilen şartları taşıyan özkaynak kalemlerine bankanın yaptığı yatırımlar",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10 veya daha azına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların özkaynak unsurlarına yapılan yatırımların net uzun pozisyonları toplamının, bankanın çekirdek sermayesinin %10’unu aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10 veya daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların ilave ana sermaye unsurlarına yapılan yatırımların net uzun pozisyonları toplamı",
+          "-",
+          "-"
+        ],
+        [
+          "Kurulca belirlenecek diğer kalemler",
+          "-",
+          "-"
+        ],
+        [
+          "Geçiş Sürecinde Ana Sermayeden İndirilmeye Devam Edecek Unsurlar",
+          "",
+          ""
+        ],
+        [
+          "Şerefiye veya diğer maddi olmayan duran varlıklar ve bunlara ilişkin ertelenmiş vergi yükümlülüklerinin Bankaların Özkaynaklarına İlişkin Yönetmeliğin Geçici 2’nci maddesinin birinci fıkrası uyarınca çekirdek sermayeden indirilmeyen kısmı (-)",
+          "-",
+          "-"
+        ],
+        [
+          "Net ertelenmiş vergi varlığı/vergi borcunun Bankaların Özkaynaklarına İlişkin Yönetmeliğin Geçici 2’nci maddesinin birinci fıkrası uyarınca çekirdek sermayeden indirilmeyen kısmı (-)",
+          "-",
+          "-"
+        ],
+        [
+          "Yeterli katkı sermaye bulunmaması halinde ilave ana sermayeden indirim yapılacak tutar (-)",
+          "-",
+          "-"
+        ],
+        [
+          "İlave ana sermayeden yapılan indirimler toplamı",
+          "-",
+          "-"
+        ],
+        [
+          "İlave Ana Sermaye Toplamı",
+          "-",
+          "-"
+        ],
+        [
+          "Ana Sermaye Toplamı (Ana Sermaye = Çekirdek Sermaye + İlave Ana Sermaye)",
+          "1.558.260",
+          "1.496.577"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All rows and literal cells independently read from the rendered original PDF on 2026-09-07. Magnified original reinspection corrected four manual wording errors; the printed typo Özkaynakdan is retained. Physical and logical cell assignments are separate.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_capital_disclosure_page_28",
+      "kind": "complete_physical_table",
+      "page": 28,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        85,
+        120,
+        539,
+        680
+      ],
+      "rows": [
+        [
+          "KATKI SERMAYE",
+          "",
+          ""
+        ],
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 31 Aralık 2022"
+        ],
+        [
+          "Kurumca uygun görülen borçlanma araçları ve bunlara ilişkin ihraç primleri",
+          "-",
+          "-"
+        ],
+        [
+          "Kurumca uygun görülen borçlanma araçları ve bunlara ilişkin ihraç primleri (Geçici Madde 4 kapsamında olanlar)",
+          "-",
+          "-"
+        ],
+        [
+          "Karşılıklar (Bankaların Özkaynaklarına İlişkin Yönetmeliğin 8’inci maddesinin birinci fıkrasında belirtilen tutarlar)",
+          "-",
+          "-"
+        ],
+        [
+          "İndirimler Öncesi Katkı Sermaye",
+          "-",
+          "-"
+        ],
+        [
+          "Katkı Sermayeden Yapılacak İndirimler",
+          "",
+          ""
+        ],
+        [
+          "Bankanın kendi katkı sermayesine yapmış olduğu doğrudan veya dolaylı yatırımlar (-)",
+          "-",
+          "-"
+        ],
+        [
+          "Bankanın katkı sermaye kalemlerine yatırım yapan bankalar ile finansal kuruluşlar tarafından ihraç edilen ve Yönetmeliğin 8’inci maddesinde belirtilen şartları taşıyan özkaynak kalemlerine bankanın yaptığı yatırımlar",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10 veya daha azına sahip olunan ve konsolide edilmeyen bankalar ve finansa kuruluşların özkaynak unsurlarına yapılan yatırımların net uzun pozisyonları toplamının, bankanın çekirdek sermayesinin %10’unu aşan kısmı (-)",
+          "l -",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10 veya daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların katkı sermaye unsurlarına yapılan yatırımların net uzun pozisyonları toplamı",
+          "-",
+          "-"
+        ],
+        [
+          "Kurulca belirlenecek diğer kalemler (-)",
+          "-",
+          "-"
+        ],
+        [
+          "Katkı Sermayeden Yapılan İndirimler Toplamı",
+          "-",
+          "-"
+        ],
+        [
+          "Katkı Sermaye Toplamı",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam Özkaynak (Ana Sermaye ve Katkı Sermaye Toplamı)",
+          "1.558.260",
+          "1.496.577"
+        ],
+        [
+          "Özkaynakdan İndirilecek Değerler",
+          "",
+          ""
+        ],
+        [
+          "Kanunun 50 ve 51‘inci maddeleri hükümlerine aykırı olarak kullandırılan krediler",
+          "-",
+          "-"
+        ],
+        [
+          "Kanunun 57’nci maddesinin birinci fıkrasındaki sınırı aşan tutarlar ile bankaların alacaklarından dolayı edinmek zorunda kaldıkları ve aynı madde uyarınca elden çıkarmaları gereken emtia ve gayrimenkullerden edinim tarihinden itibaren beş yıl geçmesine rağmen elden çıkarılamayanların net defter değerleri",
+          "-",
+          "-"
+        ],
+        [
+          "Kurulca belirlenecek diğer hesaplar",
+          "-",
+          "-"
+        ],
+        [
+          "Geçiş Sürecinde Ana Sermaye ve Katkı Sermaye Toplamından (Sermayeden) İndirilmeye Devam Edecek Unsurlar",
+          "",
+          ""
+        ],
+        [
+          "Ortaklık paylarının yüzde %10 veya daha azına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların özkaynak unsurlarına yapılan yatırımların net uzun pozisyonları toplamının, bankanın çekirdek sermayesinin yüzde onunu aşan kısmının, Bankaların Özkaynaklarına İlişkin Yönetmeliğin Geçici 2’nci maddesinin birinci fıkrası uyarınca çekirdek sermayeden, ilave ana sermayeden ve katkı sermayeden indirilmeyen kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10’dan daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların doğrudan ya da dolaylı olarak ilave ana sermaye ve katkı sermaye unsurlarına yapılan yatırımların net uzun pozisyonlarının toplam tutarının Bankaların Özkaynaklarına İlişkin Yönetmeliğin Geçici 2’nci maddesinin birinci fıkrası uyarınca, ilave ana sermayeden ve katkı sermayeden indirilmeyen kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10’dan daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların çekirdek sermaye unsurlarına yapılan yatırımların net uzun pozisyonlarının, geçici farklara dayanan ertelenmiş vergi varlıklarının ve ipotek hizmeti sunma haklarının Bankaların Özkaynaklarına İlişkin Yönetmeliğin Geçici 2’nci maddesinin ikinci fıkrasının (1) ve (2) nci alt bentleri uyarınca çekirdek sermayeden indirilecek tutarlarının, Yönetmeliğin Geçici 2’nci maddesinin birinci fıkrası uyarınca çekirdek sermayeden indirilmeyen kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "ÖZKAYNAK",
+          "",
+          ""
+        ],
+        [
+          "Toplam Özkaynak (Ana sermaye ve katkı sermaye toplamı)",
+          "1.558.260",
+          "1.496.577"
+        ],
+        [
+          "Toplam Risk Ağırlıklı Tutarlar",
+          "1.662.104",
+          "1.513.102"
+        ],
+        [
+          "SERMAYE YETERLİLİĞİ ORANLARI",
+          "",
+          ""
+        ],
+        [
+          "Çekirdek Sermaye Yeterliliği Oranı (%)",
+          "93,75",
+          "98,79"
+        ],
+        [
+          "Ana Sermaye Yeterliliği Oranı (%)",
+          "93,75",
+          "98,79"
+        ],
+        [
+          "Sermaye Yeterliliği Oranı (%)",
+          "93,75",
+          "98,79"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All rows and literal cells independently read from the rendered original PDF on 2026-09-07. Magnified original reinspection corrected four manual wording errors; the printed typo Özkaynakdan is retained. Physical and logical cell assignments are separate.",
+      "logical_rows": [
+        {
+          "row": 9,
+          "cells": [
+            {
+              "text": "Ortaklık paylarının %10 veya daha azına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların özkaynak unsurlarına yapılan yatırımların net uzun pozisyonları toplamının, bankanın çekirdek sermayesinin %10’unu aşan kısmı (-)",
+              "source_word_ids": [
+                132,
+                133,
+                134,
+                135,
+                136,
+                137,
+                138,
+                139,
+                140,
+                141,
+                142,
+                143,
+                144,
+                145,
+                146,
+                147,
+                148,
+                149,
+                150,
+                151,
+                152,
+                153,
+                154,
+                155,
+                156,
+                157,
+                158,
+                159,
+                160,
+                161
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                162
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                163
+              ]
+            }
+          ],
+          "source_review": "The source prints the whole word finansal in the row label, with its final letter on the divider. Both amount cells contain only a dash. Restore the whole source word in this logical view; preserve physical finansa / l assignments separately."
+        }
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_capital_disclosure_page_29",
+      "kind": "complete_physical_table",
+      "page": 29,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        85,
+        160,
+        539,
+        485
+      ],
+      "rows": [
+        [
+          "TAMPONLAR",
+          "",
+          ""
+        ],
+        [
+          "Toplam ilave çekirdek sermaye gereksinimi oranı (a+b+c)",
+          "4,0",
+          "4,0"
+        ],
+        [
+          "a. Sermaye koruma tamponu oranı (%)",
+          "2,5",
+          "2,5"
+        ],
+        [
+          "b. Bankaya özgü döngüsel sermaye tamponu oranı (%)",
+          "-",
+          "-"
+        ],
+        [
+          "c. Sistemik önemli banka tamponu oranı (%)",
+          "1,5",
+          "1,5"
+        ],
+        [
+          "Sermaye Koruma ve Döngüsel Sermaye Tamponlarına İlişkin Yönetmeliğin 4 üncü maddesinin birinci fıkrası uyarınca hesaplanacak ilave çekirdek sermaye tutarının risk ağırlıklı varlıklar tutarına oranı (%)",
+          "89,75",
+          "94,79"
+        ],
+        [
+          "Uygulanacak İndirim Esaslarında Aşım Tutarının Altında Kalan Tutarlar",
+          "",
+          ""
+        ],
+        [
+          "Ortaklık paylarının %10 veya daha azına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların özkaynak unsurlarına yapılan yatırımların net uzun pozisyonlarından kaynaklanan tutar",
+          "-",
+          "-"
+        ],
+        [
+          "Ortaklık paylarının %10’dan daha fazlasına sahip olunan ve konsolide edilmeyen bankalar ve finansal kuruluşların çekirdek sermaye unsurlarına yapılan yatırımların net uzun pozisyonlarından kaynaklanan tutar",
+          "-",
+          "-"
+        ],
+        [
+          "İpotek hizmeti sunma haklarından kaynaklanan tutar",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici farklara dayanan ertelenmiş vergi varlıklarından kaynaklanan tutar",
+          "-",
+          "-"
+        ],
+        [
+          "Katkı Sermaye Hesaplamasında Dikkate Alınan Karşılıklara İlişkin Sınırlar",
+          "",
+          ""
+        ],
+        [
+          "Standart yaklaşımın kullanıldığı alacaklar için ayrılan genel karşılıklar (Onbindeyüzyirmibeşlik sınır öncesi)",
+          "-",
+          "-"
+        ],
+        [
+          "Standart yaklaşımın kullanıldığı alacaklar için ayrılan genel karşılıkların risk ağırlıklı tutarlar toplamının %1,25'ine kadar olan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam karşılık tutarının, Kredi Riskine Esas Tutarın İçsel Derecelendirmeye Dayalı Yaklaşımlar ile Hesaplanmasına İlişkin Tebliğ uyarınca hesaplanan toplam beklenen kayıp tutarını aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam karşılık tutarının, Kredi Riskine Esas Tutarın İçsel Derecelendirmeye Dayalı Yaklaşımlar ile Hesaplanmasına İlişkin Tebliğ uyarınca hesaplanan toplam beklenen kayıp tutarını aşan kısmının, alacakların risk ağırlıklı tutarları toplamının %0,6'sına kadar olan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici Madde 4 hükümlerine tabi borçlanma araçları",
+          "",
+          ""
+        ],
+        [
+          "(1 Ocak 2018 ve 1 Ocak 2022 arasında uygulanmak üzere)",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici Madde 4 hükümlerine tabi ilave ana sermaye kalemlerine ilişkin üst sınır",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici Madde 4 hükümlerine tabi ilave ana sermaye kalemlerinin üst sınırı aşan kısmı",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici Madde 4 hükümlerine tabi katkı sermaye kalemlerine ilişkin üst sınır",
+          "-",
+          "-"
+        ],
+        [
+          "Geçici Madde 4 hükümlerine tabi katkı sermaye kalemlerinin üst sınırı aşan kısmı",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All rows and literal cells independently read from the rendered original PDF on 2026-09-07. Magnified original reinspection corrected four manual wording errors; the printed typo Özkaynakdan is retained. Physical and logical cell assignments are separate.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            85,
+            522,
+            539,
+            533
+          ],
+          "text": "Özkaynak kalemlerine ilişkin bilgiler tablosunda yer alan tutarlar ile bilançodaki tutarlar arasında fark bulunmamaktadır."
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

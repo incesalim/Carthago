@@ -137,3 +137,20 @@ def test_source_annotation_identity_excludes_table_case_changes(tmp_path):
     annotation["cases"][0]["text_sha256"] = "b" * 64
     path.write_text(json.dumps(annotation))
     assert annotation_identity(tmp_path, filing, source_only=True) != before
+
+
+def test_logical_review_code_invalidates_table_receipts_only(tmp_path, monkeypatch):
+    from src.audit_reports import document_table_review
+    folder = tmp_path / 'annotations'
+    folder.mkdir()
+    (folder / 'source.json').write_text(json.dumps({
+        'filing': {'bank_ticker': 'TOMK', 'period': '2023Q3', 'kind': 'unconsolidated'},
+        'cases': [{'kind': 'source_word', 'text': 'original'}],
+    }))
+    before = annotation_identity(folder)
+    source_before = annotation_identity(folder, source_only=True)
+    changed = tmp_path / 'review.py'
+    changed.write_text('changed review implementation')
+    monkeypatch.setattr(document_table_review, '__file__', str(changed))
+    assert annotation_identity(folder) != before
+    assert annotation_identity(folder, source_only=True) == source_before

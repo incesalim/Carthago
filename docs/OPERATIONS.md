@@ -2027,3 +2027,13 @@ Capture results name `retained_period_header_upgrade` and zero
 use normal extraction and corrupt eligible bases fail. Read-only probes compare
 the complete replay JSON to complete fresh extraction when the base is retained.
 Cloud proof and publication are required before claiming this transition is live.
+
+
+Complete physical-table annotations may carry `logical_rows` only for explicitly
+source-reviewed rows. `document_table_review.py` requires whole source-word
+occurrences in the reviewed row and column, exact independently transcribed
+wording/order, and equality with the physical row's entire character inventory.
+It rejects missing, duplicated or borrowed occurrences. Physical cells remain
+unchanged. The review code participates in annotation receipt identity, so its
+changes invalidate table-review reuse. Source-only receipts are unaffected.
+These views do not rewrite series, convert units or automatically join pages.
