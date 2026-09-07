@@ -5917,6 +5917,2879 @@
           "text": "İlişikteki açıklama ve dipnotlar bu konsolide olmayan finansal tabloların tamamlayıcı bir parçasıdır."
         }
       ]
+    },
+    {
+      "id": "complete_management_ownership",
+      "kind": "complete_physical_table",
+      "page": 50,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        128,
+        209,
+        539,
+        286
+      ],
+      "rows": [
+        [
+          "Unvan",
+          "Pay Tutarları (TL)",
+          "Pay Adedi"
+        ],
+        [
+          "Ahmet Yaşar AYDIN",
+          "1.447.500",
+          "1.447.500"
+        ],
+        [
+          "Ali Taha AYDIN",
+          "15.000",
+          "15.000"
+        ],
+        [
+          "Can Ersöz",
+          "15.000",
+          "15.000"
+        ],
+        [
+          "Erhan Bostan",
+          "15.000",
+          "15.000"
+        ],
+        [
+          "Tolga Akar",
+          "7.500",
+          "7.500"
+        ],
+        [
+          "Toplam",
+          "1.500.000",
+          "1.500.000"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All cells independently transcribed from original rendered PDF page 50 on 2026-09-07 before candidate comparison. The liabilities table literally says Toplam Aktifler. The management P&L prints 31 Aralık 2022, distinct from the primary P&L comparison period. The ownership table explicitly prints TL and the ratios table %. No unit or period conversion is inferred.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_management_assets",
+      "kind": "complete_physical_table",
+      "page": 50,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        128,
+        391,
+        539,
+        457
+      ],
+      "rows": [
+        [
+          "Aktifler",
+          "30 Eylül 2023",
+          "31 Aralık 2022"
+        ],
+        [
+          "Nakit ve Nakit Benzerleri",
+          "393.409",
+          "1.004.154"
+        ],
+        [
+          "Menkul Değerler",
+          "1.036.927",
+          "502.767"
+        ],
+        [
+          "Krediler",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer Aktifler",
+          "240.013",
+          "6.181"
+        ],
+        [
+          "Toplam Aktifler",
+          "1.670.349",
+          "1.513.102"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All cells independently transcribed from original rendered PDF page 50 on 2026-09-07 before candidate comparison. The liabilities table literally says Toplam Aktifler. The management P&L prints 31 Aralık 2022, distinct from the primary P&L comparison period. The ownership table explicitly prints TL and the ratios table %. No unit or period conversion is inferred.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_management_liabilities",
+      "kind": "complete_physical_table",
+      "page": 50,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        498,
+        539,
+        543
+      ],
+      "rows": [
+        [
+          "Pasifler",
+          "30 Eylül 2023",
+          "31 Aralık 2022"
+        ],
+        [
+          "Diğer Yükümlülükler",
+          "24.153",
+          "14.978"
+        ],
+        [
+          "Özkaynaklar",
+          "1.646.196",
+          "1.498.124"
+        ],
+        [
+          "Toplam Aktifler",
+          "1.670.349",
+          "1.513.102"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All cells independently transcribed from original rendered PDF page 50 on 2026-09-07 before candidate comparison. The liabilities table literally says Toplam Aktifler. The management P&L prints 31 Aralık 2022, distinct from the primary P&L comparison period. The ownership table explicitly prints TL and the ratios table %. No unit or period conversion is inferred.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_management_profit_loss",
+      "kind": "complete_physical_table",
+      "page": 50,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        553,
+        539,
+        651
+      ],
+      "rows": [
+        [
+          "Gelir ve Giderler",
+          "30 Eylül 2023",
+          "31 Aralık 2022"
+        ],
+        [
+          "Net Kar Payı Gelirleri",
+          "112.063",
+          "10.236"
+        ],
+        [
+          "Ticari Kar/Zarar",
+          "179.095",
+          "2.767"
+        ],
+        [
+          "Diğer Karşılık Giderleri",
+          "(2.337)",
+          "(207)"
+        ],
+        [
+          "Personel Giderleri",
+          "(70.837)",
+          "(9.793)"
+        ],
+        [
+          "Diğer Faaliyet Giderleri",
+          "(80.301)",
+          "(6.418)"
+        ],
+        [
+          "Vergi Öncesi Kar/Zarar",
+          "137.683",
+          "(3.415)"
+        ],
+        [
+          "Vergi Karşılığı",
+          "10.388",
+          "1.545"
+        ],
+        [
+          "Net Kâr /Zarar",
+          "148.071",
+          "(1.870)"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All cells independently transcribed from original rendered PDF page 50 on 2026-09-07 before candidate comparison. The liabilities table literally says Toplam Aktifler. The management P&L prints 31 Aralık 2022, distinct from the primary P&L comparison period. The ownership table explicitly prints TL and the ratios table %. No unit or period conversion is inferred.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_management_ratios",
+      "kind": "complete_physical_table",
+      "page": 50,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        661,
+        539,
+        695
+      ],
+      "rows": [
+        [
+          "Rasyolar (%)",
+          "30 Eylül 2023",
+          "31 Aralık 2022"
+        ],
+        [
+          "Sermaye Yeterlilik Rasyosu",
+          "93,90",
+          "98,79"
+        ],
+        [
+          "Özkaynak / Toplam Aktifler",
+          "98,55",
+          "99,01"
+        ]
+      ],
+      "spans": [],
+      "source_review": "All cells independently transcribed from original rendered PDF page 50 on 2026-09-07 before candidate comparison. The liabilities table literally says Toplam Aktifler. The management P&L prints 31 Aralık 2022, distinct from the primary P&L comparison period. The ownership table explicitly prints TL and the ratios table %. No unit or period conversion is inferred.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_management_paragraph_ownership",
+      "kind": "narrative",
+      "page": 50,
+      "text": "T.O.M Katılım Bankası A.Ş.’nin ödenmiş sermayesi 1.500.000 TL olup bu sermaye her biri 1,00 Türk Lirası değerinde olan 1.500.000 paya ayrılmıştır. Banka’da, Yönetim Kurulu Başkan’ı % 1 ve Yönetim Kurulu Başkan Yardımcısı % 0.5 paya sahip olup Yönetim Kurulu Üyeleri, Denetim Komitesi Üyeleri ile Genel Müdür ve Yardımcılarının Banka’da sahip oldukları pay bulunmamaktadır.",
+      "text_sha256": "2cf0390e0b9de0e863c04f569a640002a55d999464e2f6288721ad4e64ae3416",
+      "heading_path": [
+        "III. Ortaklık Yapısı"
+      ],
+      "bbox": [
+        127,
+        157,
+        542,
+        200
+      ],
+      "source_review": "Complete paragraph and immediately governing page heading independently transcribed from original rendered PDF page 50 before comparison. This verifies wording and source association, not the economic meaning or consistency of the bank statements."
+    },
+    {
+      "id": "complete_management_paragraph_amendments",
+      "kind": "narrative",
+      "page": 50,
+      "text": "Bulunmamaktadır.",
+      "text_sha256": "823143eb335583d743815e1e0791445582db0c6f90246c74431b2b7a15b0b359",
+      "heading_path": [
+        "IV. 2023 Yılında Esas Sözleşmede Yapılan Değişiklikler"
+      ],
+      "bbox": [
+        127,
+        318,
+        201,
+        329
+      ],
+      "source_review": "Complete paragraph and immediately governing page heading independently transcribed from original rendered PDF page 50 before comparison. This verifies wording and source association, not the economic meaning or consistency of the bank statements."
+    },
+    {
+      "id": "complete_management_paragraph_assets",
+      "kind": "narrative",
+      "page": 50,
+      "text": "Banka Aktifleri içerisinde Nakit ve Nakit Benzerleri 393.409 TL ile % 24, Menkul Değerler 1.036.927 TL ile % 62, Diğer Aktifler 240.013 TL ile % 14’lük pay almaktadır.",
+      "text_sha256": "1527a53d2ad4b122476c015fff8fa2c0adc269bb76fe5e1a41637777592f38aa",
+      "heading_path": [
+        "V. Başlıca Finansal Göstergeler"
+      ],
+      "bbox": [
+        127,
+        360,
+        541,
+        381
+      ],
+      "source_review": "Complete paragraph and immediately governing page heading independently transcribed from original rendered PDF page 50 before comparison. This verifies wording and source association, not the economic meaning or consistency of the bank statements."
+    },
+    {
+      "id": "complete_management_paragraph_liabilities",
+      "kind": "narrative",
+      "page": 50,
+      "text": "Banka Pasifleri içerisinde Diğer Yükümlülükler 24.153 TL ile % 1, Özkaynaklar 1.646.196 TL ile % 99 pay almaktadır.",
+      "text_sha256": "d71ffe721914a250532619594f89c5c2eee2988a1d605d9c90d2a1adfb542000",
+      "heading_path": [
+        "V. Başlıca Finansal Göstergeler"
+      ],
+      "bbox": [
+        127,
+        467,
+        542,
+        489
+      ],
+      "source_review": "Complete paragraph and immediately governing page heading independently transcribed from original rendered PDF page 50 before comparison. This verifies wording and source association, not the economic meaning or consistency of the bank statements."
+    },
+    {
+      "id": "complete_comprehensive_income_with_printed_row_groups",
+      "kind": "complete_physical_table",
+      "page": 14,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        61,
+        112,
+        544,
+        273
+      ],
+      "rows": [
+        [
+          "T.O.M. KATILIM BANKASI A.Ş KONSOLİDE OLMAYAN KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU",
+          null,
+          null
+        ],
+        [
+          "",
+          "Cari Dönem 1 Ocak-30 Eylül 2023",
+          "Önceki Dönem 1 Ocak-30 Eylül 2022"
+        ],
+        [
+          "I. DÖNEM KARI/ZARARI II. DİĞER KAPSAMLI GELİRLER 2.1 Kar veya Zararda Yeniden Sınıflandırılmayacaklar 2.1.1 Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları 2.1.2 Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları 2.1.3 Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları 2.1.4 Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları 2.1.5 Kar veya Zararda Yeniden Sınırlandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler 2.2 Kar veya Zararda Yeniden Sınıflandırılacaklar 2.2.1 Yabancı Para Çevirim Farkları 2.2.2 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri 2.2.3 Nakit Akış Riskinden Korunma Gelirleri/Giderleri 2.2.4 Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri 2.2.5 Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları 2.2.6 Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler III. TOPLAM KAPSAMLI GELİR (I+II)",
+          "148.071 1 1 - - - - 1 - - - - - - - 148.072",
+          "- - - - - - - - - - - - - - - -"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 3
+        }
+      ],
+      "numbered_rows": [
+        {
+          "source_row": 2,
+          "rows": [
+            [
+              "I. DÖNEM KARI/ZARARI",
+              "148.071",
+              "-"
+            ],
+            [
+              "II. DİĞER KAPSAMLI GELİRLER",
+              "1",
+              "-"
+            ],
+            [
+              "2.1 Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+              "1",
+              "-"
+            ],
+            [
+              "2.1.1 Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+              "-",
+              "-"
+            ],
+            [
+              "2.1.2 Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+              "-",
+              "-"
+            ],
+            [
+              "2.1.3 Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+              "-",
+              "-"
+            ],
+            [
+              "2.1.4 Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+              "-",
+              "-"
+            ],
+            [
+              "2.1.5 Kar veya Zararda Yeniden Sınırlandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+              "1",
+              "-"
+            ],
+            [
+              "2.2 Kar veya Zararda Yeniden Sınıflandırılacaklar",
+              "-",
+              "-"
+            ],
+            [
+              "2.2.1 Yabancı Para Çevirim Farkları",
+              "-",
+              "-"
+            ],
+            [
+              "2.2.2 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+              "-",
+              "-"
+            ],
+            [
+              "2.2.3 Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+              "-",
+              "-"
+            ],
+            [
+              "2.2.4 Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+              "-",
+              "-"
+            ],
+            [
+              "2.2.5 Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+              "-",
+              "-"
+            ],
+            [
+              "2.2.6 Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+              "-",
+              "-"
+            ],
+            [
+              "III. TOPLAM KAPSAMLI GELİR (I+II)",
+              "148.072",
+              "-"
+            ]
+          ]
+        }
+      ],
+      "row_splits": [
+        {
+          "row": 2,
+          "rows": [
+            {
+              "cells": [
+                {
+                  "text": "I. DÖNEM KARI/ZARARI",
+                  "source_word_ids": [
+                    60,
+                    61,
+                    62
+                  ]
+                },
+                {
+                  "text": "148.071",
+                  "source_word_ids": [
+                    63
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    64
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "II. DİĞER KAPSAMLI GELİRLER",
+                  "source_word_ids": [
+                    65,
+                    66,
+                    67,
+                    68
+                  ]
+                },
+                {
+                  "text": "1",
+                  "source_word_ids": [
+                    69
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    70
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1 Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+                  "source_word_ids": [
+                    71,
+                    72,
+                    73,
+                    74,
+                    75,
+                    76
+                  ]
+                },
+                {
+                  "text": "1",
+                  "source_word_ids": [
+                    77
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    78
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1.1 Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+                  "source_word_ids": [
+                    79,
+                    80,
+                    81,
+                    82,
+                    83,
+                    84,
+                    85
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    86
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    87
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1.2 Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+                  "source_word_ids": [
+                    88,
+                    89,
+                    90,
+                    91,
+                    92,
+                    93,
+                    94,
+                    95
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    96
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    97
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1.3 Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+                  "source_word_ids": [
+                    98,
+                    99,
+                    100,
+                    101,
+                    102,
+                    103,
+                    104
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    105
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    106
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1.4 Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+                  "source_word_ids": [
+                    107,
+                    108,
+                    109,
+                    110,
+                    111,
+                    112,
+                    113,
+                    114,
+                    115,
+                    116,
+                    117,
+                    118
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    119
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    120
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1.5 Kar veya Zararda Yeniden Sınırlandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+                  "source_word_ids": [
+                    121,
+                    122,
+                    123,
+                    124,
+                    125,
+                    126,
+                    127,
+                    128,
+                    129,
+                    130,
+                    131
+                  ]
+                },
+                {
+                  "text": "1",
+                  "source_word_ids": [
+                    132
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    133
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2 Kar veya Zararda Yeniden Sınıflandırılacaklar",
+                  "source_word_ids": [
+                    134,
+                    135,
+                    136,
+                    137,
+                    138,
+                    139
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    140
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    141
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2.1 Yabancı Para Çevirim Farkları",
+                  "source_word_ids": [
+                    142,
+                    143,
+                    144,
+                    145,
+                    146
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    147
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    148
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2.2 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+                  "source_word_ids": [
+                    149,
+                    150,
+                    151,
+                    152,
+                    153,
+                    154,
+                    155,
+                    156,
+                    157,
+                    158,
+                    159,
+                    160,
+                    161,
+                    162,
+                    163
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    164
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    165
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2.3 Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+                  "source_word_ids": [
+                    166,
+                    167,
+                    168,
+                    169,
+                    170,
+                    171
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    172
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    173
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2.4 Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+                  "source_word_ids": [
+                    174,
+                    175,
+                    176,
+                    177,
+                    178,
+                    179,
+                    180,
+                    181
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    182
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    183
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2.5 Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+                  "source_word_ids": [
+                    184,
+                    185,
+                    186,
+                    187,
+                    188,
+                    189,
+                    190,
+                    191,
+                    192,
+                    193,
+                    194,
+                    195
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    196
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    197
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2.6 Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+                  "source_word_ids": [
+                    198,
+                    199,
+                    200,
+                    201,
+                    202,
+                    203,
+                    204,
+                    205,
+                    206,
+                    207,
+                    208
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    209
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    210
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "III. TOPLAM KAPSAMLI GELİR (I+II)",
+                  "source_word_ids": [
+                    211,
+                    212,
+                    213,
+                    214,
+                    215
+                  ]
+                },
+                {
+                  "text": "148.072",
+                  "source_word_ids": [
+                    216
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    217
+                  ]
+                }
+              ]
+            }
+          ],
+          "source_review": "Complete source table independently transcribed from original PDF page 14 on 2026-09-07, before comparing candidate cells. All 16 body rows retained; row 2.2.2 wraps across two source lines. The printed Sınırlandırılmayacak in 2.1.5 remains literal."
+        }
+      ],
+      "source_review": "Complete source table independently transcribed from original PDF page 14 on 2026-09-07, before comparing candidate cells. All 16 body rows retained; row 2.2.2 wraps across two source lines. The printed Sınırlandırılmayacak in 2.1.5 remains literal.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            66,
+            89,
+            329,
+            100
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            118,
+            727,
+            494,
+            738
+          ],
+          "text": "İlişikteki açıklama ve dipnotlar bu konsolide olmayan finansal tabloların tamamlayıcı bir parçasıdır."
+        }
+      ]
+    },
+    {
+      "id": "complete_cash_flow_with_unassigned_printed_marks",
+      "kind": "complete_physical_table",
+      "page": 16,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        59,
+        121,
+        558,
+        561
+      ],
+      "rows": [
+        [
+          "T.O.M. KATILIM BANKASI A.Ş. KONSOLİDE OLMAYAN NAKİT AKIŞ TABLOSU",
+          null,
+          null,
+          null
+        ],
+        [
+          "",
+          "",
+          "Cari Dönem 1 Ocak-30 Eylül 2023",
+          "Önceki Dönem 1 Ocak-30 Eylül 2022"
+        ],
+        [
+          "A. BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI 1.1 Bankacılık Faaliyet Konusu Aktif ve Pasiflerdeki Değişim Öncesi Faaliyet Karı (Zararı) 1.1.1 Alınan Kar Payları 1.1.2 Ödenen Kar Payları 1.1.3 Alınan Temettüler 1.1.4 Alınan Ücret ve Komisyonlar 1.1.5 Elde Edilen Diğer Kazançlar 1.1.6 Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar 1.1.7 Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler 1.1.8 Ödenen Vergiler 1.1.9 Diğer 1.2 Bankacılık Faaliyetleri Konusu Aktif ve Pasiflerdeki Değişim 1.2.1 Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış 1.2.2 Bankalar Hesabındaki Net (Artış) Azalış 1.2.3 Kredilerdeki Net (Artış) Azalış 1.2.4 Diğer Varlıklarda Net (Artış) Azalış 1.2.5 Bankalardan Toplanan Fonlarda Net Artış (Azalış) 1.2.6 Diğer Toplanan Fonlarda Net Artış (Azalış) 1.2.7 Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FY'lerde Net Artış (Azalış) 1.2.8 Alınan Kredilerdeki Net Artış (Azalış) 1.2.9 Vadesi Gelmiş Borçlarda Net Artış (Azalış) 1.2.10 Diğer Borçlarda Net Artış (Azalış) I. Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akımı B. YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI II. Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı 2.1 İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları) 2.2 Elden Çıkarılan İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları) 2.3 Satın Alınan Menkuller ve Gayrimenkuller 2.4 Elden Çıkarılan Menkul ve Gayrimenkuller 2.5 Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar 2.6 Elden Çıkarılan Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar 2.7 Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar 2.8 Satılan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar 2.9 Diğer C. FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI III. Finansman Faaliyetlerinden Sağlanan Net Nakit 3.1 Krediler ve İhraç Edilen Menkul Değerlerden Sağlanan Nakit 3.2 Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı 3.3 İhraç Edilen Sermaye Araçları 3.4 Temettü Ödemeleri 3.5 Kiralamaya İlişkin Ödemeler 3.6 Diğer IV. Döviz Kurundaki Değişimin Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi V. Nakit ve Nakde Eşdeğer Varlıklardaki Net (Azalış)/Artış (I+II+III+IV) VI. Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar VII. Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+          "",
+          "62.874 - 110.649 - - - - - - - 94.854 - - - (59.756) - (2.406) - (80.466) - (577.196) - (452.685) - - - - - (124.511) - - - - - - - - - - - - - (514.321) - (88.237) - - - - - - - - - - - - - - - - - (88.237) - - (1.576) - - - - - - - - - (1.576) - - - - - - (604.134) - 995.854 - 391.720 -",
+          null
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 4
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "numbered_rows": [
+        {
+          "source_row": 2,
+          "rows": [
+            [
+              "A. BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+              "",
+              "",
+              ""
+            ],
+            [
+              "1.1 Bankacılık Faaliyet Konusu Aktif ve Pasiflerdeki Değişim Öncesi Faaliyet Karı (Zararı)",
+              "",
+              "62.874",
+              "-"
+            ],
+            [
+              "1.1.1 Alınan Kar Payları",
+              "",
+              "110.649",
+              "-"
+            ],
+            [
+              "1.1.2 Ödenen Kar Payları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.1.3 Alınan Temettüler",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.1.4 Alınan Ücret ve Komisyonlar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.1.5 Elde Edilen Diğer Kazançlar",
+              "",
+              "94.854",
+              "-"
+            ],
+            [
+              "1.1.6 Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.1.7 Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler",
+              "",
+              "(59.756)",
+              "-"
+            ],
+            [
+              "1.1.8 Ödenen Vergiler",
+              "",
+              "(2.406)",
+              "-"
+            ],
+            [
+              "1.1.9 Diğer",
+              "",
+              "(80.466)",
+              "-"
+            ],
+            [
+              "1.2 Bankacılık Faaliyetleri Konusu Aktif ve Pasiflerdeki Değişim",
+              "",
+              "(577.196)",
+              "-"
+            ],
+            [
+              "1.2.1 Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış",
+              "",
+              "(452.685)",
+              "-"
+            ],
+            [
+              "1.2.2 Bankalar Hesabındaki Net (Artış) Azalış",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.3 Kredilerdeki Net (Artış) Azalış",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.4 Diğer Varlıklarda Net (Artış) Azalış",
+              "",
+              "(124.511)",
+              "-"
+            ],
+            [
+              "1.2.5 Bankalardan Toplanan Fonlarda Net Artış (Azalış)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.6 Diğer Toplanan Fonlarda Net Artış (Azalış)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.7 Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FY'lerde Net Artış (Azalış)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.8 Alınan Kredilerdeki Net Artış (Azalış)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.9 Vadesi Gelmiş Borçlarda Net Artış (Azalış)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2.10 Diğer Borçlarda Net Artış (Azalış)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "I. Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akımı",
+              "",
+              "(514.321)",
+              "-"
+            ],
+            [
+              "B. YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+              "",
+              "",
+              ""
+            ],
+            [
+              "II. Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı",
+              "",
+              "(88.237)",
+              "-"
+            ],
+            [
+              "2.1 İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.2 Elden Çıkarılan İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.3 Satın Alınan Menkuller ve Gayrimenkuller",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.4 Elden Çıkarılan Menkul ve Gayrimenkuller",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.5 Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.6 Elden Çıkarılan Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.7 Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.8 Satılan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.9 Diğer",
+              "",
+              "(88.237)",
+              "-"
+            ],
+            [
+              "C. FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "-"
+            ],
+            [
+              "III. Finansman Faaliyetlerinden Sağlanan Net Nakit",
+              "",
+              "(1.576)",
+              "-"
+            ],
+            [
+              "3.1 Krediler ve İhraç Edilen Menkul Değerlerden Sağlanan Nakit",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "3.2 Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "3.3 İhraç Edilen Sermaye Araçları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "3.4 Temettü Ödemeleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "3.5 Kiralamaya İlişkin Ödemeler",
+              "",
+              "(1.576)",
+              "-"
+            ],
+            [
+              "3.6 Diğer",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "",
+              "",
+              "",
+              "-"
+            ],
+            [
+              "IV. Döviz Kurundaki Değişimin Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+              "",
+              "-",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              "-"
+            ],
+            [
+              "V. Nakit ve Nakde Eşdeğer Varlıklardaki Net (Azalış)/Artış (I+II+III+IV)",
+              "",
+              "(604.134)",
+              "-"
+            ],
+            [
+              "VI. Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar",
+              "",
+              "995.854",
+              "-"
+            ],
+            [
+              "VII. Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+              "",
+              "391.720",
+              "-"
+            ]
+          ],
+          "unresolved_lines": [
+            35,
+            43,
+            45
+          ],
+          "source_review": "Three prior-period dashes are printed on otherwise empty baselines between C and III, and immediately before and after IV. They remain separate rows with empty labels; no financial row association is inferred."
+        }
+      ],
+      "row_splits": [
+        {
+          "row": 2,
+          "rows": [
+            {
+              "cells": [
+                {
+                  "text": "A. BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+                  "source_word_ids": [
+                    50,
+                    51,
+                    52,
+                    53,
+                    54,
+                    55
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1 Bankacılık Faaliyet Konusu Aktif ve Pasiflerdeki Değişim Öncesi Faaliyet Karı (Zararı)",
+                  "source_word_ids": [
+                    56,
+                    57,
+                    58,
+                    59,
+                    60,
+                    61,
+                    62,
+                    63,
+                    64,
+                    65,
+                    66,
+                    67
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "62.874",
+                  "source_word_ids": [
+                    68
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    69
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.1 Alınan Kar Payları",
+                  "source_word_ids": [
+                    70,
+                    71,
+                    72,
+                    73
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "110.649",
+                  "source_word_ids": [
+                    74
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    75
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.2 Ödenen Kar Payları",
+                  "source_word_ids": [
+                    76,
+                    77,
+                    78,
+                    79
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    80
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    81
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.3 Alınan Temettüler",
+                  "source_word_ids": [
+                    82,
+                    83,
+                    84
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    85
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    86
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.4 Alınan Ücret ve Komisyonlar",
+                  "source_word_ids": [
+                    87,
+                    88,
+                    89,
+                    90,
+                    91
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    92
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    93
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.5 Elde Edilen Diğer Kazançlar",
+                  "source_word_ids": [
+                    94,
+                    95,
+                    96,
+                    97,
+                    98
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "94.854",
+                  "source_word_ids": [
+                    99
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    100
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.6 Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar",
+                  "source_word_ids": [
+                    101,
+                    102,
+                    103,
+                    104,
+                    105,
+                    106,
+                    107
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    108
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    109
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.7 Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler",
+                  "source_word_ids": [
+                    110,
+                    111,
+                    112,
+                    113,
+                    114,
+                    115,
+                    116,
+                    117,
+                    118
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(59.756)",
+                  "source_word_ids": [
+                    119
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    120
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.8 Ödenen Vergiler",
+                  "source_word_ids": [
+                    121,
+                    122,
+                    123
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(2.406)",
+                  "source_word_ids": [
+                    124
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    125
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1.9 Diğer",
+                  "source_word_ids": [
+                    126,
+                    127
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(80.466)",
+                  "source_word_ids": [
+                    128
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    129
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2 Bankacılık Faaliyetleri Konusu Aktif ve Pasiflerdeki Değişim",
+                  "source_word_ids": [
+                    130,
+                    131,
+                    132,
+                    133,
+                    134,
+                    135,
+                    136,
+                    137
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(577.196)",
+                  "source_word_ids": [
+                    138
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    139
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.1 Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış",
+                  "source_word_ids": [
+                    140,
+                    141,
+                    142,
+                    143,
+                    144,
+                    145,
+                    146,
+                    147,
+                    148,
+                    149,
+                    150
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(452.685)",
+                  "source_word_ids": [
+                    151
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    152
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.2 Bankalar Hesabındaki Net (Artış) Azalış",
+                  "source_word_ids": [
+                    153,
+                    154,
+                    155,
+                    156,
+                    157,
+                    158
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    159
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    160
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.3 Kredilerdeki Net (Artış) Azalış",
+                  "source_word_ids": [
+                    161,
+                    162,
+                    163,
+                    164,
+                    165
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    166
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    167
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.4 Diğer Varlıklarda Net (Artış) Azalış",
+                  "source_word_ids": [
+                    168,
+                    169,
+                    170,
+                    171,
+                    172,
+                    173
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(124.511)",
+                  "source_word_ids": [
+                    174
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    175
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.5 Bankalardan Toplanan Fonlarda Net Artış (Azalış)",
+                  "source_word_ids": [
+                    176,
+                    177,
+                    178,
+                    179,
+                    180,
+                    181,
+                    182
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    183
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    184
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.6 Diğer Toplanan Fonlarda Net Artış (Azalış)",
+                  "source_word_ids": [
+                    185,
+                    186,
+                    187,
+                    188,
+                    189,
+                    190,
+                    191
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    192
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    193
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.7 Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FY'lerde Net Artış (Azalış)",
+                  "source_word_ids": [
+                    194,
+                    195,
+                    196,
+                    197,
+                    198,
+                    199,
+                    200,
+                    201,
+                    202,
+                    203,
+                    204
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    205
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    206
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.8 Alınan Kredilerdeki Net Artış (Azalış)",
+                  "source_word_ids": [
+                    207,
+                    208,
+                    209,
+                    210,
+                    211,
+                    212
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    213
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    214
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.9 Vadesi Gelmiş Borçlarda Net Artış (Azalış)",
+                  "source_word_ids": [
+                    215,
+                    216,
+                    217,
+                    218,
+                    219,
+                    220,
+                    221
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    222
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    223
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2.10 Diğer Borçlarda Net Artış (Azalış)",
+                  "source_word_ids": [
+                    224,
+                    225,
+                    226,
+                    227,
+                    228,
+                    229
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    230
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    231
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "I. Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akımı",
+                  "source_word_ids": [
+                    232,
+                    233,
+                    234,
+                    235,
+                    236,
+                    237,
+                    238
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(514.321)",
+                  "source_word_ids": [
+                    239
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    240
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "B. YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+                  "source_word_ids": [
+                    241,
+                    242,
+                    243,
+                    244,
+                    245,
+                    246
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "II. Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı",
+                  "source_word_ids": [
+                    247,
+                    248,
+                    249,
+                    250,
+                    251,
+                    252,
+                    253
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(88.237)",
+                  "source_word_ids": [
+                    254
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    255
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1 İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları)",
+                  "source_word_ids": [
+                    256,
+                    257,
+                    258,
+                    259,
+                    260,
+                    261,
+                    262,
+                    263,
+                    264,
+                    265,
+                    266,
+                    267,
+                    268
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    269
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    270
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2 Elden Çıkarılan İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları)",
+                  "source_word_ids": [
+                    271,
+                    272,
+                    273,
+                    274,
+                    275,
+                    276,
+                    277,
+                    278,
+                    279,
+                    280,
+                    281,
+                    282,
+                    283
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    284
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    285
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.3 Satın Alınan Menkuller ve Gayrimenkuller",
+                  "source_word_ids": [
+                    286,
+                    287,
+                    288,
+                    289,
+                    290,
+                    291
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    292
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    293
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.4 Elden Çıkarılan Menkul ve Gayrimenkuller",
+                  "source_word_ids": [
+                    294,
+                    295,
+                    296,
+                    297,
+                    298,
+                    299
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    300
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    301
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.5 Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+                  "source_word_ids": [
+                    302,
+                    303,
+                    304,
+                    305,
+                    306,
+                    307,
+                    308,
+                    309,
+                    310,
+                    311,
+                    312,
+                    313,
+                    314
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    315
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    316
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.6 Elden Çıkarılan Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+                  "source_word_ids": [
+                    317,
+                    318,
+                    319,
+                    320,
+                    321,
+                    322,
+                    323,
+                    324,
+                    325,
+                    326,
+                    327,
+                    328,
+                    329
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    330
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    331
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.7 Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+                  "source_word_ids": [
+                    332,
+                    333,
+                    334,
+                    335,
+                    336,
+                    337,
+                    338,
+                    339,
+                    340,
+                    341
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    342
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    343
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.8 Satılan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+                  "source_word_ids": [
+                    344,
+                    345,
+                    346,
+                    347,
+                    348,
+                    349,
+                    350,
+                    351,
+                    352
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    353
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    354
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.9 Diğer",
+                  "source_word_ids": [
+                    355,
+                    356
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(88.237)",
+                  "source_word_ids": [
+                    357
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    358
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "C. FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+                  "source_word_ids": [
+                    359,
+                    360,
+                    361,
+                    362,
+                    363,
+                    364
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    372
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "III. Finansman Faaliyetlerinden Sağlanan Net Nakit",
+                  "source_word_ids": [
+                    365,
+                    366,
+                    367,
+                    368,
+                    369,
+                    370
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(1.576)",
+                  "source_word_ids": [
+                    371
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    373
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "3.1 Krediler ve İhraç Edilen Menkul Değerlerden Sağlanan Nakit",
+                  "source_word_ids": [
+                    374,
+                    375,
+                    376,
+                    377,
+                    378,
+                    379,
+                    380,
+                    381,
+                    382
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    383
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    384
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "3.2 Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı",
+                  "source_word_ids": [
+                    385,
+                    386,
+                    387,
+                    388,
+                    389,
+                    390,
+                    391,
+                    392,
+                    393,
+                    394
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    395
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    396
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "3.3 İhraç Edilen Sermaye Araçları",
+                  "source_word_ids": [
+                    397,
+                    398,
+                    399,
+                    400,
+                    401
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    402
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    403
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "3.4 Temettü Ödemeleri",
+                  "source_word_ids": [
+                    404,
+                    405,
+                    406
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    407
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    408
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "3.5 Kiralamaya İlişkin Ödemeler",
+                  "source_word_ids": [
+                    409,
+                    410,
+                    411,
+                    412
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(1.576)",
+                  "source_word_ids": [
+                    413
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    414
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "3.6 Diğer",
+                  "source_word_ids": [
+                    415,
+                    416
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    417
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    418
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    431
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "IV. Döviz Kurundaki Değişimin Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+                  "source_word_ids": [
+                    419,
+                    420,
+                    421,
+                    422,
+                    423,
+                    424,
+                    425,
+                    426,
+                    427,
+                    428,
+                    429
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    430
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    442
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "V. Nakit ve Nakde Eşdeğer Varlıklardaki Net (Azalış)/Artış (I+II+III+IV)",
+                  "source_word_ids": [
+                    432,
+                    433,
+                    434,
+                    435,
+                    436,
+                    437,
+                    438,
+                    439,
+                    440
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(604.134)",
+                  "source_word_ids": [
+                    441
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    443
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "VI. Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar",
+                  "source_word_ids": [
+                    444,
+                    445,
+                    446,
+                    447,
+                    448,
+                    449,
+                    450,
+                    451
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "995.854",
+                  "source_word_ids": [
+                    452
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    453
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "VII. Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+                  "source_word_ids": [
+                    454,
+                    455,
+                    456,
+                    457,
+                    458,
+                    459,
+                    460,
+                    461
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "391.720",
+                  "source_word_ids": [
+                    462
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    463
+                  ]
+                }
+              ]
+            }
+          ],
+          "source_review": "Complete source table independently transcribed from original PDF page 16 on 2026-09-07, before comparing candidate cells. Three prior-period dashes are printed on otherwise empty baselines between C and III, and immediately before and after IV. They remain separate rows with empty labels; no financial row association is inferred. The dated headers print Dönem 1 followed by Ocak-30 Eylül; the 1 is not silently moved into the second line."
+        }
+      ],
+      "source_review": "Complete source table independently transcribed from original PDF page 16 on 2026-09-07, before comparing candidate cells. Three prior-period dashes are printed on otherwise empty baselines between C and III, and immediately before and after IV. They remain separate rows with empty labels; no financial row association is inferred. The dated headers print Dönem 1 followed by Ocak-30 Eylül; the 1 is not silently moved into the second line. The physical extraction merges both amount columns because the vertical rule is interrupted; the reviewed view preserves their separate dated header columns.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            66,
+            89,
+            329,
+            99
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            119,
+            720,
+            492,
+            731
+          ],
+          "text": "İlişikteki açıklama ve dipnotlar bu konsolide olmayan finansal tabloların tamamlayıcı bir parçasıdır"
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

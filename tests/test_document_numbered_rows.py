@@ -121,3 +121,80 @@ def test_numbered_assembly_code_invalidates_table_receipts_only(tmp_path, monkey
     monkeypatch.setattr(document_numbered_rows, '__file__', str(changed))
     assert annotation_identity(folder) != before
     assert annotation_identity(folder, source_only=True) == source_before
+
+
+@pytest.fixture(params=[14, 16])
+def further_statement(request):
+    folder = Path(__file__).parent / 'fixtures'
+    fixture = json.loads((folder / 'document_numbered_cf_oci_tomk.json').read_text(encoding='utf-8'))
+    annotation = json.loads((folder / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c['id'] in fixture['case_ids'] and c['page'] == request.param]
+    assert len(annotation['cases']) == 1
+    return fixture, annotation
+
+
+def test_complete_statements_keep_wrapping_merged_amounts_and_unassigned_marks(further_statement):
+    fixture, annotation = further_statement
+    case = annotation['cases'][0]
+    page = next(p for p in fixture['pages'] if p['page'] == case['page'])
+    source = next(p for p in fixture['source_pages'] if p['page'] == case['page'])
+    table = next(t for t in page['tables'] if t['id'] == f"p{case['page']}:ruled0")
+    grouped = numbered_source_rows(page, source)['tables'][0]
+    rows = reviewed_logical_rows(table, source, case)
+    assert len(rows) == (18 if case['page'] == 14 else 51)
+    assert len(table['rows']) == 3
+    assert [[" ".join(c['text'].split()) for c in row['cells']] for row in rows[2:]] == case['numbered_rows'][0]['rows']
+    if case['page'] == 16:
+        assert grouped['unresolved_lines'] == [35, 43, 45]
+        assert [row['identifier'] for row in grouped['rows'] if row['identifier'] in ['A.', 'B.', 'C.']] == ['A.', 'B.', 'C.']
+        assert table['rows'][2]['cells'][3]['text'] is None
+        assert [i for i, row in enumerate(rows[2:]) if not row['cells'][0]['text']] == [35, 43, 45]
+        assert all([c['text'] for c in rows[i + 2]['cells']] == ['', '', '', '-'] for i in [35, 43, 45])
+        assert [c['text'] for c in rows[-1]['cells']] == ['VII. Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar', '', '391.720', '-']
+    else:
+        assert not grouped['unresolved_lines']
+        assert len(grouped['rows'][10]['source_line_indices']) == 2
+        assert 'Sınırlandırılmayacak' in rows[9]['cells'][0]['text']
+    assert check_annotations({'source': fixture['source'], 'pages': fixture['pages']},
+                             [{'source': fixture['source']}, *fixture['source_pages']], annotation)['passed']
+
+
+@pytest.mark.parametrize('change', ['figure', 'date', 'row_merge', 'word_drop', 'wrong_column'])
+def test_additional_statement_corruption_fails(further_statement, change):
+    fixture, annotation = further_statement
+    case = annotation['cases'][0]
+    rows = case['row_splits'][0]['rows']
+    if change == 'figure':
+        rows[-1]['cells'][-2]['text'] = '0'
+    elif change == 'date':
+        case['rows'][1][-1] = 'Prior period 2021'
+    elif change == 'row_merge':
+        for a, b in zip(rows[1]['cells'], rows[2]['cells'], strict=True):
+            a['text'] += ' ' + b['text']
+            a['source_word_ids'] += b['source_word_ids']
+        rows.pop(2)
+    elif change == 'word_drop':
+        rows[-1]['cells'][0]['source_word_ids'].pop()
+    else:
+        rows[-1]['cells'][-1], rows[-1]['cells'][-2] = rows[-1]['cells'][-2], rows[-1]['cells'][-1]
+    assert not check_annotations({'source': fixture['source'], 'pages': fixture['pages']},
+                                 [{'source': fixture['source']}, *fixture['source_pages']], annotation)['passed']
+
+
+@pytest.mark.parametrize('change', ['omit', 'wrong_line', 'duplicate', 'missing_review'])
+def test_unassigned_source_lines_require_an_exact_explicit_review(change):
+    folder = Path(__file__).parent / 'fixtures'
+    fixture = json.loads((folder / 'document_numbered_cf_oci_tomk.json').read_text(encoding='utf-8'))
+    annotation = json.loads((folder / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c['id'] == 'complete_cash_flow_with_unassigned_printed_marks']
+    group = annotation['cases'][0]['numbered_rows'][0]
+    if change == 'omit':
+        del group['unresolved_lines']
+    elif change == 'wrong_line':
+        group['unresolved_lines'][0] = 34
+    elif change == 'duplicate':
+        group['unresolved_lines'].append(35)
+    else:
+        del group['source_review']
+    assert not check_annotations({'source': fixture['source'], 'pages': fixture['pages']},
+                                 [{'source': fixture['source']}, *fixture['source_pages']], annotation)['passed']

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { nf } from "@/app/lib/chart-format";
 
 export type Narrative = { id: string; kind: string; text: string; span_ids: (string | number)[];
-  heading_path: { id: string; text: string }[]; table_ids: string[] };
+  heading_path: { id: string; text: string }[]; table_ids: string[]; candidate_table_ids?: string[] };
 type LayoutNode = { kind: "element" | "list_item_candidate"; element_ids: string[] }
   | { kind: "sequence" | "unresolved_overlap"; axis?: "x" | "y"; children: LayoutNode[] };
 export type ReadingLayout = { tree: LayoutNode | null; issues: { kind: string }[] };
@@ -24,6 +24,8 @@ function SourceElements({ elements, raw = false }: { elements: Narrative[]; raw?
       {elements[0].heading_path.map((heading) => heading.text).join(" / ")}</p>}
     {elements.some((element) => element.table_ids.length > 0) && <p className="mt-1 text-[10px] text-faint">
       Table: {[...new Set(elements.flatMap((element) => element.table_ids))].join(", ")}</p>}
+    {elements.some((element) => element.candidate_table_ids?.length) && <p className="mt-1 text-[10px] text-faint">
+      Overlapping table candidates: {[...new Set(elements.flatMap((element) => element.candidate_table_ids ?? []))].join(", ")}</p>}
     <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">{elements.map((element) => raw ? element.text : element.text.trim()).join(" ")}</p>
   </div>;
 }

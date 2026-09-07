@@ -88,6 +88,9 @@ each explicit logical-row assignment. A reviewed table may split one large
 physical cell band into its printed rows; every source character must be retained
 exactly once, and each row keeps its original physical-row reference. Numbered
 row groups are also checked against the independent literal transcription.
+Reviewed source anomalies may retain otherwise empty rows with unassigned marks.
+The source-review explanation is displayed with each named table; these marks
+are not silently assigned to an adjacent financial row.
 It exposes only named reviewed tables;
 the whole-report verification count remains separate. Hover a cell to inspect
 source-word/character references. **Download reviewed tables and source
@@ -105,6 +108,14 @@ unlinked, and the original markers and paragraphs stay in the text view.
 The complete physical text remains accessible underneath. Table counts
 are detector candidates, potentially overlapping; they are never a completeness
 denominator. Reading order, headers and narrative roles remain unreviewed.
+
+The narrative repair identifies oversized numerical envelopes containing two or
+more separate ruled tables. Such envelopes cannot claim the prose between those
+tables. Numerical and other speculative rectangles remain visible as
+**Overlapping table candidates**. Standalone numerical tables keep their existing
+membership pending source review. Roman heading prefixes stored separately from their titles stay with
+the title when supported by the source style and block. These are candidate
+relationships: uncertain table overlaps remain visible for review.
 
 `AUDIT_DOCUMENTS` binds the existing `bddk-audit-reports` bucket to the Worker.
 `/api/admin/document-corpus` requires the existing admin session before any

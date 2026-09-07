@@ -12,6 +12,8 @@ const filing = fixture.index.filing;
 const revision = parseCorpusRevision(fixture.index, filing)!;
 const plFixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_table_review_pl_wire.json", import.meta.url), "utf8"));
 const plRevision = parseCorpusRevision(plFixture.index, plFixture.index.filing)!;
+const statements = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_table_review_statements_wire.json", import.meta.url), "utf8"));
+const statementsRevision = parseCorpusRevision(statements.index, statements.index.filing)!;
 const bucketFor = (index: unknown, missing = "", data = fixture, sourceRevision = revision) => ({ get: vi.fn(async (key: string) => {
   if (key === missing) return null;
   const body = key === sourceRevision.evidence_key ? data.source_gzip : key === sourceRevision.structure_current?.key ? data.structure_gzip : null;
@@ -21,6 +23,52 @@ const bucketFor = (index: unknown, missing = "", data = fixture, sourceRevision 
 }) }) as unknown as CorpusBucket;
 
 describe("source-checked reviewed table views", () => {
+  it("serves both complete statements and five management tables with literal source anomalies", async () => {
+    const bucket = bucketFor(statements.index, "", statements, statementsRevision);
+    const tables = (await Promise.all([14, 16, 50].map(page => getReviewedTables(bucket, statements.index.filing, statementsRevision, page)))).flat();
+    expect(tables).toHaveLength(7);
+    const cf = tables.find(t => t.page === 16)!;
+    const oci = tables.find(t => t.page === 14)!;
+    expect(cf.rows).toHaveLength(51);
+    expect(oci.rows).toHaveLength(18);
+    expect(cf.physical_table.rows).toHaveLength(3);
+    expect(cf.physical_table.rows[2].cells[3].text).toBeNull();
+    expect(cf.merged_spans).toEqual([{ row: 0, column: 0, row_span: 1, column_span: 4 }]);
+    for (const table of [cf, oci]) {
+      const record = statements.index.resume_receipt.benchmark.checks[0].reviewed_tables.find((r: { page: number }) => r.page === table.page);
+      expect(table.rows.slice(2).map(r => r.cells.map(c => c.text?.replace(/\s+/g, " ").trim()))).toEqual(record.numbered_rows[0].rows);
+    }
+    for (const i of [35, 43, 45]) expect(cf.rows[i + 2].cells.map(c => c.text)).toEqual(["", "", "", "-"]);
+    expect(cf.rows[46].cells.at(-1)?.text).toBe(""); // IV has no aligned prior-period mark.
+    expect(oci.rows[9].cells[0].text).toContain("Sınırlandırılmayacak");
+    const liabilities = tables.find(t => t.review_id === "complete_management_liabilities")!;
+    expect(liabilities.rows.at(-1)?.cells[0].text).toBe("Toplam Aktifler");
+    const html = renderToStaticMarkup(createElement(ReviewedTableList, { tables: [cf], filing: "TOMK|2023Q3|unconsolidated", page: 16 }));
+    expect(html.match(/<tr(?:\s|>)/g)).toHaveLength(51);
+    expect(html).toContain("Three prior-period dashes are printed on otherwise empty baselines");
+  });
+  it.each(["join_stray_dash", "missing_source_note", "duplicate_unresolved", "change_comparison_period", "correct_printed_total"])("rejects statement %s alteration", async mutation => {
+    const index = structuredClone(statements.index);
+    const tables = index.resume_receipt.benchmark.checks[0].reviewed_tables;
+    const cf = tables.find((t: { page: number }) => t.page === 16);
+    let page = 16;
+    if (mutation === "join_stray_dash") {
+      const rows = cf.row_splits[0].rows;
+      rows[44].cells[3] = rows[43].cells[3];
+      rows.splice(43, 1);
+    }
+    if (mutation === "missing_source_note") delete cf.numbered_rows[0].source_review;
+    if (mutation === "duplicate_unresolved") cf.numbered_rows[0].unresolved_lines.push(35);
+    if (mutation === "change_comparison_period") {
+      page = 50;
+      tables.find((t: { review_id: string }) => t.review_id === "complete_management_profit_loss").physical_rows[0][2] = "30 Eylül 2022";
+    }
+    if (mutation === "correct_printed_total") {
+      page = 50;
+      tables.find((t: { review_id: string }) => t.review_id === "complete_management_liabilities").physical_rows.at(-1)[0] = "Toplam Pasifler";
+    }
+    await expect(getReviewedTables(bucketFor(index, "", statements, statementsRevision), statements.index.filing, statementsRevision, page)).rejects.toThrow();
+  });
   it("serves and renders all 62 printed P&L rows while retaining the two physical rows", async () => {
     const tables = await getReviewedTables(bucketFor(plFixture.index, "", plFixture, plRevision), plFixture.index.filing, plRevision, 13);
     expect(tables).toHaveLength(1);

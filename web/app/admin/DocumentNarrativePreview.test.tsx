@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
 
@@ -8,6 +9,17 @@ const element = (id: string, text: string): Narrative => ({ id, text, kind: "par
   span_ids: [1], table_ids: [], heading_path: [] });
 
 describe("source reading view", () => {
+  it("keeps the recovered management paragraphs, headings and uncertain table links visible", () => {
+    const data = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_management_tomk.json", import.meta.url), "utf8"));
+    const page = data.pages[0];
+    const html = renderToStaticMarkup(<DocumentNarrativePreview elements={page.narrative_elements} />);
+    expect(html).toContain("Bulunmamaktadır.");
+    expect(html).toContain("IV. 2023 Yılında Esas Sözleşmede Yapılan Değişiklikler");
+    expect(html).toContain("V. Başlıca Finansal Göstergeler");
+    expect(html).toContain("Overlapping table candidates: p50:numeric1");
+    expect(html).toContain("Banka Aktifleri içerisinde Nakit ve Nakit Benzerleri 393.409 TL");
+    expect(html).toContain("Banka Pasifleri içerisinde Diğer Yükümlülükler 24.153 TL");
+  });
   it("shows the title before an earlier-stored footer and joins a source bullet with its text", () => {
     const elements = [element("footer", "AUDITOR CONTACT"), element("title", "AUDIT REPORT"),
       element("bullet", "• "), element("body", "SOURCE PARAGRAPH")];

@@ -123,6 +123,13 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
         cached = store.cached_structure(evidence, target)
         if cached is not None:
             return cached, {'method': 'exact_engine_cache'}
+        from . import document_narrative_upgrade as narrative
+        if target == narrative.TARGET_ENGINE:
+            base = store.cached_structure(evidence, narrative.BASE_ENGINE)
+            if base is not None:
+                upgraded = narrative.upgrade_narrative(pdf_path, evidence, base)
+                if upgraded is not None:
+                    return upgraded
         from . import document_header_upgrade as headers
         if target == headers.TARGET_ENGINE:
             base = store.cached_structure(evidence, headers.BASE_ENGINE)
@@ -148,6 +155,9 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
 
 
 def compare_retained_structure(pdf_path, evidence, fresh, store):
+    from . import document_narrative_upgrade as narrative
+    if fresh['engine'] == narrative.TARGET_ENGINE:
+        return narrative.compare_retained_narrative(pdf_path, evidence, fresh, store)
     from . import document_header_upgrade as headers
     if fresh['engine'] == headers.TARGET_ENGINE:
         return headers.compare_retained_headers(pdf_path, evidence, fresh, store)

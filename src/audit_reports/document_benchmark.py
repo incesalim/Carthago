@@ -201,9 +201,16 @@ def _complete_table_matches(case, page, source):
                 numbered = numbered_source_rows(page, source)['tables']
                 valid = True
                 for expected_group in case['numbered_rows']:
+                    reviewed_unresolved = expected_group.get('unresolved_lines', [])
+                    if (not isinstance(reviewed_unresolved, list)
+                            or any(type(i) is not int or i < 0 for i in reviewed_unresolved)
+                            or len(set(reviewed_unresolved)) != len(reviewed_unresolved)
+                            or (reviewed_unresolved and not _text(expected_group.get('source_review')))):
+                        valid = False
+                        break
                     found = [v for v in numbered if v['table_id'] == table['id']
                              and v['source_row'] == expected_group['source_row']]
-                    if (len(found) != 1 or found[0]['unresolved_lines']
+                    if (len(found) != 1 or found[0]['unresolved_lines'] != reviewed_unresolved
                             or [[_text(c['text']) for c in row['cells']] for row in found[0]['rows']]
                             != [[_text(c) for c in row] for row in expected_group['rows']]):
                         valid = False

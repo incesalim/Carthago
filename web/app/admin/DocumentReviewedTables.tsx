@@ -36,6 +36,7 @@ export function ReviewedTableList({ tables, filing, page }: { tables: ReviewedTa
           </table>
         </div>
         {table.source_context.map((context, i) => <p key={i} className="mt-2 whitespace-pre-wrap text-muted-foreground">{context.text}</p>)}
+        <p className="mt-2 text-muted-foreground">Source review: {table.source_review}</p>
       </details>;
     })}
   </div>;

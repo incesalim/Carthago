@@ -2057,3 +2057,17 @@ full corpus. No matches is an error. The workflow rejects combination with
 `acquire_missing` or `quality_only` and excludes acquisition before that job
 can start. Identical retained structures are reused; this input does not force
 extraction or alter D1. Publishing runs keep the existing serialized queue.
+
+The narrative repair upgrades an exact retained `dda3201c` structure to
+`35500cc8` with `retained_narrative_upgrade`. It reclassifies source prose
+when a legacy numeric envelope encloses multiple separate ruled tables, retains uncertain
+table-candidate links, and rebuilds narrative elements, reading layout, table
+context and table-note links. It keeps original/native bytes and physical
+tables unchanged and extracts zero PDF pages. Both original source identity
+and complete structure accounting are checked before reuse. Read-only probes
+compare the entire replay with fresh extraction when that exact base exists;
+unsupported revisions continue through the established fresh path. Publish
+this version after the pending period-header fleet has supplied its exact
+base, without restarting the earlier corpus runs. Source-review annotations
+may explicitly retain unassigned printed marks; they do not infer a financial
+row association or certify the entire report.

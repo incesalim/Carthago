@@ -1211,3 +1211,23 @@ of detected tables.
   that tested commit after the existing publications. Live display remains
   unverified. Receipt: `profit-loss-cloud-independent-verification.json` in
   `docs/knowledge/2026-09-06-document-corpus/`.
+
+- 2026-09-07: independently reviewed the complete TOMK 2023Q3 comprehensive-
+  income and cash-flow statements, five management tables and four complete
+  management paragraphs. The collection reaches 39 named tables / 472 reviewed
+  rows / 1,833 slots, retaining all 348 physical rows. Cash flow contains three
+  unassigned prior-period dashes; these remain on their original baselines with
+  an explicit source-review explanation. An oversized numerical candidate was
+  swallowing the management prose and III/IV/V headings. Repaired that rule,
+  retained uncertain candidate links, and independently checked all four
+  paragraphs and their heading associations. A source-bound retained adapter
+  rebuilds every dependent narrative/context view without opening PDF pages.
+  All 384 retained sample pages preserve their native evidence, tables and
+  other page fields; selected source cases pass. Fresh cloud comparison and
+  the corpus rollout remain required. Current source/period publication runs
+  are still active/pending and have not been restarted.
+
+  A source holdout on Garanti's original balance sheet caught an overbroad
+  version of the rule. The final rule requires a numerical envelope around
+  multiple separate ruled tables; genuine financial-table labels retain their
+  membership. The inspected Garanti source region is now a regression fixture.

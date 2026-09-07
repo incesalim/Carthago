@@ -61,7 +61,7 @@ artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
 are not yet published across the corpus. Neither running/queued fleet is
 restarted for subsequent source annotations.
 
-The source benchmark now contains **74 selected cases across eight reports**.
+The source benchmark now contains **85 selected cases across eight reports**.
 Four independently transcribed TOMK 2023Q3 capital fragments cover
 all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
 restores the word finansal, whose final letter physically crosses into an amount
@@ -98,10 +98,10 @@ the distinct printed dates. Wrong digits, dates, currencies, missing references,
 covered slots and dash/zero substitutions fail the new checks. The ten new
 tables and corrected report-level review description are included in the
 pending restricted publication; their live display is not yet verified.
-The four independently captured reports now provide 32 reviewed tables in
+The four independently captured reports now provide 39 reviewed tables in
 `output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
-313 physical rows and 1,244 slots. The reviewed views contain 374 rows and
-1,488 slots after the explicit P&L row split. These include table headings and
+348 physical rows and 1,352 slots. The reviewed views contain 472 rows and
+1,833 slots after the explicit statement row splits. These include table headings and
 are selected-review counts, not the corpus's printed-table total.
 
 TOMK 2023Q3's complete P&L on PDF page 13 has now been independently transcribed
@@ -122,6 +122,30 @@ Publication `34127300076` selects only TOMK 2023Q3 solo at that tested commit;
 it is queued after the existing corpus updates and the 31-table publication
 `34124160052`. The new P&L is not yet verified live. It changes review
 processing, not PDF extraction; the dda3201c extraction version is unchanged.
+
+Further local source review covers complete TOMK comprehensive income (PDF
+page 14), cash flow (page 16), five management tables and all four management
+paragraphs (page 50). Cash flow retains 46 labelled body rows and three
+otherwise empty rows bearing displaced prior-period dashes. The merged physical
+amount band is retained alongside its independently reviewed dated columns.
+Comprehensive income retains 16 body rows, a wrapped label and the bank's literal
+Sınırlandırılmayacak wording. Management retains its printed Toplam Aktifler
+label under liabilities and its 31 Aralık 2022 P&L comparison date.
+
+The management review exposed a numerical candidate rectangle covering almost
+the full page and misclassifying four paragraphs and three headings as table
+text. The new narrative rule identifies envelopes around multiple separate ruled
+tables and releases their intervening prose; uncertain overlaps stay linked.
+An independently inspected Garanti balance-sheet region guards against broadly
+reclassifying real financial-table labels as prose. Four complete
+paragraph gold cases check wording, negation and the correct III/IV/V heading.
+The retained dda3201c-to-35500cc8 adapter rebuilds narrative, reading layout,
+table context and note links without extracting PDF pages. Local replay over
+all 384 pages of the four retained reports preserves native evidence, every
+table/cell and all other page fields; existing and new selected cases pass.
+Fresh cloud equality and corpus publication for this new version remain pending.
+Local reviewed prose is in `management-prose-reviewed.json`; a combined readable
+page is `management-source-reviewed.html` under the TOMK 2023Q3 output directory.
 Python-produced wire fixtures include original reviewed pages with explicit
 empty placeholders elsewhere solely for protocol tests. They are not complete
 report extracts. The new `annotated_only` capture input limits publication to

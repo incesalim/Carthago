@@ -184,6 +184,9 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
       if (!record(group) || !integer(group.source_row) || !expanded.has(group.source_row) || seen.has(group.source_row)
           || !Array.isArray(group.rows) || !group.rows.length) fail();
       seen.add(group.source_row);
+      const unresolved = group.unresolved_lines ?? [];
+      if (!Array.isArray(unresolved) || !unresolved.every(integer) || new Set(unresolved).size !== unresolved.length
+          || (unresolved.length && (typeof group.source_review !== "string" || !group.source_review.trim()))) fail();
       const expected = group.rows.map(row => {
         if (!Array.isArray(row) || row.length !== table.n_cols || row.some(c => typeof c !== "string")) fail();
         return (row as string[]).map(norm);

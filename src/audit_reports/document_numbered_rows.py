@@ -12,7 +12,7 @@ import re
 from .document_cell_fragments import cell_word_fragments
 from .document_table_rows import table_source_rows
 
-_IDENTIFIER = re.compile(r'^(?:\d+(?:\.\d+)*\.?|[IVXLCDM]+\.?)\s+')
+_IDENTIFIER = re.compile(r'^(?:\d+(?:\.\d+)*\.?|[IVXLCDM]+\.?|[A-Z]\.)\s+')
 
 
 def numbered_source_rows(page: dict, source: dict) -> dict:

@@ -28,7 +28,24 @@ def _lines(source):
     return lines
 
 
-def _line_kind(spans, tables):
+def _table_envelopes(tables):
+    """Numerical envelopes around separate ruled tables cannot own their gaps."""
+    ruled = [t for t in tables if t.get('method') == 'pymupdf_lines_strict' and t.get('bbox')]
+    envelopes = set()
+    for table in tables:
+        if table.get('method') != 'legacy_numeric_geometry' or not table.get('bbox'):
+            continue
+        b = table['bbox']
+        enclosed = [t['bbox'] for t in ruled if t['id'] != table['id']
+                    and b[0] - 1 <= t['bbox'][0] < t['bbox'][2] <= b[2] + 1
+                    and b[1] - 1 <= t['bbox'][1] < t['bbox'][3] <= b[3] + 1]
+        if any(a[2] <= c[0] or c[2] <= a[0] or a[3] <= c[1] or c[3] <= a[1]
+               for i, a in enumerate(enclosed) for c in enclosed[i + 1:]):
+            envelopes.add(table['id'])
+    return envelopes
+
+
+def _line_kind(spans, tables, envelopes):
     text = "".join(s["text"] for s in spans)
     visible = [s for s in spans if s["text"].strip()]
     memberships = []
@@ -36,6 +53,7 @@ def _line_kind(spans, tables):
         x, y = (span["bbox"][0] + span["bbox"][2]) / 2, (span["bbox"][1] + span["bbox"][3]) / 2
         memberships.append({t["id"] for t in tables if t.get("bbox")
                             and t.get('method') not in _ALTERNATIVE_TABLE_METHODS
+                            and t['id'] not in envelopes
                             and t.get('word_view', 'words') == 'words'
                             and t["bbox"][0] <= x <= t["bbox"][2] and t["bbox"][1] <= y <= t["bbox"][3]})
     table_ids = sorted(set().union(*memberships)) if memberships else []
@@ -43,11 +61,21 @@ def _line_kind(spans, tables):
         return ("table_text" if all(memberships) else "mixed_text"), table_ids
     styled = sum(len(s["text"].strip()) for s in visible if s["flags"] & (2 | 16))
     total = sum(len(s["text"].strip()) for s in visible)
-    if total and styled / total >= .8 and len(text.strip()) <= 180 and sum(c.isalpha() for c in text) >= 3:
+    roman_prefix = re.fullmatch(r'\s*[IVXLCDM]+\.\s*', text) is not None
+    if total and styled / total >= .8 and len(text.strip()) <= 180 and (sum(c.isalpha() for c in text) >= 3 or roman_prefix):
         return "heading_candidate", []
     if re.match(r"^\s*(?:[•▪‣]|\(?[a-zA-Z0-9]{1,3}[.)])\s+", text):
         return "list_item_candidate", []
     return "paragraph_candidate", []
+
+
+def _candidate_table_ids(spans, tables):
+    """Keep uncertain table overlaps visible without using them as prose labels."""
+    return sorted({t['id'] for t in tables if t.get('method') in _ALTERNATIVE_TABLE_METHODS | {'legacy_numeric_geometry'}
+                   and t.get('bbox')
+                   for s in spans if s['text'].strip()
+                   and t['bbox'][0] <= (s['bbox'][0] + s['bbox'][2]) / 2 <= t['bbox'][2]
+                   and t['bbox'][1] <= (s['bbox'][1] + s['bbox'][3]) / 2 <= t['bbox'][3]})
 
 
 def narrative_candidates(pages: list[dict], evidence: list[dict], sections: list[dict]) -> None:
@@ -55,6 +83,7 @@ def narrative_candidates(pages: list[dict], evidence: list[dict], sections: list
     all_elements = []
     for page, source in zip(pages, evidence[1:], strict=True):
         elements, pending = [], []
+        envelopes = _table_envelopes(page['tables'])
         previous_key = None
         pending_kind, pending_tables = None, []
 
@@ -68,7 +97,8 @@ def narrative_candidates(pages: list[dict], evidence: list[dict], sections: list
                              "source_lines": [list(key) for key, _line in pending],
                              "bbox": _bounds(spans), "font_size": median(s["size"] for s in spans),
                              "table_ids": pending_tables,
-                             "method": "source_line_spacing_and_style", "review_status": "unreviewed",
+                             "candidate_table_ids": _candidate_table_ids(spans, page['tables']),
+                             "method": "source_line_spacing_style_and_candidate_links", "review_status": "unreviewed",
                              "heading_context_verified": False, "heading_context_scope": "page"})
             pending.clear()
 
@@ -77,7 +107,7 @@ def narrative_candidates(pages: list[dict], evidence: list[dict], sections: list
                 flush()
                 previous_key = None
                 continue
-            kind, table_ids = _line_kind(spans, page["tables"])
+            kind, table_ids = _line_kind(spans, page["tables"], envelopes)
             box = _bounds(spans)
             prior_box = _bounds(pending[-1][1]) if pending else None
             gap = prior_box is not None and box[1] - prior_box[3] > .7 * (prior_box[3] - prior_box[1])
@@ -156,6 +186,9 @@ def verify_narrative(page: dict, source: dict) -> list[str]:
             errors.append("unknown_narrative_source_line")
             continue
         spans = [s for key in keys for s in lines[key]]
+        if (element.get('method') == 'source_line_spacing_style_and_candidate_links'
+                and element.get('candidate_table_ids') != _candidate_table_ids(spans, page['tables'])):
+            errors.append('narrative_candidate_table_membership_mismatch')
         actual.update(element["span_ids"])
         ordered.extend(element["span_ids"])
         if element["span_ids"] != [s["id"] for s in spans]:

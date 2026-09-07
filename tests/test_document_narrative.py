@@ -144,7 +144,11 @@ def test_speculative_table_rectangles_cannot_split_source_paragraphs(narrative, 
     # the sentence and sever its heading context even though no prose changed.
     structure['pages'][0]['tables'].append({'id': 'alternative', 'bbox': [30, 184, 250, 198], **alternative})
     narrative_candidates(structure['pages'], evidence, [])
-    assert structure['pages'][0]['narrative_elements'] == before
+    after = copy.deepcopy(structure['pages'][0]['narrative_elements'])
+    assert after[1]['candidate_table_ids'] == ['alternative']
+    for element in after:
+        element['candidate_table_ids'] = []
+    assert after == before
     assert check_annotations(structure, evidence, annotation)['passed']
 
 
