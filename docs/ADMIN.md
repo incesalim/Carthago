@@ -17,6 +17,22 @@ exact bank/period/basis row. The source comparison labels these links explicitly
 and offers the retained listing as a checked download. Earlier bank-site
 observations stay in the origin history, and acquisitions are unchanged.
 
+## Structured prose reader (2026-09-08)
+
+In **Complete audit documents**, choose a filing and open **Read and search
+structured prose across this report**. Search covers the full report and its
+heading context; filters select a printed section and optionally include table
+text and page furniture. Short disclosures remain visible. Original line breaks,
+source-page inspection, PDF citations and complete structured JSON export are
+available. The export includes passages outside the current search/filter.
+
+The reader verifies wording against every native source span before displaying
+the report. Section/heading relationships, paragraph boundaries and reading order
+remain candidates with visible flags. Missing native text is reported rather
+than called an empty disclosure. PDF links are bound to the source hash; a
+changed source returns a reload message rather than a citation to a different
+edition. The older D1 prose coverage lane remains unpopulated and links here.
+
 ## Broader extraction scope (2026-09-08)
 
 Equity and capital are examples; the repair scope includes all 19 registered

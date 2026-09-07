@@ -4,6 +4,19 @@ Status: source preservation and reviewed examples retained; further standalone
 corpus expansion paused by user direction on 2026-09-07. Active work now improves
 the existing analytical extraction lanes using those examples as source tests.
 
+## Prose delivery priority (2026-09-08)
+
+The user has moved the current work to structured prose. The existing R2 corpus
+is reused through a source-checked, report-wide `audit-prose-1` contract and the
+admin prose reader, rather than another standalone annotation batch. This adds
+search, section/heading context, paragraph/list/note roles, source citations and
+structured export to the website without a numerical-lane rewrite or D1 backfill.
+Exact source wording is checked independently; structural uncertainty remains
+explicit. The two full-report source checks cover 235 pages / 32,543 spans;
+all 14 reviewed TOMK passages survive. Full-corpus paragraph/heading review and
+automatic analyst integration remain unfinished and are not implied by these
+checks. See PROJECT_STATE.md and ADMIN.md for the implemented contract and use.
+
 ## Current delivery priority (2026-09-07)
 
 Keep the existing corpus outputs as evidence. Do not add another standalone

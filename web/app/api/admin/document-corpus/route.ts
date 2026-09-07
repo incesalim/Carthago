@@ -5,6 +5,7 @@ import { getRelatedRevision } from "@/app/lib/document-related";
 import { getEditionRevision } from "@/app/lib/document-editions";
 import { getContentReviews } from "@/app/lib/document-content-review";
 import { getReviewedTables } from "@/app/lib/document-table-review";
+import { readDocumentProse } from "@/app/lib/document-prose";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
   if (edition !== null && (!/^[a-f0-9]{64}$/.test(edition) || related !== null)
       || origin !== null && (!related || !/^[a-f0-9]{64}$/.test(origin))) return json({ error: "Choose one valid document source." }, 400);
   if (related !== null && !/^[a-f0-9]{64}$/.test(related)) return json({ error: "Invalid related document." }, 400);
-  if (artifact !== null && !["original", "source", "structure", "reviews", "table-reviews"].includes(artifact)) {
+  if (artifact !== null && !["original", "source", "structure", "reviews", "table-reviews", "prose"].includes(artifact)) {
     return json({ error: "Unknown document artifact." }, 400);
   }
   const bucket = await getCorpusBucket();
@@ -37,7 +38,19 @@ export async function GET(req: Request) {
       : related ? await getRelatedRevision(bucket, filing, related, origin ?? undefined) : await getCorpusRevision(bucket, filing);
     if (!revision) return json({ error: edition ? "This observed edition has not been captured yet." : related ? "This related PDF has not been captured yet."
       : "This filing has no successful source capture yet." }, 404);
+    const expectedSource = params.get("source_hash");
+    if (expectedSource !== null && expectedSource !== revision.source.pdf_sha256) {
+      return json({ error: "The source revision has changed. Reload the filing before following this citation." }, 409);
+    }
     if (!artifact) return json({ revision });
+    if (artifact === "prose") {
+      if (params.has("page")) return json({ error: "Prose is read across the full report; omit page." }, 400);
+      const prose = await readDocumentProse(bucket, revision);
+      const response = json(prose);
+      if (params.get("download") === "1") response.headers.set("Content-Disposition",
+        `attachment; filename="${filing.bank_ticker}_${filing.period}_${filing.kind}.prose.json"`);
+      return response;
+    }
     if (artifact === "reviews") {
       if (related || edition) return json({ error: "Content notes for this separate source are not registered here." }, 400);
       return json({ source: revision.source, scope: "registered_open_notes_only",

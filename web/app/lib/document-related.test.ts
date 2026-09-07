@@ -10,6 +10,7 @@ vi.mock("@/app/lib/admin-auth", () => ({ requireAdminOr403: mocks.gate }));
 vi.mock("@/app/lib/document-corpus", () => import("./document-corpus"));
 vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
 vi.mock("@/app/lib/document-table-review", () => import("./document-table-review"));
+vi.mock("@/app/lib/document-prose", () => import("./document-prose"));
 vi.mock("@/app/lib/document-related", () => import("./document-related"));
 vi.mock("@/app/lib/document-editions", () => import("./document-editions"));
 vi.mock("@/app/lib/document-recovery", () => import("./document-recovery"));

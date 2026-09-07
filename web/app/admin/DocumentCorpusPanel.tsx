@@ -11,6 +11,7 @@ import DocumentReviewedTables from "./DocumentReviewedTables";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
 import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes, type PeriodHeaders } from "./DocumentTablePreview";
 import DocumentNavigationPreview, { type Navigation } from "./DocumentNavigationPreview";
+import DocumentProseReader from "./DocumentProseReader";
 
 const endpoint = "/api/admin/document-corpus";
 const id = (f: CorpusFiling) => `${f.bank_ticker}|${f.period}|${f.kind}`;
@@ -70,6 +71,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
     <DocumentOriginPanel filing={id(filing)} sourceHash={source?.pdf_sha256} />
     {source && <DocumentContentReviews filing={id(filing)} sourceHash={source.pdf_sha256} />}
     {filing.capture?.structure_engine && <>
+      {source && <DocumentProseReader key={`${id(filing)}:${source.pdf_sha256}`} filing={id(filing)} sourceHash={source.pdf_sha256} onPage={setPage} />}
       <div className="my-4 flex flex-wrap items-center gap-3 text-xs">
         <button className={control} disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
         <label>PDF page <select className={`${control} ml-1`} value={page} onChange={(e) => setPage(Number(e.target.value))}>
@@ -138,7 +140,7 @@ export default function DocumentCorpusPanel() {
     not_started: "The corpus inventory has not been published yet.",
     unavailable: "The corpus inventory could not be read or verified.",
   }[result.status] : null;
-  return <div>
+  return <div id="complete-audit-documents">
     <SecHead title="Complete audit documents" meta="source coverage · tables and text · independent of analytical lanes" className="mb-3" />
     {error && <p className="text-xs text-negative" role="alert">{error}</p>}
     {!result && !error && <p className="text-xs text-faint">Loading document inventory…</p>}

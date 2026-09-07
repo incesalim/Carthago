@@ -340,7 +340,7 @@ export default function CoverageDrawer({
           </Button>
           <p className="mt-1 text-center text-[11px] text-muted-foreground">
             {open.type === "prose"
-              ? "Narrative prose is a parked local-only lane and cannot be dispatched from D1."
+              ? <>The older prose lane is local-only. Read and export source-linked prose in <a className="text-primary hover:underline" href="/admin#complete-audit-documents">Complete audit documents</a>.</>
               : open.pdfPresent
               ? `Re-extracts only ${open.typeLabel} (${open.kind}) for ${open.bank} ${open.period}, overwriting it even if it passes.`
               : "No PDF in R2 to re-extract."}

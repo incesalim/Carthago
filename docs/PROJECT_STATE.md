@@ -14,6 +14,34 @@ coverage or known issues change.
 
 ---
 
+## Structured audit prose (2026-09-08)
+
+The existing private document corpus now has a report-wide prose contract and
+admin reader: `audit-prose-1`, served by `artifact=prose` on the existing
+`/api/admin/document-corpus` route. It streams retained source and structure from
+R2, verifies each page checksum and independently reconstructs every passage
+from native source spans. Missing, duplicated, reordered or altered wording,
+false heading references and false table-note text stop the response.
+
+The contract retains raw line breaks, readable text, paragraph/list/heading/note
+roles, printed section roles, heading references, source page/span/line/bounding
+box addresses, language candidates, table references and possible continuations.
+Explicit numbered headings can carry across pages within a section; uncertain
+relationships remain marked. Table text and page furniture are retained in the
+export and available through the reader's filter. Older captures fall back to
+unclassified source lines; pages without native text are reported explicitly.
+
+Read-only checks against current cloud artifacts cover TOMK 2023Q3 solo (51
+pages, 6,830 spans, 1,387 elements) and GARAN 2022Q4 consolidated (184 pages,
+25,713 spans, 7,061 elements). All 14 previously source-reviewed TOMK management
+and risk passages match exactly, including short nil disclosures. This is source
+fidelity and access, not a full-report semantic or paragraph-boundary approval.
+The legacy 369,007-row local `bank_audit_prose` database has not been published;
+no D1 migration, row writes or extraction backfill is required for this reader.
+The analyst-facing contract is available for retrieval/export; automatic memo
+generation has not been connected to this prose reader. Evidence and release
+checks: `docs/knowledge/2026-09-08-structured-prose/`.
+
 ## Existing audit lanes: broader repair (2026-09-08)
 
 The broader primary-statement source probe also found a shared parser defect:

@@ -11,6 +11,7 @@ vi.mock("@/app/lib/document-related", () => import("./document-related"));
 vi.mock("@/app/lib/document-editions", () => import("./document-editions"));
 vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
 vi.mock("@/app/lib/document-table-review", () => import("./document-table-review"));
+vi.mock("@/app/lib/document-prose", () => import("./document-prose"));
 import { GET } from "../api/admin/document-corpus/route";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_corpus_wire.json", import.meta.url), "utf8"));
@@ -96,6 +97,33 @@ describe("private corpus route", () => {
     mocks.context.mockResolvedValue({ env: {} });
     const response = await GET(new Request("https://test/api/admin/document-corpus"));
     expect(await response.json()).toEqual({ status: "not_connected" });
+  });
+  it("requires admin for prose before reading any report", async () => {
+    mocks.gate.mockResolvedValue({ response: Response.json({ error: "forbidden" }, { status: 403 }) });
+    const response = await GET(new Request("https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=prose"));
+    expect(response.status).toBe(403);
+    expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it("refuses a citation after the filing's source changes", async () => {
+    const bucket = indexBucket(fixture.index);
+    mocks.context.mockResolvedValue({ env: { AUDIT_DOCUMENTS: bucket } });
+    const response = await GET(new Request("https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=original&source_hash=" + "f".repeat(64)));
+    expect(response.status).toBe(409);
+    expect(bucket.get).toHaveBeenCalledTimes(1);
+  });
+  it("exports full structured prose privately and never accepts a partial page as a report", async () => {
+    const get = vi.fn(async (key: string) => key.endsWith("consolidated.json")
+      ? { size: 100, json: async () => fixture.index }
+      : { size: 100, body: body(key.includes(".structure.") ? "structure" : "source") });
+    mocks.context.mockResolvedValue({ env: { AUDIT_DOCUMENTS: { get } } });
+    const base = "https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=prose";
+    expect((await GET(new Request(base + "&page=1"))).status).toBe(400);
+    const response = await GET(new Request(base + "&download=1"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Content-Disposition")).toContain(".prose.json");
+    expect(await response.json()).toMatchObject({ schema_version: "audit-prose-1", page_count: 2,
+      verification: { source_text_verified: true, semantic_verification: "not_performed" } });
   });
   it("serves a verified source page and rejects invalid page numbers before artifact access", async () => {
     const get = vi.fn(async (key: string) => {

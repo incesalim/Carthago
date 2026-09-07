@@ -11,6 +11,26 @@ machine involvement is required for routine refreshes.
 > bash, and call CLIs through `npx` since `wrangler` is a local dependency and is
 > not on PATH.
 
+## Structured prose access (2026-09-08)
+
+The authenticated existing corpus endpoint accepts `artifact=prose` for a
+complete filing: `/api/admin/document-corpus?filing=BANK%7CYYYYQn%7Cconsolidated&artifact=prose`.
+`download=1` supplies an attachment; `source_hash=<PDF SHA-256>` pins citations
+and returns 409 if the current source changed. A `page` parameter is rejected
+for prose because a partial read must not masquerade as a complete report.
+Responses remain private/no-store. The shared `readDocumentProse` reader returns
+the `audit-prose-1` contract for analyst consumers as well as the admin export.
+
+This is a read-time projection of existing R2 captures, with no new workflow,
+secret, environment key, D1 migration or write. There is no prose backfill to
+dispatch. Source and structure stream page by page; their hashes, filing identity,
+native span accounting, wording, geometry and references are checked before the
+response is returned. Limits are 1,000 pages, 60,000 passages and 8 million raw
+characters per report; over-limit or damaged reports fail visibly without partial
+success. Older JSONL captures without paragraph structure return unclassified
+native lines; older non-JSONL structure needs the existing capture update path.
+The legacy local prose database is not merged into the audit snapshot.
+
 ## Schedules
 
 ### Primary-statement date-header repair (2026-09-08)

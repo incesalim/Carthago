@@ -190,6 +190,18 @@ export async function readVerifiedPage(body: ReadableStream, pageNumber: number,
   if (!Number.isSafeInteger(pageNumber) || pageNumber < 1 || pageNumber > pageCount || !HASH.test(sourceHash)) {
     throw new Error("Invalid source page request");
   }
+  for await (const result of readVerifiedPages(body, sourceHash, pageCount, kind)) {
+    if (result.page.page === pageNumber) return result;
+  }
+  throw new Error("Requested page is absent from the stored artifact");
+}
+
+/** Stream and checksum pages individually, keeping large reports out of memory. */
+export async function* readVerifiedPages(body: ReadableStream, sourceHash: string,
+                                        pageCount: number, kind: "source" | "structure") {
+  if (!Number.isSafeInteger(pageCount) || pageCount < 1 || !HASH.test(sourceHash)) {
+    throw new Error("Invalid source page request");
+  }
   const reader = body.pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "", position = -1;
   let manifest: Record<string, unknown> | null = null;
@@ -212,21 +224,22 @@ export async function readVerifiedPage(body: ReadableStream, pageNumber: number,
             throw new Error("Invalid page manifest; this capture may need updating");
           }
           manifest = parsed;
-        } else if (position === pageNumber) {
-          if (!manifest || await sha256(line) !== (manifest.page_sha256 as string[])[pageNumber - 1]) {
+        } else {
+          if (!manifest || position > pageCount
+              || await sha256(line) !== (manifest.page_sha256 as string[])[position - 1]) {
             throw new Error("Page checksum mismatch");
           }
           const page: unknown = JSON.parse(line);
-          if (!isRecord(page) || page.page !== pageNumber
+          if (!isRecord(page) || page.page !== position
               || page.type !== (kind === "source" ? "source_page" : "structured_page")) {
             throw new Error("Page identity mismatch");
           }
-          return { manifest, page };
+          yield { manifest, page };
         }
       }
       if (done) break;
     }
-    throw new Error("Requested page is absent from the stored artifact");
+    if (position !== pageCount || buffer.trim()) throw new Error("Requested page is absent or has trailing content in the stored artifact");
   } finally {
     await reader.cancel().catch(() => undefined);
   }
