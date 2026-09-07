@@ -273,6 +273,8 @@ def _table_note_matches(case, page, source):
 
 
 def _narrative_matches(case, page, sources, pages):
+    if 'text' in case and paragraph_digest(case['text']) != case['text_sha256']:
+        return []
     elements = {e["id"]: (p["page"], e) for p in pages.values() for e in p.get("narrative_elements", [])}
 
     def source_matches(element, number, bounds=None):

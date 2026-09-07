@@ -564,3 +564,28 @@ the four comparison reports. Proof: `underline-cloud-independent-verification.js
 under `docs/knowledge/2026-09-06-document-corpus/`. Scoped publication
 `34143241702` queues TOMK 2023Q3 unconsolidated (62 cases / 37 tables)
 behind the existing corpus runs. Its live display remains unverified.
+
+
+TOMK 2023Q3 source review now also covers the complete leverage table on PDF
+page 36 and risk-weighted-assets table on page 37: 49 additional physical
+rows / 223 slots. Their original 1.670.348 leverage assets, six section rows,
+25 risk row numbers, grouped headings and every blank/dash are retained.
+Ten complete risk-management and hedging paragraphs on those pages have
+independent wording, source-bound and nearest-heading checks. The readable
+`output/audit-corpus/TOMK_2023Q3_unconsolidated/risk-prose-reviewed.html`
+and JSON include retained text, original spans, heading spans and page links.
+Full heading hierarchy remains open. Narrative annotations with stored text
+now reject a mismatch between that text and its expected fingerprint.
+The local collection has 49 unique reviewed tables / 781 reviewed rows /
+4,100 slots (488 original physical rows / 2,128 slots). There are 105
+registered source cases across eight reports; TOMK has 74 cases / 39 tables.
+This adds annotations without changing extraction engine c9134d44. The
+earlier cloud proof and queued publication keep their 93-case / 47-table
+snapshot. All 105 current cases pass locally against identical, independently
+verified fresh cloud artifacts from the earlier e7c4770 probes. This is an
+annotation replay against those sources, not a new cloud extraction. Receipt:
+`risk-prose-cloud-source-verification.json` in the internal evidence directory.
+The isolated staged source passes 2,927 Python tests (two skipped), 865 web
+tests, all nine standalone gates, Python/web lint, web types and mobile
+lint/types/design-token checks. Publication of the additional reviews remains
+required, and no whole report is certified complete.

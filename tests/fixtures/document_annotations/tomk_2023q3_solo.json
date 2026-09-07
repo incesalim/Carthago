@@ -21196,6 +21196,576 @@
           "text": "Banka’nın finansal tablo tarihi ile bu tarihten geriye doğru son beş günü kamuya duyurulan cari döviz alış kurları önemli döviz cinsleri için aşağıdaki tabloda gösterilmektedir:"
         }
       ]
+    },
+    {
+      "id": "complete_leverage_current_and_prior",
+      "kind": "complete_physical_table",
+      "page": 36,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        126,
+        201,
+        539,
+        456
+      ],
+      "rows": [
+        [
+          "",
+          "",
+          "Cari Dönem(*)",
+          "Önceki Dönem (*)"
+        ],
+        [
+          "",
+          "Bilanço içi varlıklar",
+          "",
+          ""
+        ],
+        [
+          "1",
+          "Bilanço içi varlıklar (Türev finansal araçlar ile kredi türevleri hariç, teminatlar dahil)",
+          "1.670.348",
+          "1.513.102"
+        ],
+        [
+          "2",
+          "(Ana sermayeden indirilen varlıklar)",
+          "-",
+          "-"
+        ],
+        [
+          "3",
+          "Bilanço içi varlıklara ilişkin toplam risk tutarı (1 ve 2‘nci satırların toplamı)",
+          "1.670.348",
+          "1.513.102"
+        ],
+        [
+          "",
+          "Türev finansal araçlar ile kredi türevleri",
+          "",
+          ""
+        ],
+        [
+          "4",
+          "Türev finansal araçlar ile kredi türevlerinin yenileme maliyeti",
+          "-",
+          "-"
+        ],
+        [
+          "5",
+          "Türev finansal araçlar ile kredi türevlerinin potansiyel kredi risk tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "6",
+          "Türev finansal araçlar ile kredi türevlerine ilişkin toplam risk tutarı (4 ve 5’inci satırların toplamı)",
+          "-",
+          "-"
+        ],
+        [
+          "",
+          "Menkul kıymet veya emtia teminatlı finansman işlemleri",
+          "",
+          ""
+        ],
+        [
+          "7",
+          "Menkul kıymet veya emtia teminatlı finansman işlemlerinin risk tutarı (Bilanço içi hariç)",
+          "-",
+          "-"
+        ],
+        [
+          "8",
+          "Aracılık edilen işlemlerden kaynaklanan risk tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "9",
+          "Menkul kıymet veya emtia teminatlı finansman işlemlerine ilişkin toplam risk tutarı (7 ve 8’inci satırların toplamı)",
+          "-",
+          "-"
+        ],
+        [
+          "",
+          "Bilanço dışı işlemler",
+          "",
+          ""
+        ],
+        [
+          "10",
+          "Bilanço dışı işlemlerin brüt nominal tutarı",
+          "-",
+          "-"
+        ],
+        [
+          "11",
+          "(Krediye dönüştürme oranları ile çarpımdan kaynaklanan düzeltme tutarı)",
+          "-",
+          "-"
+        ],
+        [
+          "12",
+          "Bilanço dışı işlemlere ilişkin toplam risk tutarı (10 ve 11’inci satırların toplamı)",
+          "-",
+          "-"
+        ],
+        [
+          "",
+          "Sermaye ve toplam risk",
+          "",
+          ""
+        ],
+        [
+          "13",
+          "Ana sermaye",
+          "1.561.282",
+          "1.494.859"
+        ],
+        [
+          "14",
+          "Toplam risk tutarı (3,6,9 ve 12’nci satırların toplamı)",
+          "1.670.348",
+          "1.513.102"
+        ],
+        [
+          "",
+          "Kaldıraç oranı",
+          "",
+          ""
+        ],
+        [
+          "15",
+          "Kaldıraç oranı",
+          "%93,47",
+          "%98,79"
+        ]
+      ],
+      "spans": [],
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            127,
+            462,
+            361,
+            472
+          ],
+          "text": "(*) Tabloda yer alan tutarlar ilgili dönemler itibarıyla hesaplanmıştır."
+        },
+        {
+          "bbox": [
+            127,
+            154,
+            542,
+            194
+          ],
+          "text": "Banka’nın 30 Eylül 2023 itibarıyla hesaplanan kaldıraç oranı % 93,47’dir. (31 Aralık 2022: %98,79). İlgili oran “Bankaların Kaldıraç Düzeyinin Ölçülmesine ve Değerlendirilmesine İlişkin Yönetmelik” gereğince belirtilen asgari oranın üzerindedir. Yönetmelik asgari kaldıraç oranını %3 olarak hükme bağlamıştır. Kaldıraç oranı kamuya açıklama şablonu aşağıdaki gibidir:"
+        }
+      ],
+      "source_review": "Every physical cell, printed heading, row number, label, dash, blank and covered slot independently read from original PDF page 36 on 2026-09-07. Retains all six section rows, the literal 1.670.348 amounts and the opening quote in row 3; the one-lira difference from other disclosures is not silently reconciled."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_1",
+      "kind": "narrative",
+      "page": 36,
+      "text": "Banka’nın 30 Eylül 2023 itibarıyla hesaplanan kaldıraç oranı % 93,47’dir. (31 Aralık 2022: %98,79). İlgili oran “Bankaların Kaldıraç Düzeyinin Ölçülmesine ve Değerlendirilmesine İlişkin Yönetmelik” gereğince belirtilen asgari oranın üzerindedir. Yönetmelik asgari kaldıraç oranını %3 olarak hükme bağlamıştır. Kaldıraç oranı kamuya açıklama şablonu aşağıdaki gibidir:",
+      "text_sha256": "c6d01fa1e4efd5630cd2574d1b8b09e6538cb3d610a0b44c90bef23b8320510d",
+      "heading_path": [
+        "V. KALDIRAÇ ORANINA İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        154,
+        542,
+        194
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_2",
+      "kind": "narrative",
+      "page": 36,
+      "text": "Bulunmamaktadır.",
+      "text_sha256": "823143eb335583d743815e1e0791445582db0c6f90246c74431b2b7a15b0b359",
+      "heading_path": [
+        "VI. MENKUL KIYMETLEŞTİRME POZİSYONUNA İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        496,
+        201,
+        507
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_3",
+      "kind": "narrative",
+      "page": 36,
+      "text": "23 Ekim 2015 tarihinde 29511 sayılı Resmi Gazete'de yayımlanan ve 31 Mart 2016 tarihi itibarıyla yürürlüğe giren “Bankalarca Risk Yönetimine İlişkin Kamuya Yapılacak Açıklamalar Hakkında Tebliğ” uyarınca hazırlanan dipnotlar ve ilgili açıklamalar bu bölümde verilmektedir.",
+      "text_sha256": "44c16df2457a07281a1a753b2879103dcd56a711e6c6be42377efe9830a5be99",
+      "heading_path": [
+        "VII. RİSK YÖNETİMİNE İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        538,
+        541,
+        569
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_4",
+      "kind": "narrative",
+      "page": 36,
+      "text": "Banka’nın sermaye yeterliliği hesaplamasında standart yaklaşım kullanıldığından, ilgili tebliğ uyarınca içsel modellere dayalı yöntemlere ilişkin tablolara yer verilmemiştir.",
+      "text_sha256": "9724dc8b30f9e7cf4c42446b16ae50857db7cd708f7b5530d7616c87a4f8fb7b",
+      "heading_path": [
+        "VII. RİSK YÖNETİMİNE İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        575,
+        541,
+        596
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_5",
+      "kind": "narrative",
+      "page": 36,
+      "text": "Banka’nın risk yönetimi yaklaşımı, Yönetim Kurulu tarafından belirlenen politikalar ve uygulama esasları kapsamında ve kurum genelinde ortak bir risk kültürü oluşturulmasına hizmet edecek şekilde; risklerin uluslararası düzenlemelerle uyumlu olarak tanımlandığı ve bu çerçevede ölçüm, analiz, izleme ve raporlama faaliyetlerinin yerine getirildiği bir yapıdadır.",
+      "text_sha256": "ddbcd0a85b411d78268a45def849954813c23e017f1efd638aade7fd0af7e2ba",
+      "heading_path": [
+        "Banka’nın risk yönetimi yaklaşımı ve risk ağırlıklı tutarlara ilişkin açıklamalar"
+      ],
+      "bbox": [
+        127,
+        620,
+        541,
+        660
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_6",
+      "kind": "narrative",
+      "page": 36,
+      "text": "İlgili politika, uygulama esasları ve süreçlere uyumun temini ile Bankanın karşı karşıya olduğu risklerin bu politikalar paralelinde yönetilebilmesi amacına yönelik olarak Banka bünyesinde bir Risk Yönetimi Müdürlüğü teşkil edilmiştir. Görev ve sorumlulukları Yönetim Kurulu tarafından onaylanmış yönetmeliklerle belirlenmiş olan Risk Yönetimi Müdürlüğü, faaliyetlerini icrai faaliyetlerden ve icrai birimlerden bağımsız ve Denetim Komitesine bağlı olarak sürdürmektedir.",
+      "text_sha256": "ba48156d0e55de4368774226a980c7cebe58425e9ce656b4d74584c05d32156e",
+      "heading_path": [
+        "Banka’nın risk yönetimi yaklaşımı ve risk ağırlıklı tutarlara ilişkin açıklamalar"
+      ],
+      "bbox": [
+        127,
+        666,
+        541,
+        716
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p36_7",
+      "kind": "narrative",
+      "page": 36,
+      "text": "Risk Yönetimi Müdürlüğü, risk yönetimi sürecinde ihtiyaç duyulan sistemleri geliştirerek söz konusu faaliyetleri yürütmekte, risklerin politika ve standartlar ile Banka limitlerine ve risk iştahı göstergelerine uygunluğunu izlemekte, ilgili yasal mevzuat ve Basel kriterlerine uyum çalışmalarını sürdürmektedir. Raporlamalara konu risk ölçümleri, yasal raporlamalar için kullanılan standart yaklaşımların yanı sıra, içsel modeller vasıtasıyla gelişmiş yaklaşımlarla da yapılmakta, ayrıca uygulanan stres testleriyle desteklenmektedir.",
+      "text_sha256": "b2cc2dcb7647ef4f4e9921b624f6b7264c00998875ca1c37ef0cf15e99d4c9f3",
+      "heading_path": [
+        "Banka’nın risk yönetimi yaklaşımı ve risk ağırlıklı tutarlara ilişkin açıklamalar"
+      ],
+      "bbox": [
+        127,
+        722,
+        542,
+        782
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 36 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_weighted_assets",
+      "kind": "complete_physical_table",
+      "page": 37,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        127,
+        202,
+        539,
+        550
+      ],
+      "rows": [
+        [
+          "",
+          "",
+          "Risk Ağırlıklı Tutarlar",
+          null,
+          "Asgari sermaye yükümlülüğü"
+        ],
+        [
+          "",
+          "",
+          "Cari Dönem",
+          "Önceki Dönem",
+          "Cari Dönem"
+        ],
+        [
+          "1",
+          "Kredi riski (karşı taraf kredi riski hariç)",
+          "629.139",
+          "1.010.335",
+          "50.331"
+        ],
+        [
+          "2",
+          "Standart yaklaşım",
+          "629.139",
+          "1.010.335",
+          "50.331"
+        ],
+        [
+          "3",
+          "İçsel derecelendirmeye dayalı yaklaşım",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "4",
+          "Karşı taraf kredi riski",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "5",
+          "Karşı taraf kredi riski için standart yaklaşım",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "6",
+          "İçsel model yöntemi",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "7",
+          "Basit risk ağırlığı yaklaşımı veya içsel modeller yaklaşımında bankacılık hesabındaki hisse senedi pozisyonları",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "8",
+          "KYK’ya yapılan yatırımlar-içerik yöntemi",
+          "1.032.965",
+          "502.767",
+          "82.637"
+        ],
+        [
+          "9",
+          "KYK’ya yapılan yatırımlar-izahname yöntemi",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "10",
+          "KYK’ya yapılan yatırımlar-%1250 risk ağırlığı yöntemi",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "11",
+          "Takas riski",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "12",
+          "Bankacılık hesaplarındaki menkul kıymetleştirme pozisyonları",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "13",
+          "İDD derecelendirmeye dayalı yaklaşım",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "14",
+          "İDD denetim otoritesi formülü yaklaşımı",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "15",
+          "Standart basitleştirilmiş denetim otoritesi formülü yaklaşımı",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "16",
+          "Piyasa riski",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "17",
+          "Standart yaklaşım",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "18",
+          "İçsel model yaklaşımları",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "19",
+          "Operasyonel risk",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "20",
+          "Temel gösterge yaklaşımı",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "21",
+          "Standart yaklaşım",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "22",
+          "İleri ölçüm yaklaşımı",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "23",
+          "Özkaynaklardan indirim eşiklerinin altındaki tutarlar (%250 risk ağırlığına tabi)",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "24",
+          "En düşük değer ayarlamaları",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "25",
+          "Toplam (1+4+7+8+9+10+11+12+16+19+23+24)",
+          "1.662.104",
+          "1.513.102",
+          "132.968"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ],
+      "source_review": "Every physical cell, printed heading, row number, label, dash, blank and covered slot independently read from original PDF page 37 on 2026-09-07. Retains all 25 numbered rows and the merged risk-weighted-assets heading. The repeated IV section numbering in the original is not corrected."
+    },
+    {
+      "id": "complete_risk_paragraph_p37_1",
+      "kind": "narrative",
+      "page": 37,
+      "text": "Banka’nın faaliyetlerini yürütürken yaşanabilecek olumsuzluklardan önemli ölçüde etkilenmesini önlemek amacıyla risk seviyelerinin, risk profili ve risk toleransıyla uyumlu limitlerle sınırlandırılması esastır.",
+      "text_sha256": "92cc33378db9e8f256e7e01dca574d84104ad8974fbb887cfb33073700bcd375",
+      "heading_path": [
+        "IV. RİSKTEN KORUNMA İŞLEMLERİNE İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        588,
+        542,
+        609
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 37 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p37_2",
+      "kind": "narrative",
+      "page": 37,
+      "text": "Risk limitleri, Genel Müdür, Denetim Komitesi ve ilgili Üst Düzey Yöneticilerin görüş ve önerileri alınmak suretiyle belirlenip Yönetim Kurulu tarafından onaylanır.",
+      "text_sha256": "b870400bba06700c786fdad1a668be92cb897e834e2eb7a1ee834e33fac6f353",
+      "heading_path": [
+        "IV. RİSKTEN KORUNMA İŞLEMLERİNE İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        619,
+        542,
+        640
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 37 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
+    },
+    {
+      "id": "complete_risk_paragraph_p37_3",
+      "kind": "narrative",
+      "page": 37,
+      "text": "Risk limitleri; Banka’nın alabileceği risk düzeylerine, faaliyetlerine, ürünlerinin ve hizmetlerinin büyüklüğü ve karmaşıklığına uygun olarak belirlenmiştir. Limitler düzenli olarak gözden geçirilmekte ve piyasa koşullarındaki, Banka stratejisindeki ve risk iştahındaki değişmelere göre uyarlanarak periyodik olarak takip edilmektedir.",
+      "text_sha256": "b09ad4eb24e2e7e769b3ba856b2ec46e05665d821080d4c086e7de9e1aebacd6",
+      "heading_path": [
+        "IV. RİSKTEN KORUNMA İŞLEMLERİNE İLİŞKİN AÇIKLAMALAR"
+      ],
+      "bbox": [
+        127,
+        650,
+        542,
+        692
+      ],
+      "source_review": "Complete paragraph and immediately governing heading independently transcribed from original PDF page 37 on 2026-09-07. Source zooms resolve narrow wording. This verifies literal prose, source bounds and the nearest printed heading; full section hierarchy and financial interpretation remain open."
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."
