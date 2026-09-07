@@ -340,7 +340,7 @@ def _navigation_selection_matches(case, structure, evidence):
 
 
 def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -> dict:
-    failures, content_reviews = [], []
+    failures, content_reviews, reviewed_tables = [], [], []
     if (annotation["pdf_sha256"] != evidence[0]["source"]["pdf_sha256"]
             or structure["source"] != evidence[0]["source"]):
         return {"passed": False, "failures": [{"kind": "source_revision_mismatch"}],
@@ -407,6 +407,12 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
             if len(matching) != 1:
                 failures.append({**prefix, 'kind': 'complete_table_source_mismatch',
                                  'matching_candidates': len(matching)})
+            else:
+                from .document_table_review import reviewed_table_record
+                page, source = pages[case['page']], sources[case['page']]
+                table = next(t for t in page['tables'] if t['id'] == matching[0])
+                reviewed_tables.append(reviewed_table_record(table, page, source, case,
+                    annotation.get('annotation_method', 'Independently annotated complete source table.')))
             continue
         if case.get('kind') == 'source_table_line':
             matching = _source_line_matches(case, pages[case['page']], sources[case['page']])
@@ -515,6 +521,7 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
                              "matching_candidates": len(matching)})
     return {"passed": not failures, "failures": failures,
             **({"content_reviews": content_reviews} if content_reviews else {}),
+            **({"reviewed_tables": reviewed_tables} if reviewed_tables and not failures else {}),
             "cases_checked": len(annotation["cases"]), "scope": "annotated_cases_only"}
 
 

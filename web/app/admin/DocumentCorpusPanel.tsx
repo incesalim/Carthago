@@ -7,6 +7,7 @@ import { nf } from "@/app/lib/chart-format";
 import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 import DocumentOriginPanel from "./DocumentOriginPanel";
 import DocumentContentReviews from "./DocumentContentReviews";
+import DocumentReviewedTables from "./DocumentReviewedTables";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
 import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes, type PeriodHeaders } from "./DocumentTablePreview";
 import DocumentNavigationPreview, { type Navigation } from "./DocumentNavigationPreview";
@@ -16,7 +17,7 @@ const id = (f: CorpusFiling) => `${f.bank_ticker}|${f.period}|${f.kind}`;
 const count = (v: number | null | undefined) => v == null ? "—" : nf(v, 0);
 const control = "border-b border-border bg-transparent px-1 py-1.5 text-xs text-foreground focus:outline-primary";
 
-type PagePreview = { manifest: { sections: { title: string; page_start: number; page_end: number }[]; navigation?: Navigation };
+type PagePreview = { manifest: { sections: { title: string; page_start: number; page_end: number }[]; navigation?: Navigation; page_sha256?: string[] };
   page: { page: number; text_blocks: { id: string; text: string }[]; tables: Table[];
     table_source_rows?: { tables: SourceRows[] };
     table_period_headers?: { tables: PeriodHeaders[] };
@@ -89,6 +90,8 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
           <ul className="mt-2 list-disc pl-5">{preview.page.issues.map((issue, i) => <li key={i}>{issue.kind.replaceAll("_", " ")}{issue.count != null ? ` (${count(issue.count)})` : ""}</li>)}</ul>
         </details>}
         <DocumentRecoveryPanel filing={id(filing)} page={page} />
+        {source && preview.manifest.page_sha256?.[page - 1] && <DocumentReviewedTables filing={id(filing)} page={page}
+          sourceHash={source.pdf_sha256} pageHash={preview.manifest.page_sha256[page - 1]} />}
         {preview.page.table_context?.continuations.map((link) => <div key={link.to_table_id} className="my-3 border-l border-border pl-3 text-xs">
           <p>{link.status === "unique_source_evidence" ? "Source indicates a table continuation" : "Possible continuation has competing earlier tables"}: {link.title}</p>
           <p className="mt-1 text-muted-foreground">Repeated column identifiers: {link.column_identifiers.join(" · ")}. Original fragments remain separate; association needs review.</p>

@@ -75,6 +75,17 @@ and discrepancy notes are available locally as JSON and a readable HTML under
 `output/audit-corpus/TOMK_2023Q3_unconsolidated/capital-disclosure-source-reviewed.*`.
 It is a named disclosure review, not whole-report or financial-series approval.
 
+Admin integration of reviewed tables is implemented locally, with publication
+pending. Passed complete-table annotations produce receipt records bound to
+both exact stored page views. The private reader validates grid slots, context,
+word occurrences, logical assignments and source/capture identity before serving
+rows and downloads. Four independently captured reports provide 21 reviewed
+tables; this is a selected-review count, not the corpus's printed-table total.
+Python-produced wire fixtures include original reviewed pages with explicit
+empty placeholders elsewhere solely for protocol tests. They are not complete
+report extracts. The new `annotated_only` capture input limits publication to
+registered annotated filings and does not restart either running/queued fleet.
+
 Remaining work is every printed table's coverage and logical structure across
 the corpus, complete prose ordering and analyst retrieval, whole-report source
 review, and resolution or explicit enumeration of nonnative source limitations.

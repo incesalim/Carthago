@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from collections import Counter
 from copy import deepcopy
+import hashlib
+import json
 import unicodedata
 
 from .document_cell_fragments import cell_word_fragments, verify_cell_fragments
@@ -44,6 +46,9 @@ def reviewed_logical_rows(table: dict, source: dict, case: dict) -> list[dict]:
                 or len(review['cells']) != table['n_cols']):
             raise ValueError('Invalid or duplicated reviewed row')
         seen.add(r)
+        if any(a['row'] <= r < a['row'] + a['row_span'] and a['row_span'] != 1
+               for a in grid['anchors']):
+            raise ValueError('Logical row review cannot cut a vertical merged cell')
         expected = Counter((p['word_id'], i) for c in rows[r]['cells'] for p in c['source_fragments']
                            for i in range(p['start'], p['end']))
         observed, cells = Counter(), []
@@ -74,3 +79,26 @@ def reviewed_logical_rows(table: dict, source: dict, case: dict) -> list[dict]:
             raise ValueError('Reviewed row loses, duplicates or borrows source characters')
         rows[r] = {'row': r, 'cells': cells}
     return deepcopy(rows)
+
+
+def reviewed_table_record(table: dict, page: dict, source: dict, case: dict, review_method: str) -> dict:
+    """Bind a passed complete-table annotation to both exact stored page views.
+
+    Receipts carry the annotation, not another copy of the extracted table.
+    Readers recheck it against the individually verified native/structured pages.
+    Call only after the complete physical-table benchmark has passed.
+    """
+    def digest(value):
+        return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                                         separators=(',', ':')).encode('utf-8')).hexdigest()
+    reviewed_logical_rows(table, source, case)
+    return {'schema_version': 'annotated-table-view-1', 'review_id': case['id'],
+            'page': page['page'], 'table_id': table['id'],
+            'native_page_sha256': digest(source),
+            'structure_page_sha256': digest({'type': 'structured_page', **page}),
+            'physical_rows': deepcopy(case['rows']), 'merged_spans': deepcopy(case['spans']),
+            'absent_slots': deepcopy(case.get('absent_slots', [])),
+            'logical_rows': deepcopy(case.get('logical_rows', [])),
+            'source_context': deepcopy(case.get('source_text_regions', [])),
+            'source_review': case.get('source_review') or review_method,
+            'scope': 'named_table_transcription', 'financial_series_interpretation': 'not_performed'}

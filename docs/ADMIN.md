@@ -81,6 +81,15 @@ source-word references are retained. Competing heading bands require review;
 this view does not fill missing dates from a neighbouring page. Empty printed
 cells and positions with no physical cell have distinct labels, alongside
 literal dashes and disclosed zero.
+**Source-reviewed tables** shows registered complete-table transcriptions above
+the candidate views. The API rechecks the current PDF identity, exact native
+and structured page hashes, literal grid, merged/absent slots, context text and
+each explicit logical-row assignment. It exposes only named reviewed tables;
+the whole-report verification count remains separate. Hover a cell to inspect
+source-word/character references. **Download reviewed tables and source
+references** returns this page's logical rows alongside its original physical
+tables. Blank cells, absent cells, dashes and zero remain distinct. A changed
+source or capture fails review loading instead of borrowing an older review.
 Some partially ruled tables also offer a **Printed rules and text positions**
 alternative with complete grouped headings and literal period columns. It keeps
 blank cells separate from covered merged-header slots; all earlier candidates

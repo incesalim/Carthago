@@ -13,6 +13,7 @@ vi.mock("@/app/lib/document-editions", () => import("./document-editions"));
 vi.mock("@/app/lib/document-origin", () => import("./document-origin"));
 vi.mock("@/app/lib/document-recovery", () => import("./document-recovery"));
 vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
+vi.mock("@/app/lib/document-table-review", () => import("./document-table-review"));
 import { GET as corpusGet } from "../api/admin/document-corpus/route";
 import { GET as recoveryGet } from "../api/admin/document-recovery/route";
 import { GET as originGet } from "../api/admin/document-origin/route";

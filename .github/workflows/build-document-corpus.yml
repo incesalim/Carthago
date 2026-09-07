@@ -29,6 +29,10 @@ on:
         description: "Add source-linked tables, paragraphs and headings (unverified)"
         type: boolean
         default: true
+      annotated_only:
+        description: "Refresh only filings with registered source annotations; no acquisition or quality-only run"
+        type: boolean
+        default: false
       quality_only:
         description: "Read-only review of preserved PDF bytes, source identity, text legibility and recovery gaps"
         type: boolean
@@ -81,7 +85,7 @@ concurrency:
 
 jobs:
   acquire:
-    if: github.event_name == 'workflow_dispatch' && inputs.acquire_missing && inputs.publish && !inputs.quality_only
+    if: github.event_name == 'workflow_dispatch' && inputs.acquire_missing && inputs.publish && !inputs.quality_only && !inputs.annotated_only
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -160,6 +164,11 @@ jobs:
         run: |
           echo 'Visual source review requires a read-only capture, not publication or quality-only review.'
           exit 1
+      - name: Validate annotation-only scope
+        if: inputs.annotated_only && (inputs.acquire_missing || inputs.quality_only)
+        run: |
+          echo 'Annotation-only selection applies to capture, without acquisition or quality-only review.'
+          exit 1
       - name: Preserve and verify source artifact bytes
         if: ${{ !inputs.quality_only }}
         env:
@@ -169,6 +178,7 @@ jobs:
           PUBLISH: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
           STRUCTURE: ${{ github.event_name != 'workflow_dispatch' || inputs.structure }}
           RECHECK_BYTES: ${{ inputs.recheck_bytes || false }}
+          ANNOTATED_ONLY: ${{ inputs.annotated_only || false }}
           SHARD_INDEX: ${{ matrix.shard }}
           SHARD_COUNT: ${{ strategy.job-total }}
           KIND: ${{ inputs.kind || 'BOTH' }}
@@ -187,6 +197,7 @@ jobs:
           [ -n "$REVIEW_PAGES" ] && args+=(--review-pages "$REVIEW_PAGES")
           [ "$PUBLISH" = "true" ] && args+=(--publish --discard-published)
           [ "$STRUCTURE" = "true" ] && args+=(--structure)
+          [ "$ANNOTATED_ONLY" = "true" ] && args+=(--annotated-only)
           [ "$RECHECK_BYTES" = "true" ] && args+=(--recheck-bytes)
           python scripts/build_document_corpus.py "${args[@]}"
       - name: Review source identity, retained bytes and unresolved content

@@ -54,6 +54,25 @@ def test_complete_four_page_capital_disclosure_and_logical_rows(capital_review):
     assert (observed, evidence, annotation) == before
 
 
+def test_receipt_wire_contains_the_exact_reviewed_source_records(capital_review):
+    import gzip
+    import base64
+    from src.audit_reports.document_structure import structure_jsonl
+    observed, evidence, annotation = capital_review
+    result = check_annotations(observed, evidence, annotation)
+    wire = json.loads((Path(__file__).parent / 'fixtures/document_table_review_wire.json').read_text(encoding='utf-8'))
+    assert wire['index']['resume_receipt']['benchmark']['checks'][0] == result
+    lines = [json.loads(line) for line in gzip.decompress(base64.b64decode(wire['structure_gzip'])).splitlines()]
+    for page in observed['pages']:
+        assert lines[page['page']] == {'type': 'structured_page', **page}
+    manifest = json.loads(structure_jsonl(observed).splitlines()[0])
+    for index, record in enumerate(result['reviewed_tables']):
+        assert record['structure_page_sha256'] == manifest['page_sha256'][index]
+    observed['pages'][0]['tables'] = []
+    failed = check_annotations(observed, evidence, annotation)
+    assert not failed['passed'] and 'reviewed_tables' not in failed
+
+
 @pytest.mark.parametrize('change', ['digit', 'period', 'blank', 'merge', 'missing_row', 'unit', 'ending'])
 def test_complete_capital_checks_reject_physical_or_context_changes(capital_review, change):
     observed, evidence, annotation = capital_review

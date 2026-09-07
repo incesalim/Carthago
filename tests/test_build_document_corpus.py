@@ -26,6 +26,29 @@ def test_unqueried_r2_is_unknown_not_a_missing_source(tmp_path):
     assert report["filings"][0]["acquisition_status"] == "not_checked"
 
 
+def test_annotation_only_scope_keeps_inventory_denominator(tmp_path):
+    args = _args(tmp_path) + ['--capture', '--bank', 'TEST']
+    config = json.loads((tmp_path / 'config.json').read_text())
+    config['banks']['TEST']['urls']['consolidated']['2025Q4'] = 'https://bank.example/prior.pdf'
+    (tmp_path / 'config.json').write_text(json.dumps(config))
+    annotations = tmp_path / 'annotations'
+    annotations.mkdir()
+    (annotations / 'one.json').write_text(json.dumps({'filing': {
+        'bank_ticker': 'TEST', 'period': '2026Q1', 'kind': 'consolidated'}, 'cases': []}))
+    assert build.main(args + ['--annotated-only', '--annotations-dir', str(annotations)]) == 1
+    report = json.loads((tmp_path / 'out/inventory.json').read_text())
+    assert len(report['filings']) == 2
+    assert report['run_scope']['selected_filings'] == 1
+    assert report['run_scope']['annotated_only'] is True
+    with pytest.raises(SystemExit):
+        build.main(args + ['--annotated-only', '--annotations-dir', str(annotations), '--period', '2025Q4'])
+
+
+def test_annotation_only_requires_its_registry(tmp_path):
+    with pytest.raises(SystemExit):
+        build.main(_args(tmp_path) + ['--capture', '--bank', 'TEST', '--annotated-only', '--annotations-dir', str(tmp_path / 'missing')])
+
+
 def test_missing_source_fails_capture_and_remains_in_results(tmp_path):
     assert build.main(_args(tmp_path) + ["--capture", "--bank", "TEST"]) == 1
     results = json.loads((tmp_path / "out/capture-results.json").read_text())["filings"]

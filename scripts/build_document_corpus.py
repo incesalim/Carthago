@@ -66,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, default=REPO / "data/audit_capture/corpus-v1")
     parser.add_argument("--capture", action="store_true", help="preserve source evidence after inventory")
     parser.add_argument("--structure", action="store_true", help="add source-linked tables, paragraphs and headings")
+    parser.add_argument("--annotated-only", action="store_true", help="select only filings with registered source annotations")
     parser.add_argument("--annotations-dir", type=Path,
                         default=REPO / "tests/fixtures/document_annotations",
                         help="independently source-annotated regression cases")
@@ -133,7 +134,9 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error('Visual review requires one to four ordered, distinct positive PDF pages or ALL')
     if args.structure and not args.capture:
         parser.error("--structure requires --capture")
-    if args.capture and not args.annotations_dir.is_dir():
+    if args.annotated_only and not args.capture:
+        parser.error("--annotated-only requires --capture")
+    if (args.capture or args.annotated_only) and not args.annotations_dir.is_dir():
         parser.error("Source annotation directory is missing")
     if args.publish and not (args.from_r2 and args.capture and os.environ.get("GITHUB_ACTIONS") == "true"):
         parser.error("--publish requires --from-r2 --capture in Actions")
@@ -191,13 +194,18 @@ def main(argv: list[str] | None = None) -> int:
                and (banks is None or row["bank_ticker"] in banks)
                and (args.period is None or row["period"] == args.period)
                and (args.kind is None or row["kind"] == args.kind)]
+    if args.annotated_only:
+        identities = {Filing(**json.loads(path.read_text(encoding='utf-8'))['filing'])
+                      for path in args.annotations_dir.glob('*.json')}
+        targets = [row for row in targets if Filing(row['bank_ticker'], row['period'], row['kind']) in identities]
     if args.limit:
         targets = targets[:args.limit]
     if not targets:
         parser.error("No registered/acquired filing matches the requested scope")
     scope = {"banks": sorted(banks) if banks is not None else "ALL", "period": args.period,
              "kind": args.kind, "limit": args.limit, "selected_filings": len(targets),
-             "shard_count": args.shard_count, "shard_index": args.shard_index}
+             "shard_count": args.shard_count, "shard_index": args.shard_index,
+             **({"annotated_only": True} if args.annotated_only else {})}
     targets = [row for row in targets if filing_shard(row, args.shard_count) == args.shard_index]
     scope["assigned_filings"] = len(targets)
     inventory["run_scope"] = scope

@@ -1105,3 +1105,30 @@ of detected tables.
   remains exactly dda3201c; no new fleet extraction is queued for these reviews.
   The local HTML was inspected in the browser and retains all four tables and
   source links. The complete corpus goal remains active and unfinished.
+
+- 2026-09-07: previous goal turn was progress: source-reviewed capital delivery,
+  committed repair `f86214d`, passing CI `34118376770` and deployment
+  `34118491652`. The current turn confirms region publication `34112697713`
+  remains running and heading publication `34116379265` remains pending.
+  Neither is restarted. Implemented source-reviewed table records in existing
+  capture receipts and private admin/API display and downloads. Readers recheck
+  exact native/structured page hashes, complete grids, merged/absent slots,
+  source context and reviewed logical word assignments. Literal logical text is
+  rebuilt from original words, preserving source line breaks. Whole-report and
+  financial interpretation approval remain separate. The four downloaded cloud
+  reports yield 21 complete table records. Original TOMK and Garanti source-page
+  wire fixtures test all 321 capital slots plus nonrectangular and vertically
+  merged grids; unselected fixture pages are explicitly empty protocol slots.
+  Added annotation-only Actions selection so these reviews can publish without
+  another full corpus extraction. Full checks, publication and live UI review
+  are pending for this change.
+
+- 2026-09-07: reviewed-table admin change passes the complete isolated Python
+  suite (two expected skips), lint and all standalone gates. Web passes 833
+  tests, lint and type checks; mobile lint/type/token checks pass. The existing
+  related/edition route tests now load the new reader through their explicit
+  test aliases; all original assertions remain. Extraction fingerprint stays
+  dda3201c. At 12:18 UTC the live region publication has 420 ca66890e filings,
+  726 still on c6e429ce and zero catalog capture failures. The two existing
+  publications remain unchanged. A read-only annotated-scope run and independent
+  review-record reconciliation precede the new restricted publication.

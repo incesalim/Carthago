@@ -2037,3 +2037,23 @@ It rejects missing, duplicated or borrowed occurrences. Physical cells remain
 unchanged. The review code participates in annotation receipt identity, so its
 changes invalidate table-review reuse. Source-only receipts are unaffected.
 These views do not rewrite series, convert units or automatically join pages.
+
+
+Passed complete-table checks now include `reviewed_tables` records in the
+existing capture receipt. Each record binds the native and structured page
+hashes, the complete transcribed physical grid, merged/absent slots, source
+context and explicit logical rows. Failed benchmarks do not emit reviewed
+views. The private `/api/admin/document-corpus?artifact=table-reviews` endpoint
+requires a filing and PDF page; it rechecks both pages and the receipt before
+returning logical rows, provenance and original physical cells. It does not
+promote a report to fully verified or assign financial meaning.
+
+Use `build-document-corpus.yml` input `annotated_only=true` to publish only
+filings named in the registered source annotation directory. Its nonsecret
+step variable `ANNOTATED_ONLY` passes `--annotated-only` to the capture CLI;
+the CLI requires `--capture`. Bank, period, basis and limit filters still apply,
+followed by the existing stable shards. The inventory denominator remains the
+full corpus. No matches is an error. The workflow rejects combination with
+`acquire_missing` or `quality_only` and excludes acquisition before that job
+can start. Identical retained structures are reused; this input does not force
+extraction or alter D1. Publishing runs keep the existing serialized queue.

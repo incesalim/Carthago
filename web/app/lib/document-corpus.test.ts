@@ -10,6 +10,7 @@ vi.mock("@/app/lib/document-corpus", () => import("./document-corpus"));
 vi.mock("@/app/lib/document-related", () => import("./document-related"));
 vi.mock("@/app/lib/document-editions", () => import("./document-editions"));
 vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
+vi.mock("@/app/lib/document-table-review", () => import("./document-table-review"));
 import { GET } from "../api/admin/document-corpus/route";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_corpus_wire.json", import.meta.url), "utf8"));
@@ -75,6 +76,21 @@ describe("private corpus route", () => {
     expect(response.status).toBe(403);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it("requires admin for reviewed table downloads too", async () => {
+    mocks.gate.mockResolvedValue({ response: Response.json({ error: "forbidden" }, { status: 403 }) });
+    const response = await GET(new Request("https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=table-reviews&page=1"));
+    expect(response.status).toBe(403);
+    expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it("requires an explicit page and returns no reviews for an older capture", async () => {
+    mocks.context.mockReturnValue({ env: { AUDIT_DOCUMENTS: indexBucket(fixture.index) } });
+    const base = "https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=table-reviews";
+    expect((await GET(new Request(base))).status).toBe(400);
+    const response = await GET(new Request(base + "&page=1"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.json()).toMatchObject({ semantically_verified: false, tables: [] });
   });
   it("never treats a missing binding as zero coverage", async () => {
     mocks.context.mockResolvedValue({ env: {} });

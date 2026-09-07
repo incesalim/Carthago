@@ -4,6 +4,7 @@ import { getCorpusBucket, getCorpusCatalog, getCorpusRevision, parseFiling, read
 import { getRelatedRevision } from "@/app/lib/document-related";
 import { getEditionRevision } from "@/app/lib/document-editions";
 import { getContentReviews } from "@/app/lib/document-content-review";
+import { getReviewedTables } from "@/app/lib/document-table-review";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
   if (edition !== null && (!/^[a-f0-9]{64}$/.test(edition) || related !== null)
       || origin !== null && (!related || !/^[a-f0-9]{64}$/.test(origin))) return json({ error: "Choose one valid document source." }, 400);
   if (related !== null && !/^[a-f0-9]{64}$/.test(related)) return json({ error: "Invalid related document." }, 400);
-  if (artifact !== null && !["original", "source", "structure", "reviews"].includes(artifact)) {
+  if (artifact !== null && !["original", "source", "structure", "reviews", "table-reviews"].includes(artifact)) {
     return json({ error: "Unknown document artifact." }, 400);
   }
   const bucket = await getCorpusBucket();
@@ -46,6 +47,11 @@ export async function GET(req: Request) {
     const page = Number(pageText);
     if (pageText !== null && (!/^\d+$/.test(pageText) || !Number.isSafeInteger(page) || page < 1 || page > revision.page_count)) {
       return json({ error: `Page must be between 1 and ${revision.page_count}.` }, 400);
+    }
+    if (artifact === "table-reviews") {
+      if (related || edition || pageText === null) return json({ error: "Choose a page of the registered filing for table review." }, 400);
+      return json({ source: revision.source, scope: "named_table_transcription", semantically_verified: false,
+        tables: await getReviewedTables(bucket, filing, revision, page) });
     }
     const key = artifact === "original" ? revision.original_key
       : artifact === "source" ? revision.evidence_key : revision.structure_current?.key;
