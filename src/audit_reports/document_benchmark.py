@@ -165,6 +165,12 @@ def _complete_table_matches(case, page, source):
                 # A merged header can paint one column before the other while
                 # its physical cell text reads across each printed baseline.
                 lines = _lines([{**p, 'id': (p['word_id'], p['start'], p['end'])} for p in pieces]) if pieces else []
+                if lines is None and 'reviewed_grid' in case:
+                    from .document_reviewed_grid import reviewed_source_lines
+                    try:
+                        lines = reviewed_source_lines([{**p, 'id': (p['word_id'], p['start'], p['end'])} for p in pieces])
+                    except ValueError:
+                        pass
                 source_orders = {_text(' '.join(p['text'] for p in pieces))}
                 if lines is not None:
                     source_orders.add(_text(' '.join(p['text'] for line in lines for p in line)))
@@ -175,7 +181,7 @@ def _complete_table_matches(case, page, source):
                     good = False
                 actual_characters.update((p['word_id'], i) for p in pieces for i in range(p['start'], p['end']))
         if good and actual_characters == expected_characters:
-            if 'logical_rows' in case or 'row_splits' in case:
+            if 'logical_rows' in case or 'row_splits' in case or 'reviewed_grid' in case:
                 from .document_table_review import reviewed_logical_rows
                 try:
                     logical = reviewed_logical_rows(table, source, case)

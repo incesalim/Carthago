@@ -18,7 +18,7 @@ export function ReviewedTableList({ tables, filing, page }: { tables: ReviewedTa
         if (r !== span.row || c !== span.column) covered.add(`${r}:${c}`);
       }
       return <details className="mt-3 border-b border-border pb-3" key={table.review_id} open>
-        <summary className="cursor-pointer font-medium">{table.rows.length} rows · {table.physical_table.n_cols} columns · {table.table_id}</summary>
+        <summary className="cursor-pointer font-medium">{table.rows.length} rows · {table.rows[0]?.cells.length ?? 0} columns · {table.table_id}</summary>
         {table.rows.some(r => r.reviewed_assignment) && <p className="mt-2 text-muted-foreground">Includes source-reviewed row and column assignments. The original physical cells remain available below and in the download.</p>}
         <div className="mt-3 overflow-x-auto">
           <table className="w-full border-collapse text-[11px]">

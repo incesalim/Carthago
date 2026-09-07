@@ -25,7 +25,7 @@ function fail(): never { throw new Error("Reviewed table differs from its source
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const slot = (r: number, c: number) => `${r}:${c}`;
 
-function sourceLines(words: Word[]): Word[][] {
+function sourceLines(words: Word[], reviewedFontOverlap = false): Word[][] {
   const center = (w: Word) => (w.bbox[1] + w.bbox[3]) / 2;
   const height = (w: Word) => w.bbox[3] - w.bbox[1];
   const median = (values: number[]) => { values.sort((a, b) => a - b); const i = Math.floor(values.length / 2); return values.length % 2 ? values[i] : (values[i - 1] + values[i]) / 2; };
@@ -36,7 +36,7 @@ function sourceLines(words: Word[]): Word[][] {
     if (matches.length) matches[0].push(word); else lines.push([word]);
   }
   for (const line of lines) line.sort((a, b) => a.bbox[0] - b.bbox[0] || a.bbox[1] - b.bbox[1] || a.id - b.id);
-  if (lines.some((line, i) => i > 0 && Math.max(...lines[i - 1].map(w => w.bbox[3])) > Math.min(...line.map(w => w.bbox[1])))) fail();
+  if (!reviewedFontOverlap && lines.some((line, i) => i > 0 && Math.max(...lines[i - 1].map(w => w.bbox[3])) > Math.min(...line.map(w => w.bbox[1])))) fail();
   return lines;
 }
 
@@ -140,6 +140,64 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
         source_fragments: ordered.map(w => ({ word_id: w.id, start: 0, end: literal(w.text).length, text: w.text, bbox: w.bbox })) };
     });
   };
+  const checkedFullGrid = (review: unknown) => {
+    if (!record(review) || typeof review.source_review !== "string" || !review.source_review.trim()
+        || !Array.isArray(review.rows) || !Array.isArray(review.spans)) fail();
+    const refinedEdges = (value: unknown, original: number[], axis: number): number[] => {
+      if (!Array.isArray(value) || value.length < 2 || value.some(v => typeof v !== "number" || !Number.isFinite(v))) fail();
+      const edges = value as number[];
+      if (edges.some((v, i) => i > 0 && v <= edges[i - 1]) || Math.abs(edges[0] - table.bbox[axis]) > .1
+          || Math.abs(edges.at(-1)! - table.bbox[axis + 2]) > .1
+          || original.some(v => !edges.some(e => Math.abs(e - v) <= .1))) fail();
+      return edges;
+    };
+    const x = refinedEdges(review.x_edges, grid.x, 0), y = refinedEdges(review.y_edges, grid.y, 1);
+    const columns = x.length - 1, count = y.length - 1, refinedSpans = review.spans as Span[];
+    if (review.rows.length !== count) fail();
+    const spanMap = new Map<string, Span>();
+    for (const s of refinedSpans) {
+      if (!record(s) || ![s.row, s.column, s.row_span, s.column_span].every(integer) || s.row_span < 1 || s.column_span < 1
+          || s.row_span * s.column_span < 2 || s.row + s.row_span > count || s.column + s.column_span > columns
+          || spanMap.has(slot(s.row, s.column))) fail();
+      spanMap.set(slot(s.row, s.column), s);
+    }
+    const result: ReviewedTable["rows"] = [];
+    const physical = review.rows.map((input, r) => {
+      if (!Array.isArray(input) || input.length !== columns) fail();
+      const cells: Cell[] = [], displayed: ReviewedTable["rows"][number]["cells"] = [];
+      input.forEach((c, column) => {
+        if (!record(c) || !(c.text === null || typeof c.text === "string") || !Array.isArray(c.source_word_ids)
+            || c.source_word_ids.some(i => !integer(i) || !words.has(i)) || new Set(c.source_word_ids).size !== c.source_word_ids.length) fail();
+        const ids = c.source_word_ids as number[];
+        if (c.text === null) {
+          if (ids.length) fail();
+          cells.push({ column, text: null, bbox: null, word_ids: [] });
+          displayed.push({ column, text: null, source_fragments: [] });
+          return;
+        }
+        const s = spanMap.get(slot(r, column));
+        const b: Box = [x[column], y[r], x[column + (s?.column_span ?? 1)], y[r + (s?.row_span ?? 1)]];
+        if (!box(b)) fail();
+        const selected = ids.map(i => words.get(i)!);
+        if (selected.some(w => (w.bbox[0] + w.bbox[2]) / 2 < b[0] || (w.bbox[0] + w.bbox[2]) / 2 > b[2]
+            || (w.bbox[1] + w.bbox[3]) / 2 < b[1] || (w.bbox[1] + w.bbox[3]) / 2 > b[3])) fail();
+        const lines = sourceLines(selected, true), ordered = lines.flat();
+        const text = lines.map(line => line.map(w => w.text).join(" ")).join("\n");
+        if (!same(ids, ordered.map(w => w.id)) || norm(text) !== norm(c.text)) fail();
+        const parts = ordered.map(w => ({ word_id: w.id, start: 0, end: literal(w.text).length, text: w.text, bbox: w.bbox }));
+        cells.push({ column, text, bbox: b, word_ids: ids });
+        displayed.push({ column, text, source_fragments: parts });
+      });
+      if (!displayed.some(c => c.source_fragments.length)) fail();
+      result.push({ row: r, reviewed_assignment: true, cells: displayed });
+      return { index: r, cells };
+    });
+    const refined: PhysicalTable = { id: table.id, bbox: table.bbox, n_cols: columns, row_count: count, rows: physical };
+    validateGrid(refined, refinedSpans, []);
+    if (!same(inventory(rows.flatMap(r => r.cells.flatMap(c => c.source_fragments))),
+      inventory(result.flatMap(r => r.cells.flatMap(c => c.source_fragments))))) fail();
+    return { rows: result, spans: refinedSpans };
+  };
   for (const override of saved.logical_rows as LogicalRow[]) {
     if (!record(override) || !integer(override.row) || override.row >= rows.length || changed.has(override.row)
         || typeof override.source_review !== "string" || !override.source_review.trim()
@@ -202,11 +260,14 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
       && b[1] <= (s.bbox[1] + s.bbox[3]) / 2 && (s.bbox[1] + s.bbox[3]) / 2 <= b[3]);
     if (!spans.length || norm(spans.map(s => (s as Record<string, unknown>).text).join(" ")) !== norm(region.text)) fail();
   }
+  const explicit = saved.reviewed_grid === undefined ? null : checkedFullGrid(saved.reviewed_grid);
+  if (explicit && (saved.logical_rows.length || rowSplits.length
+      || (Array.isArray(saved.numbered_rows) && saved.numbered_rows.length))) fail();
   return { review_id: String(saved.review_id), table_id: table.id, page: Number(saved.page), source_review: String(saved.source_review),
     native_page_sha256: String(saved.native_page_sha256), structure_page_sha256: String(saved.structure_page_sha256),
-    scope: "named_table_transcription", financial_series_interpretation: "not_performed", rows: displayRows,
-    merged_spans: spans.filter(s => !changed.has(s.row)).map(s => ({ ...s, row: positions.get(s.row) ?? fail() })),
-    absent_slots: absent.map(a => ({ ...a, row: positions.get(a.row) ?? fail() })),
+    scope: "named_table_transcription", financial_series_interpretation: "not_performed", rows: explicit?.rows ?? displayRows,
+    merged_spans: explicit?.spans ?? spans.filter(s => !changed.has(s.row)).map(s => ({ ...s, row: positions.get(s.row) ?? fail() })),
+    absent_slots: explicit ? [] : absent.map(a => ({ ...a, row: positions.get(a.row) ?? fail() })),
     source_context: saved.source_context as ReviewedTable["source_context"], physical_table: table };
 }
 

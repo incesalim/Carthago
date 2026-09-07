@@ -68,7 +68,7 @@ artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
 are not yet published across the corpus. Neither running/queued fleet is
 restarted for subsequent source annotations.
 
-The source benchmark now contains **85 selected cases across eight reports**.
+The source benchmark now contains **88 selected cases across eight reports**.
 Four independently transcribed TOMK 2023Q3 capital fragments cover
 all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
 restores the word finansal, whose final letter physically crosses into an amount
@@ -104,10 +104,10 @@ the distinct printed dates. Wrong digits, dates, currencies, missing references,
 covered slots and dash/zero substitutions fail the new checks. The ten new
 tables and corrected report-level review description are included in the
 combined publication `34133467871`; their live display is not yet verified.
-The four independently captured reports now provide 39 reviewed tables in
+The four independently captured reports now provide 42 reviewed tables in
 `output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
-348 physical rows and 1,352 slots. The reviewed views contain 472 rows and
-1,833 slots after the explicit statement row splits. These include table headings and
+363 physical rows and 1,452 slots. The reviewed views contain 635 rows and
+3,137 slots after explicit source-reviewed assignments. These include table headings and
 are selected-review counts, not the corpus's printed-table total.
 
 TOMK 2023Q3's complete P&L on PDF page 13 has now been independently transcribed
@@ -170,6 +170,24 @@ Python-produced wire fixtures include original reviewed pages with explicit
 empty placeholders elsewhere solely for protocol tests. They are not complete
 report extracts. The new `annotated_only` capture input limits publication to
 registered annotated filings and does not restart either running/queued fleet.
+
+The complete TOMK 2023Q3 assets, liabilities and off-balance-sheet tables on
+PDF pages 10–12 are independently transcribed and pass local source checks:
+**163 reviewed rows and 1,304 slots**, retaining the 15 physical rows / 100
+physical slots. Explicit reviewed grids separate each dated TP/YP/Toplam
+heading and the off-balance sheet's combined amount bands. All physical
+boundaries and every original word/character occurrence are retained. Assets
+keeps both sets of six printed dashes beside the wrapped III label. Liabilities
+explicitly joins the 14.6.2 label with its six amounts printed on the following
+otherwise unlabelled baseline, while preserving those source coordinates.
+The private reader validates the complete assignments and displays the reviewed
+column count. Neither extraction engine `35500cc8` nor stored analytical facts
+change. This additional three-table batch is not in pending publication
+`34133467871`; fresh cloud verification and scoped receipt publication remain
+required. Python and Worker checks reject changed values, dates, currencies,
+word occurrences, boundaries and spans. The isolated staged source passes
+2,898 Python tests (two skipped), 858 web tests, web/mobile lint and types,
+mobile token checks and all nine standalone gates. Whole-report content review remains open.
 
 Remaining work is every printed table's coverage and logical structure across
 the corpus, complete prose ordering and analyst retrieval, whole-report source

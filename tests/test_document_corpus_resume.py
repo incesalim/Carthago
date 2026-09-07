@@ -139,8 +139,10 @@ def test_source_annotation_identity_excludes_table_case_changes(tmp_path):
     assert annotation_identity(tmp_path, filing, source_only=True) != before
 
 
-def test_logical_review_code_invalidates_table_receipts_only(tmp_path, monkeypatch):
-    from src.audit_reports import document_table_review
+@pytest.mark.parametrize('module_name', ['document_table_review', 'document_reviewed_grid'])
+def test_logical_review_code_invalidates_table_receipts_only(tmp_path, monkeypatch, module_name):
+    from importlib import import_module
+    module = import_module(f'src.audit_reports.{module_name}')
     folder = tmp_path / 'annotations'
     folder.mkdir()
     (folder / 'source.json').write_text(json.dumps({
@@ -151,6 +153,6 @@ def test_logical_review_code_invalidates_table_receipts_only(tmp_path, monkeypat
     source_before = annotation_identity(folder, source_only=True)
     changed = tmp_path / 'review.py'
     changed.write_text('changed review implementation')
-    monkeypatch.setattr(document_table_review, '__file__', str(changed))
+    monkeypatch.setattr(module, '__file__', str(changed))
     assert annotation_identity(folder) != before
     assert annotation_identity(folder, source_only=True) == source_before

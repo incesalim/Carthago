@@ -1262,3 +1262,24 @@ of detected tables.
   Receipts: `registered-region-refresh-independent-reconciliation.json` and
   `ziraat-timeout-independent-verification.json`. This successful source retry
   does not add a whole-report content certification.
+
+- 2026-09-07: independently transcribed the complete TOMK 2023Q3 assets,
+  liabilities and off-balance-sheet statements, PDF pages 10–12. Their 15
+  physical rows / 100 slots now have explicit reviewed grids with 163 rows /
+  1,304 slots, all six dated amount columns and every original character
+  occurrence preserved. Assets retains both printed dash sets beside III;
+  liabilities explicitly relates the displaced 14.6.2 amounts to their source
+  label. Full-grid validation permits reviewed font-box overlap but rejects
+  ambiguous baselines, changed words, borrowed occurrences, moved physical
+  boundaries, invalid spans and mixed assignment methods. Python and private
+  Worker checks pass; the local collection reaches 42 tables / 635 reviewed
+  rows / 3,137 slots, retaining 363 physical rows / 1,452 slots. The benchmark
+  has 88 selected cases across eight reports. The extraction engine is unchanged.
+  Fresh cloud proof and a scoped review-receipt publication remain required;
+  neither existing corpus fleet is restarted. No whole filing is yet verified.
+
+  The isolated staged batch passes 2,898 Python tests (two skipped), 858 web
+  tests, web/mobile lint and types, mobile token checks and all nine standalone
+  gates. The readable off-balance-sheet output was visually inspected from its
+  dated headings through the closing total. Extraction fingerprint remains
+  `35500cc8`; only the named review receipts need refreshing.

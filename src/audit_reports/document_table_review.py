@@ -30,6 +30,11 @@ def reviewed_logical_rows(table: dict, source: dict, case: dict) -> list[dict]:
     """
     if verify_cell_fragments(table, source):
         raise ValueError('Physical table has invalid source references')
+    if 'reviewed_grid' in case:
+        from .document_reviewed_grid import reviewed_grid_rows
+        if any(case.get(k) for k in ('logical_rows', 'row_splits', 'numbered_rows')):
+            raise ValueError('Reviewed grid cannot overlap another assignment view')
+        return reviewed_grid_rows(table, source, case['reviewed_grid'])
     words = {w['id']: w for w in source['words']}
     rows = [{'row': r['index'], 'cells': [
         {'column': c['column'], 'text': c['text'], 'source_fragments': cell_word_fragments(c, words),
@@ -156,6 +161,7 @@ def reviewed_table_record(table: dict, page: dict, source: dict, case: dict, rev
             'logical_rows': deepcopy(case.get('logical_rows', [])),
             **({'row_splits': deepcopy(case['row_splits'])} if 'row_splits' in case else {}),
             **({'numbered_rows': deepcopy(case['numbered_rows'])} if 'numbered_rows' in case else {}),
+            **({'reviewed_grid': deepcopy(case['reviewed_grid'])} if 'reviewed_grid' in case else {}),
             'source_context': deepcopy(case.get('source_text_regions', [])),
             'source_review': case.get('source_review') or review_method,
             'scope': 'named_table_transcription', 'financial_series_interpretation': 'not_performed'}

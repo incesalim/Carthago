@@ -2090,3 +2090,18 @@ artifacts independently pass all 151 pages of source/structure accounting and
 match the prior original/native digests. The timeout does not establish a source
 defect. Receipt: `ziraat-timeout-independent-verification.json` in the same
 internal evidence directory.
+
+A complete-table annotation may contain `reviewed_grid` with independently read
+literal rows, exact source-word occurrences, merged spans and explicit x/y
+transcription boundaries. These boundaries must refine all original physical
+boundaries, remain inside the original table and retain each source character
+exactly once. They do not assert additional physical PDF rules. Covered slots
+remain null; blank cells, dashes and literal zero remain distinct. Reviewed
+word membership uses centres, allowing independently checked adjacent printed
+lines whose font boxes overlap. Ambiguous baseline order fails. The annotation
+cannot combine this full-grid view with other row assignments. Both the Python
+benchmark and private Worker reader validate the same source-bound view.
+Changes to its validator invalidate table-review receipts, without changing
+native/structure extraction versions or source-only receipts. Publish updated
+review receipts with the existing scoped capture controls after source proof;
+there is no need to restart either full-corpus extraction fleet.

@@ -86,7 +86,11 @@ the candidate views. The API rechecks the current PDF identity, exact native
 and structured page hashes, literal grid, merged/absent slots, context text and
 each explicit logical-row assignment. A reviewed table may split one large
 physical cell band into its printed rows; every source character must be retained
-exactly once, and each row keeps its original physical-row reference. Numbered
+exactly once, and split rows keep their original physical-row reference. A complete
+reviewed grid can also separate combined period columns and assign wrapped or
+displaced source lines to explicitly checked rows. It retains all original grid
+boundaries and source-word coordinates; the displayed column count describes
+this reviewed view. The original physical table remains in the download. Numbered
 row groups are also checked against the independent literal transcription.
 Reviewed source anomalies may retain otherwise empty rows with unassigned marks.
 The source-review explanation is displayed with each named table; these marks
