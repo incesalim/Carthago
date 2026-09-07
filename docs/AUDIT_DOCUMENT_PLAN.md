@@ -946,3 +946,17 @@ of detected tables.
   Proof: `retained-upgrade-independent-verification.json` in the internal evidence
   folder. The original full refresh remains active; fleet-wide replay publication
   and timing have not yet been measured.
+
+- 2026-09-07: committed replay as `6aae99a`; CI `34106739090` passes, along with
+  2,674 workspace Python tests, the isolated staged Python suite, 797 web tests,
+  mobile checks and repository gates. Full-corpus publication `34106960090` is
+  pending at exactly 6aae99a behind the still-running base refresh. Keep both
+  dispatched versions intact. A separate bounded EXIM page-70 source-region
+  probe restores the real divider and the full printed amounts. All 25 slots,
+  three merged headings, title, date, units and complete footnote are reviewed;
+  omitted digits/rows, swapped currencies and dash-to-zero mutations fail. The
+  original candidate fails this complete-table case. The reviewed JSON is under
+  `output/audit-corpus/EXIM_2023Q3_unconsolidated/`; the internal source annotation
+  is `upgrade-base-exim-2023q3/borrowing-maturity-source-annotation.json` in the
+  evidence folder. Integrating a general region-isolation rule and adding that
+  regression to publication gates are still required.

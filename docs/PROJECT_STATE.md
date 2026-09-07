@@ -92,7 +92,15 @@ records exactly. Replay inspected one page and took 2.6 seconds locally. The
 source render also confirms an unresolved detected-border error on page 70:
 the amount 153.702.651 is split between label and amount cells. Mandatory
 boundary-review observations remain; exact replay does not approve that table.
-Corpus-wide use of this adapter has not yet been measured.
+Commit `6aae99a` passes CI `34106739090`; full-corpus publication `34106960090`
+is queued at that exact commit behind the existing refresh. Corpus-wide reuse
+and timing have not yet been measured. A bounded source-region prototype fixes
+the EXIM border; all 25 slots, three merged headings, date, units and complete
+footnote are independently checked. Its local export is
+`output/audit-corpus/EXIM_2023Q3_unconsolidated/borrowing-maturity-table.json`.
+The original candidate fails this new internal full-table case; the region
+prototype passes, while four corrupted variants fail. General integration of
+the border repair and registration of its regression case remain pending.
 
 Remaining work is corpus-wide physical and semantic completeness: every printed
 table, its headers/units/row-column associations and continuations; all prose,
