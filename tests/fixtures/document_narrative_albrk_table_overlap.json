@@ -1,0 +1,3415 @@
+{
+  "source": {
+    "bank_ticker": "ALBRK",
+    "byte_count": 1642081,
+    "kind": "consolidated",
+    "object_key": "albrk/ALBRK_2026Q1_consolidated.pdf",
+    "pdf_sha256": "6a12a7d07ba2d799bab1606d67e8ba9d8fb9a919c0524a3109fc0efd490231b1",
+    "period": "2026Q1",
+    "source_url": "https://www.albaraka.com.tr/documents/yatirimci-iliskileri/bagimsiz-denetim-raporlari/konsolide/2026-2030/albaraka-turk-31.03.2026_consolidated-financial-statements.pdf"
+  },
+  "source_page": {
+    "page": 8,
+    "height": 842.0399169921875,
+    "spans": [
+      {
+        "bbox": [
+          70.944,
+          35.7461,
+          277.6189,
+          46.8515
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 0,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "ALBARAKA TÜRK KATILIM BANKASI A.Ş.  "
+      },
+      {
+        "bbox": [
+          297.77,
+          35.7461,
+          300.5389,
+          46.8515
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 1,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          524.62,
+          35.7461,
+          527.3889,
+          46.8515
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 2,
+        "line": 2,
+        "size": 9.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          47.2661,
+          387.6789,
+          58.3715
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 3,
+        "line": 3,
+        "size": 9.96,
+        "span": 0,
+        "text": "NOTES RELATED TO CONSOLIDATED FINANCIAL STATEMENTS  "
+      },
+      {
+        "bbox": [
+          70.944,
+          58.7861,
+          186.0289,
+          69.8915
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 4,
+        "line": 4,
+        "size": 9.96,
+        "span": 0,
+        "text": "AS OF MARCH 31, 2026 "
+      },
+      {
+        "bbox": [
+          297.77,
+          58.7861,
+          300.5389,
+          69.8915
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 5,
+        "line": 5,
+        "size": 9.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          524.62,
+          58.7861,
+          530.1489,
+          69.8915
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 6,
+        "line": 6,
+        "size": 9.96,
+        "span": 0,
+        "text": "  "
+      },
+      {
+        "bbox": [
+          70.944,
+          70.3261,
+          316.3927,
+          81.4116
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 2,
+        "font": "Arial-ItalicMT",
+        "id": 7,
+        "line": 7,
+        "size": 9.96,
+        "span": 0,
+        "text": "(Thousand of Turkish Lira (TL) unless otherwise stated)"
+      },
+      {
+        "bbox": [
+          316.61,
+          73.0411,
+          318.5449,
+          80.7876
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 2,
+        "font": "Arial-ItalicMT",
+        "id": 8,
+        "line": 7,
+        "size": 6.96,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          81.8011,
+          72.8789,
+          89.5476
+        ],
+        "block": 0,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 2,
+        "font": "Arial-ItalicMT",
+        "id": 9,
+        "line": 8,
+        "size": 6.96,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          302.33,
+          786.2549,
+          309.872,
+          796.2899
+        ],
+        "block": 1,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 10,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "2 "
+      },
+      {
+        "bbox": [
+          304.85,
+          796.5749,
+          307.352,
+          806.6099
+        ],
+        "block": 2,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 11,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          43.92,
+          89.8861,
+          57.8489,
+          100.9915
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 12,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "III. "
+      },
+      {
+        "bbox": [
+          70.944,
+          89.8861,
+          567.9781,
+          100.9915
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 13,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": "Explanation on the chairman and members of board of directors, members of audit committee, general "
+      },
+      {
+        "bbox": [
+          70.944,
+          101.2861,
+          568.6437,
+          112.3915
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 14,
+        "line": 2,
+        "size": 9.96,
+        "span": 0,
+        "text": "manager and assistant general managers, their areas of responsibility and their shares in the Parent "
+      },
+      {
+        "bbox": [
+          70.944,
+          112.8061,
+          133.2289,
+          123.9115
+        ],
+        "block": 3,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 15,
+        "line": 3,
+        "size": 9.96,
+        "span": 0,
+        "text": "Bank, if any: "
+      },
+      {
+        "bbox": [
+          70.944,
+          139.9837,
+          89.6191,
+          148.9483
+        ],
+        "block": 4,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 16,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Title "
+      },
+      {
+        "bbox": [
+          163.1,
+          139.9837,
+          240.0051,
+          148.9483
+        ],
+        "block": 4,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 17,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Name and Surname "
+      },
+      {
+        "bbox": [
+          290.69,
+          130.7437,
+          400.9827,
+          139.7083
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 18,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Administrative Function and "
+      },
+      {
+        "bbox": [
+          290.69,
+          139.9837,
+          347.6651,
+          148.9483
+        ],
+        "block": 5,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 19,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Responsibility "
+      },
+      {
+        "bbox": [
+          448.63,
+          130.7437,
+          496.2551,
+          139.7083
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 20,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Educational "
+      },
+      {
+        "bbox": [
+          448.63,
+          139.9837,
+          478.0151,
+          148.9483
+        ],
+        "block": 6,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 21,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Degree "
+      },
+      {
+        "bbox": [
+          516.7,
+          130.7437,
+          560.3249,
+          139.7083
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 22,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Ownership "
+      },
+      {
+        "bbox": [
+          500.26,
+          139.9837,
+          560.3351,
+          148.9483
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 23,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Percentage (%) "
+      },
+      {
+        "bbox": [
+          291.05,
+          149.7037,
+          293.2851,
+          158.6683
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 24,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          158.8237,
+          159.4242,
+          167.7883
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 25,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "Chairman of the Board "
+      },
+      {
+        "bbox": [
+          70.944,
+          168.0637,
+          146.0151,
+          177.0283
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 26,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "of Directors (BOD): "
+      },
+      {
+        "bbox": [
+          163.1,
+          168.0637,
+          261.3651,
+          177.0283
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 27,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "Houssem BEN HAJ AMOR "
+      },
+      {
+        "bbox": [
+          291.29,
+          168.0637,
+          356.6651,
+          177.0283
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 28,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "Chairman of BOD "
+      },
+      {
+        "bbox": [
+          448.63,
+          168.0637,
+          482.4551,
+          177.0283
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 29,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          168.0637,
+          560.3351,
+          177.0283
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 30,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          291.05,
+          177.3037,
+          293.2851,
+          186.2683
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 31,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          558.1,
+          177.3037,
+          560.3351,
+          186.2683
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 32,
+        "line": 10,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          186.4237,
+          138.6408,
+          195.3883
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 33,
+        "line": 11,
+        "size": 8.04,
+        "span": 0,
+        "text": "Members of BOD:"
+      },
+      {
+        "bbox": [
+          138.5,
+          186.4237,
+          140.7351,
+          195.3883
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 34,
+        "line": 11,
+        "size": 8.04,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          163.1,
+          186.4237,
+          244.9554,
+          195.3883
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 35,
+        "line": 12,
+        "size": 8.04,
+        "span": 0,
+        "text": "Dr. Bekir PAKDEMİRLİ"
+      },
+      {
+        "bbox": [
+          245.09,
+          186.1387,
+          250.3669,
+          191.7583
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 36,
+        "line": 12,
+        "size": 5.04,
+        "span": 1,
+        "text": "(*)"
+      },
+      {
+        "bbox": [
+          250.25,
+          186.4237,
+          252.4851,
+          195.3883
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 37,
+        "line": 12,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          186.4237,
+          429.9851,
+          195.3883
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 38,
+        "line": 13,
+        "size": 8.04,
+        "span": 0,
+        "text": "Deputy Independent Member of BOD / "
+      },
+      {
+        "bbox": [
+          290.69,
+          195.6637,
+          439.2251,
+          204.6283
+        ],
+        "block": 7,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 39,
+        "line": 14,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of Audit Committee "
+      },
+      {
+        "bbox": [
+          448.63,
+          186.4237,
+          485.5751,
+          195.3883
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 40,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Doctorate "
+      },
+      {
+        "bbox": [
+          555.46,
+          186.4237,
+          560.3351,
+          195.3883
+        ],
+        "block": 8,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 41,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          204.9037,
+          280.0851,
+          213.8683
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 42,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Dr. Khaled A. Mohamed ATEEQ "
+      },
+      {
+        "bbox": [
+          291.05,
+          204.9037,
+          402.3074,
+          213.8683
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 43,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of BOD / "
+      },
+      {
+        "bbox": [
+          290.69,
+          214.0237,
+          439.2251,
+          222.9883
+        ],
+        "block": 9,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 44,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of Audit Committee "
+      },
+      {
+        "bbox": [
+          448.63,
+          204.9037,
+          485.5751,
+          213.8683
+        ],
+        "block": 10,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 45,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Doctorate "
+      },
+      {
+        "bbox": [
+          555.46,
+          204.9037,
+          560.3351,
+          213.8683
+        ],
+        "block": 10,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 46,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          223.2937,
+          209.9331,
+          232.2583
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 47,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Ömer ÇEKİÇ"
+      },
+      {
+        "bbox": [
+          209.93,
+          223.0087,
+          215.2069,
+          228.6283
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 48,
+        "line": 0,
+        "size": 5.04,
+        "span": 1,
+        "text": "(*)"
+      },
+      {
+        "bbox": [
+          215.09,
+          223.2937,
+          217.3251,
+          232.2583
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 49,
+        "line": 0,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          223.2937,
+          402.3074,
+          232.2583
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 50,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of BOD / "
+      },
+      {
+        "bbox": [
+          290.69,
+          232.5337,
+          439.2251,
+          241.4983
+        ],
+        "block": 11,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 51,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of Audit Committee "
+      },
+      {
+        "bbox": [
+          448.63,
+          223.2937,
+          482.4551,
+          232.2583
+        ],
+        "block": 12,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 52,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          223.2937,
+          560.3351,
+          232.2583
+        ],
+        "block": 12,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 53,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          241.6537,
+          240.5173,
+          250.6183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 54,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Turgut SİMİTCİOĞLU"
+      },
+      {
+        "bbox": [
+          240.53,
+          241.3687,
+          247.7271,
+          246.9883
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 55,
+        "line": 0,
+        "size": 5.04,
+        "span": 1,
+        "text": "(**)"
+      },
+      {
+        "bbox": [
+          247.73,
+          241.6537,
+          249.9651,
+          250.6183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 56,
+        "line": 0,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          241.6537,
+          351.1451,
+          250.6183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 57,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Member of BOD "
+      },
+      {
+        "bbox": [
+          448.63,
+          241.6537,
+          475.3751,
+          250.6183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 58,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Master "
+      },
+      {
+        "bbox": [
+          555.46,
+          241.6537,
+          560.3351,
+          250.6183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 59,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          250.8937,
+          235.2051,
+          259.8583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 60,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "Azhar Aziz DOGAR "
+      },
+      {
+        "bbox": [
+          291.05,
+          250.8937,
+          351.1451,
+          259.8583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 61,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "Member of BOD "
+      },
+      {
+        "bbox": [
+          448.63,
+          250.8937,
+          475.3751,
+          259.8583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 62,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "Master "
+      },
+      {
+        "bbox": [
+          555.46,
+          250.8937,
+          560.3351,
+          259.8583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 63,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          260.1337,
+          264.1227,
+          269.0983
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 64,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "Dalia Hazem G. KHORSHID"
+      },
+      {
+        "bbox": [
+          264.17,
+          259.8487,
+          269.4469,
+          265.4683
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 65,
+        "line": 8,
+        "size": 5.04,
+        "span": 1,
+        "text": "(*)"
+      },
+      {
+        "bbox": [
+          269.33,
+          260.1337,
+          271.5651,
+          269.0983
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 66,
+        "line": 8,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          260.1337,
+          351.1451,
+          269.0983
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 67,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": "Member of BOD "
+      },
+      {
+        "bbox": [
+          448.63,
+          260.1337,
+          482.4551,
+          269.0983
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 68,
+        "line": 10,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          260.1337,
+          560.3351,
+          269.0983
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 69,
+        "line": 11,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          269.2537,
+          220.0851,
+          278.2183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 70,
+        "line": 12,
+        "size": 8.04,
+        "span": 0,
+        "text": "Akram YASSIN "
+      },
+      {
+        "bbox": [
+          291.05,
+          269.2537,
+          351.1451,
+          278.2183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 71,
+        "line": 13,
+        "size": 8.04,
+        "span": 0,
+        "text": "Member of BOD "
+      },
+      {
+        "bbox": [
+          448.63,
+          269.2537,
+          475.3751,
+          278.2183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 72,
+        "line": 14,
+        "size": 8.04,
+        "span": 0,
+        "text": "Master "
+      },
+      {
+        "bbox": [
+          555.46,
+          269.2537,
+          560.3351,
+          278.2183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 73,
+        "line": 15,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          165.14,
+          278.4937,
+          167.3751,
+          287.4583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 74,
+        "line": 16,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          278.4937,
+          293.2851,
+          287.4583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 75,
+        "line": 17,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          558.1,
+          278.4937,
+          560.3351,
+          287.4583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 76,
+        "line": 18,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          287.6137,
+          138.6488,
+          296.5783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 77,
+        "line": 19,
+        "size": 8.04,
+        "span": 0,
+        "text": "General Manager:"
+      },
+      {
+        "bbox": [
+          138.5,
+          287.6137,
+          140.7351,
+          296.5783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 78,
+        "line": 19,
+        "size": 8.04,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          162.86,
+          287.6137,
+          245.6451,
+          296.5783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 79,
+        "line": 20,
+        "size": 8.04,
+        "span": 0,
+        "text": "Malek Khodr TEMSAH "
+      },
+      {
+        "bbox": [
+          291.05,
+          287.6137,
+          420.0251,
+          296.5783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 80,
+        "line": 21,
+        "size": 8.04,
+        "span": 0,
+        "text": "Member of BOD/ General Manager  "
+      },
+      {
+        "bbox": [
+          448.63,
+          287.6137,
+          475.3751,
+          296.5783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 81,
+        "line": 22,
+        "size": 8.04,
+        "span": 0,
+        "text": "Master "
+      },
+      {
+        "bbox": [
+          555.46,
+          287.6137,
+          560.3351,
+          296.5783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 82,
+        "line": 23,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          291.05,
+          296.8537,
+          293.2851,
+          305.8183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 83,
+        "line": 24,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          558.1,
+          296.8537,
+          560.3351,
+          305.8183
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 84,
+        "line": 25,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          306.0937,
+          141.1895,
+          315.0583
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 85,
+        "line": 26,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General "
+      },
+      {
+        "bbox": [
+          70.944,
+          315.2137,
+          113.1351,
+          324.1783
+        ],
+        "block": 13,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 86,
+        "line": 27,
+        "size": 8.04,
+        "span": 0,
+        "text": "Managers: "
+      },
+      {
+        "bbox": [
+          163.1,
+          306.0937,
+          214.741,
+          315.0583
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 87,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Önder ÇINAR "
+      },
+      {
+        "bbox": [
+          214.73,
+          305.8087,
+          216.1311,
+          311.4283
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 88,
+        "line": 0,
+        "size": 5.04,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          306.0937,
+          436.4613,
+          315.0583
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 89,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General Manager Responsible "
+      },
+      {
+        "bbox": [
+          290.69,
+          315.2137,
+          332.0651,
+          324.1783
+        ],
+        "block": 14,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 90,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "for Credits  "
+      },
+      {
+        "bbox": [
+          448.63,
+          306.0937,
+          475.3751,
+          315.0583
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 91,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Master "
+      },
+      {
+        "bbox": [
+          555.46,
+          306.0937,
+          560.3351,
+          315.0583
+        ],
+        "block": 15,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 92,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          558.1,
+          315.2137,
+          560.3351,
+          324.1783
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 93,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          163.1,
+          324.4537,
+          251.1651,
+          333.4183
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 94,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Mehmet Emin ÇONKAR "
+      },
+      {
+        "bbox": [
+          291.05,
+          324.4537,
+          436.4613,
+          333.4183
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 95,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General Manager Responsible "
+      },
+      {
+        "bbox": [
+          290.69,
+          333.6937,
+          441.0251,
+          342.6583
+        ],
+        "block": 16,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 96,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "for Credit Monitoring and Legal Follow-Up "
+      },
+      {
+        "bbox": [
+          448.63,
+          324.4537,
+          482.4551,
+          333.4183
+        ],
+        "block": 17,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 97,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          324.4537,
+          560.3351,
+          333.4183
+        ],
+        "block": 17,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 98,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          558.1,
+          333.6937,
+          560.3351,
+          342.6583
+        ],
+        "block": 18,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 99,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          163.1,
+          342.8137,
+          228.0051,
+          351.7783
+        ],
+        "block": 18,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 100,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Serhan YILDIRIM "
+      },
+      {
+        "bbox": [
+          291.05,
+          342.8137,
+          436.4613,
+          351.7783
+        ],
+        "block": 18,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 101,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General Manager Responsible "
+      },
+      {
+        "bbox": [
+          290.69,
+          352.0537,
+          429.0251,
+          361.0183
+        ],
+        "block": 18,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 102,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "for Treasury and International Banking "
+      },
+      {
+        "bbox": [
+          448.63,
+          342.8137,
+          482.4551,
+          351.7783
+        ],
+        "block": 19,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 103,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          342.8137,
+          560.3351,
+          351.7783
+        ],
+        "block": 19,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 104,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          361.2937,
+          232.4451,
+          370.2583
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 105,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Muzaffer ÇÖLMEK "
+      },
+      {
+        "bbox": [
+          291.05,
+          361.2937,
+          436.4613,
+          370.2583
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 106,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General Manager Responsible "
+      },
+      {
+        "bbox": [
+          290.69,
+          370.4337,
+          360.5051,
+          379.3983
+        ],
+        "block": 20,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 107,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "for IT & Operations "
+      },
+      {
+        "bbox": [
+          448.63,
+          361.2937,
+          482.4551,
+          370.2583
+        ],
+        "block": 21,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 108,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          361.2937,
+          560.3351,
+          370.2583
+        ],
+        "block": 21,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 109,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          558.1,
+          370.4337,
+          560.3351,
+          379.3983
+        ],
+        "block": 22,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 110,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": " "
+      },
+      {
+        "bbox": [
+          162.86,
+          384.2337,
+          228.7251,
+          393.1983
+        ],
+        "block": 23,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 111,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Serhan AKYILDIZ "
+      },
+      {
+        "bbox": [
+          291.05,
+          379.6737,
+          436.4613,
+          388.6383
+        ],
+        "block": 23,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 112,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General Manager Responsible "
+      },
+      {
+        "bbox": [
+          290.69,
+          388.9137,
+          376.1051,
+          397.8783
+        ],
+        "block": 23,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 113,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "for Institutional Banking "
+      },
+      {
+        "bbox": [
+          448.63,
+          379.6737,
+          482.4551,
+          388.6383
+        ],
+        "block": 24,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 114,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          379.6737,
+          560.3351,
+          388.6383
+        ],
+        "block": 24,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 115,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          398.0337,
+          223.2051,
+          406.9983
+        ],
+        "block": 25,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 116,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Yasemin AYDIN "
+      },
+      {
+        "bbox": [
+          291.05,
+          398.0337,
+          436.4613,
+          406.9983
+        ],
+        "block": 25,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 117,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Assistant General Manager Responsible "
+      },
+      {
+        "bbox": [
+          290.69,
+          407.2737,
+          396.1451,
+          416.2383
+        ],
+        "block": 25,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 118,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "for Digital and Retail Banking "
+      },
+      {
+        "bbox": [
+          448.63,
+          398.0337,
+          475.3751,
+          406.9983
+        ],
+        "block": 26,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 119,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Master "
+      },
+      {
+        "bbox": [
+          555.46,
+          398.0337,
+          560.3351,
+          406.9983
+        ],
+        "block": 26,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 120,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          70.944,
+          416.5137,
+          137.6599,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 121,
+        "line": 0,
+        "size": 8.04,
+        "span": 0,
+        "text": "Audit Committee:"
+      },
+      {
+        "bbox": [
+          137.66,
+          416.5137,
+          139.8951,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 122,
+        "line": 0,
+        "size": 8.04,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          163.1,
+          416.5137,
+          244.9554,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 123,
+        "line": 1,
+        "size": 8.04,
+        "span": 0,
+        "text": "Dr. Bekir PAKDEMİRLİ"
+      },
+      {
+        "bbox": [
+          245.09,
+          416.2287,
+          250.3669,
+          421.8483
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 124,
+        "line": 1,
+        "size": 5.04,
+        "span": 1,
+        "text": "(*)"
+      },
+      {
+        "bbox": [
+          250.25,
+          416.5137,
+          252.4851,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 125,
+        "line": 1,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          416.5137,
+          398.1851,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 126,
+        "line": 2,
+        "size": 8.04,
+        "span": 0,
+        "text": "Chairman of Audit Committee "
+      },
+      {
+        "bbox": [
+          448.63,
+          416.5137,
+          485.5751,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 127,
+        "line": 3,
+        "size": 8.04,
+        "span": 0,
+        "text": "Doctorate "
+      },
+      {
+        "bbox": [
+          555.46,
+          416.5137,
+          560.3351,
+          425.4783
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 128,
+        "line": 4,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          162.86,
+          425.6337,
+          277.6851,
+          434.5983
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 129,
+        "line": 5,
+        "size": 8.04,
+        "span": 0,
+        "text": "Dr. Khaled A.Mohamed ATEEQ "
+      },
+      {
+        "bbox": [
+          291.05,
+          425.6337,
+          439.5851,
+          434.5983
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 130,
+        "line": 6,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of Audit Committee "
+      },
+      {
+        "bbox": [
+          448.63,
+          425.6337,
+          485.5751,
+          434.5983
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 131,
+        "line": 7,
+        "size": 8.04,
+        "span": 0,
+        "text": "Doctorate "
+      },
+      {
+        "bbox": [
+          555.46,
+          425.6337,
+          560.3351,
+          434.5983
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 132,
+        "line": 8,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          163.1,
+          434.8737,
+          209.9331,
+          443.8383
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 133,
+        "line": 9,
+        "size": 8.04,
+        "span": 0,
+        "text": "Ömer ÇEKİÇ"
+      },
+      {
+        "bbox": [
+          209.93,
+          434.5887,
+          215.2069,
+          440.2083
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 1,
+        "font": "ArialMT",
+        "id": 134,
+        "line": 9,
+        "size": 5.04,
+        "span": 1,
+        "text": "(*)"
+      },
+      {
+        "bbox": [
+          215.09,
+          434.8737,
+          217.3251,
+          443.8383
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 135,
+        "line": 9,
+        "size": 8.04,
+        "span": 2,
+        "text": " "
+      },
+      {
+        "bbox": [
+          291.05,
+          434.8737,
+          439.5851,
+          443.8383
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 136,
+        "line": 10,
+        "size": 8.04,
+        "span": 0,
+        "text": "Independent Member of Audit Committee "
+      },
+      {
+        "bbox": [
+          448.63,
+          434.8737,
+          482.4551,
+          443.8383
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 137,
+        "line": 11,
+        "size": 8.04,
+        "span": 0,
+        "text": "Bachelor "
+      },
+      {
+        "bbox": [
+          555.46,
+          434.8737,
+          560.3351,
+          443.8383
+        ],
+        "block": 27,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 138,
+        "line": 12,
+        "size": 8.04,
+        "span": 0,
+        "text": "- "
+      },
+      {
+        "bbox": [
+          70.944,
+          450.6561,
+          557.2012,
+          461.7615
+        ],
+        "block": 28,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 139,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "* Following the outcome of the Ordinary General Meeting held on March 27, 2026, Mr. Bekir Pakdemirli has "
+      },
+      {
+        "bbox": [
+          70.944,
+          462.1761,
+          557.4303,
+          473.2815
+        ],
+        "block": 28,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 140,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": "been appointed as Chairman of the Audit Committee, and Mr. Omer Cekic as a Member of the Audit Committee. "
+      },
+      {
+        "bbox": [
+          70.944,
+          473.6961,
+          471.2289,
+          484.8015
+        ],
+        "block": 28,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 141,
+        "line": 2,
+        "size": 9.96,
+        "span": 0,
+        "text": "Ms. Dalia Hazem G. Khorshid has been appointed as a Member of the Board of Directors. "
+      },
+      {
+        "bbox": [
+          70.944,
+          491.2161,
+          557.4502,
+          502.3215
+        ],
+        "block": 29,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 142,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "** Mr. Turgut Simitcioglu, who was serving as Deputy General Manager, has resigned from his current position "
+      },
+      {
+        "bbox": [
+          70.944,
+          502.6161,
+          557.4005,
+          513.7215
+        ],
+        "block": 29,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 143,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": "effective March 26, 2026, in accordance with his request for retirement, and has been appointed as a Member "
+      },
+      {
+        "bbox": [
+          70.944,
+          514.1361,
+          184.8289,
+          525.2415
+        ],
+        "block": 29,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 144,
+        "line": 2,
+        "size": 9.96,
+        "span": 0,
+        "text": "of the Board of Directors. "
+      },
+      {
+        "bbox": [
+          70.944,
+          531.6862,
+          563.8247,
+          542.7916
+        ],
+        "block": 30,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 145,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "***In accordance with the Board of Directors’ decision dated March 26, 2026, Mr. Ömer Emeç, Deputy General "
+      },
+      {
+        "bbox": [
+          70.944,
+          543.2061,
+          563.9642,
+          554.3115
+        ],
+        "block": 30,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 146,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": "Manager for Strategy and Transformation, and Mr. Mehmet Uludağ, Deputy General Manager for Retail and "
+      },
+      {
+        "bbox": [
+          70.944,
+          554.7261,
+          302.2189,
+          565.8315
+        ],
+        "block": 30,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 147,
+        "line": 2,
+        "size": 9.96,
+        "span": 0,
+        "text": "Private Banking, have resigned from their positions. "
+      },
+      {
+        "bbox": [
+          49.2,
+          572.2461,
+          340.856,
+          583.3515
+        ],
+        "block": 31,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 148,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "IV. Information on the Parent Bank’s qualified shareholders:"
+      },
+      {
+        "bbox": [
+          341.11,
+          573.1149,
+          343.612,
+          583.1499
+        ],
+        "block": 31,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 149,
+        "line": 0,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          70.944,
+          589.6461,
+          567.8407,
+          600.7515
+        ],
+        "block": 32,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 150,
+        "line": 0,
+        "size": 9.96,
+        "span": 0,
+        "text": "The Parent Bank’s paid in capital amounting to TL 2.500.000 consists of 2.500.000.000 number of shares with a "
+      },
+      {
+        "bbox": [
+          70.944,
+          601.1661,
+          567.6602,
+          612.2715
+        ],
+        "block": 32,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 151,
+        "line": 1,
+        "size": 9.96,
+        "span": 0,
+        "text": "nominal value of TL 1 (full) for each share. TL 1.334.860 of the paid in capital is owned by qualified shareholders "
+      },
+      {
+        "bbox": [
+          70.944,
+          612.6862,
+          167.0689,
+          623.7916
+        ],
+        "block": 32,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 152,
+        "line": 2,
+        "size": 9.96,
+        "span": 0,
+        "text": "who are listed below: "
+      },
+      {
+        "bbox": [
+          72.384,
+          631.3149,
+          180.482,
+          641.3499
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 153,
+        "line": 0,
+        "size": 9.0,
+        "span": 0,
+        "text": "Name/Commercial Name "
+      },
+      {
+        "bbox": [
+          196.61,
+          631.6749,
+          302.072,
+          641.71
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 154,
+        "line": 1,
+        "size": 9.0,
+        "span": 0,
+        "text": "Share amount (nominal) "
+      },
+      {
+        "bbox": [
+          321.77,
+          631.3149,
+          371.332,
+          641.3499
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 155,
+        "line": 2,
+        "size": 9.0,
+        "span": 0,
+        "text": "Share ratio "
+      },
+      {
+        "bbox": [
+          389.59,
+          631.3149,
+          442.612,
+          641.3499
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 156,
+        "line": 3,
+        "size": 9.0,
+        "span": 0,
+        "text": "Paid shares "
+      },
+      {
+        "bbox": [
+          476.62,
+          631.3149,
+          541.162,
+          641.3499
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 16,
+        "font": "Arial-BoldMT",
+        "id": 157,
+        "line": 4,
+        "size": 9.0,
+        "span": 0,
+        "text": "Unpaid shares "
+      },
+      {
+        "bbox": [
+          72.384,
+          642.9549,
+          137.882,
+          652.9899
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 158,
+        "line": 5,
+        "size": 9.0,
+        "span": 0,
+        "text": "Albaraka Group "
+      },
+      {
+        "bbox": [
+          228.17,
+          643.1855,
+          268.1295,
+          654.2113
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 159,
+        "line": 6,
+        "size": 9.96,
+        "span": 0,
+        "text": "1.334.860"
+      },
+      {
+        "bbox": [
+          268.13,
+          643.9149,
+          270.632,
+          653.95
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 160,
+        "line": 6,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          329.95,
+          643.1855,
+          363.28,
+          654.2113
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 161,
+        "line": 7,
+        "size": 9.96,
+        "span": 0,
+        "text": "53,39% "
+      },
+      {
+        "bbox": [
+          394.87,
+          643.1855,
+          434.8296,
+          654.2113
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 162,
+        "line": 8,
+        "size": 9.96,
+        "span": 0,
+        "text": "1.334.860"
+      },
+      {
+        "bbox": [
+          434.83,
+          643.9149,
+          437.332,
+          653.95
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 0,
+        "font": "ArialMT",
+        "id": 163,
+        "line": 8,
+        "size": 9.0,
+        "span": 1,
+        "text": " "
+      },
+      {
+        "bbox": [
+          505.9,
+          643.1855,
+          511.75,
+          654.2113
+        ],
+        "block": 33,
+        "direction": [
+          1.0,
+          0.0
+        ],
+        "flags": 4,
+        "font": "TimesNewRomanPSMT",
+        "id": 164,
+        "line": 9,
+        "size": 9.96,
+        "span": 0,
+        "text": "- "
+      }
+    ]
+  },
+  "tables": [
+    {
+      "id": "p8:underline0",
+      "method": "horizontal_rule_cells",
+      "bbox": [
+        70.944,
+        92,
+        563.5,
+        149
+      ]
+    },
+    {
+      "id": "p8:underline1",
+      "method": "horizontal_rule_cells",
+      "bbox": [
+        71.664,
+        606,
+        564.45,
+        642
+      ]
+    },
+    {
+      "id": "p8:underline2",
+      "method": "horizontal_rule_cells",
+      "bbox": [
+        70.944,
+        618,
+        564.45,
+        654
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "method": "source_body_banner",
+      "number": 1,
+      "page_end": 9,
+      "page_start": 7,
+      "review_status": "unreviewed",
+      "role": "general_info",
+      "title": "General Information"
+    },
+    {
+      "method": "source_body_banner",
+      "number": 2,
+      "page_end": 18,
+      "page_start": 10,
+      "review_status": "unreviewed",
+      "role": "financial_statements",
+      "title": "The consolidated financial statements"
+    },
+    {
+      "method": "source_body_banner",
+      "number": 3,
+      "page_end": 36,
+      "page_start": 19,
+      "review_status": "unreviewed",
+      "role": "accounting_policies",
+      "title": "Accounting Policies"
+    },
+    {
+      "method": "source_body_banner",
+      "number": 4,
+      "page_end": 54,
+      "page_start": 37,
+      "review_status": "unreviewed",
+      "role": "risk",
+      "title": "Information on Consolidated Financial Structure and Risk Management of the Group"
+    },
+    {
+      "method": "source_body_banner",
+      "number": 5,
+      "page_end": 92,
+      "page_start": 55,
+      "review_status": "unreviewed",
+      "role": "notes",
+      "title": "Explanations and notes on the consolidated financial statements"
+    },
+    {
+      "method": "source_body_banner",
+      "number": 6,
+      "page_end": 93,
+      "page_start": 93,
+      "review_status": "unreviewed",
+      "role": "audit_report",
+      "title": "Limited review report"
+    },
+    {
+      "method": "source_body_banner",
+      "number": 7,
+      "page_end": 98,
+      "page_start": 94,
+      "review_status": "unreviewed",
+      "role": null,
+      "title": "Information on Interim Report"
+    }
+  ],
+  "fixture_scope": "Native spans and actual alternative table rectangles on original ALBRK 2026Q1 consolidated PDF page 8. Source text expectations are independently transcribed in the registered annotation."
+}

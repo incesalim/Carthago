@@ -1,4 +1,6 @@
 import copy
+import json
+from pathlib import Path
 
 import pytest
 
@@ -128,3 +130,51 @@ def test_cover_typography_does_not_leak_into_the_following_audit_opinion(narrati
     assert pages[1]["narrative_elements"][1]["heading_path"] == [
         {"id": "p2:narrative0", "text": "Qualified conclusion"}]
     assert pages[1]["narrative_elements"][1]["heading_context_scope"] == "page"
+
+
+@pytest.mark.parametrize('alternative', [
+    {'method': 'horizontal_rule_cells'},
+    {'method': 'segmented_rules_and_source_lines'},
+    {'method': 'legacy_numeric_geometry', 'word_view': 'positioned_text'},
+])
+def test_speculative_table_rectangles_cannot_split_source_paragraphs(narrative, alternative):
+    structure, evidence, annotation = narrative
+    before = copy.deepcopy(structure['pages'][0]['narrative_elements'])
+    # Only the second line is overlapped: bbox classification used to split
+    # the sentence and sever its heading context even though no prose changed.
+    structure['pages'][0]['tables'].append({'id': 'alternative', 'bbox': [30, 184, 250, 198], **alternative})
+    narrative_candidates(structure['pages'], evidence, [])
+    assert structure['pages'][0]['narrative_elements'] == before
+    assert check_annotations(structure, evidence, annotation)['passed']
+
+
+def test_albrk_source_paragraph_and_sibling_heading_survive_real_table_alternatives():
+    fixtures = Path(__file__).parent / 'fixtures'
+    fixture = json.loads((fixtures / 'document_narrative_albrk_table_overlap.json').read_text(encoding='utf-8'))
+    evidence = [{'source': fixture['source']}, fixture['source_page']]
+    page = {'page': 8, 'tables': fixture['tables']}
+    tables = copy.deepcopy(page['tables'])
+    narrative_candidates([page], evidence, fixture['sections'])
+    annotation = json.loads((fixtures / 'document_annotations/albrk_2026q1_consolidated.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c['kind'] == 'narrative']
+    assert len(annotation['cases']) == 1
+    result = check_annotations({'source': fixture['source'], 'pages': [page]}, evidence, annotation)
+    assert result['passed'], result
+    assert page['tables'] == tables  # Alternatives remain available for table review.
+    assert verify_narrative(page, fixture['source_page']) == []
+
+
+@pytest.mark.parametrize('indent,expected', [(40, []), (70, ['III. Previous topic'])])
+def test_roman_heading_siblings_use_alignment_while_nested_headings_keep_the_parent(indent, expected):
+    source = {'page': 1, 'height': 800, 'spans': [
+        {'id': 0, 'block': 0, 'line': 0, 'text': 'III. Previous topic',
+         'bbox': [40, 100, 250, 112], 'size': 12, 'flags': 16},
+        {'id': 1, 'block': 1, 'line': 0, 'text': 'IV. Current topic',
+         'bbox': [indent, 140, 250, 150], 'size': 10, 'flags': 16},
+        {'id': 2, 'block': 2, 'line': 0, 'text': 'Current passage.',
+         'bbox': [indent, 160, 250, 170], 'size': 10, 'flags': 0},
+    ]}
+    page = {'page': 1, 'tables': []}
+    narrative_candidates([page], [{}, source], [])
+    assert [h['text'] for h in page['narrative_elements'][1]['heading_path']] == expected
+    assert [h['text'] for h in page['narrative_elements'][2]['heading_path']] == [*expected, 'IV. Current topic']

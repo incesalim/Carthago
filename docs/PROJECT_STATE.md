@@ -432,6 +432,18 @@ and source mutation checks pass locally; cloud verification and publication of
 these cross-bank revisions are pending. None of these results certifies every
 table or prose passage in either report.
 
+The cross-bank probes at `544ee1e` (`34089586417`, `34089589601`) match the
+reviewed navigation, preserve all 282 current native pages and every prior table
+field. CI/deploy pass. The additional prose comparison caught a regression in
+ALBRK: inferred underline-table header rectangles split the page-8 shareholder
+paragraph and its preceding heading. Publication is held while that is repaired.
+Table alternatives now remain available for review without changing source prose
+segmentation; aligned Roman headings also stay siblings despite minor font-size
+differences. A new independently transcribed page-8 paragraph case checks the
+complete wording under heading IV, without inheriting heading III. Pure local
+projections retain all tables and pass 24 TOMK, two GARAN and two ALBRK source
+cases. These are selected checks; new cloud rebuilds are still required.
+
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.
 Page-33 liquidity summaries also show differing TP+YP figures. These observations

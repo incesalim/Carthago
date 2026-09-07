@@ -6,7 +6,7 @@
     "kind": "consolidated"
   },
   "pdf_sha256": "6a12a7d07ba2d799bab1606d67e8ba9d8fb9a919c0524a3109fc0efd490231b1",
-  "annotation_method": "Original PDF contents pages 5–6 and body headings/footers on pages 7, 10, 19, 37, 55, 93 and 94, rendered with PyMuPDF and visually read 2026-09-07. All seven section starts, counts by section, two selected contents titles and the differing section-seven title. Selected navigation only; not a whole-report content certification.",
+  "annotation_method": "Original PDF contents pages 5–6 and body headings/footers on pages 7, 10, 19, 37, 55, 93 and 94, rendered with PyMuPDF and visually read 2026-09-07. All seven section starts, counts by section, two selected contents titles and the differing section-seven title. Selected navigation only; not a whole-report content certification. Page 8 original visually read 2026-09-07: the complete paid-in-capital paragraph and its qualified-shareholder heading remain one prose unit despite overlapping table alternatives.",
   "cases": [
     {
       "id": "chapter_seven_and_selected_contents",
@@ -169,6 +169,21 @@
           "number": 7,
           "title": "Information on Interim activity report"
         }
+      ]
+    },
+    {
+      "id": "qualified_shareholder_paragraph_not_cut_by_table_alternatives",
+      "kind": "narrative",
+      "page": 8,
+      "text_sha256": "d89a5c8bb47fa70adde9bcc758bf28ebae61d4bf7ef45aeec9c7c032a4f43c02",
+      "heading_path": [
+        "IV. Information on the Parent Bank’s qualified shareholders:"
+      ],
+      "bbox": [
+        70,
+        587,
+        570,
+        626
       ]
     }
   ]

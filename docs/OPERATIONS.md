@@ -1938,3 +1938,12 @@ footer pairs and literal body markers; passing is only a selected-case result.
 The admin exposes the contents section titles separately, including wording that
 differs from the body. GARAN 2022Q4 consolidated and ALBRK 2026Q1 consolidated are
 the initial selected-source regressions for these formats.
+
+Narrative classification uses the native numerical and ruled candidates.
+Overlapping `horizontal_rule_cells`, `segmented_rules_and_source_lines` and
+positioned-text alternatives remain in the table views but do not split or
+reclassify source paragraphs. Their inferred header rectangles can extend into
+nearby prose; they are not authoritative paragraph boundaries. Aligned Roman
+headings on the same page are treated as siblings despite small font-size
+differences, while indented heading candidates can retain a parent. These remain
+source-layout candidates and do not certify semantic hierarchy.

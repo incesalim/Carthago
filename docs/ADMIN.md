@@ -48,6 +48,10 @@ also available separately, preserving wording that differs from body headings
 even when body boundaries remain unresolved. These are navigation candidates, not approval of
 the report's meaning. Earlier captures without this view remain readable.
 
+Alternative table interpretations remain available for review without cutting
+the source paragraphs beneath their inferred header rectangles. Roman headings
+aligned on a page remain sibling candidates even when their font sizes differ.
+
 Content review notes retain open questions about figures printed in the report.
 Each passage links to the original page; PDF/native revision, exact page bytes,
 span occurrences, wording and bounding boxes are checked before display.

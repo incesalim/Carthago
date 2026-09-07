@@ -821,3 +821,13 @@ of detected tables.
   literal contents section headings as well as body headings. Full Python and
   796 web tests pass locally. Cloud verification/publication remain pending;
   no whole-report semantic verification is claimed.
+
+- 2026-09-07: cross-bank cloud probes at `544ee1e` reproduce the selected source
+  navigation and all 282 native pages; previous table fields remain intact.
+  Independent comparison then caught ALBRK prose fragmented by speculative table
+  headers. Publication is held. Excluding those alternatives from narrative
+  segmentation restores the complete shareholder paragraph; aligned Roman
+  headings prevent III from becoming IV's parent through minor font differences.
+  A source paragraph case and interference/sibling tests cover the finding.
+  Pure projections preserve all tables and pass 28 cases across TOMK, GARAN and
+  ALBRK; fresh cloud verification remains pending.

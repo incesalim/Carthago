@@ -10,6 +10,11 @@ import re
 from collections import Counter, defaultdict
 from statistics import median
 
+# These overlapping alternatives are retained for table review. Their inferred
+# header rectangles must not split or reclassify the underlying source prose.
+_ALTERNATIVE_TABLE_METHODS = {'horizontal_rule_cells', 'segmented_rules_and_source_lines'}
+_ROMAN_HEADING = re.compile(r'^\s*[IVXLCDM]+\.\s+')
+
 
 def _bounds(spans):
     return [min(s["bbox"][0] for s in spans), min(s["bbox"][1] for s in spans),
@@ -30,6 +35,8 @@ def _line_kind(spans, tables):
     for span in visible:
         x, y = (span["bbox"][0] + span["bbox"][2]) / 2, (span["bbox"][1] + span["bbox"][3]) / 2
         memberships.append({t["id"] for t in tables if t.get("bbox")
+                            and t.get('method') not in _ALTERNATIVE_TABLE_METHODS
+                            and t.get('word_view', 'words') == 'words'
                             and t["bbox"][0] <= x <= t["bbox"][2] and t["bbox"][1] <= y <= t["bbox"][3]})
     table_ids = sorted(set().union(*memberships)) if memberships else []
     if table_ids:
@@ -114,6 +121,15 @@ def narrative_candidates(pages: list[dict], evidence: list[dict], sections: list
         element["section_candidate"] = ({k: section[k] for k in ("number", "title", "role")}
                                         if section else None)
         if element["kind"] == "heading_candidate":
+            # Aligned Roman headings are siblings even if the PDF fonts differ
+            # slightly. A new IV must not inherit the preceding III as a parent.
+            if _ROMAN_HEADING.match(text):
+                for index in range(len(headings) - 1, -1, -1):
+                    previous = headings[index]
+                    if (_ROMAN_HEADING.match(previous['text'])
+                            and abs(previous['bbox'][0] - box[0]) <= element['font_size']):
+                        del headings[index:]
+                        break
             while headings and headings[-1]["font_size"] <= element["font_size"] + .1:
                 headings.pop()
             element["heading_path"] = [{"id": h["id"], "text": " ".join(h["text"].split())} for h in headings]
