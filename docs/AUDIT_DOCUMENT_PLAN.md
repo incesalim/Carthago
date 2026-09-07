@@ -720,3 +720,17 @@ of detected tables.
   Neither filename guesses nor another URL's override select the report.
   Fourteen additional responsibility-statement attachments need separate capture;
   the 14 selected origin observations await cloud verification/publication.
+- 2026-09-07: source-selection publication `34076924747` independently reconciles
+  all 14 filings and 71 stored objects: eight matches, six different PDFs, all
+  source identities supported, all original/main object versions unchanged.
+  Current published origin coverage is 1,093 agreements, 51 different-PDF filings,
+  one overlap and three with neither outcome. Six TSKB editions and 14 additional
+  signed attachments have independently verified source bindings and are being
+  captured separately in Actions.
+- 2026-09-07: independent probes of the official bank listings and linked PDFs
+  resolve the last three source paths locally. AKTIF 2025Q3 solo exactly matches
+  the acquisition. EXIM 2025Q3 solo and HALKB 2026Q2 solo have different PDF bytes;
+  their rendered covers match bank, period and basis. Corrected only those two
+  registered locators and retained their previous URLs/listing review context.
+  The denominator stays 1,146; acquired PDFs and main indexes are untouched.
+  Cloud source-origin proof and the two new edition captures remain pending.

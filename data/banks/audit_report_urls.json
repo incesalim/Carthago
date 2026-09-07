@@ -1,6 +1,6 @@
 {
   "_doc": "Explicit quarterly BRSA report URLs from bank investor relations and the official BDDK BdrUyg register. Acquisition, retained source bytes and complete-content verification are separate statuses.",
-  "_updated": "2026-09-06",
+  "_updated": "2026-09-07",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -137,7 +137,18 @@
           "2025Q3": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/financial-reports/2025/T-Halk-Bankasi-AS-Unconsolidated-Report-30-09-2025.pdf",
           "2025Q4": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/financial-reports/2025/T-Halk-Bankasi-AS-Unconsolidated-Report-31-12-2025.pdf",
           "2026Q1": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/financial-reports/2026/Turkiye-Halk-Bankas%C4%B1-AS-Unconsolidated-Report-31-03-2026.pdf",
-          "2026Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-012-SOLO-2026-06.zip"
+          "2026Q2": "https://www.halkbank.com.tr/content/dam/corporate-website/tr/dokumanlar/yatirimci-iliskileri/finansal-tablolar-ve-bagimsiz-denetim-raporlari/2026/T%C3%BCrkiye%20Halk%20Bankas%C4%B1%20A%C5%9E%20Konsolide%20Olmayan%20Rapor%2030.06.2026.pdf"
+        }
+      },
+      "_source_url_history": {
+        "unconsolidated": {
+          "2026Q2": {
+            "previous_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-012-SOLO-2026-06.zip",
+            "replacement_listing_url": "https://www.halkbank.com.tr/tr/yatirimci-iliskileri/finansal-bilgiler/finansal-bilgiler/finansal-tablolar-ve-bagimsiz-denetim-raporlari",
+            "replacement_link_text": "Açıklama ve Dipnotlar",
+            "reviewed_on": "2026-09-07",
+            "note": "The bank-listed PDF cover was independently checked against the bank, period and unconsolidated basis. Its bytes differ from the acquired edition, which remains unchanged. Previous official-origin observations retain the failed URL evidence."
+          }
         }
       }
     },
@@ -1117,7 +1128,7 @@
           "2024Q4": "https://www.eximbank.gov.tr/content/files/17f3b755-d250-4afb-9cea-1c954199472b/brsa-20241231",
           "2025Q1": "https://www.eximbank.gov.tr/content/files/040253bc-6260-4d5b-a5e4-86ebca323027/brsa-20250331",
           "2025Q2": "https://www.eximbank.gov.tr/content/files/79d82758-6d48-41ef-91be-48a81d998c36/brsa-20250630",
-          "2025Q3": "https://www.eximbank.gov.tr/content/files/8063f9cb-53cb-45b1-8add-fc3771db6de9/brsa-20250930",
+          "2025Q3": "https://eximbank.gov.tr/content/files/30f47615-837c-4736-be0a-beb46a338de6/fr-2025-3",
           "2025Q4": "https://www.eximbank.gov.tr/content/files/bac23ced-bb92-4b83-981d-3d64b6fe7cfb/brsa-20251231",
           "2026Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-016-SOLO-2026-03.zip",
           "2026Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-016-SOLO-2026-06.zip"
@@ -1126,7 +1137,18 @@
       "source_names": [
         "Türkiye İhracat Kredi Bankası A.Ş."
       ],
-      "_source_names_reference": "https://www.eximbank.gov.tr/tr/hakkimizda/kurumsal/bankamiz-hakkinda"
+      "_source_names_reference": "https://www.eximbank.gov.tr/tr/hakkimizda/kurumsal/bankamiz-hakkinda",
+      "_source_url_history": {
+        "unconsolidated": {
+          "2025Q3": {
+            "previous_url": "https://www.eximbank.gov.tr/content/files/8063f9cb-53cb-45b1-8add-fc3771db6de9/brsa-20250930",
+            "replacement_listing_url": "https://eximbank.gov.tr/tr/finansal-bilgiler/finansal-denetim-raporlari",
+            "replacement_link_text": "2025 - 3. Çeyrek PDF",
+            "reviewed_on": "2026-09-07",
+            "note": "The bank-listed PDF cover was independently checked against the bank, period and unconsolidated basis. Its bytes differ from the acquired edition, which remains unchanged. Previous official-origin observations retain the failed URL evidence."
+          }
+        }
+      }
     },
     "AKTIF": {
       "name": "Aktif Yatırım Bankası A.Ş.",

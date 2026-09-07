@@ -1750,7 +1750,16 @@ The registry is validated before any source access. A selection for another URL
 does not apply, including a bank URL versus its regulator alternative. Unselected
 PDFs stay inventoried for separate attachment capture; previous failed origin
 observations and acquired filings are preserved. Fourteen source-reviewed entries
-cover the unresolved Anadolubank/TSKB two-PDF archives; publication is pending.
+cover Anadolubank/TSKB two-PDF archives; publication `34076924747` has independently
+verified eight matches and six different PDF editions. Capture the other PDF in
+each archive through `capture-related-documents.yml`.
+
+EXIM 2025Q3 solo and HALKB 2026Q2 solo use independently checked bank-listed PDF
+locators. `_source_url_history` in the bank registry retains the previous URL,
+replacement listing and review context. Updating a locator does not replace an
+existing acquisition: run an exact official-origin comparison and retain different
+PDFs through `capture-document-edition.yml`. The previous unavailable response or
+DOCX-only regulator archive stays in origin history.
 
 Source-line structure for tall ruled cells is derived from retained word positions,
 with exact original-cell word inventories and unambiguous baseline bands. Original

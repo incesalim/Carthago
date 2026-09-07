@@ -227,10 +227,18 @@ agreement**, **45 with a different PDF**, one overlap (ATBANK), and **17 with
 neither outcome**. Fourteen unresolved downloads contain two PDFs. Eight Anadolubank
 archives include the exact acquired financial report; six TSKB report covers
 independently match their bank, period and basis but have different PDF bytes.
-Source-bound selections now retain the exact URL, archive hash, member hash and
-review witness. Their cloud follow-up and 14 additional attachment captures are
-pending. Two regulator downloads return error HTML and one HALKB archive contains
-a DOCX rather than a PDF; those source paths still need resolution.
+Source-bound selections retain the exact URL, archive hash, member hash and
+review witness. Cloud follow-up `34076924747` independently reconciles all 14
+against 71 stored objects: eight matches and six different PDFs, all with source
+identity support and unchanged main/acquisition versions. Published coverage is
+now **1,093 agreements**, **51 different-PDF filings**, one overlap and **three
+with neither outcome**. The six additional TSKB editions and 14 attachments are
+capturing separately. For the final three sources, independent bank-site probes
+match AKTIF 2025Q3 solo and identify different official EXIM 2025Q3 solo and
+HALKB 2026Q2 solo PDFs. Their covers were visually checked. The latter two
+registered locators now point to those bank-listed PDFs; prior URLs remain in
+registry history and retained observations. Cloud origin publication and capture
+of those two additional editions are pending.
 
 `capture-document-edition.yml` is implemented for an exact historical origin
 observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
