@@ -258,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
                             result.update({key: structured[key] for key in
                                            ("table_candidates", "text_blocks", "pages_with_issues")})
                             result["structure"] = structured["key"]
+                            result['structure_diagnostics'] = structured.get('diagnostics')
                 if not result.get("reuse_check"):
                     # In R2 mode, always read the current object. A cached filename
                     # cannot prove that its PDF bytes still match a mutable R2 key.
@@ -329,6 +330,8 @@ def main(argv: list[str] | None = None) -> int:
                                       table_candidates=sum(len(p["tables"]) for p in structure["pages"]),
                                       text_blocks=sum(len(p["text_blocks"]) for p in structure["pages"]),
                                       pages_with_issues=sum(bool(p["issues"]) for p in structure["pages"]))
+                        from src.audit_reports.document_quality import structure_diagnostics
+                        result['structure_diagnostics'] = structure_diagnostics(structure)
                     if ocr_pages:
                         from src.audit_reports.document_ocr import capture_ocr_page, check_ocr_annotations, verify_ocr_page
                         result["text_recovery"] = []

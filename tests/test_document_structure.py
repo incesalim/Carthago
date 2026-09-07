@@ -142,3 +142,76 @@ def test_streamed_structure_round_trip_and_corruption_detection(document):
         structure_from_jsonl(changed)
     with pytest.raises(ValueError, match="manifest"):
         structure_from_jsonl(b"\n".join(body.splitlines()[:-1]))
+
+
+@pytest.mark.parametrize('rotation', [0, 90, 180, 270])
+def test_rotated_table_keeps_displayed_columns_and_source_words(rotation):
+    from src.audit_reports.document_evidence import page_evidence
+    from src.audit_reports.document_structure import _ruled_candidates
+
+    with fitz.open() as upright, fitz.open() as encoded:
+        page = upright.new_page(width=600, height=400)
+        for x in (40, 240, 380, 540):
+            page.draw_line((x, 50), (x, 140))
+        for y in (50, 80, 110, 140):
+            page.draw_line((40, y), (540, y))
+        expected = [['Item', 'Current', 'Prior'], ['Profit', '1,234', '900'],
+                    ['Tax', '-', '0']]
+        for y, row in zip((70, 100, 130), expected):
+            for x, value in zip((50, 250, 390), row):
+                page.insert_text((x, y), value)
+        # /Rotate and the opposite content rotation leave the printed page
+        # upright. Real filings use this encoding for landscape statements.
+        size = (400, 600) if rotation in (90, 270) else (600, 400)
+        displayed = encoded.new_page(width=size[0], height=size[1])
+        displayed.show_pdf_page(displayed.rect, upright, 0, rotate=rotation)
+        displayed.set_rotation(rotation)
+        source = page_evidence(displayed)
+        before = encoded.tobytes(no_new_id=True)
+        tables = _ruled_candidates(displayed, source)
+        assert encoded.tobytes(no_new_id=True) == before
+        assert len(tables) == 1
+        table = tables[0]
+        assert [[cell['text'] for cell in row['cells']] for row in table['rows']] == expected
+        assert table['bbox'] == pytest.approx([40, 50, 540, 140], abs=.1)
+        assert all(cell['source_text_matches'] for row in table['rows'] for cell in row['cells'])
+        assert len({i for row in table['rows'] for cell in row['cells'] for i in cell['word_ids']}) == 9
+
+
+def test_source_line_does_not_borrow_words_from_the_previous_baseline():
+    from src.audit_reports.document_capture import capture_page
+    from src.audit_reports.document_evidence import page_evidence
+    from src.audit_reports.document_structure import _numeric_candidates
+
+    with fitz.open() as pdf:
+        page = pdf.new_page()
+        page.insert_text((200, 100), 'Prior', fontsize=7)
+        page.insert_text((40, 103.01), 'Current', fontsize=7)
+        page.insert_text((300, 103.01), '1,234', fontsize=7)
+        source = page_evidence(page)
+        captured = capture_page(page, 1, frozenset())
+        _tables, lines, issues = _numeric_candidates(source, captured)
+        current = next(line for line in lines if line['text'] == 'Current 1,234')
+        words = {w['id']: w['text'] for w in source['words']}
+        assert [words[i] for i in current['word_ids']] == ['Current', '1,234']
+        assert current['source_text_matches']
+        assert not issues
+
+
+def test_diagnostics_keep_named_defects_and_candidate_denominators(document):
+    from src.audit_reports.document_quality import structure_diagnostics
+    _path, _evidence, structure = document
+    changed = copy.deepcopy(structure)
+    page = changed['pages'][0]
+    table = page['tables'][0]
+    table['rows'][0]['cells'][0]['source_text_matches'] = False
+    page['issues'].extend([{'kind': 'table_cell_source_mismatch'},
+                           {'kind': 'table_cell_source_mismatch'}])
+    report = structure_diagnostics(changed)
+    assert report['pages'] == 2
+    assert report['issue_pages']['table_cell_source_mismatch'] == [1]
+    assert report['tables_with_cell_source_mismatches'] == [
+        {'page': 1, 'table_id': table['id'], 'cells': 1}]
+    assert sum(report['table_candidates_by_method'].values()) == sum(
+        len(p['tables']) for p in changed['pages'])
+    assert report['semantic_verification'] == 'not_performed'

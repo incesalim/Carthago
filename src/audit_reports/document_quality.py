@@ -7,10 +7,44 @@ claim. A clean signal is not evidence that every printed character was decoded.
 from __future__ import annotations
 
 import calendar
+from collections import Counter, defaultdict
 import re
 import unicodedata
 
 from .document_corpus import Filing
+
+
+def structure_diagnostics(structure: dict) -> dict:
+    """Count named structural defects independently of blanket review labels.
+
+    Counts describe candidates, which can overlap. They never imply that a
+    detector found every table, that OCR is accurate, or that semantics passed.
+    Page lists let a corpus run produce a repair queue without another PDF run.
+    """
+    issues, methods, kinds = defaultdict(list), Counter(), Counter()
+    bad_cells, unplaced = [], []
+    for page in structure['pages']:
+        number = page['page']
+        for kind in sorted({i['kind'] for i in page['issues']}):
+            issues[kind].append(number)
+        kinds.update(e['kind'] for e in page.get('narrative_elements', []))
+        for table in page['tables']:
+            methods[table['method']] += 1
+            cells = [c for row in table['rows'] for c in row['cells']]
+            mismatches = sum(c.get('source_text_matches') is False for c in cells)
+            pending = sum(c.get('placement') == 'unplaced' for c in cells)
+            ref = {'page': number, 'table_id': table['id']}
+            if mismatches:
+                bad_cells.append({**ref, 'cells': mismatches})
+            if pending:
+                unplaced.append({**ref, 'cells': pending})
+    return {'schema_version': 'document-structure-diagnostics-1',
+            'pages': len(structure['pages']), 'issue_pages': dict(sorted(issues.items())),
+            'table_candidates_by_method': dict(sorted(methods.items())),
+            'tables_with_cell_source_mismatches': bad_cells,
+            'tables_with_unplaced_numeric_cells': unplaced,
+            'narrative_elements_by_kind': dict(sorted(kinds.items())),
+            'semantic_verification': 'not_performed'}
 
 _MONTHS = {'mart': 3, 'march': 3, 'haziran': 6, 'june': 6,
            'eylul': 9, 'september': 9, 'aralik': 12, 'december': 12}

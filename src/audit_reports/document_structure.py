@@ -121,7 +121,11 @@ def _numeric_candidates(source, capture):
     for line in capture.lines:
         # Source occurrence IDs, not just a bag of values. A sideways or glued
         # fragment that cannot be grounded remains explicitly unresolved.
-        refs = [w for w in words if abs(w["bbox"][1] - line.y) <= 3.01
+        # The capture anchors a band at its earliest word, not its centre.
+        # A symmetric window borrows words from the preceding band when two
+        # baselines are about three points apart (superscripts/stacked headers).
+        # Evidence coordinates are rounded to four decimals.
+        refs = [w for w in words if -.0001 <= w["bbox"][1] - line.y <= 3.0001
                 and line.x0 - .1 <= w["bbox"][0] <= line.x1 + .1]
         conserved = text_characters(line.text) == text_characters("".join(w["text"] for w in refs))
         lines.append({**asdict(line), "word_ids": [w["id"] for w in refs],
@@ -226,6 +230,16 @@ def _positioned_candidates(page, source, captured):
 
 
 def _ruled_candidates(page, source):
+    if page.rotation:
+        # find_tables normalizes rotated pages internally, but supplied drawing
+        # paths are still in the original coordinate system. Applying another
+        # rotation to its output then misplaces cells a second time. Normalize
+        # an isolated page copy first so paths, text and output all use the
+        # source evidence's displayed coordinates. Never modify the source PDF.
+        with fitz.open() as displayed:
+            displayed.insert_pdf(page.parent, from_page=page.number, to_page=page.number)
+            displayed[0].remove_rotation()
+            return _ruled_candidates(displayed[0], source)
     tables = []
     # Horizontal underlines alone cannot define a ruled grid. Avoid the costly
     # table search on ordinary narrative/BRSA pages that have no vertical rules.

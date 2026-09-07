@@ -106,6 +106,16 @@ def _complete_table_matches(case, page, source):
                     good = False
                 actual_words.update(refs)
         if good and actual_words == expected_words:
+            if 'source_line_rows' in case:
+                from .document_table_rows import table_source_rows
+                projected = table_source_rows(page, source)
+                if page.get('table_source_rows') != projected:
+                    continue
+                line_rows = [[_text(c['text']) for c in line['cells']]
+                             for item in projected['tables'] if item['table_id'] == table['id']
+                             for split in item['split_rows'] for line in split['lines']]
+                if line_rows != [[_text(c) for c in row] for row in case['source_line_rows']]:
+                    continue
             matches.append(table['id'])
     return matches
 

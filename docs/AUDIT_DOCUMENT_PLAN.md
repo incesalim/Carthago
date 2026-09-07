@@ -857,3 +857,17 @@ of detected tables.
   commit `f99e4ce`). Scope is all registered filings, both filing bases, no new
   acquisition and no D1 writes. Completion and independent reconciliation are
   pending; source and semantic completeness are not inferred from dispatch.
+
+- 2026-09-07: changed execution priority to shared, measured content defects.
+  The retained registered quality review names line/source mismatches in 347
+  reports and table-cell/source mismatches in 213 reports; these are baseline
+  counts, not current post-repair results. Reproduced a coordinate-system defect
+  in rotated ruled-table detection and a symmetric baseline window that includes
+  preceding-line words. Fixed both. Original Garanti page 19 now passes a complete
+  OCI table case: unit, period headers, merged slots and every one of 16 source
+  rows with both value columns. The old artifact fails that same case. Regression
+  tests exercise 0/90/180/270-degree PDF encodings and closely spaced baselines.
+  Cancelled old-engine fleet refresh 34092888903; partial outputs remain retained.
+  New capture reports/indexes carry named per-page structural diagnostics for
+  corpus-wide repair ranking. Corrected cloud publication and fleet reconciliation
+  remain pending; no complete-report approval is inferred from this table check.

@@ -6,7 +6,7 @@
     "kind": "consolidated"
   },
   "pdf_sha256": "e8dd9818e92c4613c321714f1a5d21817d40535be0c240055c935e759491c723",
-  "annotation_method": "Original PDF page 4, rendered with Poppler and visually read 2026-09-06. Two columns: pension audit matter and the auditor's response. The logo is above the table, not part of its grid. Bounds are displayed PDF points. Selected cases only. Navigation selection: original PDF contents pages 10–11 and body headings/footers on pages 12, 15, 23, 55, 121, 181 and 184, visually read 2026-09-07. All seven section starts, counts by section and nine selected contents titles; not all contents titles or report text certified.",
+  "annotation_method": "Original PDF page 4, rendered with Poppler and visually read 2026-09-06. Two columns: pension audit matter and the auditor's response. The logo is above the table, not part of its grid. Bounds are displayed PDF points. Selected cases only. Navigation selection: original PDF contents pages 10–11 and body headings/footers on pages 12, 15, 23, 55, 121, 181 and 184, visually read 2026-09-07. All seven section starts, counts by section and nine selected contents titles; not all contents titles or report text certified. Original PDF page 19 visually read 2026-09-07: complete OCI table, both period headers, unit, merged cells and all 16 label/current/prior rows. Expected wording and figures transcribed from the displayed original.",
   "cases": [
     {
       "id": "pension_audit_matter_headers_unclipped_by_logo",
@@ -248,6 +248,131 @@
           "number": 7,
           "text": "7"
         }
+      ]
+    },
+    {
+      "id": "landscape_oci_complete_printed_table",
+      "kind": "complete_physical_table",
+      "page": 19,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        48,
+        120,
+        657,
+        355
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "rows": [
+        [
+          "STATEMENT OF PROFIT OR LOSS AND OTHER COMPREHENSIVE INCOME",
+          "THOUSANDS OF TURKISH LIRA (TL)",
+          null
+        ],
+        [
+          null,
+          "CURRENT PERIOD\n1 January 2022 -\n31 December 2022",
+          "PRIOR PERIOD\n1 January 2021 -\n31 December 2021"
+        ],
+        [
+          "I. CURRENT PERIOD PROFIT/LOSS\nII. OTHER COMPREHENSIVE INCOME\n2.1 Other Income/Expense Items not to be Recycled to Profit or Loss\n2.1.1 Revaluation Surplus on Tangible Assets\n2.1.2 Revaluation Surplus on Intangible Assets\n2.1.3 Defined Benefit Plans' Actuarial Gains/Losses\n2.1.4 Other Income/Expense Items not to be Recycled to Profit or Loss\n2.1.5 Deferred Taxes on Other Comprehensive Income not to be Recycled to Profit or Loss\n2.2 Other Income/Expense Items to be Recycled to Profit or Loss\n2.2.1 Translation Differences\n2.2.2 Income/Expenses from Valuation and/or Reclassification of Financial Assets Measured at FVOCI\n2.2.3 Gains/losses from Cash Flow Hedges\n2.2.4 Gains/Losses on Hedges of Net Investments in Foreign Operations\n2.2.5 Other Income/Expense Items to be Recycled to Profit or Loss\n2.2.6 Deferred Taxes on Other Comprehensive Income to be Recycled to Profit or Loss\nIII. TOTAL COMPREHENSIVE INCOME (I+II)",
+          "58,510,306\n15,521,002\n2,795,413\n4,180,166\n-\n(1,231,593)\n217,330\n(370,490)\n12,725,589\n5,096,504\n11,217,796\n1,310,591\n(2,464,715)\n(5,084)\n(2,429,503)\n74,031,308",
+          "13,587,564\n4,362,468\n152,748\n77,152\n-\n(147,386)\n194,287\n28,695\n4,209,720\n5,472,165\n457,950\n748,374\n(2,733,139)\n-\n264,370\n17,950,032"
+        ]
+      ],
+      "source_line_rows": [
+        [
+          "I. CURRENT PERIOD PROFIT/LOSS",
+          "58,510,306",
+          "13,587,564"
+        ],
+        [
+          "II. OTHER COMPREHENSIVE INCOME",
+          "15,521,002",
+          "4,362,468"
+        ],
+        [
+          "2.1 Other Income/Expense Items not to be Recycled to Profit or Loss",
+          "2,795,413",
+          "152,748"
+        ],
+        [
+          "2.1.1 Revaluation Surplus on Tangible Assets",
+          "4,180,166",
+          "77,152"
+        ],
+        [
+          "2.1.2 Revaluation Surplus on Intangible Assets",
+          "-",
+          "-"
+        ],
+        [
+          "2.1.3 Defined Benefit Plans' Actuarial Gains/Losses",
+          "(1,231,593)",
+          "(147,386)"
+        ],
+        [
+          "2.1.4 Other Income/Expense Items not to be Recycled to Profit or Loss",
+          "217,330",
+          "194,287"
+        ],
+        [
+          "2.1.5 Deferred Taxes on Other Comprehensive Income not to be Recycled to Profit or Loss",
+          "(370,490)",
+          "28,695"
+        ],
+        [
+          "2.2 Other Income/Expense Items to be Recycled to Profit or Loss",
+          "12,725,589",
+          "4,209,720"
+        ],
+        [
+          "2.2.1 Translation Differences",
+          "5,096,504",
+          "5,472,165"
+        ],
+        [
+          "2.2.2 Income/Expenses from Valuation and/or Reclassification of Financial Assets Measured at FVOCI",
+          "11,217,796",
+          "457,950"
+        ],
+        [
+          "2.2.3 Gains/losses from Cash Flow Hedges",
+          "1,310,591",
+          "748,374"
+        ],
+        [
+          "2.2.4 Gains/Losses on Hedges of Net Investments in Foreign Operations",
+          "(2,464,715)",
+          "(2,733,139)"
+        ],
+        [
+          "2.2.5 Other Income/Expense Items to be Recycled to Profit or Loss",
+          "(5,084)",
+          "-"
+        ],
+        [
+          "2.2.6 Deferred Taxes on Other Comprehensive Income to be Recycled to Profit or Loss",
+          "(2,429,503)",
+          "264,370"
+        ],
+        [
+          "III. TOTAL COMPREHENSIVE INCOME (I+II)",
+          "74,031,308",
+          "17,950,032"
+        ]
       ]
     }
   ]

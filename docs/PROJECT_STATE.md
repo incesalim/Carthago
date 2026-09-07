@@ -16,6 +16,18 @@ coverage or known issues change.
 
 ## Complete audit document corpus (2026-09-07; content verification in progress)
 
+The next structural repair fixes two shared extraction defects: rotated pages
+now use a separate displayed-coordinate page copy for ruled tables, and numeric
+source-line links cannot borrow words from the preceding baseline. Garanti
+2022Q4 consolidated page 19 previously put OCI labels and figures in unrelated
+cells. The corrected bounded source check matches its complete printed table,
+both period headers, unit, merged slots, and all 16 label/current/prior rows.
+Source bytes remain unchanged. Tests cover all four page rotations and close
+baselines. New capture reports and filing indexes retain per-page issue lists,
+mismatching table cells, unplaced numeric cells and candidate-method counts so
+fleet repairs can be ranked without another extraction. These are diagnostics,
+not semantic approval. Cloud publication of this repair is pending.
+
 The first scope is the existing 38 banks and 2022Q1–2026Q2. All **1,146
 registered filings** are acquired and have published native source/structure
 artifacts. The reconciled baseline contains **119,772 pages, 308,126,554 native characters, 2,241,656 physical text
@@ -464,11 +476,10 @@ do not change. The expanded cohort now covers all 45 registered source cases
 across seven reports/692 pages. AKBNK and TOMK 2024Q1 navigation remain unresolved;
 the cases do not approve those section maps or whole-report content. The next
 registered-corpus refresh retains candidate/unverified states and prior history.
-Run `34092888903` is now processing the registered corpus in four Actions groups,
-with new acquisition disabled and no D1 writes. Its observed head is `fe7b669`,
-the exact broader-probe revision; the subsequent `f99e4ce` changes documentation
-only. Completion, per-filing failures and independent fleet reconciliation remain
-pending. Baseline corpus counts above are not a claim that this refresh finished.
+Run `34092888903` was cancelled after a shared landscape-table geometry defect
+was reproduced against the original Garanti PDF. Its partial saved revisions
+remain available; it is not a completed fleet refresh. The corrected replacement
+run must be reconciled before reporting current fleet results.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

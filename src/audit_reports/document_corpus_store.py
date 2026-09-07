@@ -202,11 +202,13 @@ class CorpusStore:
         key = f"{PREFIX}sources/{source['pdf_sha256']}/{digest}.structure.jsonl.gz"
         payload = gzip.compress(structure_jsonl(structure), compresslevel=6, mtime=0)
         self._immutable(key, payload, "application/gzip")
+        from .document_quality import structure_diagnostics
         summary = {"artifact_sha256": digest, "key": key, "bytes_sha256": _sha(payload),
                    "engine": structure["engine"], "status": "structured_candidates",
                    "table_candidates": sum(len(p["tables"]) for p in structure["pages"]),
                    "text_blocks": sum(len(p["text_blocks"]) for p in structure["pages"]),
                    "pages_with_issues": sum(bool(p["issues"]) for p in structure["pages"]),
+                   "diagnostics": structure_diagnostics(structure),
                    "semantic_verification": "not_performed"}
 
         def update(index):
