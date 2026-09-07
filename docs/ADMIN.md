@@ -37,6 +37,15 @@ are flagged. The stored-order view remains available; missing, duplicate or
 unknown layout references automatically fall back to every original text element.
 Heading context and paragraph boundaries still require source review.
 
+**Report sections and printed contents** shows source body-banner links alongside
+the complete printed contents entries. A printed folio is linked only when a
+unique footer occurrence is found; missing or repeated folios remain unresolved
+or ambiguous. Wrapped titles and declared page ranges stay literal. Matching
+body titles and repeated section-index titles are identified separately. When
+contents references disagree with body locations, both remain visible with
+links to their source pages. These are navigation candidates, not approval of
+the report's meaning. Earlier captures without this view remain readable.
+
 Content review notes retain open questions about figures printed in the report.
 Each passage links to the original page; PDF/native revision, exact page bytes,
 span occurrences, wording and bounding boxes are checked before display.

@@ -387,7 +387,28 @@ regressions now also bind their thousand-TL units and the investment-fund asteri
 qualification. Removing a table, swapping repeated source occurrences, inventing
 zeroes or changing units fails the relevant source case. TOMK now has 23 source
 cases; the four new cases do not alter extraction or certify the whole report.
-Cloud verification of the expanded benchmark remains pending.
+Cloud probe `34081259589` independently verifies all 23 cases and byte-identical
+original, native and structured artifacts. Publication/replay `34081464245`
+updates only the review receipt; all nine checked object versions are unchanged
+on replay. CI/deploy at `43ca082` pass.
+
+Navigation now uses source body banners and observed footer words in the separate
+corpus. TOMK's seven section ranges are 6–8, 9–16, 17–25, 26–37, 38–45, 46 and
+47–51; the old contents-offset reading misplaced four boundaries. All 57 full
+contents titles and declared folio ranges are retained, including six wrapped
+entries and the literal printed `EBanka`. The unnumbered statement divider no
+longer shifts early folios or masquerades as six statement starts. Missing or
+repeated footers remain unresolved or ambiguous, without interpolation.
+Five contents entries disagree with observed body locations: general-information
+item II, off-balance-sheet notes, both audit-explanation items and the activity
+report. Both observations remain source-linked; no PDF wording is corrected.
+The admin exposes section links, complete contents text, printed references and
+competing locations. A 24th source case checks all seven boundaries, 57 entries,
+45 footer observations and five disagreements. Mutation checks reject truncation,
+wrong links, erased conflicts and incorrect paragraph section context. The local
+projection preserves every prior table and literal prose field; cloud rebuild,
+publication and authenticated UI review remain pending. Broader navigation
+coverage and whole-report semantic verification are still unfinished.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

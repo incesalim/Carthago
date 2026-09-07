@@ -1208,6 +1208,703 @@
           "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
         }
       ]
+    },
+    {
+      "id": "tomk-whole-report-navigation",
+      "kind": "document_navigation",
+      "page": 5,
+      "review_basis": "Original contents image p5, body banners p6/9/17/26/38/46/47, literal footer observations; five source contents disagreements remain open.",
+      "sections": [
+        {
+          "number": 1,
+          "page_start": 6,
+          "page_end": 8,
+          "title": "BANKA HAKKINDA GENEL BİLGİLER"
+        },
+        {
+          "number": 2,
+          "page_start": 9,
+          "page_end": 16,
+          "title": "KONSOLİDE OLMAYAN FİNANSAL TABLOLAR"
+        },
+        {
+          "number": 3,
+          "page_start": 17,
+          "page_end": 25,
+          "title": "MUHASEBE POLİTİKALARINA İLİŞKİN AÇIKLAMALAR"
+        },
+        {
+          "number": 4,
+          "page_start": 26,
+          "page_end": 37,
+          "title": "MALİ BÜNYEYE VE RİSK YÖNETİMİNE İLİŞKİN BİLGİLER"
+        },
+        {
+          "number": 5,
+          "page_start": 38,
+          "page_end": 45,
+          "title": "KONSOLİDE OLMAYAN FİNANSAL TABLOLARA İLİŞKİN AÇIKLAMA VE DİPNOTLAR"
+        },
+        {
+          "number": 6,
+          "page_start": 46,
+          "page_end": 46,
+          "title": "SINIRLI DENETİM RAPORUNA İLİŞKİN AÇIKLAMALAR"
+        },
+        {
+          "number": 7,
+          "page_start": 47,
+          "page_end": 51,
+          "title": "ARA DÖNEM FAALİYET RAPORUNA İLİŞKİN AÇIKLAMALAR"
+        }
+      ],
+      "contents": [
+        {
+          "section": 1,
+          "number": 1,
+          "title": "EBanka’nın kuruluş tarihi, başlangıç statüsü, anılan statüde meydana gelen değişiklikleri ihtiva eden tarihçesi",
+          "declared_folio": "1",
+          "page_start": 6,
+          "page_end": 6
+        },
+        {
+          "section": 1,
+          "number": 2,
+          "title": "Banka’nın sermaye yapısı, yönetim ve denetimini doğrudan veya dolaylı olarak tek başına veya birlikte elinde bulunduran ortakları, varsa bu hususlarda yıl içindeki değişiklikler ile dahil olduğu gruba ilişkin açıklama",
+          "declared_folio": "2",
+          "page_start": 7,
+          "page_end": 7
+        },
+        {
+          "section": 1,
+          "number": 3,
+          "title": "Banka’nın Yönetim Kurulu Başkan ve üyeleri, Denetim Komitesi üyeleri ile Genel Müdür ve Yardımcılarının varsa Banka’da sahip oldukları paylara ve sorumluluk alanlarına ilişkin açıklama",
+          "declared_folio": "2",
+          "page_start": 7,
+          "page_end": 7
+        },
+        {
+          "section": 1,
+          "number": 4,
+          "title": "Banka’da nitelikli pay sahibi olan kişi ve kuruluşlara ilişkin açıklamalar",
+          "declared_folio": "2",
+          "page_start": 7,
+          "page_end": 7
+        },
+        {
+          "section": 1,
+          "number": 5,
+          "title": "Banka’nın hizmet türü ve faaliyet alanlarına ilişkin özet bilgi",
+          "declared_folio": "2",
+          "page_start": 7,
+          "page_end": 7
+        },
+        {
+          "section": 1,
+          "number": 6,
+          "title": "Bankaların konsolide finansal tablolarının düzenlenmesine ilişkin tebliğ ile Türkiye Muhasebe Standartları gereği yapılan konsolidasyon işlemleri arasındaki farklılıklar ile tam konsolidasyona veya oransal konsolidasyona tabi tutulan, özkaynaklardan indirilen ya da bu üç yönteme dahil olmayan kuruluşlar hakkında kısa açıklama",
+          "declared_folio": "3",
+          "page_start": 8,
+          "page_end": 8
+        },
+        {
+          "section": 1,
+          "number": 7,
+          "title": "Banka ile bağlı ortaklıkları arasında özkaynakların derhal transfer edilmesinin veya borçların geri ödenmesinin önünde mevcut veya muhtemel, fiili veya hukuki engeller",
+          "declared_folio": "3",
+          "page_start": 8,
+          "page_end": 8
+        },
+        {
+          "section": 2,
+          "number": 1,
+          "title": "Bilanço (Finansal Durum Tablosu)",
+          "declared_folio": "4-5",
+          "page_start": 10,
+          "page_end": 11
+        },
+        {
+          "section": 2,
+          "number": 2,
+          "title": "Nazım hesaplar tablosu",
+          "declared_folio": "6",
+          "page_start": 12,
+          "page_end": 12
+        },
+        {
+          "section": 2,
+          "number": 3,
+          "title": "Kar veya zarar tablosu",
+          "declared_folio": "7",
+          "page_start": 13,
+          "page_end": 13
+        },
+        {
+          "section": 2,
+          "number": 4,
+          "title": "Kar veya zarar ve diğer kapsamlı gelir tablosu",
+          "declared_folio": "8",
+          "page_start": 14,
+          "page_end": 14
+        },
+        {
+          "section": 2,
+          "number": 5,
+          "title": "Özkaynaklar değişim tablosu",
+          "declared_folio": "9",
+          "page_start": 15,
+          "page_end": 15
+        },
+        {
+          "section": 2,
+          "number": 6,
+          "title": "Nakit akış tablosu",
+          "declared_folio": "10",
+          "page_start": 16,
+          "page_end": 16
+        },
+        {
+          "section": 3,
+          "number": 1,
+          "title": "Sunum esaslarına ilişkin açıklamalar",
+          "declared_folio": "11",
+          "page_start": 17,
+          "page_end": 17
+        },
+        {
+          "section": 3,
+          "number": 2,
+          "title": "Finansal araçların kullanım stratejisi ve yabancı para cinsinden işlemlere ilişkin açıklamalar",
+          "declared_folio": "12",
+          "page_start": 18,
+          "page_end": 18
+        },
+        {
+          "section": 3,
+          "number": 3,
+          "title": "İştirakler, bağlı ortaklıklar ve birlikte kontrol edilen ortaklıklara ilişkin açıklamalar",
+          "declared_folio": "12",
+          "page_start": 18,
+          "page_end": 18
+        },
+        {
+          "section": 3,
+          "number": 4,
+          "title": "Vadeli işlem ve opsiyon sözleşmeleri ile türev ürünlere ilişkin açıklamalar",
+          "declared_folio": "12",
+          "page_start": 18,
+          "page_end": 18
+        },
+        {
+          "section": 3,
+          "number": 5,
+          "title": "Kâr payı gelir ve giderine ilişkin açıklamalar",
+          "declared_folio": "12",
+          "page_start": 18,
+          "page_end": 18
+        },
+        {
+          "section": 3,
+          "number": 6,
+          "title": "Ücret ve komisyon gelir ve giderlerine ilişkin açıklamalar",
+          "declared_folio": "12",
+          "page_start": 18,
+          "page_end": 18
+        },
+        {
+          "section": 3,
+          "number": 7,
+          "title": "Finansal varlıklara ilişkin açıklamalar",
+          "declared_folio": "12-13",
+          "page_start": 18,
+          "page_end": 19
+        },
+        {
+          "section": 3,
+          "number": 8,
+          "title": "Finansal varlıklarda değer düşüklüğüne ilişkin açıklamalar",
+          "declared_folio": "13",
+          "page_start": 19,
+          "page_end": 19
+        },
+        {
+          "section": 3,
+          "number": 9,
+          "title": "Finansal araçların netleştirilmesine ilişkin açıklamalar",
+          "declared_folio": "13",
+          "page_start": 19,
+          "page_end": 19
+        },
+        {
+          "section": 3,
+          "number": 10,
+          "title": "Satış ve geri alış anlaşmaları ve menkul değerlerin ödünç verilmesi işlemlerine ilişkin açıklamalar",
+          "declared_folio": "14",
+          "page_start": 20,
+          "page_end": 20
+        },
+        {
+          "section": 3,
+          "number": 11,
+          "title": "Satış amaçlı elde tutulan ve durdurulan faaliyetlere ilişkin duran varlıklar ile bu varlıklara ilişkin borçlar hakkında açıklamalar",
+          "declared_folio": "14",
+          "page_start": 20,
+          "page_end": 20
+        },
+        {
+          "section": 3,
+          "number": 12,
+          "title": "Şerefiye ve diğer maddi olmayan duran varlıklara ilişkin açıklamalar",
+          "declared_folio": "14",
+          "page_start": 20,
+          "page_end": 20
+        },
+        {
+          "section": 3,
+          "number": 13,
+          "title": "Maddi duran varlıklara ilişkin açıklamalar",
+          "declared_folio": "14",
+          "page_start": 20,
+          "page_end": 20
+        },
+        {
+          "section": 3,
+          "number": 14,
+          "title": "Kiralama işlemlerine ilişkin açıklamalar",
+          "declared_folio": "15",
+          "page_start": 21,
+          "page_end": 21
+        },
+        {
+          "section": 3,
+          "number": 15,
+          "title": "Karşılıklar , koşullu varlık ve yükümlülüklere ilişkin açıklamalar",
+          "declared_folio": "16",
+          "page_start": 22,
+          "page_end": 22
+        },
+        {
+          "section": 3,
+          "number": 16,
+          "title": "Çalışanların haklarına ilişkin yükümlülüklere ilişkin açıklamalar",
+          "declared_folio": "16",
+          "page_start": 22,
+          "page_end": 22
+        },
+        {
+          "section": 3,
+          "number": 17,
+          "title": "Vergi uygulamalarına ilişkin açıklamalar",
+          "declared_folio": "17-18",
+          "page_start": 23,
+          "page_end": 24
+        },
+        {
+          "section": 3,
+          "number": 18,
+          "title": "Borçlanmalara ilişkin ilave açıklamalar",
+          "declared_folio": "18",
+          "page_start": 24,
+          "page_end": 24
+        },
+        {
+          "section": 3,
+          "number": 19,
+          "title": "İhraç edilen hisse senetlerine ilişkin açıklamalar",
+          "declared_folio": "18",
+          "page_start": 24,
+          "page_end": 24
+        },
+        {
+          "section": 3,
+          "number": 20,
+          "title": "Aval ve kabullere ilişkin açıklamalar",
+          "declared_folio": "18",
+          "page_start": 24,
+          "page_end": 24
+        },
+        {
+          "section": 3,
+          "number": 21,
+          "title": "Devlet teşviklerine ilişkin açıklamalar",
+          "declared_folio": "18",
+          "page_start": 24,
+          "page_end": 24
+        },
+        {
+          "section": 3,
+          "number": 22,
+          "title": "İlişkili taraflar",
+          "declared_folio": "19",
+          "page_start": 25,
+          "page_end": 25
+        },
+        {
+          "section": 3,
+          "number": 23,
+          "title": "Nakit ve nakde eşdeğer varlıklar",
+          "declared_folio": "19",
+          "page_start": 25,
+          "page_end": 25
+        },
+        {
+          "section": 3,
+          "number": 24,
+          "title": "Raporlamanın bölümlemeye göre yapılmasına ilişkin açıklamalar",
+          "declared_folio": "19",
+          "page_start": 25,
+          "page_end": 25
+        },
+        {
+          "section": 3,
+          "number": 25,
+          "title": "Diğer hususlara ilişkin açıklamalar",
+          "declared_folio": "19",
+          "page_start": 25,
+          "page_end": 25
+        },
+        {
+          "section": 4,
+          "number": 1,
+          "title": "Özkaynaklara ilişkin açıklamalar",
+          "declared_folio": "20-23",
+          "page_start": 26,
+          "page_end": 29
+        },
+        {
+          "section": 4,
+          "number": 2,
+          "title": "Kur riskine ilişkin açıklamalar",
+          "declared_folio": "24-25",
+          "page_start": 30,
+          "page_end": 31
+        },
+        {
+          "section": 4,
+          "number": 3,
+          "title": "Bankacılık hesaplarından kaynaklanan hisse senedi pozisyon riski",
+          "declared_folio": "26",
+          "page_start": 32,
+          "page_end": 32
+        },
+        {
+          "section": 4,
+          "number": 4,
+          "title": "Likidite riski yönetimi ve likidite karşılama oranına ilişkin açıklamalar",
+          "declared_folio": "26-29",
+          "page_start": 32,
+          "page_end": 35
+        },
+        {
+          "section": 4,
+          "number": 5,
+          "title": "Kaldıraç oranına ilişkin açıklamalar",
+          "declared_folio": "30",
+          "page_start": 36,
+          "page_end": 36
+        },
+        {
+          "section": 4,
+          "number": 6,
+          "title": "Menkul kıymetleştirme pozisyonuna ilişkin açıklamalar",
+          "declared_folio": "30",
+          "page_start": 36,
+          "page_end": 36
+        },
+        {
+          "section": 4,
+          "number": 7,
+          "title": "Risk yönetimine ilişkin açıklamalar",
+          "declared_folio": "30-31",
+          "page_start": 36,
+          "page_end": 37
+        },
+        {
+          "section": 4,
+          "number": 8,
+          "title": "Riskten korunma işlemlerine ilişkin açıklamalar",
+          "declared_folio": "31",
+          "page_start": 37,
+          "page_end": 37
+        },
+        {
+          "section": 5,
+          "number": 1,
+          "title": "Bilançonun aktif hesaplarına ilişkin açıklama ve dipnotlar",
+          "declared_folio": "32",
+          "page_start": 38,
+          "page_end": 38
+        },
+        {
+          "section": 5,
+          "number": 2,
+          "title": "Bilançonun pasif hesaplarına ilişkin açıklama ve dipnotlar",
+          "declared_folio": "33-34",
+          "page_start": 39,
+          "page_end": 40
+        },
+        {
+          "section": 5,
+          "number": 3,
+          "title": "Nazım hesaplara ilişkin açıklama ve dipnotlar",
+          "declared_folio": "34",
+          "page_start": 40,
+          "page_end": 40
+        },
+        {
+          "section": 5,
+          "number": 4,
+          "title": "Kar veya zarar tablosuna ilişkin açıklama ve dipnotlar",
+          "declared_folio": "35-37",
+          "page_start": 41,
+          "page_end": 43
+        },
+        {
+          "section": 5,
+          "number": 5,
+          "title": "Özkaynak değişim tablosuna ilişkin açıklama ve dipnotlar",
+          "declared_folio": "37",
+          "page_start": 43,
+          "page_end": 43
+        },
+        {
+          "section": 5,
+          "number": 6,
+          "title": "Nakit akış tablosuna ilişkin açıklama ve dipnotlar",
+          "declared_folio": "37",
+          "page_start": 43,
+          "page_end": 43
+        },
+        {
+          "section": 5,
+          "number": 7,
+          "title": "Banka’nın dahil olduğu risk grubuna ilişkin açıklamalar",
+          "declared_folio": "38",
+          "page_start": 44,
+          "page_end": 44
+        },
+        {
+          "section": 5,
+          "number": 8,
+          "title": "Bilanço sonrası hususlara ilişkin açıklama ve dipnotlar",
+          "declared_folio": "38",
+          "page_start": 44,
+          "page_end": 44
+        },
+        {
+          "section": 6,
+          "number": 1,
+          "title": "Sınırlı denetim raporuna ilişkin olarak açıklanması gereken hususlar",
+          "declared_folio": "39",
+          "page_start": 45,
+          "page_end": 45
+        },
+        {
+          "section": 6,
+          "number": 2,
+          "title": "Bağımsız denetçi tarafından hazırlanan açıklama ve dipnotlar",
+          "declared_folio": "39",
+          "page_start": 45,
+          "page_end": 45
+        },
+        {
+          "section": 7,
+          "number": 1,
+          "title": "Banka Yönetim Kurulu Başkanı ve Genel Müdürü’nün ara dönem faaliyetlerine ilişkin değerlendirmelerini içeren ara dönem faaliyet raporu",
+          "declared_folio": "40-44",
+          "page_start": 46,
+          "page_end": 50
+        }
+      ],
+      "folio_pairs": [
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          13,
+          7
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          16,
+          10
+        ],
+        [
+          17,
+          11
+        ],
+        [
+          18,
+          12
+        ],
+        [
+          19,
+          13
+        ],
+        [
+          20,
+          14
+        ],
+        [
+          21,
+          15
+        ],
+        [
+          22,
+          16
+        ],
+        [
+          23,
+          17
+        ],
+        [
+          24,
+          18
+        ],
+        [
+          25,
+          19
+        ],
+        [
+          26,
+          20
+        ],
+        [
+          27,
+          21
+        ],
+        [
+          28,
+          22
+        ],
+        [
+          29,
+          23
+        ],
+        [
+          30,
+          24
+        ],
+        [
+          31,
+          25
+        ],
+        [
+          32,
+          26
+        ],
+        [
+          33,
+          27
+        ],
+        [
+          34,
+          28
+        ],
+        [
+          35,
+          29
+        ],
+        [
+          36,
+          30
+        ],
+        [
+          37,
+          31
+        ],
+        [
+          38,
+          32
+        ],
+        [
+          39,
+          33
+        ],
+        [
+          40,
+          34
+        ],
+        [
+          41,
+          35
+        ],
+        [
+          42,
+          36
+        ],
+        [
+          43,
+          37
+        ],
+        [
+          44,
+          38
+        ],
+        [
+          45,
+          39
+        ],
+        [
+          46,
+          40
+        ],
+        [
+          47,
+          41
+        ],
+        [
+          48,
+          42
+        ],
+        [
+          49,
+          43
+        ],
+        [
+          50,
+          44
+        ],
+        [
+          51,
+          45
+        ]
+      ],
+      "conflicting_entry_ids": [
+        "p5:contents1",
+        "p5:contents48",
+        "p5:contents54",
+        "p5:contents55",
+        "p5:contents56"
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

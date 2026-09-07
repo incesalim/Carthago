@@ -788,3 +788,18 @@ of detected tables.
   change is needed. Added four full-table cases and omission, repeated-occurrence,
   invented-zero and unit mutations. The benchmark now has 23 cases; cloud
   verification of those additional cases remains pending.
+
+- 2026-09-07: asset-table probe `34081259589` independently verifies 23 source
+  cases with byte-identical original, native and complete structure. Publication
+  and replay `34081464245` change only the review receipt and preserve all nine
+  checked object versions on replay. CI/deploy at `43ca082` pass.
+- 2026-09-07: independently reviewed TOMK's contents, inserted statement divider,
+  body banners and footer numbering. The old section starts misplaced four
+  boundaries and clipped wrapped titles. Added a separate source-bound navigation
+  view with all seven correct section ranges, 57 complete contents entries and
+  45 footer observations. Five source contents disagreements remain visible;
+  repeated divider titles, ambiguous folios and missing banners are not guessed.
+  A 24th source case covers full navigation and mutation tests check omissions,
+  truncation, wrong occurrences, erased conflicts and paragraph section context.
+  All prior tables and literal prose fields remain unchanged in the local
+  projection. Cloud rebuild, publication and authenticated display remain pending.

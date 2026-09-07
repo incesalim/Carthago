@@ -1908,3 +1908,19 @@ header word IDs, marker/paragraph span IDs, literal text and source rectangles.
 Validation recomputes these references; independent `table_note_links` annotations
 check exact numbered occurrences and complete transcribed paragraphs. Original
 narrative and header cells remain unchanged, and meaning remains unverified.
+
+New structures carry `navigation_schema=document-navigation-1` and a source-bound
+`navigation` view. Native word occurrences retain body banners, complete contents
+entries and printed footer observations; each link retains literal text, page,
+word IDs and bounding boxes. Only a unique, complete, ordered body-section sequence
+defines section ranges. Declared contents folios map directly to observed footer
+occurrences, never inferred page offsets. Missing or competing matches remain
+unresolved. Exact folded title matches retain their source lines; pages dominated
+by three or more listed titles are marked as section-index candidates. Contents
+targets outside the body section or differing from a unique body-title candidate
+retain explicit disagreements. Validation recomputes the view and paragraph
+section assignments from native evidence. Independent `document_navigation`
+annotations check full contents titles, section boundaries, footer pairs and
+source conflicts. This affects only the separate complete-document corpus;
+legacy analytical sectioning and settled D1 partitions are unchanged. The initial
+whole-report regression is TOMK 2023Q3; broader navigation coverage remains open.

@@ -19,7 +19,6 @@ import fitz
 from .document_capture import capture_document, capture_page, _fold
 from .document_corpus import Filing, source_identity
 from .document_evidence import artifact_digest, compare_page_text, text_characters, verify_evidence_records
-from .document_sections import body_section_starts, document_contents
 from .document_rule_tables import grid_paths, underline_candidates
 from .document_narrative import narrative_candidates, verify_narrative
 from .document_positioned_text import positioned_text, verify_positioned_text
@@ -28,7 +27,7 @@ from .document_table_rows import table_source_rows, verify_table_source_rows
 from .document_reading_layout import reading_layout, verify_reading_layout
 from .document_segmented_tables import segmented_table_candidates, verify_segmented_tables
 from .document_table_notes import table_note_links, verify_table_note_links
-from .prose import role_from_title
+from .document_navigation import NAVIGATION_VERSION, document_navigation, verify_document_navigation
 
 STRUCTURE_VERSION = "document-structure-1"
 
@@ -46,6 +45,7 @@ def structure_engine() -> dict:
                  "document_reading_layout.py",
                  "document_segmented_tables.py",
                  "document_table_notes.py",
+                 "document_navigation.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -286,31 +286,6 @@ def _ruled_candidates(page, source):
     return tables
 
 
-def _sections(capture):
-    lines = [(p.page, line.line_order, line.text) for p in capture.pages for line in p.lines]
-    contents = document_contents(lines)
-    sections, items = {}, []
-    if contents:
-        for page, section, title, item, item_title in contents:
-            sections.setdefault(section, {"number": section, "title": title, "page_start": page,
-                                          "method": "contents_folio_alignment"})
-            items.append({"section": section, "number": item, "title": item_title,
-                          "page_start": page, "review_status": "unreviewed"})
-    else:
-        for section, (page, title) in (body_section_starts(lines) or {}).items():
-            sections[section] = {"number": section, "title": title, "page_start": page,
-                                 "method": "body_section_banner"}
-    ordered = sorted(sections.values(), key=lambda s: (s["page_start"], s["number"]))
-    for i, section in enumerate(ordered):
-        section["page_end"] = max(section["page_start"],
-                                  ordered[i + 1]["page_start"] - 1 if i + 1 < len(ordered)
-                                  else capture.page_count)
-        # A section number is not a semantic role. No annual/interim guess here.
-        section["role"] = role_from_title(section["title"])
-        section["review_status"] = "unreviewed"
-    return ordered, items
-
-
 def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
     check = verify_evidence_records(evidence)
     if not check["valid"]:
@@ -327,7 +302,8 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
     capture = capture_document(pdf_path)
     if capture.page_count != evidence[0]["page_count"]:
         raise ValueError("Capture page inventory differs from source evidence")
-    sections, items = _sections(capture)
+    navigation = document_navigation(evidence)
+    sections, items = navigation['sections'], navigation['contents_entries']
     pages = []
     with fitz.open(pdf_path) as pdf:
         for observed, captured in zip(evidence[1:], capture.pages, strict=True):
@@ -387,6 +363,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
     result = {"schema_version": STRUCTURE_VERSION, "engine": structure_engine(),
               "source": source, "evidence_artifact_sha256": artifact_digest(evidence),
               "sections": sections, "contents_items": items, "pages": pages,
+              "navigation_schema": NAVIGATION_VERSION, "navigation": navigation,
               "status": "structured_candidates", "semantic_verification": "not_performed"}
     # Dataclass tuples (markers, columns, note links) must have the same shape
     # before and after persistence. A cache hit returns exactly this JSON model.
@@ -400,6 +377,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
 def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
     """Test source accounting and geometry; this does not certify interpretation."""
     errors = []
+    errors.extend(verify_document_navigation(structure, evidence))
     errors.extend(verify_table_context(structure['pages']))
     if structure.get("source") != evidence[0]["source"]:
         errors.append("source_identity_mismatch")

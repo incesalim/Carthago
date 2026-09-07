@@ -254,6 +254,21 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
                 failures.append({**prefix, 'kind': 'table_continuation_source_mismatch',
                                  'matching_candidates': len(matching)})
             continue
+        if case.get('kind') == 'document_navigation':
+            from .document_navigation import verify_document_navigation
+            nav = structure.get('navigation', {})
+            observed = {
+                'sections': [{k: s.get(k) for k in ('number', 'title', 'page_start', 'page_end')}
+                             for s in nav.get('sections', [])],
+                'contents': [{k: e.get(k) for k in ('section', 'number', 'title', 'declared_folio', 'page_start', 'page_end')}
+                             for e in nav.get('contents_entries', [])],
+                'folio_pairs': [[f['source']['page'], f['folio']] for f in nav.get('folio_observations', [])],
+                'conflicting_entry_ids': sorted({i['entry_id'] for i in nav.get('issues', [])
+                                                if i['kind'].startswith('contents_target_')})}
+            if (verify_document_navigation(structure, evidence)
+                    or any(observed[k] != case[k] for k in observed)):
+                failures.append({**prefix, 'kind': 'navigation_source_mismatch'})
+            continue
         if case.get('kind') == 'complete_physical_table':
             matching = _complete_table_matches(case, pages[case['page']], sources[case['page']])
             if len(matching) != 1:

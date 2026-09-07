@@ -9,13 +9,14 @@ import DocumentOriginPanel from "./DocumentOriginPanel";
 import DocumentContentReviews from "./DocumentContentReviews";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
 import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes } from "./DocumentTablePreview";
+import DocumentNavigationPreview, { type Navigation } from "./DocumentNavigationPreview";
 
 const endpoint = "/api/admin/document-corpus";
 const id = (f: CorpusFiling) => `${f.bank_ticker}|${f.period}|${f.kind}`;
 const count = (v: number | null | undefined) => v == null ? "—" : nf(v, 0);
 const control = "border-b border-border bg-transparent px-1 py-1.5 text-xs text-foreground focus:outline-primary";
 
-type PagePreview = { manifest: { sections: { title: string; page_start: number; page_end: number }[] };
+type PagePreview = { manifest: { sections: { title: string; page_start: number; page_end: number }[]; navigation?: Navigation };
   page: { page: number; text_blocks: { id: string; text: string }[]; tables: Table[];
     table_source_rows?: { tables: SourceRows[] };
     table_notes?: { tables: TableNotes[] };
@@ -80,6 +81,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
       {current?.error && <p className="text-xs text-negative" role="alert">{current.error}</p>}
       {preview && <>
         <p className="mb-3 text-xs text-muted-foreground">{preview.manifest.sections.filter((s) => s.page_start <= page && page <= s.page_end).map((s) => s.title).join(" · ") || "Section not yet identified"}</p>
+        <DocumentNavigationPreview navigation={preview.manifest.navigation} onPage={setPage} />
         <p className="mb-3 text-xs text-warning">Semantic review pending. Alternative table detections may overlap. Reading order and header associations are unverified.</p>
         {preview.page.issues.length > 0 && <details className="mb-3 text-xs text-muted-foreground">
           <summary className="cursor-pointer">{preview.page.issues.length} review flags on this page</summary>
