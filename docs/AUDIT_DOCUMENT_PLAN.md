@@ -636,3 +636,10 @@ of detected tables.
   Publication binds literal bank name, period, basis, URL, listing response and
   downloaded bytes, retaining prior observations. Python checks, 771 web tests,
   lint and type checks pass. Cloud verification remains pending.
+
+- 2026-09-07: read-only BDDK probe `34071549110` has the expected three exact
+  matches and ATBANK revision difference. All original/transport/listing bytes,
+  exact Git implementation hashes and leading-page identity observations pass
+  independent comparison with the four source probes. The lean CI environment
+  exposed an unnecessary HTML-library import; the built-in parser replacement
+  matches all 1,142 registered listing rows and requires no CI dependency change.

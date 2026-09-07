@@ -4,12 +4,11 @@ from __future__ import annotations
 import hashlib
 import json
 from functools import lru_cache
+from html.parser import HTMLParser
 from pathlib import Path
 import re
 import unicodedata
 from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
-
-from bs4 import BeautifulSoup
 
 from .document_corpus import Filing
 
@@ -35,23 +34,71 @@ def _literal(value: str) -> str:
     return ' '.join(unicodedata.normalize('NFC', value).split())
 
 
+class _ReportRows(HTMLParser):
+    """Read only explicit table cells in the regulator's report-results panel."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.depth = 0
+        self.found = False
+        self.ordinal = 0
+        self.rows = []
+        self.row = None
+        self.cell = None
+        self.links = []
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == 'div':
+            if self.depth:
+                self.depth += 1
+            elif attributes.get('id') == 'divTab_raporlar':
+                if self.found:
+                    raise ValueError('Duplicate official results panel')
+                self.depth, self.found = 1, True
+        if not self.depth:
+            return
+        if tag == 'tr':
+            if self.row is not None:
+                raise ValueError('Nested or unclosed official listing row')
+            self.row = []
+        elif tag == 'td' and self.row is not None:
+            if self.cell is not None:
+                raise ValueError('Unclosed official listing cell')
+            self.cell, self.links = [], []
+        elif tag == 'a' and self.cell is not None and attributes.get('href') is not None:
+            self.links.append(attributes['href'])
+
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag):
+        if not self.depth:
+            return
+        if tag == 'td' and self.cell is not None:
+            self.row.append((_literal(' '.join(t.strip() for t in self.cell if t.strip())), tuple(self.links)))
+            self.cell = None
+        elif tag == 'tr' and self.row is not None:
+            if self.cell is not None:
+                raise ValueError('Unclosed official listing cell')
+            if self.row:
+                self.rows.append((self.ordinal, tuple(c[0] for c in self.row), self.row[-1][1]))
+            self.row = None
+            self.ordinal += 1
+        elif tag == 'div':
+            self.depth -= 1
+
+
 @lru_cache(maxsize=1)
 def _listed_rows(body: bytes) -> tuple:
     if len(body) > 20_000_000:
         raise ValueError('Oversized official listing')
-    soup = BeautifulSoup(body.decode('utf-8-sig'), 'html.parser')
-    table = soup.select_one('#divTab_raporlar')
-    if table is None:
+    parser = _ReportRows()
+    parser.feed(body.decode('utf-8-sig'))
+    parser.close()
+    if not parser.found or parser.depth or parser.row is not None or parser.cell is not None:
         raise ValueError('Official report listing is absent')
-    rows = []
-    for ordinal, row in enumerate(table.select('tr')):
-        cells = row.find_all('td', recursive=False)
-        if not cells:
-            continue
-        texts = tuple(_literal(c.get_text(' ', strip=True)) for c in cells)
-        links = tuple(a['href'] for a in cells[-1].find_all('a', href=True))
-        rows.append((ordinal, texts, links))
-    return tuple(rows)
+    return tuple(parser.rows)
 
 
 def listing_rows(body: bytes, names: dict[str, str], filings: set[Filing] | None = None) -> list[dict]:
