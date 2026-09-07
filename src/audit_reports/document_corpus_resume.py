@@ -23,7 +23,7 @@ def metadata(key: str, response: dict) -> dict:
 def annotation_identity(directory: Path, filing: Filing | None = None, *, source_only: bool = False) -> str:
     if not directory.is_dir():
         raise ValueError("Source annotation directory is missing")
-    from . import document_benchmark
+    from . import document_benchmark, document_content_review
     paths = []
     for path in sorted(directory.glob("*.json")):
         annotation = None
@@ -44,6 +44,7 @@ def annotation_identity(directory: Path, filing: Filing | None = None, *, source
         return "no_registered_cases"
     digest = hashlib.sha256()
     digest.update(Path(document_benchmark.__file__).read_bytes())
+    digest.update(Path(document_content_review.__file__).read_bytes())
     for path, payload in paths:
         digest.update(path.name.encode("utf-8"))
         digest.update(payload)

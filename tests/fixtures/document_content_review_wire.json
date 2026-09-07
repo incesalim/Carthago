@@ -1,0 +1,56 @@
+{
+  "schema_version": "corpus-receipt-1",
+  "evidence_artifact_sha256": "69bdc3e91c2fd12ba9cb24ae25e4c378b64fe03328cb4cbae4e8306442b66d8d",
+  "source_benchmark": {
+    "status": "passed",
+    "scope": "annotated_cases_only",
+    "checks": [
+      {
+        "passed": true,
+        "failures": [],
+        "content_reviews": [
+          {
+            "id": "wire_note",
+            "kind": "source_review",
+            "title": "Open source comparison",
+            "note": "Retain each source passage until its meaning is reviewed.",
+            "status": "open",
+            "semantic_verification": "not_performed",
+            "points": [
+              {
+                "page": 1,
+                "bbox": [
+                  40.0,
+                  68.175,
+                  257.6679,
+                  83.289
+                ],
+                "source_span_ids": [
+                  0
+                ],
+                "source_text": "Narrative repeats 1,000 and 1,000; zero is 0.",
+                "source_page_artifact_sha256": "2830a75cba714c5fc1f8f76dff16d6d3e1dc2e3fc1471bafc22300aa41ffc014"
+              },
+              {
+                "page": 2,
+                "bbox": [
+                  40.0,
+                  68.175,
+                  260.748,
+                  83.289
+                ],
+                "source_span_ids": [
+                  0
+                ],
+                "source_text": "Second page: do not substitute another filing.",
+                "source_page_artifact_sha256": "b053619e58e217dcc3b5c3cd3928fa657ab6636aa542c408a2c959fbfc2052b0"
+              }
+            ]
+          }
+        ],
+        "cases_checked": 1,
+        "scope": "annotated_cases_only"
+      }
+    ]
+  }
+}

@@ -160,6 +160,15 @@ and rejects substituted or corrupted receipts. Local Python and 745 web tests
 pass; cloud publication of these receipts and capture of the remaining activity
 attachments remain pending. No whole attachment is semantically approved.
 
+Three open TOMK 2023Q3 content notes now retain seven exact source passages:
+capital ratios 93,93 / 93,75 / 93,90, the prior own-funds discrepancy and adjacent
+liquidity ratios with different aggregation contexts. Python and the private
+reader verify page hashes, span occurrences, literal wording and geometry.
+Notes are stored in the source benchmark receipt, independently of candidate
+table views, and exposed as structured analyst metadata. They do not select
+corrected values or certify financial meanings. Python checks and all 761 web
+tests, lint and type checks pass. Cloud receipt publication is pending.
+
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has
 written D1 or replaced settled analytical partitions. Unchanged-object receipts

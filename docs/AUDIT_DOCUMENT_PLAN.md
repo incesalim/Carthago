@@ -600,3 +600,10 @@ of detected tables.
   a March 2022 report; June 2026's member matches its quarter. Added immutable
   related-identity receipts and admin source-period conflict display, preserving
   archive context separately. Python and 745 web tests pass; cloud rollout pending.
+
+- 2026-09-07: added three source-bound open content notes from the TOMK whole-page
+  visual inventory (seven exact passages). Source and private-reader checks reject
+  substituted wording, occurrences, pages, geometry and unsupported approval.
+  Benchmark receipts retain the notes separately from structure; admin and private
+  analyst JSON expose original passages. No figure is corrected by these notes.
+  Cloud receipt publication and deployed UI checks remain pending.

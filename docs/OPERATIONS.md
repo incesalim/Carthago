@@ -1776,3 +1776,10 @@ A related source's inherited bank/period/basis fields label its archive context;
 use its own opening-page claims to assess identity. A conflict is retained with
 the source, not suppressed or relabeled. The private reader checks the receipt
 bytes and native/container bindings before exposing its period observations.
+
+Source annotations may include `source_review` cases with open notes and multiple
+exact source passages. Source-only regression checks retain these in the resume
+receipt; changes to notes or their validator invalidate annotation reuse. The
+private corpus endpoint accepts `artifact=reviews`, rechecks the current native
+revision and each passage, and returns source-bound open findings. It does not
+resolve discrepancies or modify extracted values.

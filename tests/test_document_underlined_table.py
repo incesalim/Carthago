@@ -13,7 +13,7 @@ def sample():
     folder = Path(__file__).parent / 'fixtures'
     fixture = json.loads((folder / 'document_underlined_table_tomk.json').read_text(encoding='utf-8'))
     annotation = json.loads((folder / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
-    annotation['cases'] = [c for c in annotation['cases'] if c['page'] == 30]
+    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 30]
     return fixture, annotation
 
 

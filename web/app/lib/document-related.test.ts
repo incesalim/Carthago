@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({ gate: vi.fn(), context: vi.fn() }));
 vi.mock("@opennextjs/cloudflare", () => ({ getCloudflareContext: mocks.context }));
 vi.mock("@/app/lib/admin-auth", () => ({ requireAdminOr403: mocks.gate }));
 vi.mock("@/app/lib/document-corpus", () => import("./document-corpus"));
+vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
 vi.mock("@/app/lib/document-related", () => import("./document-related"));
 vi.mock("@/app/lib/document-recovery", () => import("./document-recovery"));
 import { GET as sourceGET } from "../api/admin/document-corpus/route";

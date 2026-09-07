@@ -12,7 +12,7 @@ def sample():
     directory = Path(__file__).parent / 'fixtures'
     fixture = json.loads((directory / 'document_complete_table_tomk.json').read_text(encoding='utf-8'))
     annotation = json.loads((directory / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
-    annotation['cases'] = [c for c in annotation['cases'] if c['page'] == 6]
+    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 6]
     return ({'source': fixture['source'], 'pages': [fixture['page']]},
             [{'source': fixture['source']}, fixture['source_page']], annotation)
 

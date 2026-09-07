@@ -2,6 +2,7 @@
 import { requireAdminOr403 } from "@/app/lib/admin-auth";
 import { getCorpusBucket, getCorpusCatalog, getCorpusRevision, parseFiling, readVerifiedPage } from "@/app/lib/document-corpus";
 import { getRelatedRevision } from "@/app/lib/document-related";
+import { getContentReviews } from "@/app/lib/document-content-review";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
   const artifact = params.get("artifact");
   const related = params.get("related");
   if (related !== null && !/^[a-f0-9]{64}$/.test(related)) return json({ error: "Invalid related document." }, 400);
-  if (artifact !== null && !["original", "source", "structure"].includes(artifact)) {
+  if (artifact !== null && !["original", "source", "structure", "reviews"].includes(artifact)) {
     return json({ error: "Unknown document artifact." }, 400);
   }
   const bucket = await getCorpusBucket();
@@ -30,6 +31,11 @@ export async function GET(req: Request) {
     if (!revision) return json({ error: related ? "This related PDF has not been captured yet."
       : "This filing has no successful source capture yet." }, 404);
     if (!artifact) return json({ revision });
+    if (artifact === "reviews") {
+      if (related) return json({ error: "Content notes for related attachments are not registered here." }, 400);
+      return json({ source: revision.source, scope: "registered_open_notes_only",
+        semantically_verified: false, findings: await getContentReviews(bucket, filing, revision) });
+    }
     const pageText = params.get("page");
     const page = Number(pageText);
     if (pageText !== null && (!/^\d+$/.test(pageText) || !Number.isSafeInteger(page) || page < 1 || page > revision.page_count)) {

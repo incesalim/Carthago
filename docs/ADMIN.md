@@ -32,6 +32,14 @@ are flagged. The stored-order view remains available; missing, duplicate or
 unknown layout references automatically fall back to every original text element.
 Heading context and paragraph boundaries still require source review.
 
+Content review notes retain open questions about figures printed in the report.
+Each passage links to the original page; PDF/native revision, exact page bytes,
+span occurrences, wording and bounding boxes are checked before display.
+These checks validate source references, not the reviewer's interpretation or
+a choice of corrected value. The private `artifact=reviews` response includes
+the full references for analyst use. No notes means no registered review, not
+no source discrepancies.
+
 Tall ruled body cells can expose a separate source-line view with the original
 column positions and merged headers. Use the checkbox to return to physical
 cells. Blank positions mean no text on that line; no zero is inferred. Wrapped

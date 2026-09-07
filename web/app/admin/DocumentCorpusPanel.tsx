@@ -6,6 +6,7 @@ import type { CorpusCatalogResult, CorpusFiling } from "@/app/lib/document-corpu
 import { nf } from "@/app/lib/chart-format";
 import DocumentRecoveryPanel from "./DocumentRecoveryPanel";
 import DocumentOriginPanel from "./DocumentOriginPanel";
+import DocumentContentReviews from "./DocumentContentReviews";
 import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./DocumentNarrativePreview";
 
 const endpoint = "/api/admin/document-corpus";
@@ -115,6 +116,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
     {filing.capture?.last_error && <p className="mt-2 text-xs text-negative">{filing.capture.last_error}</p>}
     {source && <p className="mt-2 break-all font-mono text-[10px] text-faint">Source SHA-256: {source.pdf_sha256}</p>}
     <DocumentOriginPanel filing={id(filing)} sourceHash={source?.pdf_sha256} />
+    {source && <DocumentContentReviews filing={id(filing)} sourceHash={source.pdf_sha256} />}
     {filing.capture?.structure_engine && <>
       <div className="my-4 flex flex-wrap items-center gap-3 text-xs">
         <button className={control} disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>

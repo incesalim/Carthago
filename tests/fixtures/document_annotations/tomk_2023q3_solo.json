@@ -290,6 +290,174 @@
           ]
         ]
       ]
+    },
+    {
+      "id": "capital_adequacy_current_source_values",
+      "title": "Different current capital adequacy figures within one report",
+      "note": "The prose, regulatory table and management summary print different figures. Preserve each value and its context; no authoritative replacement has been selected.",
+      "status": "open",
+      "semantic_verification": "not_performed",
+      "points": [
+        {
+          "page": 26,
+          "bbox": [
+            125,
+            265,
+            543,
+            307
+          ],
+          "source_span_ids": [
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "source_text": "Son düzenlemeler dikkate alınarak 30 Eylül 2023 tarihi itibarıyla hesaplanan cari dönem özkaynak \ntutarı \n1.558.260 bin TL (31 Aralık 2022: 1.513.102 bin TL) sermaye yeterliliği standart oranı da %93,93’tür \n(31 Aralık \n2022: %98,79). Banka’nın sermaye yeterliliği standart oranı ilgili mevzuat ile belirlenen asgari oranın \nüzerinde seyretmektedir.",
+          "source_page_artifact_sha256": "e4844db6aa4725cb7cc21aec0a5f342e0b8e6ebc157e73dbf37240f42ee3078b"
+        },
+        {
+          "page": 28,
+          "bbox": [
+            88,
+            669,
+            538,
+            681
+          ],
+          "source_span_ids": [
+            130,
+            131,
+            132
+          ],
+          "source_text": "Sermaye Yeterliliği Oranı (%) \n93,75 \n98,79 ",
+          "source_page_artifact_sha256": "b85a41374466f16a181b83a14a6f3459ba8dec7cb6dc6b4d9749a3d0e912afe0"
+        },
+        {
+          "page": 50,
+          "bbox": [
+            129,
+            662,
+            541,
+            684
+          ],
+          "source_span_ids": [
+            128,
+            129,
+            130,
+            131,
+            132,
+            133
+          ],
+          "source_text": "Rasyolar (%) \n30 Eylül 2023 \n31 Aralık 2022\nSermaye Yeterlilik Rasyosu \n93,90 \n98,79",
+          "source_page_artifact_sha256": "6d80e63bd127447f15df9954c23881e1adb7b9cd6e6c7a0bc4c757c70f41223a"
+        }
+      ],
+      "kind": "source_review"
+    },
+    {
+      "id": "prior_own_funds_source_values",
+      "title": "Prior own-funds amount differs between prose and the regulatory table",
+      "note": "The prose prints 1.513.102 bin TL for prior own funds; the regulatory table prints 1.496.577 in the own-funds row and 1.513.102 in the separate risk-weighted-total row. Preserve both labels and figures; do not silently relabel or replace them.",
+      "status": "open",
+      "semantic_verification": "not_performed",
+      "points": [
+        {
+          "page": 26,
+          "bbox": [
+            125,
+            265,
+            543,
+            307
+          ],
+          "source_span_ids": [
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "source_text": "Son düzenlemeler dikkate alınarak 30 Eylül 2023 tarihi itibarıyla hesaplanan cari dönem özkaynak \ntutarı \n1.558.260 bin TL (31 Aralık 2022: 1.513.102 bin TL) sermaye yeterliliği standart oranı da %93,93’tür \n(31 Aralık \n2022: %98,79). Banka’nın sermaye yeterliliği standart oranı ilgili mevzuat ile belirlenen asgari oranın \nüzerinde seyretmektedir.",
+          "source_page_artifact_sha256": "e4844db6aa4725cb7cc21aec0a5f342e0b8e6ebc157e73dbf37240f42ee3078b"
+        },
+        {
+          "page": 28,
+          "bbox": [
+            88,
+            618,
+            538,
+            640
+          ],
+          "source_span_ids": [
+            115,
+            116,
+            117,
+            118,
+            119,
+            120
+          ],
+          "source_text": "Toplam Özkaynak (Ana sermaye ve katkı sermaye toplamı)  \n1.558.260 \n1.496.577 \nToplam Risk Ağırlıklı Tutarlar \n1.662.104 \n1.513.102 ",
+          "source_page_artifact_sha256": "b85a41374466f16a181b83a14a6f3459ba8dec7cb6dc6b4d9749a3d0e912afe0"
+        }
+      ],
+      "kind": "source_review"
+    },
+    {
+      "id": "liquidity_ratio_source_values",
+      "title": "Different TP+YP liquidity ratio figures in adjacent tables",
+      "note": "The source prints 80.980.325 in the current-period maximum/minimum table and 809.080.325 in the larger liquidity table. Their aggregation contexts must be retained and reviewed before treating them as comparable observations.",
+      "status": "open",
+      "semantic_verification": "not_performed",
+      "points": [
+        {
+          "page": 33,
+          "bbox": [
+            128,
+            193,
+            538,
+            245
+          ],
+          "source_span_ids": [
+            21,
+            22,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ],
+          "source_text": "2023 yılı son üç aylık dönemde en düşük, en yüksek Likidite Karşılama Oranları aşağıdaki \ntabloda yer almaktadır. \nCari Dönem \nEn Yüksek \nTarih \nEn Düşük \nTarih \nTP+YP \n80.980.325 \n30.09.2023 \n80.980.325 \n30.09.2023 ",
+          "source_page_artifact_sha256": "2e1ac52b2e054590aa2292a089d6c58c4dd3b4210e6dfe40fe5d8d29e408c499"
+        },
+        {
+          "page": 33,
+          "bbox": [
+            123,
+            719,
+            543,
+            740
+          ],
+          "source_span_ids": [
+            203,
+            204,
+            205,
+            206,
+            207,
+            208,
+            209
+          ],
+          "source_text": "2\n3\nLİKİDİTE KARŞILAMA ORANI (%) \n-\n-\n809.080.325 \n1.047.115 ",
+          "source_page_artifact_sha256": "2e1ac52b2e054590aa2292a089d6c58c4dd3b4210e6dfe40fe5d8d29e408c499"
+        }
+      ],
+      "kind": "source_review"
     }
-  ]
+  ],
+  "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."
 }

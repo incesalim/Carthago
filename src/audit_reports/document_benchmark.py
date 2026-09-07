@@ -11,7 +11,7 @@ import hashlib
 from collections import Counter
 from pathlib import Path
 
-SOURCE_CASE_KINDS = frozenset({"source_span", "source_word"})
+SOURCE_CASE_KINDS = frozenset({"source_span", "source_word", "source_review"})
 
 
 def _text(value):
@@ -196,7 +196,7 @@ def _reading_layout_matches(case, page, source):
 
 
 def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -> dict:
-    failures = []
+    failures, content_reviews = [], []
     if (annotation["pdf_sha256"] != evidence[0]["source"]["pdf_sha256"]
             or structure["source"] != evidence[0]["source"]):
         return {"passed": False, "failures": [{"kind": "source_revision_mismatch"}],
@@ -208,6 +208,13 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
     sources = {p["page"]: p for p in evidence[1:]}
     pages = {p["page"]: p for p in structure["pages"]}
     for case in annotation["cases"]:
+        if case.get("kind") == "source_review":
+            from .document_content_review import validate_content_review
+            if validate_content_review(case, sources):
+                content_reviews.append(case)
+            else:
+                failures.append({"case": case["id"], "kind": "content_review_source_mismatch"})
+            continue
         prefix = {"case": case["id"], "page": case["page"]}
         if case["page"] not in pages or case["page"] not in sources:
             failures.append({**prefix, "kind": "missing_page"})
@@ -325,6 +332,7 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
             failures.append({**prefix, "kind": "row_column_source_mismatch",
                              "matching_candidates": len(matching)})
     return {"passed": not failures, "failures": failures,
+            **({"content_reviews": content_reviews} if content_reviews else {}),
             "cases_checked": len(annotation["cases"]), "scope": "annotated_cases_only"}
 
 
