@@ -80,8 +80,14 @@ and deployment `34121557991` passed), with review-record publication pending.
 Read-only run `34121459005` independently reconciles exactly eight annotated
 filings, all 63 cases at that commit and 21 complete table records. All those
 records equal fresh benchmark replay against four retained full PDF evidence
-packages. Restricted publication `34122513206` is queued at that tested commit
-behind the two existing corpus runs. Passed complete-table annotations produce receipt records bound to
+packages. The additional ten-table review at `68ae767` passes CI `34123877149`
+and independent cloud readback `34123893259`: all 51 TOMK native pages and the
+entire structured extraction remain identical, all 42 TOMK cases pass, and its
+21 table records exactly equal independent replay. Restricted publication
+`34124160052` is queued at this tested commit behind the two existing corpus
+runs. The earlier review-only publication `34122513206` was cancelled while
+pending with no jobs or writes, so one updated publication carries all reviews.
+Passed complete-table annotations produce receipt records bound to
 both exact stored page views. The private reader validates grid slots, context,
 word occurrences, logical assignments and source/capture identity before serving
 rows and downloads. Ten further TOMK note tables on pages 39–44 have since been
@@ -89,8 +95,9 @@ independently transcribed and checked locally: 82 rows and 272 physical slots.
 Magnified original inspection corrected one manual wording error. The bank's
 duplicated Cari Dönem header on its tax-loss table remains literal, alongside
 the distinct printed dates. Wrong digits, dates, currencies, missing references,
-covered slots and dash/zero substitutions fail the new checks. These ten reviews
-are not part of the already queued 21-table publication.
+covered slots and dash/zero substitutions fail the new checks. The ten new
+tables and corrected report-level review description are included in the
+pending restricted publication; their live display is not yet verified.
 The four independently captured reports now provide 31 reviewed tables in
 `output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
 311 physical rows and 1,236 slots. This is a selected-review count, not the

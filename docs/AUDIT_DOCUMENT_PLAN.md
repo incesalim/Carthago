@@ -1175,3 +1175,15 @@ of detected tables.
   filings, zero fully verified and 536 remaining region updates at this check.
   The local four-report collection's 31-table / 311-row / 1,236-slot totals and
   all structured download files are independently reconciled.
+
+- Committed and pushed the ten-table review as `68ae767`; CI `34123877149`
+  passes. Read-only cloud run `34123893259` passes. Independent download/readback
+  confirms identical original bytes, all 51 native pages and the entire prior
+  verified structured artifact; all 42 TOMK cases and 21 complete-table receipt
+  records equal independent replay. The additional ten reviews cover 272 slots.
+  Replaced only pending review publication `34122513206` (cancelled before any
+  job started or write occurred) with `34124160052` at tested `68ae767`, to
+  include the additional tables and corrected annotation description together.
+  Region `34112697713` and heading `34116379265` continue unchanged. Live review
+  record publication remains pending; goal remains active with concrete source
+  review and local delivery completed this turn, not blocked.
