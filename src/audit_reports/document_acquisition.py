@@ -18,13 +18,48 @@ from .document_corpus_store import PREFIX, _error_code, _json
 from .document_quality import fold, source_identity_review
 
 
-def unwrap_pdf(body: bytes, reviewed_member: dict | None = None) -> tuple[bytes, dict]:
+def is_zip_transport(body: bytes) -> bool:
+    # Some complete BDDK ZIPs retain the four-byte spanning marker before their
+    # local file header. ZipFile validates the central directory and CRCs; the
+    # marker is recorded, never removed from retained transport bytes.
+    return body.startswith((b'PK\x03\x04', b'PK\x07\x08PK\x03\x04'))
+
+
+def unwrap_pdf(body: bytes, reviewed_member: dict | None = None, *, _archive_depth: int = 0) -> tuple[bytes, dict]:
     selection = {'method': 'direct_pdf', 'archive_members': []}
-    if body.startswith(b'PK\x03\x04'):
+    if is_zip_transport(body):
+        end = body.rfind(b'PK\x05\x06', max(0, len(body) - 65_557))
+        if end < 0 or end + 22 > len(body) or end + 22 + int.from_bytes(body[end + 20:end + 22], 'little') != len(body):
+            raise ValueError('Archive has an incomplete or ambiguous end record')
         with zipfile.ZipFile(io.BytesIO(body)) as archive:
+            expected_start = 4 if body.startswith(b'PK\x07\x08') else 0
+            if not archive.infolist() or min(i.header_offset for i in archive.infolist()) != expected_start:
+                # A truncated outer ZIP can otherwise be read as its inner ZIP,
+                # silently discarding the actual downloaded container.
+                raise ValueError('Archive local headers differ from the retained container')
             members = [i for i in archive.infolist() if not i.is_dir()]
             selection['archive_members'] = [{'name': i.filename, 'bytes': i.file_size,
                                              'sha256': hashlib.sha256(archive.read(i)).hexdigest()} for i in members]
+            if body.startswith(b'PK\x07\x08'):
+                selection.update(archive_prefix_format='zip_spanning_marker', archive_prefix_bytes=4)
+            if len({i.filename for i in members}) != len(members):
+                raise ValueError('Archive needs source selection: duplicate member names')
+            if len(members) == 1 and members[0].filename.lower().endswith('.zip'):
+                if _archive_depth or reviewed_member:
+                    raise ValueError('Nested archive needs source selection: unsupported depth or member override')
+                chosen = members[0]
+                nested = archive.read(chosen)
+                if not is_zip_transport(nested):
+                    raise ValueError('Nested archive member does not contain a ZIP')
+                pdf, inner = unwrap_pdf(nested, _archive_depth=1)
+                # Only the independently observed one-wrapper/one-PDF shape is
+                # automatic. Additional inner files require their own inventory
+                # and attachment handling; never silently hide them here.
+                if len(inner['archive_members']) != 1 or inner.get('unselected_pdf_members'):
+                    raise ValueError('Nested archive needs source selection: additional inner members')
+                selection.update(method='single_nested_zip', archive_member=chosen.filename,
+                                 nested_selection=inner, unselected_pdf_members=[])
+                return pdf, selection
             pdfs = [i for i in members if i.filename.lower().endswith('.pdf')]
             statements = [i for i in pdfs if not any(w in fold(i.filename) for w in ('faaliyet', 'activity'))]
             if reviewed_member:

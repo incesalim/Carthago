@@ -122,7 +122,8 @@ The corpus downloader supports those exact ICBC hosts with normal verification
 enabled. Follow-up `34066751096` matches all 36 registered ICBC PDFs, with
 36 supported opening-page identities. Independent reconciliation checks every
 current receipt/index, prior acquisition hash and committed engine; old failed
-observations remain. **1,011 filings now have fresh byte agreement.**
+observations remain. **1,011 filings had fresh byte agreement before the
+regulator follow-up described below.**
 Ziraat Katılım returns
 browser-challenge HTML. Halkbank's 2026Q2 solo BDDK archive contains a DOCX,
 not a PDF. None is reclassified as a missing acquired filing.
@@ -201,8 +202,20 @@ acquisition metadata and main native PDF bindings remain unchanged. VAKBN and
 ZIRAATK add two filing agreements. AKTIF and ATBANK already had bank-site byte
 agreement; ATBANK also has a different regulator edition, so agreement and
 observed-difference sets overlap. The 72-filing VAKBN/ZIRAATK regulator comparison
-`34072441306` reports 67 matches, three different PDFs and two non-PDF responses;
-independent artifact reconciliation is in progress and these outcomes are not yet counted.
+`34072441306` is independently reconciled against 359 stored objects, all prior
+history references, acquisition versions and main native hashes: 67 matches,
+three different PDFs and two downloads the prior parser could not unwrap.
+Across verified published observations, **1,069 filings have byte agreement**;
+15 have observed different PDFs, with one overlapping filing (ATBANK). 63 have
+neither a verified agreement nor an observed PDF difference. These are source
+revision observations, not approvals of content.
+
+The two unresolved ZIRAATK 2025Q3 downloads were independently inspected and
+contain a single ZIP inside a ZIP with a four-byte spanning marker. Both inner
+PDF hashes match acquired reports. The decoder now retains both member inventories,
+marker and nested selection and rejects ambiguous extra members, excessive depth,
+truncation or invalid archive boundaries. Local source-byte checks and mutation
+tests pass; fresh cloud origin observations remain pending.
 
 `capture-document-edition.yml` is implemented for an exact historical origin
 observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
@@ -211,7 +224,12 @@ selected recovery pages under a PDF-specific edition index. It never replaces
 the acquired filing. The private reader now exposes all retained origin
 observations and can address an edition or archive attachment through its exact
 historical observation. Python source-binding/replay tests and all 788 web tests
-pass; real-edition cloud capture and deployed UI verification remain pending.
+pass. ATBANK's 88-page edition probe `34073988169` passes independent
+original/native/structure accounting and exact Git engine checks, plus four
+fresh original-page comparisons. It retains 195,952 native characters, 987 text
+blocks and 183 table candidates; no pages were flagged for recovery. Publication
+`34074261461` is running. CI/deployment at `53e18f8` pass; live admin inspection
+still awaits the user renewing the expired session.
 
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has

@@ -658,3 +658,18 @@ of detected tables.
   observations, historical attachment access and separate edition access. Python
   focused tests and all 788 web tests pass; cloud capture/readback and live UI
   verification remain pending. Acquired filing indexes are never switched.
+
+
+- 2026-09-07: all 72 regulator-origin outcomes from `34072441306` independently
+  reconcile across 359 stored objects and unchanged acquisition/main native
+  bindings. Published observation rollup: 1,069 filings with any byte agreement,
+  15 with a different PDF, one overlapping filing and 63 with neither outcome.
+- 2026-09-07: independently unpacked both ZIRAATK 2025Q3 downloads. Their nested
+  ZIPs contain exact acquired PDFs; the old parser's non-PDF status was a wrapper
+  failure. Added narrow two-level ZIP handling with full member witnesses,
+  spanning-marker retention and rejection of ambiguous/truncated containers.
+  Both real-source byte checks and targeted regression tests pass; cloud follow-up pending.
+- 2026-09-07: edition probe `34073988169` independently verifies ATBANK's complete
+  88-page native/structure artifact, exact committed engines and four fresh page
+  observations. Source original matches the independent regulator download.
+  CI/deployment at `53e18f8` pass; publication `34074261461` is running.

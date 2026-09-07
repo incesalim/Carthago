@@ -155,3 +155,14 @@ def test_actual_takas_june_archive_contains_a_march_report():
     assert result['issues'] == ['period_conflicts_with_source_text']
     assert result['observations'][0]['quarter_end_dates'][0]['period'] == '2022Q1'
     assert result['observations'][0]['quarter_end_dates'][0]['source_span_ids'] == [10]
+
+
+def test_single_nested_archive_has_no_unaccounted_related_documents():
+    client = MemoryR2()
+    pdf = pdf_body()
+    transport = b'PK\x07\x08' + archive_body([('nested.zip', archive_body([('report.pdf', pdf)]))])
+    result, artifacts = observe(client, pdf, transport)
+    store = CorpusStore(client, 'test')
+    publish_origin(store, result, artifacts, PATTERNS)
+    receipt, sources = related_sources(store, FILING)
+    assert receipt['selection']['method'] == 'single_nested_zip' and sources == []

@@ -1825,3 +1825,14 @@ corpus/recovery readers accept `edition=<receipt_sha256>` for a separate edition
 or `related=<member_sha256>&origin=<receipt_sha256>` for an attachment in that
 historical archive. Ambiguous source selectors are rejected. An edition is not
 inferred to be a correction, translation, authoritative version or replacement.
+
+
+The source decoder accepts the observed ZIP spanning marker (`PK 07 08`) before
+a valid ZIP local header. It retains the marker and exact container bytes. A
+single nested ZIP is automatic only when the outer archive contains one ZIP
+and the inner archive contains one report PDF; both complete member inventories
+and selections are retained. Extra inner members, member overrides, deeper
+nesting, damaged end records or inconsistent local-header positions require
+source review. This prevents a truncated outer archive from being silently read
+as its inner archive. Historical origin outcomes remain unchanged; rerun the
+specific filing comparison to retain a new observation after a decoder repair.

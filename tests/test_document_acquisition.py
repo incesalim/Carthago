@@ -221,3 +221,35 @@ def test_cli_archive_selection_cannot_leak_to_another_period(tmp_path, monkeypat
     monkeypatch.setattr(command, 'acquire_filing', acquire)
     assert command.main(['--config', str(path), '--output-dir', str(tmp_path)]) == 0
     assert calls == [('2026Q1', {}), ('2026Q2', {'reviewed_member': chosen})]
+
+
+@pytest.mark.parametrize('marker', [b'', b'PK\x07\x08'])
+def test_single_nested_zip_keeps_both_archive_inventories_and_exact_pdf(marker):
+    import hashlib
+    pdf = pdf_body()
+    inner = archive_body([('report.pdf', pdf)])
+    outer = marker + archive_body([('original.zip', inner)])
+    actual, selection = unwrap_pdf(outer)
+    assert actual == pdf and selection['method'] == 'single_nested_zip'
+    assert selection['archive_members'] == [{'name': 'original.zip', 'bytes': len(inner), 'sha256': hashlib.sha256(inner).hexdigest()}]
+    assert selection['nested_selection']['archive_members'] == [{'name': 'report.pdf', 'bytes': len(pdf), 'sha256': hashlib.sha256(pdf).hexdigest()}]
+    assert selection['nested_selection']['archive_member'] == 'report.pdf'
+    assert selection.get('archive_prefix_bytes') == (4 if marker else None)
+    assert selection['unselected_pdf_members'] == []
+
+
+@pytest.mark.parametrize('case', ['extra_pdf', 'activity', 'extra_text', 'deep', 'override', 'fake_zip', 'fake_prefix', 'truncated'])
+def test_nested_archive_does_not_hide_extra_members_or_invent_wrapper_rules(case):
+    pdf = pdf_body()
+    members = [('report.pdf', pdf)]
+    if case == 'extra_pdf': members.append(('another.pdf', pdf))
+    if case == 'activity': members.append(('faaliyet.pdf', pdf))
+    if case == 'extra_text': members.append(('readme.txt', b'Other evidence'))
+    inner = archive_body(members)
+    if case == 'deep': inner = archive_body([('deeper.zip', inner)])
+    if case == 'fake_zip': inner = pdf
+    outer = b'PK\x07\x08' + archive_body([('nested.zip', inner)])
+    if case == 'fake_prefix': outer = b'unknown' + outer
+    if case == 'truncated': outer = outer[:-30]
+    with pytest.raises((ValueError, zipfile.BadZipFile)):
+        unwrap_pdf(outer, {'member': 'report.pdf', 'sha256': 'a' * 64} if case == 'override' else None)

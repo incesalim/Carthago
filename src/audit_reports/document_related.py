@@ -7,7 +7,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from .document_acquisition import unwrap_pdf
+from .document_acquisition import unwrap_pdf, is_zip_transport
 from .document_corpus import Filing
 from .document_corpus_store import CorpusStore, PREFIX, _json
 from .document_evidence import artifact_digest, verify_evidence_records
@@ -63,11 +63,19 @@ def related_sources(store: CorpusStore, filing: Filing) -> tuple[dict, list[tupl
         raise ValueError('The official source response is unavailable')
     entry = receipt['transport']
     transport = _verified(store, entry, f"{PREFIX}transports/{entry['sha256']}/original.bin")
-    if not transport.startswith(b'PK\x03\x04'):
+    if not is_zip_transport(transport):
         if receipt.get('selection', {}).get('unselected_pdf_members'):
             raise ValueError('Related PDF members claimed without an archive')
         return receipt, []
     selection = receipt.get('selection', {})
+    if selection.get('method') == 'single_nested_zip':
+        # The accepted nested shape has exactly one inner PDF and no hidden
+        # attachments. Recheck that shape and every member before claiming none.
+        pdf, actual = unwrap_pdf(transport, receipt.get('requested_archive_selection'))
+        if (actual != selection or _sha(pdf) != receipt['origin_pdf']['sha256']
+                or len(pdf) != receipt['origin_pdf']['bytes']):
+            raise ValueError('Nested archive differs from its retained source selection')
+        return receipt, []
     primary_name = selection.get('archive_member')
     with zipfile.ZipFile(io.BytesIO(transport)) as archive:
         members = [m for m in archive.infolist() if not m.is_dir()]
