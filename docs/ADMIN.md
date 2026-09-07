@@ -25,9 +25,10 @@ The matrix now states explicitly that summary lanes cover selected disclosures;
 the capital registry label also says “selected figures”. The equity parser can
 retain a complete source row that fails arithmetic, which remains a validation
 problem rather than disappearing from the statement. Capital-buffer percentages
-have field-level literal/page evidence in `buffer_source_json`; their rollout
-requires migration 0048 and scoped re-extraction. Adding the fields does not
-certify or populate every historical capital disclosure.
+have field-level literal/page evidence in `buffer_source_json`. Migration 0048
+and the TOMK 2023Q3 solo pilot are live (2026-09-07); the five buffer disclosures
+were checked in both period columns against the original PDF. Other historical
+capital disclosures have not been populated or certified by this pilot.
 The separate complete-document corpus is under active implementation in
 [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md). Its source preservation and
 candidate structure run through `build-document-corpus.yml`. The **Complete audit

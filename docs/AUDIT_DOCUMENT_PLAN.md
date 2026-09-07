@@ -14,11 +14,16 @@ a completely read, inconsistent equity row so validation can report what the
 filing actually prints. Coverage must describe selected figures where that is
 all a lane captures.
 
-The first code increment retains TOMK 2024Q1's source-discrepant closing equity
+The first deployed increment (`d4923ee`, 2026-09-07) retains TOMK 2024Q1's source-discrepant closing equity
 row and adds five capital-buffer percentages plus literal/page evidence to the
-existing capital table and analyst tools. Deployment, migration 0048 and scoped
-cloud re-extraction are separate pending steps; no historical D1 population or
-full capital-table completeness is claimed by this implementation.
+existing capital table and analyst tools. Migration 0048 is live. The exact
+TOMK 2023Q3 solo capital pilot is published and independently checked in D1:
+two period rows, ten buffer cells, with literal/page evidence matching the
+original-PDF probe. Other historical buffer rows remain unpopulated.
+TOMK 2024Q1 equity was tested read-only in Actions and rejected by the unchanged
+publication guard: the closing row has a 2,576 component discrepancy and the
+stored OCI statement disagrees in sign. Do not publish that candidate by removing
+validation. Full capital-table completeness and whole-corpus capture remain open.
 
 ## Objective and scope
 

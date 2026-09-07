@@ -18,13 +18,29 @@ coverage or known issues change.
 
 **Delivery direction, 2026-09-07:** further standalone corpus expansion is paused
 at the user's request. Preserve the reviewed outputs and use them to improve the
-existing analytical lanes. The first unshipped increment retains all 34 financial
+existing analytical lanes. The first deployed increment (`d4923ee`) retains all 34 financial
 rows on TOMK 2024Q1's equity page, including the printed +1,288 OCI closing cell
 that fails arithmetic; the former parser returned 33 rows. TOMK 2023Q3's 17-row
 matrix keeps all values and complete TMS/formula labels. Five capital-buffer
 percentages, literal cells and their PDF pages are wired into the existing
-capital loader and analyst tools. Migration 0048, deployment and scoped cloud
-re-extraction remain pending; production data is unchanged by these edits.
+capital loader and analyst tools. Migration 0048 and deployment `34149123973`
+completed successfully. Capital dry-run `34149029119` passed; publication
+`34149311548` updated only the TOMK 2023Q3 solo capital partition plus its
+validation/source metadata and the regular coverage refresh. Both D1 rows and
+all ten buffer cells were read back and match the independently reviewed PDF
+and its literal/page evidence exactly. The nine headline capital figures are
+unchanged. The existing parser also populated `capital_deductions` from NULL to
+0 in both columns: original p28 shows nil deduction rows and identical pre/post
+own-funds totals; this is derived normalization, not a literal printed zero.
+
+Equity dry-run `34149047490` correctly rejected TOMK 2024Q1: the retained closing
+row has a 2,576 component discrepancy, and row IV disagrees in sign with the
+stored OCI statement. No equity D1 rows were changed and validation was not
+relaxed. Other historical capital-buffer fields remain unpopulated. Isolated
+release checks: 2,943 Python tests passed, two skipped; 872 web tests passed;
+all required web/mobile and standalone checks passed. CI `34149001890` passed.
+Independent receipts are in
+`docs/knowledge/2026-09-06-document-corpus/existing-lane-live-verification.json`.
 The legacy `build_capital_full.py` still builds a separate local table and is
 not the website's capital-serving path. Its aggregate checks do not establish
 full source-row coverage. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md)

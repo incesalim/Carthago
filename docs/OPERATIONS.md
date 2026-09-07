@@ -13,14 +13,15 @@ machine involvement is required for routine refreshes.
 
 ## Schedules
 
-### Pending equity/capital increment (2026-09-07)
+### Equity/capital increment and scoped rollout (2026-09-07)
 
 Migration `0048_capital_buffers.sql` adds five nullable percentage fields and
 `buffer_source_json` to the existing capital table. Apply the versioned migration
 before deploying analyst queries or publishing new capital rows. Old rows remain
 NULL and keep their original timestamps. No new workflow, secret or environment
-key is introduced. Coordinate rollout with the separate release-pipeline work
-and its pending migration 0047; do not include that task's uncommitted changes.
+key is introduced. Migration 0048 was applied by deployment `34149123973` at
+`d4923ee`. The separate release-pipeline work and its pending migration 0047
+were not included in this release.
 
 Use `reextract-statement.yml` for the first exact-partition cloud trials:
 capital, `TOMK:2023Q3:unconsolidated`, and equity_change,
@@ -33,7 +34,18 @@ remains arithmetically inconsistent and must not be published by disabling
 The capital source should yield current/prior total buffer 4/4, conservation
 2.5/2.5, a literal countercyclical dash/NULL, systemic 1.5/1.5 and available CET1
 89.75/94.79, all on PDF page 29. This is selected-disclosure expansion, not
-full-capital-table verification. No rollout has been performed for this increment.
+full-capital-table verification.
+
+Capital dry-run `34149029119` passed and publication `34149311548` succeeded.
+Independent live reads matched all ten buffer cells and literal/page evidence;
+the nine headline figures were unchanged. The existing deduction parser also
+populated NULL → 0 from the disclosed nil deduction rows (original p28); this
+normalization is recorded separately in the source-verification receipt.
+Equity dry-run `34149047490` rejected the source discrepancy plus an OCI sign
+disagreement, without changing D1 or the snapshot. No other historical capital
+filings have been backfilled with the new buffer fields. Future population uses
+bounded dry-run review followed by exact-partition writes, keeping the existing
+validation and unchanged-content guards.
 
 | When | Workflow | What it does |
 |---|---|---|
