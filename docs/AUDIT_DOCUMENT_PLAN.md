@@ -61,6 +61,13 @@ also include shareholder, bank placement, fair-value, fixed-asset, software,
 lease, tax, income, expense and risk-weighted-asset tables without a complete
 serving lane. These remain in scope even though no registry entry names them.
 
+The primary-statement source probe reproduces a further defect on TOMK 2023Q3
+P&L and cash flow: a date heading becomes a spurious row containing 202 and 3.
+The follow-up shared parser removes explicit calendar headings before amount
+tokenization. Financial rows mentioning dates/months remain. This fixes one
+source-boundary class; it neither certifies complete primary statements nor
+republishes their settled partitions.
+
 Execution order: (1) repair demonstrated wrong-period, omitted-cell and source-link
 defects in serving lanes; (2) compare all seven primary statements to the retained
 complete reviews; (3) widen the summary lanes with source-linked rows/columns and
@@ -77,7 +84,12 @@ TOMK 2023Q3/2024Q1 and GARAN 2022Q4 consolidated. TOMK 2023Q3's conflicting
 current/high-low disclosures fail the new source-range check while retaining
 both literal disclosures, and are excluded from the
 publication trial. The proposed trial covers only TOMK 2024Q1 solo and GARAN
-2022Q4 consolidated liquidity. Deployment and cloud verification are pending.
+2022Q4 consolidated liquidity. Code `97e9a22` is deployed, and scoped publication
+`34162893124` succeeded after read-only trial `34162579549`. Independent D1
+readback matches all four period rows and their complete evidence; exactly four
+missing comparative cells are added, with existing current LCR, leverage and
+NSFR unchanged. No other filing has LCR evidence. Authenticated admin visual
+confirmation remains outstanding because the browser session expired on reload.
 
 ## Objective and scope
 

@@ -13,12 +13,23 @@ machine involvement is required for routine refreshes.
 
 ## Schedules
 
+### Primary-statement date-header repair (2026-09-08)
+
+The follow-up shared parser repair excludes explicit reporting-date headers from
+numeric statement rows. No migration, workflow, secret or environment key is
+introduced. It does not force or republish the settled P&L/cash-flow lanes. Any
+future repair uses a named statement and exact source filing through the existing
+`reextract-statement.yml`, first with writes disabled and `require_passing=true`.
+
 ### Broader lane repair and liquidity trial (2026-09-08)
 
 Migration `0049_liquidity_source.sql` adds nullable `lcr_source_json` to
 `bank_audit_liquidity`. Apply it before the analyst queries and targeted publication.
 Existing rows retain NULL evidence and their timestamps. No new workflow, secret
-or environment key is introduced. Deployment and cloud verification are pending.
+or environment key is introduced. CI `34162563312`, deployment `34162680530`
+(including 0049), read-only trial `34162579549` and exact-scope publication
+`34162893124` succeeded at `97e9a22`. Independent live readback matches all four
+rows and their evidence and confirms no other filing has LCR evidence.
 
 Trial via the existing `reextract-statement.yml`, statement `liquidity`, exact
 `partitions=TOMK:2024Q1:unconsolidated,GARAN:2022Q4:consolidated`, banks TOMK,GARAN,

@@ -16,6 +16,13 @@ coverage or known issues change.
 
 ## Existing audit lanes: broader repair (2026-09-08)
 
+The broader primary-statement source probe also found a shared parser defect:
+TOMK 2023Q3 P&L and cash-flow reporting-date headers became a fake `30 EYLÜL`
+financial row with amounts 202 and 3. The follow-up filters explicit calendar
+headers before amount tokenization while retaining financial labels containing
+dates or month names. Source-page fixtures exercise both statements. This code
+repair has not re-extracted or published settled P&L/cash-flow partitions.
+
 The active scope includes all 19 registered lanes, structured prose and unserved
 report tables; equity/capital were examples. The code-based repair map is in
 [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md#all-lane-repair-map-2026-09-08).
@@ -28,7 +35,16 @@ from publication because its current LCR conflicts with the printed high/low tab
 The validator also flags a retained LCR outside an unambiguously read, explicitly
 headed Turkish dated high/low range; the TOMK 2023Q3 contradiction now fails this
 check without changing its transcription.
-Migration 0049, deployment and the two-partition liquidity cloud trial are pending.
+Code `97e9a22` passed CI `34162563312`; deployment `34162680530` applied
+migration 0049. Read-only trial `34162579549` passed both filings; publication
+`34162893124` succeeded. D1 readback verifies exactly two filings / four rows
+with LCR evidence: TOMK 2024Q1 solo and GARAN 2022Q4 consolidated. All eight
+LCR values and complete literal/page/period JSON equal the original-PDF probes;
+four previously missing comparative cells are filled. Existing current LCR,
+NSFR, leverage and table-locator pages are unchanged. No other filing has LCR
+evidence. Receipts: `broad-lane-live-verification.json` and source/baseline/after
+files in `docs/knowledge/2026-09-06-document-corpus/`. The admin browser session
+expired on reload, so authenticated visual confirmation is still outstanding.
 
 Analyst tools also regain stored FX source pages and source pages in row histories;
 repricing buckets, loan sectors and current/prior histories become addressable.

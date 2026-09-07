@@ -24,8 +24,11 @@ extractors plus structured prose and unserved report tables. See the all-lane ma
 in [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md#all-lane-repair-map-2026-09-08).
 Credit-quality coverage refers to closing balances; liquidity, FX and repricing
 refer to selected ratios or summary rows. A passing cell does not certify a
-complete source table. The pending liquidity increment preserves LCR current/prior
-headings and literal/page evidence; it does not publish the full liquidity tables.
+complete source table. The deployed liquidity increment preserves LCR current/prior
+headings and literal/page evidence. Its two verified filings are TOMK 2024Q1 solo
+and GARAN 2022Q4 consolidated; complete liquidity tables remain outside this lane.
+Production D1 readback is verified; authenticated visual confirmation is pending
+because the admin browser session expired on reload.
 
 ## Code map
 

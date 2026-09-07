@@ -425,13 +425,20 @@ def _triplets_foot(vals: list[float | None], n_cols: int) -> bool:
     return True
 
 
+_CALENDAR_HEADER_RX = re.compile(
+    r"^\s*\(?\d{1,2}\s+(?:"
+    r"Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık|"
+    r"January|February|March|April|May|June|July|August|September|October|November|December"
+    r")\s+\d{4}\)?(?:\s*$|\s+TAR[İI]H[İI](?:NDE|NE)?\b)", re.I)
+
+
 def _parse_rows(text: str, n_cols: int, *,
                 keep_small_negatives: bool = False) -> list[tuple[str, list[float | None]]]:
     """For each line that ends in N numeric tokens, return (label, values)."""
     rows: list[tuple[str, list[float | None]]] = []
     for line in text.split('\n'):
         line = line.rstrip()
-        if not line.strip():
+        if not line.strip() or _CALENDAR_HEADER_RX.match(line):
             continue
         # Blank bracketed footnote section-refs ("(5.I.16)") with equal-length
         # spaces — kills the spurious value tokens NUM_PAT would split out of
