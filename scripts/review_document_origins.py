@@ -28,6 +28,7 @@ def main(argv=None):
     parser.add_argument('--config', type=Path, default=REPO / 'data/banks/audit_report_urls.json')
     parser.add_argument('--output-dir', type=Path, default=REPO / 'data/audit_capture/origins-v1')
     parser.add_argument('--publish', action='store_true')
+    parser.add_argument('--source', choices=['registered', 'bddk'], default='registered')
     parser.add_argument('--bank')
     parser.add_argument('--period')
     parser.add_argument('--kind', choices=['consolidated', 'unconsolidated'])
@@ -63,9 +64,17 @@ def main(argv=None):
         acquired[Filing(bank, period, kind)].append(key)
     patterns = bank_patterns(config['banks'])
     report = {'schema_version': 'document-origin-run-1', 'selected_filings': len(selected),
+              'origin_source': args.source,
               'assigned_filings': len(assigned), 'shard_count': args.shard_count, 'shard_index': args.shard_index,
               'filings': [], 'semantically_verified': False, 'published_evidence': args.publish}
     _write_json(args.output_dir / 'origin-results.json', report)
+    listing, listing_error = None, None
+    if args.source == 'bddk':
+        from src.audit_reports.document_origin_listing import fetch_listing, listing_witness
+        try:
+            listing = fetch_listing()
+        except Exception as error:
+            listing_error = str(error)
     for filing in assigned:
         result = {'filing': filing.as_dict()}
         try:
@@ -74,7 +83,17 @@ def main(argv=None):
                 raise ValueError('Origin comparison requires an unambiguous URL and acquisition binding')
             key = acquired[filing][0] if acquired[filing] else f'{filing.bank_ticker.lower()}/{filing.filename}'
             member = config['banks'][filing.bank_ticker].get('archive_selection', {}).get(filing.kind, {}).get(filing.period)
-            result, artifacts = observe_origin(store, filing, key, urls[0], patterns, reviewed_member=member)
+            url = urls[0]
+            if args.source == 'bddk':
+                if listing_error:
+                    raise ValueError(f'Official listing unavailable: {listing_error}')
+                url = listing_witness(*listing, filing)['download_url']
+                # A reviewed archive member is bound to its original URL; a
+                # different official archive needs its own unambiguous selection.
+                if url != urls[0]:
+                    member = None
+            result, artifacts = observe_origin(store, filing, key, url, patterns, reviewed_member=member,
+                                                **({'listing': listing} if listing is not None else {}))
             if args.publish:
                 result = publish_origin(store, result, artifacts, patterns)
             else:
@@ -82,7 +101,7 @@ def main(argv=None):
                 # artifacts. Fleet proof publication retains them in private R2.
                 folder = args.output_dir / 'sources' / filing.filename.removesuffix('.pdf')
                 for name, body in artifacts.items():
-                    suffix = 'pdf' if name == 'origin_pdf' else 'bin'
+                    suffix = 'pdf' if name == 'origin_pdf' else 'html' if name == 'source_listing' else 'bin'
                     _write_bytes(folder / f'{name}.{suffix}', body)
         except Exception as error:
             result = {**result, 'observation_status': result.get('status'), 'status': 'failed', 'error': str(error)}

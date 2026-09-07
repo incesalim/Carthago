@@ -40,6 +40,47 @@ function changedReceipt(mutate: (r: Record<string, unknown>) => void) {
 }
 const url = "https://test/api/admin/document-origin?filing=TEST%7C2026Q1%7Cconsolidated";
 
+const listed = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_origin_listing_wire.json", import.meta.url), "utf8"));
+function listedObjects(mutate?: (review: Record<string, unknown>) => void) {
+  const data = Object.fromEntries(Object.entries(listed.objects).map(([k, v]) => [k, Buffer.from(v as string, "base64")]));
+  const index = JSON.parse(data[listed.review.index_key].toString());
+  if (mutate) {
+    const review = JSON.parse(data[index.current.key].toString());
+    mutate(review);
+    const bytes = Buffer.from(JSON.stringify(review));
+    index.current = { ...index.current, key: index.current.key.replace(/[a-f0-9]{64}\.json$/, digest(bytes) + ".json"), sha256: digest(bytes), bytes: bytes.length };
+    index.revisions = [index.current];
+    data[index.current.key] = bytes;
+    data[listed.review.index_key] = Buffer.from(JSON.stringify(index));
+  }
+  return data;
+}
+
+describe("retained regulator listing witnesses", () => {
+  it("reads the independently produced Python witness", async () => {
+    const review = await getOriginReview(bucket(listedObjects()), listed.filing);
+    expect(review?.source_listing?.registry_name).toBe("ARAP TÜRK BANKASI A.Ş.");
+    expect(review?.source_listing?.download_url).toBe(review?.source_url);
+  });
+  it.each(["bank", "period", "basis", "source", "host", "target", "key", "approval", "request"])("rejects a substituted %s witness", async mutation => {
+    const data = listedObjects(review => {
+      const listing = review.source_listing as Record<string, unknown>;
+      if (mutation === "bank") listing.registry_name = "Other Bank";
+      if (mutation === "period") (listing.row_cells as string[])[1] = "2025";
+      if (mutation === "basis") (listing.row_cells as string[])[3] = "KONSOLIDE";
+      if (mutation === "source") listing.download_url = "https://other.example/report.pdf";
+      if (mutation === "host" || mutation === "target") {
+        review.source_url = String(review.source_url).replace(mutation === "host" ? "www.bddk.org.tr" : "2026-06", mutation === "host" ? "other.example" : "2025-06");
+        listing.download_url = review.source_url;
+      }
+      if (mutation === "key") listing.key = "document-corpus/v1/foreign.html";
+      if (mutation === "approval") listing.semantically_verified = true;
+      if (mutation === "request") (listing.response as Record<string, unknown>).method = "GET";
+    });
+    await expect(getOriginReview(bucket(data), listed.filing)).rejects.toThrow();
+  });
+});
+
 describe("retained official-origin evidence", () => {
   it("reads the Python-produced receipt and keeps semantic verification false", async () => {
     const expected = { ...fixture.review };

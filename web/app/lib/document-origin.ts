@@ -1,6 +1,7 @@
 /** Independent official-source observations; byte agreement never approves contents. */
 import { CORPUS_PREFIX, type CorpusBucket, type FilingIdentity } from "./document-corpus";
 import { readRecoveryArtifact } from "./document-recovery";
+import regulatorNames from "../../../data/banks/bddk_audit_registry_names.json";
 
 type Artifact = { key: string; sha256: string; bytes: number };
 export type OriginReview = {
@@ -10,6 +11,8 @@ export type OriginReview = {
   source_url: string; semantically_verified: false; error?: string;
   acquisition: { sha256: string; bytes: number } | null;
   transport: Artifact | null; origin_pdf: Artifact | null;
+  source_listing?: Artifact & { registry_name: string; download_url: string; row_number: number;
+    row_cells: string[]; response: { source_url: string } };
   origin_identity?: { status: string }; related_pdf_content_capture?: string;
   selection?: { archive_member?: string; unselected_pdf_members?: { name: string; bytes: number; sha256: string }[] };
 };
@@ -53,6 +56,35 @@ export async function getOriginReview(bucket: CorpusBucket, filing: FilingIdenti
     if (!record(entry) || !hash(entry.sha256) || !count(entry.bytes)
         || entry.key !== (name === "transport" ? `${CORPUS_PREFIX}transports/${entry.sha256}/original.bin`
           : `${CORPUS_PREFIX}sources/${entry.sha256}/original.pdf`)) throw new Error("Invalid origin artifact key");
+  }
+  if (value.source_listing !== undefined) {
+    const listing = value.source_listing;
+    const expectedName = (regulatorNames.banks as Record<string, string>)[filing.bank_ticker];
+    if (!record(listing) || listing.schema_version !== "document-origin-listing-1" || !sameFiling(listing.filing, filing)
+        || listing.semantically_verified !== false || !hash(listing.sha256) || !count(listing.bytes)
+        || listing.key !== `${CORPUS_PREFIX}origin-listings/${listing.sha256}.html` || listing.bytes > 20_000_000
+        || !expectedName || listing.registry_name !== expectedName || listing.download_url !== value.source_url
+        || !record(listing.engine) || !hash(listing.engine.implementation_sha256) || !hash(listing.engine.bank_names_sha256)
+        || typeof listing.row_number !== "number" || !Number.isSafeInteger(listing.row_number) || listing.row_number < 0
+        || !Array.isArray(listing.row_cells) || listing.row_cells.length !== 5
+        || listing.row_cells[0] !== expectedName || listing.row_cells[1] !== filing.period.slice(0, 4)
+        || listing.row_cells[2] !== String(Number(filing.period.slice(-1)) * 3)
+        || listing.row_cells[3] !== (filing.kind === "consolidated" ? "KONSOLIDE" : "SOLO")
+        || !record(listing.response) || listing.response.source_url !== "https://www.bddk.org.tr/BdrUyg/"
+        || listing.response.resolved_url !== "https://www.bddk.org.tr/BdrUyg/Home/SorguSonuc?KurulusTuru=1&EFTKodu=0&RaporTipi=T%C3%9CM%C3%9C&DonemYil=0&DonemAy=0"
+        || listing.response.method !== "POST"
+        || !record(listing.response.form) || listing.response.form.KurulusTuru !== "1" || listing.response.form.EFTKodu !== "0"
+        || listing.response.form.RaporTipi !== "TÜMÜ" || listing.response.form.DonemYil !== "0" || listing.response.form.DonemAy !== "0") {
+      throw new Error("Invalid regulator listing witness");
+    }
+    const url = new URL(value.source_url as string);
+    const target = url.searchParams.getAll("raporUrl");
+    const basis = filing.kind === "consolidated" ? "KONSOLIDE" : "SOLO";
+    const match = /^~\/Dosya\/BDREki-\d+-(SOLO|KONSOLIDE)-(\d{4})-(\d{2})\.zip$/.exec(target[0] ?? "");
+    if (url.protocol !== "https:" || url.host !== "www.bddk.org.tr" || url.pathname !== "/BdrUyg/Home/DosyaIndir"
+        || url.hash || [...url.searchParams.keys()].length !== 1 || target.length !== 1
+        || !match || match[1] !== basis || match[2] !== filing.period.slice(0, 4)
+        || match[3] !== String(Number(filing.period.slice(-1)) * 3).padStart(2, "0")) throw new Error("Regulator link differs from its filing");
   }
   if (value.origin_identity !== undefined && (!record(value.origin_identity) || typeof value.origin_identity.status !== "string")) {
     throw new Error("Invalid origin identity observation");

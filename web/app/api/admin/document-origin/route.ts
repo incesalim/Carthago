@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const filing = parseFiling(params.get("filing") ?? "");
   const artifact = params.get("artifact");
-  if (!filing || artifact !== null && !["origin_pdf", "transport"].includes(artifact)) {
+  if (!filing || artifact !== null && !["origin_pdf", "transport", "source_listing"].includes(artifact)) {
     return json({ error: "Choose a registered filing and an available source artifact." }, 400);
   }
   const bucket = await getCorpusBucket();
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   try {
     const review = await getOriginReview(bucket, filing);
     if (!artifact) return json({ review });
-    const entry = artifact === "origin_pdf" ? review?.origin_pdf : review?.transport;
+    const entry = artifact === "origin_pdf" ? review?.origin_pdf : artifact === "source_listing" ? review?.source_listing : review?.transport;
     if (!entry) return json({ error: "This source observation has no retained artifact of that kind." }, 404);
     const bytes = await readRecoveryArtifact(bucket, entry);
     return new Response(new Uint8Array(bytes).buffer, { headers: { ...headers,

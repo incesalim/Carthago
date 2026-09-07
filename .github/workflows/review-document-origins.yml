@@ -24,6 +24,11 @@ on:
         description: "Retain official transport, PDF and comparison evidence in private R2; never replace acquired PDFs"
         type: boolean
         default: false
+      origin_source:
+        description: "Registered bank URL, or an exact filing row in the regulator listing"
+        type: choice
+        options: [registered, bddk]
+        default: registered
 
 permissions:
   contents: read
@@ -61,10 +66,11 @@ jobs:
           KIND: ${{ inputs.kind }}
           LIMIT: ${{ inputs.limit }}
           PUBLISH: ${{ inputs.publish }}
+          ORIGIN_SOURCE: ${{ inputs.origin_source }}
           SHARD_INDEX: ${{ matrix.shard }}
           SHARD_COUNT: ${{ strategy.job-total }}
         run: |
-          args=(--limit "$LIMIT" --shard-count "$SHARD_COUNT" --shard-index "$SHARD_INDEX")
+          args=(--limit "$LIMIT" --shard-count "$SHARD_COUNT" --shard-index "$SHARD_INDEX" --source "$ORIGIN_SOURCE")
           [ "$BANKS" != "ALL" ] && args+=(--bank "$BANKS")
           [ -n "$PERIOD" ] && args+=(--period "$PERIOD")
           [ "$KIND" != "BOTH" ] && args+=(--kind "$KIND")

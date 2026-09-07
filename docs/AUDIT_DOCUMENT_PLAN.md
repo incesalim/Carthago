@@ -629,3 +629,10 @@ of detected tables.
   listing rows and independently inspected covers. AKTIF/VAKBN/ZIRAATK 2026Q2
   solo match acquisitions; ATBANK differs despite identical rendered covers.
   Full alternate-revision comparison and source-bound publication remain open.
+
+- 2026-09-07: implemented a separate BDDK listing witness for alternate-origin
+  comparisons. The current search form and 1,142 exact registered filing rows
+  were independently observed; four real rows form the regression fixture.
+  Publication binds literal bank name, period, basis, URL, listing response and
+  downloaded bytes, retaining prior observations. Python checks, 771 web tests,
+  lint and type checks pass. Cloud verification remains pending.

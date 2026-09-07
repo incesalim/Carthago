@@ -191,8 +191,9 @@ rows finds exact acquired-byte agreement for AKTIF, VAKBN and ZIRAATK 2026Q2
 solo, and a different ATBANK PDF revision. All four covers visually confirm the
 bank, period and basis; ATBANK's two covers have identical rendered bytes, but
 its full 88-page revision comparison is pending. Alternate-source origin receipt
-publication has not yet been implemented; these probes do not replace the
-registered URLs or alter the published origin-agreement count.
+publication is now implemented with a retained exact regulator-listing witness;
+cloud verification remains pending. These probes do not replace the registered
+URLs or alter the published origin-agreement count.
 
 The private admin links original pages, source references, candidate tables,
 prose and alternative readings. Anonymous access returns 403. No corpus work has

@@ -23,7 +23,8 @@ def _sha(body):
 
 
 def observe_origin(store, filing: Filing, acquisition_key: str | None, url: str, patterns: dict, *,
-                   reviewed_member: dict | None = None, fetch=fetch_source, checked_at: str | None = None):
+                   reviewed_member: dict | None = None, fetch=fetch_source, checked_at: str | None = None,
+                   listing: tuple[bytes, dict] | None = None):
     result = {'schema_version': 'document-origin-review-1', 'filing': filing.as_dict(), 'source_url': url,
               'acquisition_key': acquisition_key, 'requested_archive_selection': reviewed_member,
               'checked_at': checked_at or datetime.now(timezone.utc).isoformat(),
@@ -49,6 +50,13 @@ def observe_origin(store, filing: Filing, acquisition_key: str | None, url: str,
             result['acquisition'] = {'key': acquisition_key, 'sha256': _sha(acquired), 'bytes': len(acquired),
                                      'version': metadata(acquisition_key, response)}
     artifacts = {}
+    if listing is not None:
+        from .document_origin_listing import listing_witness
+        witness = listing_witness(*listing, filing)
+        if witness['download_url'] != url:
+            raise ValueError('Origin URL differs from its official listing row')
+        result['source_listing'] = witness
+        artifacts['source_listing'] = listing[0]
     try:
         transport, response = fetch(url)
     except Exception as error:
@@ -120,7 +128,7 @@ def publish_origin(store, result: dict, artifacts: dict[str, bytes], patterns: d
         current = metadata(acquired['key'], store.client.head_object(Bucket=store.bucket, Key=acquired['key']))
         if current != acquired['version']:
             raise ValueError('Acquisition changed during origin review')
-    expected = {name for name in ('transport', 'origin_pdf') if result.get(name) is not None}
+    expected = {name for name in ('transport', 'origin_pdf', 'source_listing') if result.get(name) is not None}
     if set(artifacts) != expected:
         raise ValueError('Origin review is missing its downloaded evidence')
     def retained_download(_url):
@@ -128,7 +136,8 @@ def publish_origin(store, result: dict, artifacts: dict[str, bytes], patterns: d
             raise RuntimeError(result['error'])
         return artifacts['transport'], result['response']
     checked, retained = observe_origin(store, filing, result['acquisition_key'], result['source_url'], patterns,
-        reviewed_member=result['requested_archive_selection'], fetch=retained_download, checked_at=result['checked_at'])
+        reviewed_member=result['requested_archive_selection'], fetch=retained_download, checked_at=result['checked_at'],
+        listing=(artifacts['source_listing'], result['source_listing']['response']) if 'source_listing' in artifacts else None)
     if checked != result or retained != artifacts:
         raise ValueError('Origin review differs from acquired bytes and retained transport')
     value = dict(result)
@@ -136,9 +145,12 @@ def publish_origin(store, result: dict, artifacts: dict[str, bytes], patterns: d
         record = result[name]
         if _sha(body) != record['sha256'] or len(body) != record['bytes']:
             raise ValueError('Origin artifact differs from its observed bytes')
-        key = (f"{PREFIX}transports/{record['sha256']}/original.bin" if name == 'transport' else
-               f"{PREFIX}sources/{record['sha256']}/original.pdf")
-        store._immutable(key, body, 'application/octet-stream' if name == 'transport' else 'application/pdf')
+        if name == 'source_listing':
+            key = f"{PREFIX}origin-listings/{record['sha256']}.html"
+        else:
+            key = (f"{PREFIX}transports/{record['sha256']}/original.bin" if name == 'transport' else
+                   f"{PREFIX}sources/{record['sha256']}/original.pdf")
+        store._immutable(key, body, 'application/pdf' if name == 'origin_pdf' else 'application/octet-stream')
         value[name] = {**record, 'key': key}
     base = f'{PREFIX}origins/{filing.bank_ticker}/{filing.period}/{filing.kind}/'
     payload = _json(value)

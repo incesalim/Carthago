@@ -40,7 +40,8 @@ export default function DocumentOriginPanel({ filing, sourceHash }: { filing: st
       {review.origin_identity && <p className="mt-1 text-muted-foreground">Opening-page identity: {review.origin_identity.status.replaceAll("_", " ")}.</p>}
       {review.error && <p className="mt-1 text-warning">{review.error}</p>}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-        <a className="text-primary hover:underline" href={review.source_url} target="_blank" rel="noreferrer">Registered official URL</a>
+        <a className="text-primary hover:underline" href={review.source_url} target="_blank" rel="noreferrer">{review.source_listing ? "Regulator-listed official URL" : "Registered official URL"}</a>
+        {review.source_listing && <a className="text-primary hover:underline" href={`${url}&artifact=source_listing`}>Download retained regulator listing</a>}
         {review.origin_pdf && <a className="text-primary hover:underline" href={`${url}&artifact=origin_pdf`} target="_blank" rel="noreferrer">Open retained official PDF</a>}
         {review.transport && <a className="text-primary hover:underline" href={`${url}&artifact=transport`}>Download original response</a>}
         <a className="text-primary hover:underline" href={url} target="_blank" rel="noreferrer">Comparison evidence</a>

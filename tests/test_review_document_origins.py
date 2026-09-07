@@ -115,3 +115,37 @@ def test_publication_failure_retains_observed_comparison_in_run_report(setup, mo
     assert failed['status'] == 'failed' and failed['observation_status'] == result['status']
     assert failed['acquisition'] == result['acquisition']
     assert failed['transport'] == result['transport'] and failed['origin_leading_pages']
+
+
+def test_failed_regulator_listing_keeps_every_named_filing_outcome(setup, monkeypatch):
+    from src.audit_reports import document_origin_listing
+    client, args, folder = setup
+    def unavailable():
+        raise RuntimeError('Listing unavailable')
+    monkeypatch.setattr(document_origin_listing, 'fetch_listing', unavailable)
+    monkeypatch.setattr(command, 'observe_origin', lambda *a, **kw: pytest.fail('No listing was available'))
+    assert command.main(args + ['--bank', 'TEST', '--source', 'bddk']) == 1
+    report = json.loads((folder / 'origin-results.json').read_text(encoding='utf-8'))
+    assert report['origin_source'] == 'bddk' and report['summary'] == {'failed': 2}
+    assert all('Listing unavailable' in r['error'] for r in report['filings'])
+    assert not client.writes
+
+
+def test_regulator_alternative_does_not_reuse_another_urls_archive_override(setup, monkeypatch):
+    from src.audit_reports import document_origin_listing
+    from test_document_origin_listing import BODY, RESPONSE
+    client, args, folder = setup
+    path = folder / 'config.json'
+    config = {'banks': {'ATBANK': {'name': 'Arap Türk Bankası', 'urls': {'unconsolidated': {'2026Q2': URL}},
+                                'archive_selection': {'unconsolidated': {'2026Q2': {'member': 'old.pdf', 'sha256': 'a' * 64}}}}}}
+    path.write_text(json.dumps(config), encoding='utf-8')
+    before = path.read_bytes(); calls = []
+    monkeypatch.setattr(document_origin_listing, 'fetch_listing', lambda: (BODY, RESPONSE))
+    def review(store, filing, key, url, patterns, *, reviewed_member, listing):
+        calls.append((filing, url, reviewed_member, listing))
+        return {'filing': filing.as_dict(), 'status': 'matches_acquired_bytes'}, {}
+    monkeypatch.setattr(command, 'observe_origin', review)
+    assert command.main(args + ['--bank', 'ATBANK', '--source', 'bddk']) == 0
+    assert len(calls) == 1 and calls[0][2] is None and calls[0][3] == (BODY, RESPONSE)
+    assert 'BDREki-091-SOLO-2026-06' in calls[0][1]
+    assert path.read_bytes() == before and not client.writes

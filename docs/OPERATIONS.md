@@ -1783,3 +1783,15 @@ receipt; changes to notes or their validator invalidate annotation reuse. The
 private corpus endpoint accepts `artifact=reviews`, rechecks the current native
 revision and each passage, and returns source-bound open findings. It does not
 resolve discrepancies or modify extracted values.
+
+`review-document-origins.yml` also accepts `origin_source=bddk` (the
+`ORIGIN_SOURCE` workflow input adapter / CLI `--source bddk`). The default stays
+`registered`. BDDK mode posts the observed bank-listing search form, retains its
+response under `document-corpus/v1/origin-listings/`, and requires one exact
+registered bank/period/basis row. Bank identities use committed literal names in
+`data/banks/bddk_audit_registry_names.json`; no guessed file URLs or fuzzy name
+matching are used. The listing, transport, selected PDF and comparison remain
+linked in the immutable origin receipt. Earlier observations and acquired PDFs
+remain retained. A missing/ambiguous listing row or archive is a named failure.
+The admin can download the retained listing through `artifact=source_listing`;
+it is served as an attachment after its byte checksum is checked.

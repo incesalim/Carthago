@@ -1,0 +1,187 @@
+{
+  "filing": {
+    "bank_ticker": "ATBANK",
+    "period": "2026Q2",
+    "kind": "unconsolidated"
+  },
+  "review": {
+    "schema_version": "document-origin-review-1",
+    "filing": {
+      "bank_ticker": "ATBANK",
+      "period": "2026Q2",
+      "kind": "unconsolidated"
+    },
+    "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-091-SOLO-2026-06.zip",
+    "acquisition_key": "atbank/ATBANK_2026Q2_unconsolidated.pdf",
+    "requested_archive_selection": null,
+    "checked_at": "2026-09-07T00:00:00+00:00",
+    "acquisition": {
+      "key": "atbank/ATBANK_2026Q2_unconsolidated.pdf",
+      "sha256": "90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87",
+      "bytes": 881,
+      "version": {
+        "key": "atbank/ATBANK_2026Q2_unconsolidated.pdf",
+        "etag": "\"90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87\"",
+        "size": 881,
+        "modified": "2026-01-01T00:00:00+00:00"
+      }
+    },
+    "transport": {
+      "sha256": "90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87",
+      "bytes": 881,
+      "key": "document-corpus/v1/transports/90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87/original.bin"
+    },
+    "origin_pdf": {
+      "sha256": "90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87",
+      "bytes": 881,
+      "key": "document-corpus/v1/sources/90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87/original.pdf"
+    },
+    "semantically_verified": false,
+    "engine": {
+      "pymupdf": "1.27.2.3",
+      "implementation": {
+        "document_origin.py": "2167ab3206ef0701ec4d0010c1b16737617f2c81a92086de5842ac8f777f9d1a",
+        "document_acquisition.py": "061aa9a91acce0f6079bf50bf1c685eb6578915bdc8106ff510982c0a4d86eff",
+        "document_quality.py": "41908cb8a61e7f3997fd1a8a21202011a8786e3995e0a164194cfce4b4c5f9ad"
+      }
+    },
+    "source_listing": {
+      "schema_version": "document-origin-listing-1",
+      "sha256": "51e720dcdcaab7a4a7a9f96f111dd5f5628d24562dbc3c3a8de24c443be70702",
+      "bytes": 1134,
+      "response": {
+        "source_url": "https://www.bddk.org.tr/BdrUyg/",
+        "resolved_url": "https://www.bddk.org.tr/BdrUyg/Home/SorguSonuc?KurulusTuru=1&EFTKodu=0&RaporTipi=T%C3%9CM%C3%9C&DonemYil=0&DonemAy=0",
+        "method": "POST",
+        "form": {
+          "KurulusTuru": "1",
+          "EFTKodu": "0",
+          "RaporTipi": "TÜMÜ",
+          "DonemYil": "0",
+          "DonemAy": "0"
+        },
+        "content_type": "text/html; charset=utf-8",
+        "tls_verification": "certifi_with_globalsign_intermediate"
+      },
+      "filing": {
+        "bank_ticker": "ATBANK",
+        "period": "2026Q2",
+        "kind": "unconsolidated"
+      },
+      "registry_name": "ARAP TÜRK BANKASI A.Ş.",
+      "row_number": 1,
+      "row_cells": [
+        "ARAP TÜRK BANKASI A.Ş.",
+        "2026",
+        "6",
+        "SOLO",
+        "İndir"
+      ],
+      "download_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-091-SOLO-2026-06.zip",
+      "engine": {
+        "implementation_sha256": "2ea559e6695817cd417e229197eb97a9cca560f7eb596d528fe88f508a3f1379",
+        "bank_names_sha256": "109f330fb17ec5a16e55895bb322762a1abf28fe831ae00dbc541b40cc5ac43a"
+      },
+      "semantically_verified": false,
+      "key": "document-corpus/v1/origin-listings/51e720dcdcaab7a4a7a9f96f111dd5f5628d24562dbc3c3a8de24c443be70702.html"
+    },
+    "response": {
+      "source_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-091-SOLO-2026-06.zip",
+      "resolved_url": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-091-SOLO-2026-06.zip"
+    },
+    "selection": {
+      "method": "direct_pdf",
+      "archive_members": []
+    },
+    "page_count": 1,
+    "origin_leading_pages": [
+      {
+        "page": 1,
+        "spans": [
+          {
+            "id": 0,
+            "block": 0,
+            "line": 0,
+            "text": "Test Bank 31 March 2026 Consolidated Financial Statements",
+            "bbox": [
+              40.0,
+              68.17500305175781,
+              338.9689636230469,
+              83.28900146484375
+            ]
+          }
+        ]
+      }
+    ],
+    "origin_identity": {
+      "filing": {
+        "bank_ticker": "ATBANK",
+        "period": "2026Q2",
+        "kind": "unconsolidated"
+      },
+      "status": "source_text_conflict",
+      "claim_page": 1,
+      "observations": [
+        {
+          "page": 1,
+          "banks": [
+            {
+              "bank_ticker": "ATBANK",
+              "observed_text": "test bank",
+              "source_span_ids": [
+                0
+              ],
+              "normalized_text_range": [
+                0,
+                9
+              ]
+            }
+          ],
+          "quarter_end_dates": [
+            {
+              "period": "2026Q1",
+              "observed_text": "31 march 2026",
+              "source_span_ids": [
+                0
+              ],
+              "normalized_text_range": [
+                10,
+                23
+              ]
+            }
+          ],
+          "bases": [
+            {
+              "kind": "consolidated",
+              "observed_text": "consolidated",
+              "source_span_ids": [
+                0
+              ],
+              "normalized_text_range": [
+                24,
+                36
+              ]
+            }
+          ]
+        }
+      ],
+      "issues": [
+        "period_conflicts_with_source_text",
+        "basis_conflicts_with_source_text"
+      ],
+      "scope": "leading_source_text_only",
+      "semantic_verification": "not_performed"
+    },
+    "related_pdf_content_capture": "not_applicable",
+    "status": "matches_acquired_bytes",
+    "review_key": "document-corpus/v1/origins/ATBANK/2026Q2/unconsolidated/c40c80289758f9b57be015e3397b1a5af08e4070bc751691efc4a38cac987a66.json",
+    "index_key": "document-corpus/v1/origins/ATBANK/2026Q2/unconsolidated/index.json"
+  },
+  "objects": {
+    "document-corpus/v1/origin-listings/51e720dcdcaab7a4a7a9f96f111dd5f5628d24562dbc3c3a8de24c443be70702.html": "PGh0bWw+PG1ldGEgY2hhcnNldD0idXRmLTgiPjxkaXYgaWQ9ImRpdlRhYl9yYXBvcmxhciI+PHRhYmxlPjx0cj4NCjx0ZD5BS1TEsEYgWUFUSVJJTSBCQU5LQVNJIEEuxZ4uPC90ZD4NCjx0ZD4yMDI2PC90ZD4NCjx0ZD42PC90ZD4NCjx0ZD5TT0xPPC90ZD4NCjx0ZCBzdHlsZT0idGV4dC1kZWNvcmF0aW9uLWxpbmU6IHVuZGVybGluZTsiPg0KPGEgY2xhc3M9ImRvd25sb2FkTGluayIgaHJlZj0iL0JkclV5Zy9Ib21lL0Rvc3lhSW5kaXI/cmFwb3JVcmw9fiUyRkRvc3lhJTJGQkRSRWtpLTE0My1TT0xPLTIwMjYtMDYuemlwIj7EsG5kaXI8L2E+DQo8L3RkPg0KPC90cj48dHI+DQo8dGQ+QVJBUCBUw5xSSyBCQU5LQVNJIEEuxZ4uPC90ZD4NCjx0ZD4yMDI2PC90ZD4NCjx0ZD42PC90ZD4NCjx0ZD5TT0xPPC90ZD4NCjx0ZCBzdHlsZT0idGV4dC1kZWNvcmF0aW9uLWxpbmU6IHVuZGVybGluZTsiPg0KPGEgY2xhc3M9ImRvd25sb2FkTGluayIgaHJlZj0iL0JkclV5Zy9Ib21lL0Rvc3lhSW5kaXI/cmFwb3JVcmw9fiUyRkRvc3lhJTJGQkRSRWtpLTA5MS1TT0xPLTIwMjYtMDYuemlwIj7EsG5kaXI8L2E+DQo8L3RkPg0KPC90cj48dHI+DQo8dGQ+VMOcUkvEsFlFIFZBS0lGTEFSIEJBTktBU0kgVC5BLk8uPC90ZD4NCjx0ZD4yMDI2PC90ZD4NCjx0ZD42PC90ZD4NCjx0ZD5TT0xPPC90ZD4NCjx0ZCBzdHlsZT0idGV4dC1kZWNvcmF0aW9uLWxpbmU6IHVuZGVybGluZTsiPg0KPGEgY2xhc3M9ImRvd25sb2FkTGluayIgaHJlZj0iL0JkclV5Zy9Ib21lL0Rvc3lhSW5kaXI/cmFwb3JVcmw9fiUyRkRvc3lhJTJGQkRSRWtpLTAxNS1TT0xPLTIwMjYtMDYuemlwIj7EsG5kaXI8L2E+DQo8L3RkPg0KPC90cj48dHI+DQo8dGQ+WsSwUkFBVCBLQVRJTElNIEJBTktBU0kgQS7Fni48L3RkPg0KPHRkPjIwMjY8L3RkPg0KPHRkPjY8L3RkPg0KPHRkPlNPTE88L3RkPg0KPHRkIHN0eWxlPSJ0ZXh0LWRlY29yYXRpb24tbGluZTogdW5kZXJsaW5lOyI+DQo8YSBjbGFzcz0iZG93bmxvYWRMaW5rIiBocmVmPSIvQmRyVXlnL0hvbWUvRG9zeWFJbmRpcj9yYXBvclVybD1+JTJGRG9zeWElMkZCRFJFa2ktMjA5LVNPTE8tMjAyNi0wNi56aXAiPsSwbmRpcjwvYT4NCjwvdGQ+DQo8L3RyPjwvdGFibGU+PC9kaXY+PC9odG1sPg0K",
+    "document-corpus/v1/transports/90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87/original.bin": "JVBERi0xLjcKJcK1wrYKJSBXcml0dGVuIGJ5IE11UERGIDEuMjcuMgoKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFIvSW5mbzw8L1Byb2R1Y2VyKE11UERGIDEuMjcuMik+Pj4+CmVuZG9iagoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0NvdW50IDEvS2lkc1s0IDAgUl0+PgplbmRvYmoKCjMgMCBvYmoKPDwvRm9udDw8L2hlbHYgNSAwIFI+Pj4+CmVuZG9iagoKNCAwIG9iago8PC9UeXBlL1BhZ2UvTWVkaWFCb3hbMCAwIDU5NSA4NDJdL1JvdGF0ZSAwL1Jlc291cmNlcyAzIDAgUi9QYXJlbnQgMiAwIFIvQ29udGVudHNbNiAwIFJdPj4KZW5kb2JqCgo1IDAgb2JqCjw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYS9FbmNvZGluZy9XaW5BbnNpRW5jb2Rpbmc+PgplbmRvYmoKCjYgMCBvYmoKPDwvTGVuZ3RoIDEyOS9GaWx0ZXIvRmxhdGVEZWNvZGU+PgpzdHJlYW0KeNotjL0KAkEMhPs8Rd7Azc9OFMRCsLE72O6w8W4PCy1sfH6zImFCZph89KZzI+GSI+yFA8rtRbtHf35YhNvG87E6ali4FlcIOu5azEzSr5BQGPaZqA0hU8OGHmMvOMCzkwSMf6TvP4blJVi01CT/G2uqh4edbu1Kl0YTfQFaoyQuCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA3CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA0MiAwMDAwMCBuIAowMDAwMDAwMTIwIDAwMDAwIG4gCjAwMDAwMDAxNzIgMDAwMDAgbiAKMDAwMDAwMDIxMyAwMDAwMCBuIAowMDAwMDAwMzIwIDAwMDAwIG4gCjAwMDAwMDA0MDkgMDAwMDAgbiAKCnRyYWlsZXIKPDwvU2l6ZSA3L1Jvb3QgMSAwIFIvSURbPEMzQjlDM0FGMERDMzk4MEIxMUMyOUM2NUMyQTVDMzgzPjxDRTcwOEIxQzREOTgxQ0Y0RTU0QzdEQkJCRUU4REU3NT5dPj4Kc3RhcnR4cmVmCjYwNwolJUVPRgo=",
+    "document-corpus/v1/sources/90de5cdc31bbc5e3eedc6c720034cab8d61cf56cd8d2ff501d5889bb00f7bb87/original.pdf": "JVBERi0xLjcKJcK1wrYKJSBXcml0dGVuIGJ5IE11UERGIDEuMjcuMgoKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFIvSW5mbzw8L1Byb2R1Y2VyKE11UERGIDEuMjcuMik+Pj4+CmVuZG9iagoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0NvdW50IDEvS2lkc1s0IDAgUl0+PgplbmRvYmoKCjMgMCBvYmoKPDwvRm9udDw8L2hlbHYgNSAwIFI+Pj4+CmVuZG9iagoKNCAwIG9iago8PC9UeXBlL1BhZ2UvTWVkaWFCb3hbMCAwIDU5NSA4NDJdL1JvdGF0ZSAwL1Jlc291cmNlcyAzIDAgUi9QYXJlbnQgMiAwIFIvQ29udGVudHNbNiAwIFJdPj4KZW5kb2JqCgo1IDAgb2JqCjw8L1R5cGUvRm9udC9TdWJ0eXBlL1R5cGUxL0Jhc2VGb250L0hlbHZldGljYS9FbmNvZGluZy9XaW5BbnNpRW5jb2Rpbmc+PgplbmRvYmoKCjYgMCBvYmoKPDwvTGVuZ3RoIDEyOS9GaWx0ZXIvRmxhdGVEZWNvZGU+PgpzdHJlYW0KeNotjL0KAkEMhPs8Rd7Azc9OFMRCsLE72O6w8W4PCy1sfH6zImFCZph89KZzI+GSI+yFA8rtRbtHf35YhNvG87E6ali4FlcIOu5azEzSr5BQGPaZqA0hU8OGHmMvOMCzkwSMf6TvP4blJVi01CT/G2uqh4edbu1Kl0YTfQFaoyQuCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA3CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA0MiAwMDAwMCBuIAowMDAwMDAwMTIwIDAwMDAwIG4gCjAwMDAwMDAxNzIgMDAwMDAgbiAKMDAwMDAwMDIxMyAwMDAwMCBuIAowMDAwMDAwMzIwIDAwMDAwIG4gCjAwMDAwMDA0MDkgMDAwMDAgbiAKCnRyYWlsZXIKPDwvU2l6ZSA3L1Jvb3QgMSAwIFIvSURbPEMzQjlDM0FGMERDMzk4MEIxMUMyOUM2NUMyQTVDMzgzPjxDRTcwOEIxQzREOTgxQ0Y0RTU0QzdEQkJCRUU4REU3NT5dPj4Kc3RhcnR4cmVmCjYwNwolJUVPRgo=",
+    "document-corpus/v1/origins/ATBANK/2026Q2/unconsolidated/c40c80289758f9b57be015e3397b1a5af08e4070bc751691efc4a38cac987a66.json": "eyJhY3F1aXNpdGlvbiI6eyJieXRlcyI6ODgxLCJrZXkiOiJhdGJhbmsvQVRCQU5LXzIwMjZRMl91bmNvbnNvbGlkYXRlZC5wZGYiLCJzaGEyNTYiOiI5MGRlNWNkYzMxYmJjNWUzZWVkYzZjNzIwMDM0Y2FiOGQ2MWNmNTZjZDhkMmZmNTAxZDU4ODliYjAwZjdiYjg3IiwidmVyc2lvbiI6eyJldGFnIjoiXCI5MGRlNWNkYzMxYmJjNWUzZWVkYzZjNzIwMDM0Y2FiOGQ2MWNmNTZjZDhkMmZmNTAxZDU4ODliYjAwZjdiYjg3XCIiLCJrZXkiOiJhdGJhbmsvQVRCQU5LXzIwMjZRMl91bmNvbnNvbGlkYXRlZC5wZGYiLCJtb2RpZmllZCI6IjIwMjYtMDEtMDFUMDA6MDA6MDArMDA6MDAiLCJzaXplIjo4ODF9fSwiYWNxdWlzaXRpb25fa2V5IjoiYXRiYW5rL0FUQkFOS18yMDI2UTJfdW5jb25zb2xpZGF0ZWQucGRmIiwiY2hlY2tlZF9hdCI6IjIwMjYtMDktMDdUMDA6MDA6MDArMDA6MDAiLCJlbmdpbmUiOnsiaW1wbGVtZW50YXRpb24iOnsiZG9jdW1lbnRfYWNxdWlzaXRpb24ucHkiOiIwNjFhYTlhOTFhY2NlMGY2MDc5YmY1MGJmMWM2ODVlYjY1Nzg5MTViZGM4MTA2ZmY1MTA5ODJjMGE0ZDg2ZWZmIiwiZG9jdW1lbnRfb3JpZ2luLnB5IjoiMjE2N2FiMzIwNmVmMDcwMWVjNGQwMDEwYzFiMTY3Mzc2MTdmMmM4MWE5MjA4NmRlNTg0MmFjOGY3NzdmOWQxYSIsImRvY3VtZW50X3F1YWxpdHkucHkiOiI0MTkwOGNiOGE2MWU3ZjM5OTdmZDFhOGEyMTIwMjAxMWE4Nzg2ZTM5OTVlMGExNjQxOTRjZmNlNGI0YzVmOWFkIn0sInB5bXVwZGYiOiIxLjI3LjIuMyJ9LCJmaWxpbmciOnsiYmFua190aWNrZXIiOiJBVEJBTksiLCJraW5kIjoidW5jb25zb2xpZGF0ZWQiLCJwZXJpb2QiOiIyMDI2UTIifSwib3JpZ2luX2lkZW50aXR5Ijp7ImNsYWltX3BhZ2UiOjEsImZpbGluZyI6eyJiYW5rX3RpY2tlciI6IkFUQkFOSyIsImtpbmQiOiJ1bmNvbnNvbGlkYXRlZCIsInBlcmlvZCI6IjIwMjZRMiJ9LCJpc3N1ZXMiOlsicGVyaW9kX2NvbmZsaWN0c193aXRoX3NvdXJjZV90ZXh0IiwiYmFzaXNfY29uZmxpY3RzX3dpdGhfc291cmNlX3RleHQiXSwib2JzZXJ2YXRpb25zIjpbeyJiYW5rcyI6W3siYmFua190aWNrZXIiOiJBVEJBTksiLCJub3JtYWxpemVkX3RleHRfcmFuZ2UiOlswLDldLCJvYnNlcnZlZF90ZXh0IjoidGVzdCBiYW5rIiwic291cmNlX3NwYW5faWRzIjpbMF19XSwiYmFzZXMiOlt7ImtpbmQiOiJjb25zb2xpZGF0ZWQiLCJub3JtYWxpemVkX3RleHRfcmFuZ2UiOlsyNCwzNl0sIm9ic2VydmVkX3RleHQiOiJjb25zb2xpZGF0ZWQiLCJzb3VyY2Vfc3Bhbl9pZHMiOlswXX1dLCJwYWdlIjoxLCJxdWFydGVyX2VuZF9kYXRlcyI6W3sibm9ybWFsaXplZF90ZXh0X3JhbmdlIjpbMTAsMjNdLCJvYnNlcnZlZF90ZXh0IjoiMzEgbWFyY2ggMjAyNiIsInBlcmlvZCI6IjIwMjZRMSIsInNvdXJjZV9zcGFuX2lkcyI6WzBdfV19XSwic2NvcGUiOiJsZWFkaW5nX3NvdXJjZV90ZXh0X29ubHkiLCJzZW1hbnRpY192ZXJpZmljYXRpb24iOiJub3RfcGVyZm9ybWVkIiwic3RhdHVzIjoic291cmNlX3RleHRfY29uZmxpY3QifSwib3JpZ2luX2xlYWRpbmdfcGFnZXMiOlt7InBhZ2UiOjEsInNwYW5zIjpbeyJiYm94IjpbNDAuMCw2OC4xNzUwMDMwNTE3NTc4MSwzMzguOTY4OTYzNjIzMDQ2OSw4My4yODkwMDE0NjQ4NDM3NV0sImJsb2NrIjowLCJpZCI6MCwibGluZSI6MCwidGV4dCI6IlRlc3QgQmFuayAzMSBNYXJjaCAyMDI2IENvbnNvbGlkYXRlZCBGaW5hbmNpYWwgU3RhdGVtZW50cyJ9XX1dLCJvcmlnaW5fcGRmIjp7ImJ5dGVzIjo4ODEsImtleSI6ImRvY3VtZW50LWNvcnB1cy92MS9zb3VyY2VzLzkwZGU1Y2RjMzFiYmM1ZTNlZWRjNmM3MjAwMzRjYWI4ZDYxY2Y1NmNkOGQyZmY1MDFkNTg4OWJiMDBmN2JiODcvb3JpZ2luYWwucGRmIiwic2hhMjU2IjoiOTBkZTVjZGMzMWJiYzVlM2VlZGM2YzcyMDAzNGNhYjhkNjFjZjU2Y2Q4ZDJmZjUwMWQ1ODg5YmIwMGY3YmI4NyJ9LCJwYWdlX2NvdW50IjoxLCJyZWxhdGVkX3BkZl9jb250ZW50X2NhcHR1cmUiOiJub3RfYXBwbGljYWJsZSIsInJlcXVlc3RlZF9hcmNoaXZlX3NlbGVjdGlvbiI6bnVsbCwicmVzcG9uc2UiOnsicmVzb2x2ZWRfdXJsIjoiaHR0cHM6Ly93d3cuYmRkay5vcmcudHIvQmRyVXlnL0hvbWUvRG9zeWFJbmRpcj9yYXBvclVybD1+JTJGRG9zeWElMkZCRFJFa2ktMDkxLVNPTE8tMjAyNi0wNi56aXAiLCJzb3VyY2VfdXJsIjoiaHR0cHM6Ly93d3cuYmRkay5vcmcudHIvQmRyVXlnL0hvbWUvRG9zeWFJbmRpcj9yYXBvclVybD1+JTJGRG9zeWElMkZCRFJFa2ktMDkxLVNPTE8tMjAyNi0wNi56aXAifSwic2NoZW1hX3ZlcnNpb24iOiJkb2N1bWVudC1vcmlnaW4tcmV2aWV3LTEiLCJzZWxlY3Rpb24iOnsiYXJjaGl2ZV9tZW1iZXJzIjpbXSwibWV0aG9kIjoiZGlyZWN0X3BkZiJ9LCJzZW1hbnRpY2FsbHlfdmVyaWZpZWQiOmZhbHNlLCJzb3VyY2VfbGlzdGluZyI6eyJieXRlcyI6MTEzNCwiZG93bmxvYWRfdXJsIjoiaHR0cHM6Ly93d3cuYmRkay5vcmcudHIvQmRyVXlnL0hvbWUvRG9zeWFJbmRpcj9yYXBvclVybD1+JTJGRG9zeWElMkZCRFJFa2ktMDkxLVNPTE8tMjAyNi0wNi56aXAiLCJlbmdpbmUiOnsiYmFua19uYW1lc19zaGEyNTYiOiIxMDlmMzMwZmIxN2VjNWExNmU1NTg5NWJiMzIyNzYyYTFhYmYyOGZlODMxYWUwMGRiYzU0MWI0MGNjNWFjNDNhIiwiaW1wbGVtZW50YXRpb25fc2hhMjU2IjoiMmVhNTU5ZTY2OTU4MTdjZDQxN2UyMjkxOTdlYjk3YTljY2E1NjBmN2ViNTk2ZDUyOGZlODhmNTA4YTNmMTM3OSJ9LCJmaWxpbmciOnsiYmFua190aWNrZXIiOiJBVEJBTksiLCJraW5kIjoidW5jb25zb2xpZGF0ZWQiLCJwZXJpb2QiOiIyMDI2UTIifSwia2V5IjoiZG9jdW1lbnQtY29ycHVzL3YxL29yaWdpbi1saXN0aW5ncy81MWU3MjBkY2RjYWFiN2E0YTdhOWY5NmYxMTFkZDVmNTYyOGQyNDU2MmRiYzNjM2E4ZGUyNGM0NDNiZTcwNzAyLmh0bWwiLCJyZWdpc3RyeV9uYW1lIjoiQVJBUCBUw5xSSyBCQU5LQVNJIEEuxZ4uIiwicmVzcG9uc2UiOnsiY29udGVudF90eXBlIjoidGV4dC9odG1sOyBjaGFyc2V0PXV0Zi04IiwiZm9ybSI6eyJEb25lbUF5IjoiMCIsIkRvbmVtWWlsIjoiMCIsIkVGVEtvZHUiOiIwIiwiS3VydWx1c1R1cnUiOiIxIiwiUmFwb3JUaXBpIjoiVMOcTcOcIn0sIm1ldGhvZCI6IlBPU1QiLCJyZXNvbHZlZF91cmwiOiJodHRwczovL3d3dy5iZGRrLm9yZy50ci9CZHJVeWcvSG9tZS9Tb3JndVNvbnVjP0t1cnVsdXNUdXJ1PTEmRUZUS29kdT0wJlJhcG9yVGlwaT1UJUMzJTlDTSVDMyU5QyZEb25lbVlpbD0wJkRvbmVtQXk9MCIsInNvdXJjZV91cmwiOiJodHRwczovL3d3dy5iZGRrLm9yZy50ci9CZHJVeWcvIiwidGxzX3ZlcmlmaWNhdGlvbiI6ImNlcnRpZmlfd2l0aF9nbG9iYWxzaWduX2ludGVybWVkaWF0ZSJ9LCJyb3dfY2VsbHMiOlsiQVJBUCBUw5xSSyBCQU5LQVNJIEEuxZ4uIiwiMjAyNiIsIjYiLCJTT0xPIiwixLBuZGlyIl0sInJvd19udW1iZXIiOjEsInNjaGVtYV92ZXJzaW9uIjoiZG9jdW1lbnQtb3JpZ2luLWxpc3RpbmctMSIsInNlbWFudGljYWxseV92ZXJpZmllZCI6ZmFsc2UsInNoYTI1NiI6IjUxZTcyMGRjZGNhYWI3YTRhN2E5Zjk2ZjExMWRkNWY1NjI4ZDI0NTYyZGJjM2MzYThkZTI0YzQ0M2JlNzA3MDIifSwic291cmNlX3VybCI6Imh0dHBzOi8vd3d3LmJkZGsub3JnLnRyL0JkclV5Zy9Ib21lL0Rvc3lhSW5kaXI/cmFwb3JVcmw9fiUyRkRvc3lhJTJGQkRSRWtpLTA5MS1TT0xPLTIwMjYtMDYuemlwIiwic3RhdHVzIjoibWF0Y2hlc19hY3F1aXJlZF9ieXRlcyIsInRyYW5zcG9ydCI6eyJieXRlcyI6ODgxLCJrZXkiOiJkb2N1bWVudC1jb3JwdXMvdjEvdHJhbnNwb3J0cy85MGRlNWNkYzMxYmJjNWUzZWVkYzZjNzIwMDM0Y2FiOGQ2MWNmNTZjZDhkMmZmNTAxZDU4ODliYjAwZjdiYjg3L29yaWdpbmFsLmJpbiIsInNoYTI1NiI6IjkwZGU1Y2RjMzFiYmM1ZTNlZWRjNmM3MjAwMzRjYWI4ZDYxY2Y1NmNkOGQyZmY1MDFkNTg4OWJiMDBmN2JiODcifX0K",
+    "document-corpus/v1/origins/ATBANK/2026Q2/unconsolidated/index.json": "eyJjdXJyZW50Ijp7ImFjcXVpc2l0aW9uX3NoYTI1NiI6IjkwZGU1Y2RjMzFiYmM1ZTNlZWRjNmM3MjAwMzRjYWI4ZDYxY2Y1NmNkOGQyZmY1MDFkNTg4OWJiMDBmN2JiODciLCJieXRlcyI6Mzk4NCwiY2hlY2tlZF9hdCI6IjIwMjYtMDktMDdUMDA6MDA6MDArMDA6MDAiLCJrZXkiOiJkb2N1bWVudC1jb3JwdXMvdjEvb3JpZ2lucy9BVEJBTksvMjAyNlEyL3VuY29uc29saWRhdGVkL2M0MGM4MDI4OTc1OGY5YjU3YmUwMTVlMzM5N2IxYTVhZjA4ZTQwNzBiYzc1MTY5MWVmYzRhMzhjYWM5ODdhNjYuanNvbiIsInNoYTI1NiI6ImM0MGM4MDI4OTc1OGY5YjU3YmUwMTVlMzM5N2IxYTVhZjA4ZTQwNzBiYzc1MTY5MWVmYzRhMzhjYWM5ODdhNjYiLCJzdGF0dXMiOiJtYXRjaGVzX2FjcXVpcmVkX2J5dGVzIn0sImZpbGluZyI6eyJiYW5rX3RpY2tlciI6IkFUQkFOSyIsImtpbmQiOiJ1bmNvbnNvbGlkYXRlZCIsInBlcmlvZCI6IjIwMjZRMiJ9LCJyZXZpc2lvbnMiOlt7ImFjcXVpc2l0aW9uX3NoYTI1NiI6IjkwZGU1Y2RjMzFiYmM1ZTNlZWRjNmM3MjAwMzRjYWI4ZDYxY2Y1NmNkOGQyZmY1MDFkNTg4OWJiMDBmN2JiODciLCJieXRlcyI6Mzk4NCwiY2hlY2tlZF9hdCI6IjIwMjYtMDktMDdUMDA6MDA6MDArMDA6MDAiLCJrZXkiOiJkb2N1bWVudC1jb3JwdXMvdjEvb3JpZ2lucy9BVEJBTksvMjAyNlEyL3VuY29uc29saWRhdGVkL2M0MGM4MDI4OTc1OGY5YjU3YmUwMTVlMzM5N2IxYTVhZjA4ZTQwNzBiYzc1MTY5MWVmYzRhMzhjYWM5ODdhNjYuanNvbiIsInNoYTI1NiI6ImM0MGM4MDI4OTc1OGY5YjU3YmUwMTVlMzM5N2IxYTVhZjA4ZTQwNzBiYzc1MTY5MWVmYzRhMzhjYWM5ODdhNjYiLCJzdGF0dXMiOiJtYXRjaGVzX2FjcXVpcmVkX2J5dGVzIn1dLCJzY2hlbWFfdmVyc2lvbiI6ImRvY3VtZW50LW9yaWdpbi1pbmRleC0xIiwic2VtYW50aWNhbGx5X3ZlcmlmaWVkIjpmYWxzZX0K"
+  }
+}

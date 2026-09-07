@@ -12,6 +12,11 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
   Pipeline and Traffic panels show a "not configured" hint until their tokens
   are added.
 
+Regulator-sourced origin observations retain the original search result and
+exact bank/period/basis row. The source comparison labels these links explicitly
+and offers the retained listing as a checked download. Earlier bank-site
+observations stay in the origin history, and acquisitions are unchanged.
+
 ## Code map
 
 The existing audit coverage matrix measures predefined analytical lanes. A green
