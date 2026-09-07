@@ -32,6 +32,7 @@ def main(argv=None):
     parser.add_argument('--bank')
     parser.add_argument('--period')
     parser.add_argument('--kind', choices=['consolidated', 'unconsolidated'])
+    parser.add_argument('--filings', help='Exact comma-separated BANK|YYYYQn|basis selections; no broad filters')
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--shard-count', type=int, default=1)
     parser.add_argument('--shard-index', type=int, default=0)
@@ -52,7 +53,20 @@ def main(argv=None):
     registered = registered_sources(config)
     selected = [f for f in sorted(registered) if (not banks or f.bank_ticker in banks)
                 and (not args.period or f.period == args.period) and (not args.kind or f.kind == args.kind)]
-    if args.limit:
+    requested = None
+    if args.filings is not None:
+        if args.bank or args.period or args.kind:
+            parser.error('Exact filings cannot be combined with broad bank/period/basis filters')
+        try:
+            requested = [Filing(*value.strip().split('|')) for value in args.filings.split(',')]
+        except (TypeError, ValueError) as error:
+            parser.error(f'Invalid exact filing selection: {error}')
+        if len(requested) != len(set(requested)) or set(requested) - registered.keys():
+            parser.error('Exact filing selection contains duplicates or unregistered filings')
+        if args.limit and len(requested) > args.limit:
+            parser.error('The limit cannot truncate an exact filing selection')
+        selected = sorted(requested)
+    elif args.limit:
         selected = selected[:args.limit]
     if not selected:
         parser.error('No registered filing matches the origin review scope')
@@ -65,6 +79,7 @@ def main(argv=None):
     patterns = bank_patterns(config['banks'])
     report = {'schema_version': 'document-origin-run-1', 'selected_filings': len(selected),
               'origin_source': args.source,
+              'requested_filings': [f.as_dict() for f in sorted(requested)] if requested is not None else None,
               'assigned_filings': len(assigned), 'shard_count': args.shard_count, 'shard_index': args.shard_index,
               'filings': [], 'semantically_verified': False, 'published_evidence': args.publish}
     _write_json(args.output_dir / 'origin-results.json', report)

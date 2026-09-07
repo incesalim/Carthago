@@ -673,3 +673,18 @@ of detected tables.
   88-page native/structure artifact, exact committed engines and four fresh page
   observations. Source original matches the independent regulator download.
   CI/deployment at `53e18f8` pass; publication `34074261461` is running.
+
+
+- 2026-09-07: nested-wrapper follow-up `34074341718` matches both ZIRAATK PDFs.
+  Independent comparison checks all 11 retained objects against the manually
+  unpacked source chain, exact Git engines and unchanged acquisition/main native
+  bindings. Published origin coverage is now 1,071 agreements, 15 different PDFs
+  (one overlap) and 61 filings with neither outcome.
+- 2026-09-07: ATBANK edition publication/replay `34074261461` matches the complete
+  independently checked probe and leaves all seven object versions unchanged.
+  All remaining 14 observed editions have verified source-byte/transport bindings
+  and individual Actions captures in progress; no main filing is switched.
+- 2026-09-07: added exact registered-filing scopes to origin follow-ups, with
+  duplicate/unknown/ambiguous/truncation rejection before source access. Twenty
+  command tests pass. The 61 remaining source comparisons will use this explicit
+  scope instead of repeating complete bank histories.

@@ -1836,3 +1836,12 @@ nesting, damaged end records or inconsistent local-header positions require
 source review. This prevents a truncated outer archive from being silently read
 as its inner archive. Historical origin outcomes remain unchanged; rerun the
 specific filing comparison to retain a new observation after a decoder repair.
+
+
+An origin follow-up may supply `filings` (workflow adapter `ORIGIN_FILINGS`, CLI
+`--filings`): a comma-separated exact BANK|YYYYQn|basis list. Keep `banks=ALL`,
+blank `period` and `kind=BOTH`. Every identity must be registered and unique;
+conflicting broad filters, unknown filings and a limit that truncates the list
+fail before source access. The report retains the complete requested filing list
+in every worker, with a disjoint assigned count. This allows unresolved source
+comparisons to be retried without downloading already resolved bank histories.

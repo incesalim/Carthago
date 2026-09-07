@@ -16,6 +16,10 @@ on:
         type: choice
         options: [BOTH, consolidated, unconsolidated]
         default: BOTH
+      filings:
+        description: "Optional exact comma-separated BANK|YYYYQn|basis list; leave bank/period/basis filters at defaults"
+        type: string
+        default: ""
       limit:
         description: "Maximum filings after filters; 0 = all"
         type: number
@@ -67,6 +71,7 @@ jobs:
           LIMIT: ${{ inputs.limit }}
           PUBLISH: ${{ inputs.publish }}
           ORIGIN_SOURCE: ${{ inputs.origin_source }}
+          ORIGIN_FILINGS: ${{ inputs.filings }}
           SHARD_INDEX: ${{ matrix.shard }}
           SHARD_COUNT: ${{ strategy.job-total }}
         run: |
@@ -74,6 +79,7 @@ jobs:
           [ "$BANKS" != "ALL" ] && args+=(--bank "$BANKS")
           [ -n "$PERIOD" ] && args+=(--period "$PERIOD")
           [ "$KIND" != "BOTH" ] && args+=(--kind "$KIND")
+          [ -n "$ORIGIN_FILINGS" ] && args+=(--filings "$ORIGIN_FILINGS")
           [ "$PUBLISH" = "true" ] && args+=(--publish)
           python scripts/review_document_origins.py "${args[@]}"
       - name: Keep every named comparison, including differences and unavailable sources

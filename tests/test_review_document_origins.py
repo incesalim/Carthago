@@ -70,6 +70,35 @@ def test_four_groups_partition_scope_without_omissions_or_duplicate_downloads(se
     assert len(calls) == len(set(calls)) == 3
 
 
+def test_exact_followup_visits_only_named_filings_across_all_groups(setup, monkeypatch):
+    _client, args, folder = setup
+    calls = []
+    def review(store, filing, *unused, **kwargs):
+        calls.append(filing)
+        return {'filing': filing.as_dict(), 'status': 'matches_acquired_bytes'}, {}
+    monkeypatch.setattr(command, 'observe_origin', review)
+    selected = 'TEST|2026Q2|consolidated,OTHER|2026Q1|consolidated'
+    for group in range(4):
+        assert command.main(args + ['--filings', selected, '--shard-count', '4', '--shard-index', str(group)]) == 0
+        report = json.loads((folder / 'origin-results.json').read_text(encoding='utf-8'))
+        assert report['selected_filings'] == len(report['requested_filings']) == 2
+        assert report['assigned_filings'] == len(report['filings'])
+    assert len(calls) == len(set(calls)) == 2
+    assert FILING not in calls
+
+
+@pytest.mark.parametrize('selection,extra', [
+    ('TEST|2026Q1|consolidated,TEST|2026Q1|consolidated', []),
+    ('TEST|2025Q1|consolidated', []), ('TEST|wrong|consolidated', []), ('', []),
+    ('TEST|2026Q1|consolidated', ['--bank', 'TEST']),
+    ('TEST|2026Q1|consolidated,TEST|2026Q2|consolidated', ['--limit', '1']),
+])
+def test_invalid_exact_scope_fails_before_any_source_access(setup, monkeypatch, selection, extra):
+    _client, args, _folder = setup
+    monkeypatch.setattr(r2_storage, 'list_audit_pdfs', lambda: pytest.fail('Invalid scope accessed source storage'))
+    with pytest.raises(SystemExit): command.main(args + ['--filings', selection] + extra)
+
+
 @pytest.mark.parametrize('publish', [False, True])
 def test_byte_match_with_conflicting_identity_still_fails_and_preserves_evidence(setup, monkeypatch, publish):
     client, args, folder = setup

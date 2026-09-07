@@ -205,7 +205,8 @@ observed-difference sets overlap. The 72-filing VAKBN/ZIRAATK regulator comparis
 `34072441306` is independently reconciled against 359 stored objects, all prior
 history references, acquisition versions and main native hashes: 67 matches,
 three different PDFs and two downloads the prior parser could not unwrap.
-Across verified published observations, **1,069 filings have byte agreement**;
+Across verified published observations before the nested-wrapper follow-up,
+**1,069 filings have byte agreement**;
 15 have observed different PDFs, with one overlapping filing (ATBANK). 63 have
 neither a verified agreement nor an observed PDF difference. These are source
 revision observations, not approvals of content.
@@ -214,8 +215,13 @@ The two unresolved ZIRAATK 2025Q3 downloads were independently inspected and
 contain a single ZIP inside a ZIP with a four-byte spanning marker. Both inner
 PDF hashes match acquired reports. The decoder now retains both member inventories,
 marker and nested selection and rejects ambiguous extra members, excessive depth,
-truncation or invalid archive boundaries. Local source-byte checks and mutation
-tests pass; fresh cloud origin observations remain pending.
+truncation or invalid archive boundaries. Local source-byte checks, mutation tests and the full Python suite pass.
+Cloud follow-up `34074341718` now matches both PDFs; 11 independently read objects
+prove exact agreement with the manually unpacked transport/member chain, prior
+history retention and unchanged acquisitions. The updated published rollup is
+**1,071 filings with byte agreement**, 15 with a different PDF (one overlaps),
+and 61 with neither outcome. Exact registered-filing follow-up scopes are now
+implemented to compare those remaining sources without rerunning complete banks.
 
 `capture-document-edition.yml` is implemented for an exact historical origin
 observation. It rechecks retained receipt, transport/ZIP selection, PDF bytes
@@ -227,8 +233,11 @@ historical observation. Python source-binding/replay tests and all 788 web tests
 pass. ATBANK's 88-page edition probe `34073988169` passes independent
 original/native/structure accounting and exact Git engine checks, plus four
 fresh original-page comparisons. It retains 195,952 native characters, 987 text
-blocks and 183 table candidates; no pages were flagged for recovery. Publication
-`34074261461` is running. CI/deployment at `53e18f8` pass; live admin inspection
+blocks and 183 table candidates; no pages were flagged for recovery. Publication/replay
+`34074261461` is independently verified against the probe and preserves all seven
+observed object versions. The other 14 observed editions have individually
+verified immutable origin/transport/PDF bindings and are capturing in separate
+indexes. Full fleet readback is pending. CI/deployment at `53e18f8` pass; live admin inspection
 still awaits the user renewing the expired session.
 
 The private admin links original pages, source references, candidate tables,
