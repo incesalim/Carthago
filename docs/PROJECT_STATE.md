@@ -82,7 +82,7 @@ Publication of the new report artifacts and live boundary-review inspection
 remain pending while the older full-corpus refresh finishes.
 The reviewed table is under `output/audit-corpus/TOMK_2024Q1_unconsolidated/`.
 
-The retained-structure adapter now supports only the exact `c6e429ce` to
+The retained-structure adapter in the queued capture supports the exact `c6e429ce` to
 `9d4a83ae` extraction transition, both using PyMuPDF 1.27.2.3. It reuses
 byte-verified structure, reads original glyphs on affected ruled-table pages,
 and recomputes dependent references. Changed sources or unsupported engines
@@ -98,9 +98,21 @@ and timing have not yet been measured. A bounded source-region prototype fixes
 the EXIM border; all 25 slots, three merged headings, date, units and complete
 footnote are independently checked. Its local export is
 `output/audit-corpus/EXIM_2023Q3_unconsolidated/borrowing-maturity-table.json`.
-The original candidate fails this new internal full-table case; the region
-prototype passes, while four corrupted variants fail. General integration of
-the border repair and registration of its regression case remain pending.
+The original candidate fails the complete-table case; the corrected extraction
+passes, while corrupted variants fail. General region isolation is now
+implemented: each table is reobserved in a bounded region, with exactly one
+candidate, the same complete source-word region and conserved characters.
+Ambiguity or source loss keeps the original candidate. The complete EXIM table,
+its date/units and full footnote are now a permanent regression: 48 cases across
+eight reports. The reviewed TOMK liquidity and Garanti OCI cases still pass.
+Current code also supports an exact `9d4a83ae` to `ca66890e` retained-region
+replay, rebuilding dependent tables, prose/layout and context without repeating
+native capture or initial grid detection. Read-only cloud probes compare it
+against the entire fresh extraction when a matching retained base exists;
+absence is explicitly reported and never counted as equivalence. Synthetic
+full-output comparisons pass at all four page rotations. Full cloud comparison
+and publication of this next repair remain pending; both earlier dispatched
+corpus runs keep their exact versions.
 
 Remaining work is corpus-wide physical and semantic completeness: every printed
 table, its headers/units/row-column associations and continuations; all prose,

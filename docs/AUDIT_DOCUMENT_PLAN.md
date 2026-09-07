@@ -960,3 +960,19 @@ of detected tables.
   is `upgrade-base-exim-2023q3/borrowing-maturity-source-annotation.json` in the
   evidence folder. Integrating a general region-isolation rule and adding that
   regression to publication gates are still required.
+
+- 2026-09-07: implemented general isolation of each ruled-table region. Local
+  detection must return one candidate with the identical native word region and
+  all source characters; competing grids or lost/duplicated content keep the
+  original candidate. Retained provenance names the initial bounds/shape, clip
+  and every source word. The EXIM full-grid/footnote annotation is now registered
+  (48 cases across eight reports), and the actual repaired page passes. The
+  previously reviewed TOMK liquidity and Garanti OCI grids still pass when their
+  dependent views are recomputed. An exact 9d4a83ae-to-ca66890e adapter restores
+  initial word cells, reobserves table regions and rebuilds every dependent
+  table/prose/layout/context view. Synthetic complete replay/fresh equality
+  passes at all four rotations, including source loss and diagnostic mutations.
+  Read-only cloud probes now attempt whole-output equality against matching
+  retained bases and explicitly report their absence. Full cloud comparison and
+  this repair's publication remain pending; runs 34098885624 and 34106960090 keep
+  their dispatched versions.

@@ -1,8 +1,8 @@
-"""Replay one proven structure change without repeating PDF table detection.
+"""Route exact retained-structure transitions before full PDF extraction.
 
 This adapter is deliberately outside the extraction engine hash. Both ends of
-the transition are exact byte identities, including the PyMuPDF version. A later
-extraction change disables this shortcut until separately proven equivalent.
+each transition are exact byte identities, including the PyMuPDF version. A later
+extraction change disables its shortcut until separately proven equivalent.
 The retained base must come through CorpusStore's immutable-byte checks.
 """
 from __future__ import annotations
@@ -127,6 +127,13 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
             base = store.cached_structure(evidence, BASE_ENGINE)
             if base is not None:
                 upgraded = upgrade_cell_fragments(pdf_path, evidence, base)
+                if upgraded is not None:
+                    return upgraded
+        from . import document_region_upgrade as region
+        if target == region.TARGET_ENGINE:
+            base = store.cached_structure(evidence, region.BASE_ENGINE)
+            if base is not None:
+                upgraded = region.upgrade_table_regions(pdf_path, evidence, base)
                 if upgraded is not None:
                     return upgraded
     return build_document_structure(pdf_path, evidence), {'method': 'fresh_extraction'}

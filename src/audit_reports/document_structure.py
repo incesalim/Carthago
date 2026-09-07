@@ -29,6 +29,7 @@ from .document_segmented_tables import segmented_table_candidates, verify_segmen
 from .document_table_notes import table_note_links, verify_table_note_links
 from .document_navigation import NAVIGATION_VERSION, document_navigation, verify_document_navigation
 from .document_cell_fragments import link_cell_fragments, verify_cell_fragments, word_character_geometry
+from .document_table_regions import refine_ruled_regions, verify_region_refinement
 
 STRUCTURE_VERSION = "document-structure-1"
 
@@ -48,6 +49,7 @@ def structure_engine() -> dict:
                  "document_table_notes.py",
                  "document_navigation.py",
                  "document_cell_fragments.py",
+                 "document_table_regions.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -231,6 +233,46 @@ def _positioned_candidates(page, source, captured):
     return view, tables, [*view['issues'], *issues]
 
 
+def _serialize_ruled_table(page, source, table, table_id, image_rules):
+    extracted = table.extract()
+    rows = []
+    for r, row in enumerate(table.rows):
+        cells = []
+        for c, cell in enumerate(row.cells):
+            bbox = list(fitz.Rect(cell) * page.rotation_matrix) if cell else None
+            refs = [w for w in source['words'] if bbox and _inside(w, bbox)]
+            text = extracted[r][c]
+            cells.append({'row': r, 'column': c, 'bbox': bbox, 'text': text,
+                          'word_ids': [w['id'] for w in refs],
+                          'source_text_matches': text_characters(text or '') ==
+                          text_characters(''.join(w['text'] for w in refs)),
+                          'slot_status': 'absent_or_merged' if cell is None else 'present'})
+        rows.append({'index': r, 'cells': cells})
+    return {'id': table_id, 'kind': 'table_candidate',
+            'method': 'pymupdf_lines_strict', 'rows': rows,
+            'image_rule_candidates': [[list(a), list(b)] for a, b in image_rules],
+            'bbox': list(fitz.Rect(table.bbox) * page.rotation_matrix),
+            'row_count': table.row_count, 'n_cols': table.col_count,
+            'header_names': table.header.names, 'header_external': table.header.external,
+            'review_status': 'unreviewed', 'header_association_verified': False}
+
+
+def _refine_ruled_candidates(page, source, tables, *, paths=None, image_rules=None):
+    """Also usable with retained first-pass tables from an exact supported engine."""
+    if page.rotation:
+        with fitz.open() as displayed:
+            displayed.insert_pdf(page.parent, from_page=page.number, to_page=page.number)
+            displayed[0].remove_rotation()
+            return _refine_ruled_candidates(displayed[0], source, tables)
+    if paths is None:
+        paths = grid_paths(page.get_drawings())
+    if image_rules is None:
+        image_rules = _image_rules(source)
+    virtual_rules = [(fitz.Point(a), fitz.Point(b)) for a, b in image_rules]
+    return refine_ruled_regions(page, source, tables, paths, virtual_rules,
+                                lambda table, id: _serialize_ruled_table(page, source, table, id, image_rules))
+
+
 def _ruled_candidates(page, source):
     if page.rotation:
         # find_tables normalizes rotated pages internally, but supplied drawing
@@ -274,32 +316,12 @@ def _ruled_candidates(page, source):
         return tables
     # The line strategy also finds text-only tables; it does not require a
     # minimum count of figures. Grid detection remains an unverified hypothesis.
+    # Copy all first-pass observations before another find_tables call replaces
+    # PyMuPDF's transient table objects.
     for number, table in enumerate(page.find_tables(
             strategy="lines_strict", paths=paths, add_lines=virtual_rules or None).tables):
-        extracted = table.extract()
-        rows = []
-        for r, row in enumerate(table.rows):
-            cells = []
-            for c, cell in enumerate(row.cells):
-                bbox = list(fitz.Rect(cell) * page.rotation_matrix) if cell else None
-                refs = [w for w in source["words"] if bbox and _inside(w, bbox)]
-                text = extracted[r][c]
-                cells.append({"row": r, "column": c, "bbox": bbox, "text": text,
-                              "word_ids": [w["id"] for w in refs],
-                              "source_text_matches": text_characters(text or "") ==
-                              text_characters("".join(w["text"] for w in refs)),
-                              # None is an absent/merged slot, never a zero.
-                              "slot_status": "absent_or_merged" if cell is None else "present"})
-            rows.append({"index": r, "cells": cells})
-        tables.append({"id": f"p{source['page']}:ruled{number}", "kind": "table_candidate",
-                       "method": "pymupdf_lines_strict", "rows": rows,
-                       "image_rule_candidates": [[list(a), list(b)] for a, b in image_rules],
-                       "bbox": list(fitz.Rect(table.bbox) * page.rotation_matrix),
-                       "row_count": table.row_count, "n_cols": table.col_count,
-                       "header_names": table.header.names,
-                       "header_external": table.header.external,
-                       "review_status": "unreviewed", "header_association_verified": False})
-    return tables
+        tables.append(_serialize_ruled_table(page, source, table, f"p{source['page']}:ruled{number}", image_rules))
+    return _refine_ruled_candidates(page, source, tables, paths=paths, image_rules=image_rules)
 
 
 def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
@@ -446,6 +468,7 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
         if positioned is not None:
             errors.extend(prefix + error for error in verify_positioned_text(positioned, source)['errors'])
         for table in page["tables"]:
+            errors.extend(prefix + error for error in verify_region_refinement(table, source))
             errors.extend(prefix + error for error in verify_cell_fragments(table, source))
             if table.get('word_boundary_observations'):
                 expected_issue = {'kind': 'word_crosses_table_cells', 'table_id': table['id'],

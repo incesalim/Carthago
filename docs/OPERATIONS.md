@@ -1963,3 +1963,28 @@ read-only probes remain fresh and supply an independent comparison. Capture
 results name `structure_build.method`, inspected glyph pages and changed tables;
 an unchanged-object receipt can still skip a previously completed publication.
 No figure or semantic approval follows from successful reuse.
+
+The next exact transition is `9d4a83ae8331be87f793b2fd9878463f35178a4f40f70766f2e6010a81a4b438`
+to `ca66890e81ae8c2d52a87a701193d3ea46f73ac5d7819e5f2e3d3d8ab5cd12e4`,
+also under PyMuPDF 1.27.2.3. `document_region_upgrade.py` restores the retained
+first-pass word cells, observes their separate PDF regions, and rebuilds
+underline/segmented alternatives, narrative, reading layout, source rows, context
+and note links. Native evidence, numeric candidates, original PDF bytes and
+prior artifacts remain unchanged. Its result method is
+`retained_table_region_upgrade`. Unsupported fingerprints use full extraction.
+
+Region isolation prevents distant table rows from shifting another table's
+columns during page-wide line snapping. A second observation includes the
+detector's three-point boundary tolerance; overlapping/competing table regions,
+changed native word inventories or lost/duplicated characters are not accepted.
+Each accepted `region_refinement` retains the original bounds/shape, clip and
+complete source-word IDs. Validation checks these source relationships. This
+improves physical cells without certifying their financial meaning.
+
+Fresh read-only R2 structure probes also attempt this exact retained-region
+replay. `retained_structure_comparison.status=matched` requires equality of the
+whole fresh/replayed JSON, not only successful validators. Missing bases report
+`no_supported_retained_base`; other target fingerprints report
+`unsupported_target`. Neither is a successful comparison. A disagreement fails
+the probe with its fresh source artifacts retained. These comparison reads do
+not publish, alter acquired PDFs or change analytical partitions.

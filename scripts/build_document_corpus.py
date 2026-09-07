@@ -316,6 +316,12 @@ def main(argv: list[str] | None = None) -> int:
                         structure, result['structure_build'] = build_or_reuse_structure(pdf, records, store)
                         structure_path = artifact.parent / f"{structure_digest(structure)}.structure.json"
                         _write_json(structure_path, structure)
+                        if args.from_r2 and not args.publish:
+                            from src.audit_reports.document_corpus_store import CorpusStore
+                            from src.audit_reports.document_region_upgrade import compare_retained_regions
+                            reader = CorpusStore(r2_storage.get_client(), r2_storage._bucket())
+                            result['retained_structure_comparison'] = compare_retained_regions(
+                                pdf, records, structure, reader)
                         from src.audit_reports.document_benchmark import check_registered_annotations
                         benchmark = check_registered_annotations(structure, records, args.annotations_dir)
                         result["benchmark"] = benchmark

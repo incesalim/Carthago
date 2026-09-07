@@ -1,0 +1,133 @@
+{
+  "pdf_sha256": "58a5106725c35fade7d44c8d52839ca3604075bbf2d8d201e6983d246731704f",
+  "filing": {
+    "bank_ticker": "EXIM",
+    "period": "2023Q3",
+    "kind": "unconsolidated"
+  },
+  "cases": [
+    {
+      "id": "complete_borrowing_maturity_grid",
+      "kind": "complete_physical_table",
+      "page": 70,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        78,
+        681,
+        541,
+        738
+      ],
+      "rows": [
+        [
+          "",
+          "Current Period",
+          null,
+          "Prior Period",
+          null
+        ],
+        [
+          null,
+          "TL",
+          "FC",
+          "TL",
+          "FC"
+        ],
+        [
+          "Short-Term",
+          "153.702.651",
+          "124.202.195",
+          "94.668.734",
+          "102.435.074"
+        ],
+        [
+          "Medium and Long-Term (*)",
+          "-",
+          "95.968.725",
+          "-",
+          "65.422.175"
+        ],
+        [
+          "Total",
+          "153.702.651",
+          "220.170.920",
+          "94.668.734",
+          "167.857.249"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            78.024,
+            665.1456,
+            290.32,
+            676.1714
+          ],
+          "text": "Information on maturity structure of borrowings",
+          "source_span_ids": [
+            220
+          ]
+        },
+        {
+          "bbox": [
+            78.024,
+            70.688,
+            235.01,
+            83.972
+          ],
+          "text": "AS AT 30 SEPTEMBER 2023",
+          "source_span_ids": [
+            2
+          ]
+        },
+        {
+          "bbox": [
+            78.024,
+            84.5056,
+            400.87,
+            95.5314
+          ],
+          "text": "(Amounts expressed in thousands of Turkish Lira (TL) unless otherwise stated.)",
+          "source_span_ids": [
+            3
+          ]
+        },
+        {
+          "bbox": [
+            77,
+            739,
+            542,
+            755
+          ],
+          "text": "(*) Medium and long-term loans include subordinated loans amounting to TL 4.335.975 (31 December 2022: TL 2.968.425) and interest accruals of these loans amounting to TL 962.925 (31 December 2022: TL 538.668).",
+          "source_span_ids": [
+            221,
+            222,
+            223,
+            224
+          ]
+        }
+      ]
+    }
+  ],
+  "review": "All 25 slots, merged headings, title, units and report date independently read from original page 70 on 2026-09-07."
+}
