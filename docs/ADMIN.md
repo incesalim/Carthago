@@ -468,3 +468,10 @@ original PDF page, native page evidence, page/full structure and selected recove
 text. It displays capture absence explicitly, never substituting the acquired
 filing. The version difference still needs interpretation; this view does not
 label it a correction, translation or replacement or promote its tables to series.
+
+
+The source-line toggle also identifies columns projected across merged body
+cells using printed headings and borders. The expanded view shows each projected
+column separately; switching it off restores the original merged-cell display.
+Isolated amounts or dashes keep their physical line instead of acquiring an
+inferred row label. Header and numerical meanings still require review.

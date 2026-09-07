@@ -1845,3 +1845,14 @@ conflicting broad filters, unknown filings and a limit that truncates the list
 fail before source access. The report retains the complete requested filing list
 in every worker, with a disjoint assigned count. This allows unresolved source
 comparisons to be retried without downloading already resolved bank histories.
+
+
+A tall physical body cell may span amount columns despite a printed partial
+divider. `table_source_rows` can retain a separate `column_projection` only with
+a complete earlier header grid, text on both sides of each missing boundary,
+retained thin vertical-rule boxes covering at least 95% of the body's height,
+no gap exceeding 2.5 median glyph heights and unique whole-word containment.
+The projection stores header-row and drawing-occurrence witnesses. It does not
+alter physical cells or parse figures. Isolated value/dash lines remain separate;
+logical accounting rows are still unverified. Source benchmarks recheck literal
+column text and full word occurrences against independently transcribed regions.

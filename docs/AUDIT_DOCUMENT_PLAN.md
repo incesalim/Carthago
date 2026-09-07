@@ -688,3 +688,12 @@ of detected tables.
   duplicate/unknown/ambiguous/truncation rejection before source access. Twenty
   command tests pass. The 61 remaining source comparisons will use this explicit
   scope instead of repeating complete bank histories.
+
+
+- 2026-09-07: independently inspected TOMK's page-16 cash-flow source. The native
+  grid merges current/prior amount columns across one short missing divider.
+  A separate header/rule-supported projection now preserves all 49 source lines,
+  including unassociated dashes, without changing physical cells. Three exact
+  source-row annotations, conservation and ambiguity/mutation checks pass. Only
+  this page's line view changes among all 51 retained TOMK pages. Full Python,
+  788 web tests, lint and type checks pass; cloud publication remains pending.

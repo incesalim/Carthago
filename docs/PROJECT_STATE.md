@@ -276,9 +276,20 @@ The admin can toggle these source lines; wrapped labels remain physical lines,
 not certified accounting rows. Cloud probe `34064705881` passes all four cases;
 all 51 original/native page artifacts remain identical and each added line view
 was independently rebuilt. Assets, liabilities, P&L and OCI now expose 47, 47,
-64 and 17 physical body lines respectively. Equity and cash-flow row associations,
+64 and 17 physical body lines respectively. Equity and logical cash-flow row associations,
 and the authenticated live display remain pending. The source-line view itself
 is now published with the five-case FX repair.
+
+A new, separate column projection handles the TOMK cash-flow body's physical
+merge of current/prior columns. A complete earlier header grid, retained thin
+vertical rules covering at least 95% of the body and unique whole-word column
+containment are required. Original cells remain unchanged. Its 49 physical lines
+retain every source word, blank note cells and literal dashes; isolated dashes
+are not assigned to neighbouring labels. Three independently transcribed cash-flow
+lines and missing/moved-rule, gap, word-placement and header mutations pass.
+Only page 16 changes among the prior 51 TOMK line views. Python suite, 788 web
+tests, lint and type checks pass; cloud capture and authenticated UI review are
+pending. This geometric projection does not certify logical accounting rows.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

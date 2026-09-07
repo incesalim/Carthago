@@ -81,7 +81,7 @@ def test_independent_source_annotations_require_exact_text_and_column_positions(
     folder = Path(__file__).parent / 'fixtures'
     identity = json.loads((folder / 'document_table_source_rows_tomk.json').read_text(encoding='utf-8'))['source']
     annotation = json.loads((folder / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
-    annotation['cases'] = [c for c in annotation['cases'] if c['kind'] == 'source_table_line']
+    annotation['cases'] = [c for c in annotation['cases'] if c['kind'] == 'source_table_line' and c['page'] == 13]
     assert len(annotation['cases']) == 3
     page, source = sample
     structure, evidence = {'source': identity, 'pages': [page]}, [{'source': identity}, source]
@@ -90,3 +90,61 @@ def test_independent_source_annotations_require_exact_text_and_column_positions(
     assert check_annotations(structure, evidence, annotation)['passed']
     annotation['cases'][1]['columns'][1] = '-11'
     assert not check_annotations(structure, evidence, annotation)['passed']
+
+
+@pytest.fixture
+def cashflow():
+    fixture = json.loads((Path(__file__).parent / 'fixtures/document_cashflow_columns_tomk.json').read_text(encoding='utf-8'))
+    return fixture['pages'][0], fixture['source_pages'][0], fixture['source']
+
+
+def test_cashflow_projection_preserves_the_physical_merge_and_every_source_occurrence(cashflow):
+    page, source, _identity = cashflow
+    original = copy.deepcopy(page)
+    result = table_source_rows(page, source)
+    split = result['tables'][0]['split_rows'][0]
+    assert page == original and split['source_row'] == 2
+    assert split['column_projection']['header_row'] == 1
+    assert split['column_projection']['rule_witnesses'][0]['column_boundary'] == 3
+    assert split['column_projection']['physical_cells_unchanged'] is True
+    lines = split['lines']; assert len(lines) == 49
+    assert [c['text'] for c in lines[47]['cells']] == ['VI. Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar', '', '995.854', '-']
+    assert [c['text'] for c in lines[48]['cells']] == ['VII. Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar', '', '391.720', '-']
+    assert [c['text'] for c in lines[43]['cells']] == ['', '', '', '-']
+    table = next(t for t in page['tables'] if t['id'] == 'p16:ruled0')
+    assert Counter(i for line in lines for c in line['cells'] for i in c['word_ids']) == Counter(i for c in table['rows'][2]['cells'] for i in c['word_ids'])
+    assert result['logical_rows_verified'] is False and all('value' not in c for line in lines for c in line['cells'])
+
+
+@pytest.mark.parametrize('mutation', ['no_rule', 'long_gap', 'shift_rule', 'wide_rule', 'cross_column_word', 'missing_header', 'duplicate_word'])
+def test_merged_column_projection_abstains_without_sufficient_unique_source_evidence(cashflow, mutation):
+    page, source, _identity = cashflow
+    table = next(t for t in page['tables'] if t['id'] == 'p16:ruled0')
+    rules = [d for d in source['drawings'] if abs((d['bbox'][0] + d['bbox'][2]) / 2 - 470.23) < .5 and d['bbox'][1] >= 144]
+    if mutation == 'no_rule': source['drawings'] = [d for d in source['drawings'] if d not in rules]
+    if mutation == 'long_gap': source['drawings'] = [d for d in source['drawings'] if d not in rules or not 200 < d['bbox'][1] < 260]
+    if mutation == 'shift_rule':
+        for d in rules: d['bbox'][0] += 5; d['bbox'][2] += 5
+    if mutation == 'wide_rule':
+        for d in rules: d['bbox'][0] -= 3
+    if mutation == 'cross_column_word':
+        word = next(w for w in source['words'] if w['id'] == 452)
+        word['bbox'][0] = 468; word['bbox'][2] = 476
+    if mutation == 'missing_header': table['rows'][1]['cells'][3]['word_ids'] = []
+    if mutation == 'duplicate_word': table['rows'][2]['cells'][2]['word_ids'].append(452)
+    assert table_source_rows(page, source)['tables'] == []
+
+
+def test_independent_cashflow_source_cases_require_the_projected_columns(cashflow):
+    from src.audit_reports.document_benchmark import check_annotations
+    page, source, identity = cashflow
+    annotation = json.loads((Path(__file__).parent / 'fixtures/document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
+    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 16]
+    assert len(annotation['cases']) == 3
+    structure, evidence = {'source': identity, 'pages': [page]}, [{'source': identity}, source]
+    assert not check_annotations(structure, evidence, annotation)['passed']
+    page['table_source_rows'] = table_source_rows(page, source)
+    assert check_annotations(structure, evidence, annotation)['passed']
+    saved = page['table_source_rows']['tables'][0]['split_rows'][0]
+    saved['column_projection']['rule_witnesses'][0]['source_drawing_ids'].pop()
+    assert verify_table_source_rows(page, source) == ['table_source_rows_mismatch']

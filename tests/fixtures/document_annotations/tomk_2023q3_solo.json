@@ -457,6 +457,57 @@
         }
       ],
       "kind": "source_review"
+    },
+    {
+      "id": "cashflow-operating-net-current-prior",
+      "kind": "source_table_line",
+      "page": 16,
+      "bbox": [
+        59,
+        329,
+        559,
+        337
+      ],
+      "columns": [
+        "I. Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akımı",
+        "",
+        "(514.321)",
+        "-"
+      ]
+    },
+    {
+      "id": "cashflow-opening-cash-current-prior",
+      "kind": "source_table_line",
+      "page": 16,
+      "bbox": [
+        59,
+        541,
+        559,
+        549
+      ],
+      "columns": [
+        "VI. Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar",
+        "",
+        "995.854",
+        "-"
+      ]
+    },
+    {
+      "id": "cashflow-closing-cash-current-prior",
+      "kind": "source_table_line",
+      "page": 16,
+      "bbox": [
+        59,
+        554,
+        559,
+        562
+      ],
+      "columns": [
+        "VII. Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+        "",
+        "391.720",
+        "-"
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."
