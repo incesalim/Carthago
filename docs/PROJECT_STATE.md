@@ -428,21 +428,29 @@ Missing, moved, dotted or repeated numeral candidates and incomplete or differin
 titles remain unresolved. GARAN's solo report still has conflicting contents/body
 titles and no resolved whole section sequence. The admin also retains the source
 contents section headings alongside body headings. Full Python, 796 web tests
-and source mutation checks pass locally; cloud verification and publication of
-these cross-bank revisions are pending. None of these results certifies every
-table or prose passage in either report.
+and source mutation checks pass. None of these results certifies every table or
+prose passage in either report.
 
 The cross-bank probes at `544ee1e` (`34089586417`, `34089589601`) match the
 reviewed navigation, preserve all 282 current native pages and every prior table
 field. CI/deploy pass. The additional prose comparison caught a regression in
 ALBRK: inferred underline-table header rectangles split the page-8 shareholder
-paragraph and its preceding heading. Publication is held while that is repaired.
+paragraph and its preceding heading. Publication was held until that was repaired.
 Table alternatives now remain available for review without changing source prose
 segmentation; aligned Roman headings also stay siblings despite minor font-size
 differences. A new independently transcribed page-8 paragraph case checks the
 complete wording under heading IV, without inheriting heading III. Pure local
 projections retain all tables and pass 24 TOMK, two GARAN and two ALBRK source
-cases. These are selected checks; new cloud rebuilds are still required.
+cases. Corrected cloud probes `34090776777`, `34090773185`, `34090769895` exactly
+reproduce those projections across 333 unchanged native pages. Twelve fresh
+original page inventories and rendered-pixel checks also match. All prior table
+fields, text blocks and ordered narrative span occurrences are preserved.
+Publications/replays `34091220078`, `34091216355`, `34091212337` retain source,
+structure and recovery history; all 27 checked object versions remain unchanged
+on repeat runs. CI `34090769311` and deploy `34090857423` at `36fde33` pass.
+Authenticated admin display still requires sign-in. These are 28 selected source
+checks; no whole filing is semantically verified. Broader format checks and
+TOMK's four-page capital-table continuation remain unfinished.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

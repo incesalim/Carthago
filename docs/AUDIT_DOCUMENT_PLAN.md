@@ -831,3 +831,13 @@ of detected tables.
   A source paragraph case and interference/sibling tests cover the finding.
   Pure projections preserve all tables and pass 28 cases across TOMK, GARAN and
   ALBRK; fresh cloud verification remains pending.
+
+- 2026-09-07: corrected probes `34090776777` (TOMK), `34090773185` (GARAN) and
+  `34090769895` (ALBRK) exactly match independent local projections, 333 retained
+  native pages and 28 selected source cases. Twelve fresh page/pixel checks pass;
+  prior table fields, text blocks and ordered prose spans are preserved.
+  Publications/replays `34091220078`, `34091216355`, `34091212337` retain history
+  and all 27 checked object versions on repeat runs. CI/deploy at `36fde33` pass.
+  Authenticated admin display remains pending. Original TOMK pages 26–29 have
+  been inspected for the next full-grid/continuation review; no link is approved
+  merely from adjacency or a repeated period heading.
