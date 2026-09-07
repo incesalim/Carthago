@@ -178,7 +178,28 @@
           "19,9349 TL"
         ]
       ],
-      "spans": []
+      "spans": [],
+      "source_review": "Complete table independently transcribed from original PDF page 30 on 2026-09-07. Every printed cell, heading, date, currency label, dash and empty or covered slot was compared with the original image. Literal values are retained without numeric normalization or inferred financial meaning. The explicit 31 Aralık 2022 context identifies this prior valuation table. TL is printed in every rate cell.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            127,
+            413,
+            224,
+            423
+          ],
+          "text": "31 Aralık 2022 itibarıyla;"
+        }
+      ]
     },
     {
       "id": "auditor_letter_before_contact_footer",
@@ -17877,6 +17898,3304 @@
           }
         ]
       }
+    },
+    {
+      "id": "complete_equity_change_with_six_numbered_columns",
+      "kind": "complete_physical_table",
+      "page": 15,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        33,
+        126,
+        808,
+        319
+      ],
+      "rows": [
+        [
+          "ÖZKAYNAK KALEMLERİNDEKİ DEĞİŞİKLİKLER",
+          "",
+          null,
+          null,
+          null,
+          "Kâr veya Zararda Yeniden Sınıflandırılmayacak Birikmiş Diğer Kapsamlı Gelirler ve Giderler",
+          null,
+          null,
+          "Kâr veya Zararda Yeniden Sınıflandırılacak Birikmiş Diğer Kapsamlı Gelirler ve Giderler",
+          null,
+          null,
+          "",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          "Ödenmiş Sermaye",
+          "Hisse Senedi İhraç Primleri",
+          "Hisse Senedi İptal Kârları",
+          "Diğer Sermaye Yedekleri",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "Kar Yedekleri",
+          "Geçmiş Dönem Kârı / (Zararı)",
+          "Dönem Net Kar veya Zararı",
+          "Azınlık Payları Hariç Toplam Özkaynak",
+          "Azınlık Payları",
+          "Toplam Özkaynak"
+        ],
+        [
+          "CARİ DÖNEM 30.09.2023 I. Önceki Dönem Sonu Bakiyesi II. TMS 8 Uyarınca Yapılan Düzeltmeler 2.1 Hataların Düzeltilmesinin Etkisi 2.2 Muhasebe Politikasında Yapılan Değişikliklerin Etkisi III. Yeni Bakiye (I+II) IV. Toplam Kapsamlı Gelir V. Nakden Gerçekleştirilen Sermaye Artırımı VI. İç Kaynaklardan Gerçekleştirilen Sermaye Artırımı VII. Ödenmiş Sermaye Enflasyon Düzeltme Farkı VIII. Hisse Senedine Dönüştürülebilir Tahviller IX. Sermaye Benzeri Borçlanma Araçları X. Diğer Değişiklikler Nedeniyle Artış /Azalış XI. Kâr Dağıtımı 11.1 Dağıtılan Temettü 11.2 Yedeklere Aktarılan Tutarlar 11.3 Diğer Dönem Sonu Bakiyesi (III+IV+…...+X+XI)",
+          "1.500.000 - - - 1.500.000 - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "(6) - - - (6) 1 - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "- - - - - - - - - - - (1.870) - - - -",
+          "(1.870) - - - (1.870) 148.071 - - - - - 1.870 - - - -",
+          "1.498.124 - - - 1.498.124 148.072 - - - - - - - - - -",
+          "- - - - - - - - - - - - - - - -",
+          "1.498.124 - - - 1.498.124 148.072 - - - - - - - - - -"
+        ],
+        [
+          null,
+          "1.500.000",
+          "-",
+          "-",
+          "-",
+          "-",
+          "(5)",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "(1.870)",
+          "148.071",
+          "1.646.196",
+          "-",
+          "1.646.196"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 4
+        },
+        {
+          "row": 0,
+          "column": 5,
+          "row_span": 1,
+          "column_span": 3
+        },
+        {
+          "row": 0,
+          "column": 8,
+          "row_span": 1,
+          "column_span": 3
+        },
+        {
+          "row": 0,
+          "column": 11,
+          "row_span": 1,
+          "column_span": 6
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 1
+        }
+      ],
+      "source_review": "Complete equity-change statement independently transcribed from original PDF page 15 on 2026-09-07. The reviewed 17-column grid retains both grouped headings, their six printed note numbers, the current-period label and date, every numbered financial row, all printed dashes and the complete closing balance. The first two body baselines form the printed current-period label and date; their amount slots are empty. The original physical rows and every word/character occurrence remain retained. The source closing-label punctuation is preserved as printed; the six numbered explanations are separately source-reviewed and linked to their original column numbers. No financial-series interpretation is inferred.",
+      "reviewed_grid": {
+        "source_review": "Complete equity-change statement independently transcribed from original PDF page 15 on 2026-09-07. The reviewed 17-column grid retains both grouped headings, their six printed note numbers, the current-period label and date, every numbered financial row, all printed dashes and the complete closing balance. The first two body baselines form the printed current-period label and date; their amount slots are empty. The original physical rows and every word/character occurrence remain retained. The source closing-label punctuation is preserved as printed; the six numbered explanations are separately source-reviewed and linked to their original column numbers. No financial-series interpretation is inferred.",
+        "x_edges": [
+          33.11040115356445,
+          179.05999755859375,
+          209.66000366210938,
+          247.3699951171875,
+          283.010009765625,
+          323.0899963378906,
+          354.7699890136719,
+          380.45001220703125,
+          419.8299865722656,
+          439.2699890136719,
+          470.7099914550781,
+          510.54998779296875,
+          546.9099731445312,
+          603.8200073242188,
+          649.1799926757812,
+          710.6199951171875,
+          736.7999877929688,
+          807.0095825195312
+        ],
+        "y_edges": [
+          126.2439956665039,
+          148.5800018310547,
+          171.53001403808594,
+          193.247,
+          200.507,
+          207.767,
+          215.027,
+          222.28699999999998,
+          229.607,
+          236.86700000000002,
+          244.127,
+          251.387,
+          258.64700000000005,
+          265.977,
+          273.24699999999996,
+          280.507,
+          287.767,
+          295.02700000000004,
+          302.347,
+          311.1100158691406,
+          318.922607421875
+        ],
+        "rows": [
+          [
+            {
+              "text": "ÖZKAYNAK KALEMLERİNDEKİ DEĞİŞİKLİKLER",
+              "source_word_ids": [
+                51,
+                52,
+                53
+              ]
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Birikmiş Diğer Kapsamlı Gelirler ve Giderler",
+              "source_word_ids": [
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39
+              ]
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": "Kâr veya Zararda Yeniden Sınıflandırılacak Birikmiş Diğer Kapsamlı Gelirler ve Giderler",
+              "source_word_ids": [
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50
+              ]
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": null,
+              "source_word_ids": []
+            }
+          ],
+          [
+            {
+              "text": null,
+              "source_word_ids": []
+            },
+            {
+              "text": "Ödenmiş Sermaye",
+              "source_word_ids": [
+                54,
+                55
+              ]
+            },
+            {
+              "text": "Hisse Senedi İhraç Primleri",
+              "source_word_ids": [
+                56,
+                57,
+                58,
+                59
+              ]
+            },
+            {
+              "text": "Hisse Senedi İptal Kârları",
+              "source_word_ids": [
+                60,
+                61,
+                62,
+                63
+              ]
+            },
+            {
+              "text": "Diğer Sermaye Yedekleri",
+              "source_word_ids": [
+                64,
+                65,
+                66
+              ]
+            },
+            {
+              "text": "1",
+              "source_word_ids": [
+                67
+              ]
+            },
+            {
+              "text": "2",
+              "source_word_ids": [
+                68
+              ]
+            },
+            {
+              "text": "3",
+              "source_word_ids": [
+                69
+              ]
+            },
+            {
+              "text": "4",
+              "source_word_ids": [
+                70
+              ]
+            },
+            {
+              "text": "5",
+              "source_word_ids": [
+                71
+              ]
+            },
+            {
+              "text": "6",
+              "source_word_ids": [
+                72
+              ]
+            },
+            {
+              "text": "Kar Yedekleri",
+              "source_word_ids": [
+                73,
+                74
+              ]
+            },
+            {
+              "text": "Geçmiş Dönem Kârı / (Zararı)",
+              "source_word_ids": [
+                75,
+                76,
+                77,
+                78,
+                79
+              ]
+            },
+            {
+              "text": "Dönem Net Kar veya Zararı",
+              "source_word_ids": [
+                80,
+                81,
+                82,
+                83,
+                84
+              ]
+            },
+            {
+              "text": "Azınlık Payları Hariç Toplam Özkaynak",
+              "source_word_ids": [
+                85,
+                86,
+                87,
+                88,
+                89
+              ]
+            },
+            {
+              "text": "Azınlık Payları",
+              "source_word_ids": [
+                90,
+                91
+              ]
+            },
+            {
+              "text": "Toplam Özkaynak",
+              "source_word_ids": [
+                92,
+                93
+              ]
+            }
+          ],
+          [
+            {
+              "text": "CARİ DÖNEM 30.09.2023",
+              "source_word_ids": [
+                94,
+                95,
+                96
+              ]
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "",
+              "source_word_ids": []
+            }
+          ],
+          [
+            {
+              "text": "I. Önceki Dönem Sonu Bakiyesi",
+              "source_word_ids": [
+                97,
+                98,
+                99,
+                100,
+                101
+              ]
+            },
+            {
+              "text": "1.500.000",
+              "source_word_ids": [
+                102
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                103
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                104
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                105
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                106
+              ]
+            },
+            {
+              "text": "(6)",
+              "source_word_ids": [
+                107
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                108
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                109
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                110
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                111
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                112
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                113
+              ]
+            },
+            {
+              "text": "(1.870)",
+              "source_word_ids": [
+                114
+              ]
+            },
+            {
+              "text": "1.498.124",
+              "source_word_ids": [
+                115
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                116
+              ]
+            },
+            {
+              "text": "1.498.124",
+              "source_word_ids": [
+                117
+              ]
+            }
+          ],
+          [
+            {
+              "text": "II. TMS 8 Uyarınca Yapılan Düzeltmeler",
+              "source_word_ids": [
+                118,
+                119,
+                120,
+                121,
+                122,
+                123
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                124
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                125
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                126
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                127
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                128
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                129
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                130
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                131
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                132
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                133
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                134
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                135
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                136
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                137
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                138
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                139
+              ]
+            }
+          ],
+          [
+            {
+              "text": "2.1 Hataların Düzeltilmesinin Etkisi",
+              "source_word_ids": [
+                140,
+                141,
+                142,
+                143
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                144
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                145
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                146
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                147
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                148
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                149
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                150
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                151
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                152
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                153
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                154
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                155
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                156
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                157
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                158
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                159
+              ]
+            }
+          ],
+          [
+            {
+              "text": "2.2 Muhasebe Politikasında Yapılan Değişikliklerin Etkisi",
+              "source_word_ids": [
+                160,
+                161,
+                162,
+                163,
+                164,
+                165
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                166
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                167
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                168
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                169
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                170
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                171
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                172
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                173
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                174
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                175
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                176
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                177
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                178
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                179
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                180
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                181
+              ]
+            }
+          ],
+          [
+            {
+              "text": "III. Yeni Bakiye (I+II)",
+              "source_word_ids": [
+                182,
+                183,
+                184,
+                185
+              ]
+            },
+            {
+              "text": "1.500.000",
+              "source_word_ids": [
+                186
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                187
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                188
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                189
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                190
+              ]
+            },
+            {
+              "text": "(6)",
+              "source_word_ids": [
+                191
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                192
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                193
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                194
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                195
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                196
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                197
+              ]
+            },
+            {
+              "text": "(1.870)",
+              "source_word_ids": [
+                198
+              ]
+            },
+            {
+              "text": "1.498.124",
+              "source_word_ids": [
+                199
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                200
+              ]
+            },
+            {
+              "text": "1.498.124",
+              "source_word_ids": [
+                201
+              ]
+            }
+          ],
+          [
+            {
+              "text": "IV. Toplam Kapsamlı Gelir",
+              "source_word_ids": [
+                202,
+                203,
+                204,
+                205
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                206
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                207
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                208
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                209
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                210
+              ]
+            },
+            {
+              "text": "1",
+              "source_word_ids": [
+                211
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                212
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                213
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                214
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                215
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                216
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                217
+              ]
+            },
+            {
+              "text": "148.071",
+              "source_word_ids": [
+                218
+              ]
+            },
+            {
+              "text": "148.072",
+              "source_word_ids": [
+                219
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                220
+              ]
+            },
+            {
+              "text": "148.072",
+              "source_word_ids": [
+                221
+              ]
+            }
+          ],
+          [
+            {
+              "text": "V. Nakden Gerçekleştirilen Sermaye Artırımı",
+              "source_word_ids": [
+                222,
+                223,
+                224,
+                225,
+                226
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                227
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                228
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                229
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                230
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                231
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                232
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                233
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                234
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                235
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                236
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                237
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                238
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                239
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                240
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                241
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                242
+              ]
+            }
+          ],
+          [
+            {
+              "text": "VI. İç Kaynaklardan Gerçekleştirilen Sermaye Artırımı",
+              "source_word_ids": [
+                243,
+                244,
+                245,
+                246,
+                247,
+                248
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                249
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                250
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                251
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                252
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                253
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                254
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                255
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                256
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                257
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                258
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                259
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                260
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                261
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                262
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                263
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                264
+              ]
+            }
+          ],
+          [
+            {
+              "text": "VII. Ödenmiş Sermaye Enflasyon Düzeltme Farkı",
+              "source_word_ids": [
+                265,
+                266,
+                267,
+                268,
+                269,
+                270
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                271
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                272
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                273
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                274
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                275
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                276
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                277
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                278
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                279
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                280
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                281
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                282
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                283
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                284
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                285
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                286
+              ]
+            }
+          ],
+          [
+            {
+              "text": "VIII. Hisse Senedine Dönüştürülebilir Tahviller",
+              "source_word_ids": [
+                287,
+                288,
+                289,
+                290,
+                291
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                292
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                293
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                294
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                295
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                296
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                297
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                298
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                299
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                300
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                301
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                302
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                303
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                304
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                305
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                306
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                307
+              ]
+            }
+          ],
+          [
+            {
+              "text": "IX. Sermaye Benzeri Borçlanma Araçları",
+              "source_word_ids": [
+                308,
+                309,
+                310,
+                311,
+                312
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                313
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                314
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                315
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                316
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                317
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                318
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                319
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                320
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                321
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                322
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                323
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                324
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                325
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                326
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                327
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                328
+              ]
+            }
+          ],
+          [
+            {
+              "text": "X. Diğer Değişiklikler Nedeniyle Artış /Azalış",
+              "source_word_ids": [
+                329,
+                330,
+                331,
+                332,
+                333,
+                334
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                335
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                336
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                337
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                338
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                339
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                340
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                341
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                342
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                343
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                344
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                345
+              ]
+            },
+            {
+              "text": "(1.870)",
+              "source_word_ids": [
+                346
+              ]
+            },
+            {
+              "text": "1.870",
+              "source_word_ids": [
+                347
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                348
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                349
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                350
+              ]
+            }
+          ],
+          [
+            {
+              "text": "XI. Kâr Dağıtımı",
+              "source_word_ids": [
+                351,
+                352,
+                353
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                354
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                355
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                356
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                357
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                358
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                359
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                360
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                361
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                362
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                363
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                364
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                365
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                366
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                367
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                368
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                369
+              ]
+            }
+          ],
+          [
+            {
+              "text": "11.1 Dağıtılan Temettü",
+              "source_word_ids": [
+                370,
+                371,
+                372
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                373
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                374
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                375
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                376
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                377
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                378
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                379
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                380
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                381
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                382
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                383
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                384
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                385
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                386
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                387
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                388
+              ]
+            }
+          ],
+          [
+            {
+              "text": "11.2 Yedeklere Aktarılan Tutarlar",
+              "source_word_ids": [
+                389,
+                390,
+                391,
+                392
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                393
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                394
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                395
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                396
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                397
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                398
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                399
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                400
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                401
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                402
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                403
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                404
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                405
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                406
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                407
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                408
+              ]
+            }
+          ],
+          [
+            {
+              "text": "11.3 Diğer",
+              "source_word_ids": [
+                409,
+                410
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                411
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                412
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                413
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                414
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                415
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                416
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                417
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                418
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                419
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                420
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                421
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                422
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                423
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                424
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                425
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                426
+              ]
+            }
+          ],
+          [
+            {
+              "text": "Dönem Sonu Bakiyesi (III+IV+…...+X+XI)",
+              "source_word_ids": [
+                427,
+                428,
+                429,
+                430
+              ]
+            },
+            {
+              "text": "1.500.000",
+              "source_word_ids": [
+                431
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                432
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                433
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                434
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                435
+              ]
+            },
+            {
+              "text": "(5)",
+              "source_word_ids": [
+                436
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                437
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                438
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                439
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                440
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                441
+              ]
+            },
+            {
+              "text": "(1.870)",
+              "source_word_ids": [
+                442
+              ]
+            },
+            {
+              "text": "148.071",
+              "source_word_ids": [
+                443
+              ]
+            },
+            {
+              "text": "1.646.196",
+              "source_word_ids": [
+                444
+              ]
+            },
+            {
+              "text": "-",
+              "source_word_ids": [
+                445
+              ]
+            },
+            {
+              "text": "1.646.196",
+              "source_word_ids": [
+                446
+              ]
+            }
+          ]
+        ],
+        "spans": [
+          {
+            "row": 0,
+            "column": 0,
+            "row_span": 2,
+            "column_span": 1
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "row_span": 1,
+            "column_span": 4
+          },
+          {
+            "row": 0,
+            "column": 5,
+            "row_span": 1,
+            "column_span": 3
+          },
+          {
+            "row": 0,
+            "column": 8,
+            "row_span": 1,
+            "column_span": 3
+          },
+          {
+            "row": 0,
+            "column": 11,
+            "row_span": 1,
+            "column_span": 6
+          }
+        ]
+      },
+      "source_text_regions": [
+        {
+          "bbox": [
+            39,
+            101,
+            303,
+            111
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            233,
+            520,
+            609,
+            531
+          ],
+          "text": "İlişikteki açıklama ve dipnotlar bu konsolide olmayan finansal tabloların tamamlayıcı bir parçasıdır."
+        },
+        {
+          "bbox": [
+            32,
+            330,
+            237,
+            341
+          ],
+          "text": "1. Duran varlıklar birikmiş yeniden değerleme artışları/azalışları,"
+        },
+        {
+          "bbox": [
+            32,
+            340,
+            274,
+            350
+          ],
+          "text": "2. Tanımlanmış fayda planlarının birikmiş yeniden ölçüm kazançları/kayıpları,"
+        },
+        {
+          "bbox": [
+            32,
+            349,
+            716,
+            359
+          ],
+          "text": "3. Diğer (özkaynak yöntemiyle değerlenen yatırımların diğer kapsamlı gelirinden kâr/zararda sınıflandırılmayacak payları ile diğer kâr veya zarar olarak yeniden sınıflandırılmayacak diğer kapsamlı gelir unsurlarının birikmiş tutarları),"
+        },
+        {
+          "bbox": [
+            32,
+            358,
+            145,
+            368
+          ],
+          "text": "4. Yabancı para çevirim farkları,"
+        },
+        {
+          "bbox": [
+            32,
+            368,
+            484,
+            378
+          ],
+          "text": "5. Gerçeğe uygun değer farkı diğer kapsamlı gelire yansıtılan finansal varlıkların birikmiş yeniden değerleme ve/veya sınıflandırma kazançları/kayıpları,"
+        },
+        {
+          "bbox": [
+            32,
+            377,
+            807,
+            396
+          ],
+          "text": "6. Diğer (nakit akış riskinden korunma kazançları/kayıpları, özkaynak yöntemiyle değerlenen yatırımların diğer kapsamlı gelirinden kâr/zararda sınıflandırılacak payları ve diğer kâr veya zarar olarak yeniden sınıflandırılacak diğer kapsamlı gelir unsurlarının birikmiş tutarları ifade eder)"
+        }
+      ]
+    },
+    {
+      "id": "complete_fx_exposure_current_and_prior",
+      "kind": "complete_physical_table",
+      "page": 31,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        85,
+        183,
+        539,
+        589
+      ],
+      "rows": [
+        [
+          "Cari Dönem",
+          "Avro",
+          "ABD Doları",
+          "Diğer YP",
+          "Toplam"
+        ],
+        [
+          "Varlıklar",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Nakit Değerler (Kasa, Efektif Deposu, Yoldaki Paralar, Satın Alınan Çekler) ve T.C. Merkez Bnk.",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Bankalar",
+          "-",
+          "18.783",
+          "-",
+          "18.783"
+        ],
+        [
+          "Gerçeğe Uygun Değer Farkı Kâr veya Zarara Yansıtılan Finansal Varlıklar",
+          "-",
+          "12.500",
+          "-",
+          "12.500"
+        ],
+        [
+          "Para Piyasalarından Alacaklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Krediler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş ortaklıkları)",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "İtfa Edilmiş Maliyeti Üzerinden Değerlenen Finansal Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Riskten Korunma Amaçlı Türev Finansal Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Maddi Duran Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Maddi Olmayan Duran Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam Varlıklar",
+          "-",
+          "31.283",
+          "-",
+          "31.283"
+        ],
+        [
+          "Yükümlülükler",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Bankalar Mevduatı",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Döviz Tevdiat Hesabı",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Para Piyasalarına Borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer Mali Kuruluşlardan Sağlanan Fonlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "İhraç Edilen Menkul Değerler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Muhtelif Borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Riskten Korunma Amaçlı Türev Finansal Borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Diğer Yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam Yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Net Bilanço Pozisyonu",
+          "-",
+          "31.283",
+          "-",
+          "31.283"
+        ],
+        [
+          "Net Nazım Hesap Pozisyonu",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Türev Finansal Araçlardan Alacaklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Türev Finansal Araçlardan Borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Gayrinakdi Krediler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Önceki Dönem",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Toplam Varlıklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Toplam Yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Net Bilanço Pozisyonu",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Net Nazım Hesap Pozisyonu",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Türev Finansal Araçlardan Alacaklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Türev Finansal Araçlardan Borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "Gayrinakdi Krediler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ]
+      ],
+      "spans": [],
+      "source_review": "Complete table independently transcribed from original PDF page 31 on 2026-09-07. Every printed cell, heading, date, currency label, dash and empty or covered slot was compared with the original image. Literal values are retained without numeric normalization or inferred financial meaning. Current and prior periods are separate row groups; both remain inside the same complete five-column physical table.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_current_liquidity_high_low",
+      "kind": "complete_physical_table",
+      "page": 33,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        125,
+        224,
+        539,
+        254
+      ],
+      "rows": [
+        [
+          "Cari Dönem",
+          "En Yüksek",
+          "Tarih",
+          "En Düşük",
+          "Tarih"
+        ],
+        [
+          "TP+YP",
+          "80.980.325",
+          "30.09.2023",
+          "80.980.325",
+          "30.09.2023"
+        ],
+        [
+          "YP",
+          "1.047.115",
+          "30.09.2023",
+          "1.047.115",
+          "30.09.2023"
+        ]
+      ],
+      "spans": [],
+      "source_review": "Complete table independently transcribed from original PDF page 33 on 2026-09-07. Every printed cell, heading, date, currency label, dash and empty or covered slot was compared with the original image. Literal values are retained without numeric normalization or inferred financial meaning. This review covers the small high/low table only. It preserves 80.980.325 exactly; the large current-liquidity table below prints 809.080.325 and has clipped row numbers, so it is not certified by this review.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_prior_liquidity_coverage",
+      "kind": "complete_physical_table",
+      "page": 34,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        85,
+        193,
+        539,
+        558
+      ],
+      "rows": [
+        [
+          "Önceki Dönem",
+          null,
+          "Dikkate Alınma Oranı Uygulanmamış Toplam Değer",
+          null,
+          "Dikkate Alınma Oranı Uygulanmış Toplam Değer",
+          null
+        ],
+        [
+          null,
+          null,
+          "TP+YP",
+          "YP",
+          "TP+YP",
+          "YP"
+        ],
+        [
+          "YÜKSEK KALİTELİ LİKİT VARLIKLAR",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "1",
+          "Yüksek kaliteli likit varlıklar",
+          "1.420.854",
+          "-",
+          "1.420.854",
+          "-"
+        ],
+        [
+          "NAKİT ÇIKIŞLARI",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "2",
+          "Gerçek kişi mevduat ve perakende mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "3",
+          "İstikrarlı mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "4",
+          "Düşük istikrarlı mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "5",
+          "Gerçek kişi mevduat ve perakende mevduat dışında kalan teminatsız borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "6",
+          "Operasyonel mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "7",
+          "Operasyonel olmayan mevduat",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "8",
+          "Diğer teminatsız borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "9",
+          "Teminatlı borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "10",
+          "Diğer nakit çıkışları",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "11",
+          "Türev yükümlülükler ve teminat tamamlama yükümlülükleri",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "12",
+          "Yapılandırılmış finansal araçlardan borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "13",
+          "Finansal piyasalara olan borçlar için verilen ödeme taahhütleri ile diğer bilanço dışı yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "14",
+          "Herhangi bir şarta bağlı olmaksızın cayılabilir bilanço dışı diğer yükümlülükler ile sözleşmeye dayalı diğer yükümlülükler",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "15",
+          "Diğer cayılamaz veya şarta bağlı olarak cayılabilir bilanço dışı borçlar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "16",
+          "TOPLAM NAKİT ÇIKIŞLARI",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "NAKİT GİRİŞLERİ",
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          "17",
+          "Teminatlı alacaklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "18",
+          "Teminatsız alacaklar",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "19",
+          "Diğer nakit girişleri",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "20",
+          "TOPLAM NAKİT GİRİŞLERİ",
+          "-",
+          "-",
+          "-",
+          "-"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "Üst Sınır Uygulanmış Değerler",
+          null
+        ],
+        [
+          "21",
+          "TOPLAM YKLV STOKU",
+          "",
+          "",
+          "1.420.854",
+          "-"
+        ],
+        [
+          "22",
+          "TOPLAM NET NAKİT ÇIKIŞLARI",
+          "",
+          "",
+          "-",
+          "-"
+        ],
+        [
+          "23",
+          "LİKİDİTE KARŞILAMA ORANI (%)",
+          "",
+          "",
+          "142.085.400",
+          "-"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 2,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 6
+        },
+        {
+          "row": 4,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 6
+        },
+        {
+          "row": 20,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 6
+        },
+        {
+          "row": 25,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_review": "Complete table independently transcribed from original PDF page 34 on 2026-09-07. Every printed cell, heading, date, currency label, dash and empty or covered slot was compared with the original image. Literal values are retained without numeric normalization or inferred financial meaning. All 23 printed row numbers and both weighted/unweighted column groups are retained. The printed prior liquidity ratio 142.085.400 remains literal, and empty unweighted slots in the last three rows are not dashes or zeros.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
+    },
+    {
+      "id": "complete_fx_daily_rates",
+      "kind": "complete_physical_table",
+      "page": 30,
+      "method": "horizontal_rule_cells",
+      "bbox": [
+        125,
+        261,
+        539,
+        340
+      ],
+      "rows": [
+        [
+          "",
+          "USD",
+          "EURO"
+        ],
+        [
+          "Bilanço değerleme kuru 1. Günün Cari Döviz Alış Kuru 2. Günün Cari Döviz Alış Kuru 3. Günün Cari Döviz Alış Kuru 4. Günün Cari Döviz Alış Kuru 5. Günün Cari Döviz Alış Kuru",
+          "27,3767 TL 27,3767 TL 27,3752 TL 27,2640 TL 27,2108 TL 27,1751 TL",
+          "29,0305 TL 29,0305 TL 28,8083 TL 28,7853 TL 28,8183 TL 28,9027 TL"
+        ]
+      ],
+      "spans": [],
+      "source_review": "Complete daily exchange-rate table independently transcribed from original PDF page 30 on 2026-09-07, before comparison with candidate extraction. Both USD/EURO headings, the valuation-rate row and all five daily rows are retained, including the repeated first-day rates and the literal TL suffix in every value cell. The two physical printed bands remain available; six reviewed body rows refine their source-word placement. No paragraph, thirty-day average or prior-period value is imported into this table.",
+      "reviewed_grid": {
+        "source_review": "Complete daily exchange-rate table independently transcribed from original PDF page 30 on 2026-09-07, before comparison with candidate extraction. Both USD/EURO headings, the valuation-rate row and all five daily rows are retained, including the repeated first-day rates and the literal TL suffix in every value cell. The two physical printed bands remain available; six reviewed body rows refine their source-word placement. No paragraph, thirty-day average or prior-period value is imported into this table.",
+        "x_edges": [
+          125.66,
+          299.565,
+          419.11,
+          538.77
+        ],
+        "y_edges": [
+          261.1809,
+          272,
+          285.31245,
+          298.4525,
+          308.77250000000004,
+          319.15250000000003,
+          329.5325,
+          340
+        ],
+        "rows": [
+          [
+            {
+              "text": "",
+              "source_word_ids": []
+            },
+            {
+              "text": "USD",
+              "source_word_ids": [
+                148
+              ]
+            },
+            {
+              "text": "EURO",
+              "source_word_ids": [
+                149
+              ]
+            }
+          ],
+          [
+            {
+              "text": "Bilanço değerleme kuru",
+              "source_word_ids": [
+                150,
+                151,
+                152
+              ]
+            },
+            {
+              "text": "27,3767 TL",
+              "source_word_ids": [
+                153,
+                154
+              ]
+            },
+            {
+              "text": "29,0305 TL",
+              "source_word_ids": [
+                155,
+                156
+              ]
+            }
+          ],
+          [
+            {
+              "text": "1. Günün Cari Döviz Alış Kuru",
+              "source_word_ids": [
+                157,
+                158,
+                159,
+                160,
+                161,
+                162
+              ]
+            },
+            {
+              "text": "27,3767 TL",
+              "source_word_ids": [
+                163,
+                164
+              ]
+            },
+            {
+              "text": "29,0305 TL",
+              "source_word_ids": [
+                165,
+                166
+              ]
+            }
+          ],
+          [
+            {
+              "text": "2. Günün Cari Döviz Alış Kuru",
+              "source_word_ids": [
+                167,
+                168,
+                169,
+                170,
+                171,
+                172
+              ]
+            },
+            {
+              "text": "27,3752 TL",
+              "source_word_ids": [
+                173,
+                174
+              ]
+            },
+            {
+              "text": "28,8083 TL",
+              "source_word_ids": [
+                175,
+                176
+              ]
+            }
+          ],
+          [
+            {
+              "text": "3. Günün Cari Döviz Alış Kuru",
+              "source_word_ids": [
+                177,
+                178,
+                179,
+                180,
+                181,
+                182
+              ]
+            },
+            {
+              "text": "27,2640 TL",
+              "source_word_ids": [
+                183,
+                184
+              ]
+            },
+            {
+              "text": "28,7853 TL",
+              "source_word_ids": [
+                185,
+                186
+              ]
+            }
+          ],
+          [
+            {
+              "text": "4. Günün Cari Döviz Alış Kuru",
+              "source_word_ids": [
+                187,
+                188,
+                189,
+                190,
+                191,
+                192
+              ]
+            },
+            {
+              "text": "27,2108 TL",
+              "source_word_ids": [
+                193,
+                194
+              ]
+            },
+            {
+              "text": "28,8183 TL",
+              "source_word_ids": [
+                195,
+                196
+              ]
+            }
+          ],
+          [
+            {
+              "text": "5. Günün Cari Döviz Alış Kuru",
+              "source_word_ids": [
+                197,
+                198,
+                199,
+                200,
+                201,
+                202
+              ]
+            },
+            {
+              "text": "27,1751 TL",
+              "source_word_ids": [
+                203,
+                204
+              ]
+            },
+            {
+              "text": "28,9027 TL",
+              "source_word_ids": [
+                205,
+                206
+              ]
+            }
+          ]
+        ],
+        "spans": []
+      },
+      "source_text_regions": [
+        {
+          "bbox": [
+            85,
+            96,
+            346,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            127,
+            230,
+            541,
+            251
+          ],
+          "text": "Banka’nın finansal tablo tarihi ile bu tarihten geriye doğru son beş günü kamuya duyurulan cari döviz alış kurları önemli döviz cinsleri için aşağıdaki tabloda gösterilmektedir:"
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

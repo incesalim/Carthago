@@ -113,6 +113,15 @@ The complete physical text remains accessible underneath. Table counts
 are detector candidates, potentially overlapping; they are never a completeness
 denominator. Reading order, headers and narrative roles remain unreviewed.
 
+The added TOMK 2023Q3 equity review displays 20 rows and 17 columns, with six
+numbered explanation columns and the original four physical rows retained.
+The daily exchange-rate review shows both currencies and all six body rows.
+FX exposure retains current/prior row groups; liquidity reviews preserve the
+bank's literal values and blank slots. The large current-liquidity table's
+clipped row numbers remain unresolved. These are named table reviews, not
+whole-report approval. Updated receipts must finish publication before the
+additional tables appear live.
+
 The narrative repair identifies oversized numerical envelopes containing two or
 more separate ruled tables. Such envelopes cannot claim the prose between those
 tables. Numerical and other speculative rectangles remain visible as

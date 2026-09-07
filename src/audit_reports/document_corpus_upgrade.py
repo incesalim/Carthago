@@ -123,6 +123,13 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
         cached = store.cached_structure(evidence, target)
         if cached is not None:
             return cached, {'method': 'exact_engine_cache'}
+        from . import document_underline_upgrade as underlines
+        if target == underlines.TARGET_ENGINE:
+            base = store.cached_structure(evidence, underlines.BASE_ENGINE)
+            if base is not None:
+                upgraded = underlines.upgrade_underlines(pdf_path, evidence, base)
+                if upgraded is not None:
+                    return upgraded
         from . import document_narrative_upgrade as narrative
         if target == narrative.TARGET_ENGINE:
             base = store.cached_structure(evidence, narrative.BASE_ENGINE)
@@ -155,6 +162,9 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
 
 
 def compare_retained_structure(pdf_path, evidence, fresh, store):
+    from . import document_underline_upgrade as underlines
+    if fresh['engine'] == underlines.TARGET_ENGINE:
+        return underlines.compare_retained_underlines(pdf_path, evidence, fresh, store)
     from . import document_narrative_upgrade as narrative
     if fresh['engine'] == narrative.TARGET_ENGINE:
         return narrative.compare_retained_narrative(pdf_path, evidence, fresh, store)

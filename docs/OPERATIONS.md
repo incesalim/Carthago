@@ -2115,3 +2115,17 @@ and extraction identities are unchanged. The latter full-corpus job retains
 its original annotation snapshot; it is not restarted for these three tables.
 Receipt: `reviewed-grid-cloud-independent-verification.json` in the internal
 evidence directory. Queued publication does not establish a verified live view.
+
+The subsequent horizontal-rule repair has an exact retained transition from
+`35500cc8` to `c9134d44` (PyMuPDF 1.27.2.3). It reads the preserved native
+words and drawing rules, retains existing table identities and rebuilds all
+dependent narrative, source-row, layout, context, note and period-header views.
+Original PDF bytes are checked before and after; no PDF pages are opened.
+Unknown engines or unavailable retained bases use the existing fresh path.
+Read-only probes compare the entire fresh structure with the retained replay.
+The local four-report / 384-page replay is valid, with a new daily-rate table
+only on TOMK 2023Q3 page 30. Fresh cloud proof is still required before rollout.
+Keep pending jobs `34133467871` and `34138728663` in place; they retain their
+original source and annotation snapshots. New equity/risk annotations bring
+the selected benchmark to 93 cases and 47 complete table records. Neither an
+engine match nor passing selected reviews certifies whole-report completeness.

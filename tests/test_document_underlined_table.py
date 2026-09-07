@@ -13,7 +13,7 @@ def sample():
     folder = Path(__file__).parent / 'fixtures'
     fixture = json.loads((folder / 'document_underlined_table_tomk.json').read_text(encoding='utf-8'))
     annotation = json.loads((folder / 'document_annotations/tomk_2023q3_solo.json').read_text(encoding='utf-8'))
-    annotation['cases'] = [c for c in annotation['cases'] if c.get('page') == 30]
+    annotation['cases'] = [c for c in annotation['cases'] if c['id'] == 'complete-prior-fx-table-and-currency-units']
     return fixture, annotation
 
 
@@ -21,7 +21,7 @@ def test_complete_prior_rate_table_survives_segmented_borders_and_literal_units(
     fixture, annotation = sample
     source = fixture['source_page']
     tables = underline_candidates(source, fixture['existing_tables'])
-    assert len(tables) == 1
+    assert len(tables) == 2
     assert [[c['text'] for c in r['cells']] for r in tables[0]['rows']] == [
         ['', 'USD', 'EURO'], ['Bilanço değerleme kuru', '18,6983 TL', '19,9349 TL']]
     assert tables[0]['source_drawing_ids'] == [11, 13, 15, 16, 18, 20]
@@ -45,4 +45,5 @@ def test_unmatched_rules_or_missing_columns_do_not_create_the_small_table(sample
         existing.append({'bbox': [125, 420, 540, 460]})
     else:
         source['words'] = [w for w in source['words'] if w['id'] not in (249, 250)]
-    assert underline_candidates(source, existing) == []
+    tables = underline_candidates(source, existing)
+    assert len(tables) == 1 and tables[0]['bbox'][3] == 340  # Unchanged daily table only.

@@ -40,7 +40,11 @@ def pair(tmp_path, monkeypatch):
             element.pop('candidate_table_ids')
             element['method'] = 'source_line_spacing_and_style'
     base['engine'] = deepcopy(upgrade.BASE_ENGINE)
-    monkeypatch.setattr(upgrade, 'TARGET_ENGINE', fresh['engine'])
+    # Historical adapters keep distinct version identities as new routes arrive.
+    target = deepcopy(upgrade.TARGET_ENGINE)
+    fresh['engine'] = target
+    monkeypatch.setattr(upgrade, 'structure_engine', lambda: target)
+    monkeypatch.setattr(router, 'structure_engine', lambda: target)
     assert verify_document_structure(base, evidence)['valid']
     assert any(e['candidate_table_ids'] for p in fresh['pages'] for e in p['narrative_elements'])
     return path, evidence, base, fresh

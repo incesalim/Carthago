@@ -38,11 +38,12 @@ def pair(tmp_path, monkeypatch, request):
     del base['table_period_headers_schema']
     for page in base['pages']:
         del page['table_period_headers']
-    monkeypatch.setattr(upgrade, 'TARGET_ENGINE', fresh['engine'])
-    # This fixture simulates the historical header transition at the installed
-    # engine. Keep the newer production adapter from claiming that test target.
-    from src.audit_reports import document_narrative_upgrade
-    monkeypatch.setattr(document_narrative_upgrade, 'TARGET_ENGINE', {'test': 'not_the_header_transition'})
+    # Exercise this historical transition at its own target. Giving every old
+    # adapter the installed engine makes unrelated routes claim the same test.
+    target = deepcopy(upgrade.TARGET_ENGINE)
+    fresh['engine'] = target
+    monkeypatch.setattr(upgrade, 'structure_engine', lambda: target)
+    monkeypatch.setattr(router, 'structure_engine', lambda: target)
     return path, evidence, base, fresh
 
 

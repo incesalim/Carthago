@@ -551,6 +551,13 @@ def check_annotations(structure: dict, evidence: list[dict], annotation: dict) -
         if len(matching) != 1:
             failures.append({**prefix, "kind": "row_column_source_mismatch",
                              "matching_candidates": len(matching)})
+    table_reviews = {}
+    for table in reviewed_tables:
+        key = (table['page'], table['table_id'])
+        if key in table_reviews:
+            failures.append({'kind': 'duplicate_complete_table_review', 'page': table['page'],
+                             'table_id': table['table_id'], 'cases': [table_reviews[key], table['review_id']]})
+        table_reviews[key] = table['review_id']
     return {"passed": not failures, "failures": failures,
             **({"content_reviews": content_reviews} if content_reviews else {}),
             **({"reviewed_tables": reviewed_tables} if reviewed_tables and not failures else {}),

@@ -104,10 +104,10 @@ the distinct printed dates. Wrong digits, dates, currencies, missing references,
 covered slots and dash/zero substitutions fail the new checks. The ten new
 tables and corrected report-level review description are included in the
 combined publication `34133467871`; their live display is not yet verified.
-The four independently captured reports now provide 42 reviewed tables in
+The four independently captured reports now provide 47 reviewed tables in
 `output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
-363 physical rows and 1,452 slots. The reviewed views contain 635 rows and
-3,137 slots after explicit source-reviewed assignments. These include table headings and
+439 physical rows and 1,905 slots. The reviewed views contain 732 rows and
+3,877 slots after explicit source-reviewed assignments. These include table headings and
 are selected-review counts, not the corpus's printed-table total.
 
 TOMK 2023Q3's complete P&L on PDF page 13 has now been independently transcribed
@@ -195,6 +195,39 @@ gates. Wrong values, dates, currencies, word occurrences, boundaries and spans
 fail review validation. Receipt: `reviewed-grid-cloud-independent-verification.json`
 under `docs/knowledge/2026-09-06-document-corpus/`. Whole-report content review
 remains open.
+
+
+TOMK 2023Q3 now has five further complete table reviews: the 17-column equity
+statement (PDF page 15), daily rates (page 30), the combined
+current/prior FX exposure table (page 31), the small liquidity high/low table
+(page 33) and prior liquidity coverage (page 34). The existing prior-rate review also gains its explicit date context.
+These add 97 reviewed rows / 740 slots, retaining 76 physical rows / 453 slots. The local collection now
+contains 47 complete table records / 732 reviewed rows / 3,877 slots across
+four reports; 93 selected cases are registered across eight reports. The
+equity statement retains its six numbered column explanations and complete
+closing balance. The high/low liquidity value remains the printed 80.980.325;
+the large current table prints 809.080.325 and has clipped row numbers, so it
+is still unresolved. Prior liquidity retains 142.085.400 and blank unweighted
+slots. None of these reviews certifies a complete filing.
+
+The daily-rate review exposed a missing full table: legacy numeric rows omitted
+the currency headings and printed cell structure. The repaired horizontal-rule
+candidate retains both printed bands, every source word and all original
+alternatives. Independent row assignments recover all six body rows. It requires
+matching column rules, separated source baselines, complete cell placement and
+a distinct header; a TOMK 2024Q1 tax-table holdout rejects taking the last line
+of a compound heading alone. The exact 35500cc8-to-c9134d44 retained adapter
+rebuilds table-dependent views without opening or extracting PDF pages. Bounded
+replay over all 384 pages of four retained reports changes tables only on
+TOMK 2023Q3 page 30 and preserves every existing table and source byte.
+Fresh cloud equality and publication of this repair remain required. Existing
+period/narrative/review publication runs are not restarted. The earlier
+reviewed-grid reader deployment `34138652324` has completed successfully.
+
+The isolated staged source passes 2,920 Python tests (two skipped), 865 web
+tests, all nine standalone gates, Python/web lint, web types and mobile
+lint/types/design-token checks. Duplicate complete reviews of one table
+are rejected, preventing selected coverage counts from being inflated.
 
 Remaining work is every printed table's coverage and logical structure across
 the corpus, complete prose ordering and analyst retrieval, whole-report source
