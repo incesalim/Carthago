@@ -976,3 +976,24 @@ of detected tables.
   retained bases and explicitly report their absence. Full cloud comparison and
   this repair's publication remain pending; runs 34098885624 and 34106960090 keep
   their dispatched versions.
+
+- 2026-09-07: the direct c6e429ce-to-ca66890e path can combine character linking
+  and region isolation without an intermediate publication. The two supported
+  bases have identical initial grids/numeric/native data; 9d4a83ae adds reversible
+  character links. Both bases now have complete synthetic fresh/replay equality
+  across all four rotations, including routing and missing-base handling. The
+  original full refresh remains live. Independent cloud equality of this direct
+  path is required before deciding whether to replace the still-pending 9d4a83ae
+  publication with the combined repair; no such cancellation has been made.
+
+- 2026-09-07: fresh region-repair probes at `03af3cb` pass independently on all
+  384 pages across EXIM 2023Q3 solo (`34109750621`), Garanti 2022Q4 consolidated
+  (`34109753292`) and TOMK 2024Q1/2023Q3 solo (`34109755904`/`34109758496`). All
+  original/native bytes, physical blocks and ordered narrative span occurrences
+  remain identical to the independent source copies. Thirty selected source
+  cases pass, including complete grids and retained source disagreements. The
+  336 region-refinement records satisfy their occurrence checks; that is not
+  semantic approval of all those tables. CI `34109724552` and deployment
+  `34109971304` pass. The probe comparison status is explicitly missing-base,
+  because 9d4a83ae has not been published. The combined c6e429ce replay is next.
+  Evidence: `region-cloud-independent-verification.json` in the internal folder.

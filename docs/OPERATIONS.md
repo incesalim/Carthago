@@ -1988,3 +1988,12 @@ whole fresh/replayed JSON, not only successful validators. Missing bases report
 `unsupported_target`. Neither is a successful comparison. A disagreement fails
 the probe with its fresh source artifacts retained. These comparison reads do
 not publish, alter acquired PDFs or change analytical partitions.
+
+The region replay also accepts exact `c6e429ce49dad46d4217c68d0ea35d8c5fe4acc6b508ea690f03c55bed83a463`
+as its base. That version has the same initial grids, native evidence and numeric
+candidates, before the character-link step. The combined replay reobserves the
+regions first and then applies character links, matching fresh target extraction.
+It prefers a retained 9d4a83ae revision when both exist. This can avoid an
+intermediate corpus-wide publication solely to change word references. Other
+source or extraction versions remain unsupported, and complete fresh/replay
+comparison is still required before publishing a new transition across the fleet.

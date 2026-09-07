@@ -131,9 +131,10 @@ def build_or_reuse_structure(pdf_path: Path, evidence: list[dict], store=None) -
                     return upgraded
         from . import document_region_upgrade as region
         if target == region.TARGET_ENGINE:
-            base = store.cached_structure(evidence, region.BASE_ENGINE)
-            if base is not None:
-                upgraded = region.upgrade_table_regions(pdf_path, evidence, base)
-                if upgraded is not None:
-                    return upgraded
+            for engine in region.SUPPORTED_BASE_ENGINES:
+                base = store.cached_structure(evidence, engine)
+                if base is not None:
+                    upgraded = region.upgrade_table_regions(pdf_path, evidence, base)
+                    if upgraded is not None:
+                        return upgraded
     return build_document_structure(pdf_path, evidence), {'method': 'fresh_extraction'}

@@ -1,4 +1,4 @@
-"""Replay region isolation from one exact retained pre-isolation engine.
+"""Replay region isolation from exact supported pre-isolation engines.
 
 The source's first-pass grids, numeric candidates and native evidence already
 exist. Reobserve local ruled regions, then rebuild every dependent projection.
@@ -24,6 +24,11 @@ from .document_table_rows import table_source_rows
 
 BASE_ENGINE = {'pymupdf': '1.27.2.3',
                'implementation_sha256': '9d4a83ae8331be87f793b2fd9878463f35178a4f40f70766f2e6010a81a4b438'}
+RAW_BASE_ENGINE = {'pymupdf': '1.27.2.3',
+                   'implementation_sha256': 'c6e429ce49dad46d4217c68d0ea35d8c5fe4acc6b508ea690f03c55bed83a463'}
+# c6 and 9d have identical initial grids/numeric/native capture. The latter adds
+# character links, reversed by _whole_word_table before the combined replay.
+SUPPORTED_BASE_ENGINES = (BASE_ENGINE, RAW_BASE_ENGINE)
 TARGET_ENGINE = {'pymupdf': '1.27.2.3',
                  'implementation_sha256': 'ca66890e81ae8c2d52a87a701193d3ea46f73ac5d7819e5f2e3d3d8ab5cd12e4'}
 
@@ -69,7 +74,7 @@ def _replace_table_issues(page, tables):
 
 def upgrade_table_regions(pdf_path, evidence, base):
     target = structure_engine()
-    if target != TARGET_ENGINE or base.get('engine') != BASE_ENGINE:
+    if target != TARGET_ENGINE or base.get('engine') not in SUPPORTED_BASE_ENGINES:
         return None
     if not verify_evidence_records(evidence)['valid']:
         raise ValueError('Cannot upgrade invalid source evidence')
@@ -134,9 +139,13 @@ def compare_retained_regions(pdf_path, evidence, fresh, store):
     """Read-only probes compare the whole replay result, never just its checks."""
     if fresh['engine'] != TARGET_ENGINE or structure_engine() != TARGET_ENGINE:
         return {'status': 'unsupported_target'}
-    base = store.cached_structure(evidence, BASE_ENGINE)
+    base = None
+    for engine in SUPPORTED_BASE_ENGINES:
+        base = store.cached_structure(evidence, engine)
+        if base is not None:
+            break
     if base is None:
-        return {'status': 'no_supported_retained_base', 'base_engine': BASE_ENGINE}
+        return {'status': 'no_supported_retained_base', 'base_engines': list(SUPPORTED_BASE_ENGINES)}
     result = upgrade_table_regions(pdf_path, evidence, base)
     if result is None:
         raise ValueError('Supported retained region replay unexpectedly abstained')

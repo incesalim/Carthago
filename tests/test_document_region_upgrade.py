@@ -12,6 +12,9 @@ from test_document_table_regions import source_page
 @pytest.fixture
 def pair(tmp_path, monkeypatch, request):
     rotation = getattr(request, 'param', 0)
+    raw_base = isinstance(rotation, tuple)
+    if raw_base:
+        rotation = rotation[0]
     path = tmp_path / 'TEST_2026Q1_consolidated.pdf'
     with source_page(rotation) as pdf:
         pdf.new_page().insert_text((50, 70), 'Separate prose, with no ruled grid.')
@@ -19,14 +22,16 @@ def pair(tmp_path, monkeypatch, request):
     evidence = capture_source_evidence(path, Filing('TEST', '2026Q1', 'consolidated'))
     with monkeypatch.context() as old:
         old.setattr(structure, 'refine_ruled_regions', lambda page, source, tables, *args: tables)
+        if raw_base:
+            old.setattr(structure, 'link_cell_fragments', lambda table, source, geometry: table)
         base = structure.build_document_structure(path, evidence)
-    base['engine'] = deepcopy(upgrade.BASE_ENGINE)
+    base['engine'] = deepcopy(upgrade.RAW_BASE_ENGINE if raw_base else upgrade.BASE_ENGINE)
     fresh = structure.build_document_structure(path, evidence)
     monkeypatch.setattr(upgrade, 'TARGET_ENGINE', fresh['engine'])
     return path, evidence, base, fresh
 
 
-@pytest.mark.parametrize('pair', [0, 90, 180, 270], indirect=True)
+@pytest.mark.parametrize('pair', [0, 90, 180, 270, (0,), (90,), (180,), (270,)], indirect=True)
 def test_retained_region_replay_equals_all_fresh_fields(pair):
     path, evidence, base, fresh = pair
     prior, records, pdf = deepcopy(base), deepcopy(evidence), path.read_bytes()
@@ -67,13 +72,14 @@ def test_invalid_supported_inputs_are_rejected(pair, field):
         upgrade.upgrade_table_regions(path, evidence, base)
 
 
+@pytest.mark.parametrize('pair', [0, (0,)], indirect=True)
 def test_probe_compares_all_fresh_fields_and_reports_missing_base(pair):
     path, evidence, base, fresh = pair
 
     class Store:
         def cached_structure(self, records, engine):
-            assert records == evidence and engine == upgrade.BASE_ENGINE
-            return base
+            assert records == evidence and engine in upgrade.SUPPORTED_BASE_ENGINES
+            return base if engine == base['engine'] else None
 
     check = upgrade.compare_retained_regions(path, evidence, fresh, Store())
     assert check['status'] == 'matched'
@@ -89,6 +95,7 @@ def test_probe_compares_all_fresh_fields_and_reports_missing_base(pair):
     assert upgrade.compare_retained_regions(path, evidence, fresh, Missing())['status'] == 'no_supported_retained_base'
 
 
+@pytest.mark.parametrize('pair', [0, (0,)], indirect=True)
 def test_publishing_router_reuses_regions_without_repeating_full_capture(pair, monkeypatch):
     from src.audit_reports import document_corpus_upgrade as router
     path, evidence, base, fresh = pair
@@ -97,7 +104,7 @@ def test_publishing_router_reuses_regions_without_repeating_full_capture(pair, m
     class Store:
         def cached_structure(self, records, engine):
             queries.append(engine)
-            return base if engine == upgrade.BASE_ENGINE else None
+            return base if engine == base['engine'] else None
 
     def fail(*args):
         pytest.fail('Region replay called full extraction')
@@ -105,4 +112,7 @@ def test_publishing_router_reuses_regions_without_repeating_full_capture(pair, m
     monkeypatch.setattr(router, 'build_document_structure', fail)
     result, receipt = router.build_or_reuse_structure(path, evidence, Store())
     assert result == fresh and receipt['method'] == 'retained_table_region_upgrade'
-    assert queries == [fresh['engine'], upgrade.BASE_ENGINE]
+    expected = [fresh['engine'], upgrade.BASE_ENGINE]
+    if base['engine'] == upgrade.RAW_BASE_ENGINE:
+        expected.append(upgrade.RAW_BASE_ENGINE)
+    assert queries == expected

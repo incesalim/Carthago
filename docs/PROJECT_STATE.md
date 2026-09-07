@@ -110,9 +110,17 @@ replay, rebuilding dependent tables, prose/layout and context without repeating
 native capture or initial grid detection. Read-only cloud probes compare it
 against the entire fresh extraction when a matching retained base exists;
 absence is explicitly reported and never counted as equivalence. Synthetic
-full-output comparisons pass at all four page rotations. Full cloud comparison
-and publication of this next repair remain pending; both earlier dispatched
-corpus runs keep their exact versions.
+full-output comparisons pass at all four page rotations. Fresh cloud probes at
+`03af3cb` independently retain all 384 original/native pages, physical blocks and
+ordered narrative span occurrences across EXIM, Garanti and two TOMK reports.
+All 30 selected source cases pass; CI `34109724552` and deployment `34109971304`
+pass. The probes find no retained 9d4a83ae base, so they do not establish replay
+equivalence. That comparison and publication remain pending; both dispatched
+corpus runs keep their exact versions. A combined replay from the current
+`c6e429ce` base is also implemented: its initial grids/numeric/native data are
+identical to 9d4a83ae before character linking. Both paths pass complete synthetic
+comparisons at all rotations. Independent cloud equality for the direct path is
+pending; no queued run has been cancelled or replaced on this basis.
 
 Remaining work is corpus-wide physical and semantic completeness: every printed
 table, its headers/units/row-column associations and continuations; all prose,
