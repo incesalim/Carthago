@@ -175,10 +175,15 @@ def _complete_table_matches(case, page, source):
                     good = False
                 actual_characters.update((p['word_id'], i) for p in pieces for i in range(p['start'], p['end']))
         if good and actual_characters == expected_characters:
-            if 'logical_rows' in case:
+            if 'logical_rows' in case or 'row_splits' in case:
                 from .document_table_review import reviewed_logical_rows
                 try:
-                    reviewed_logical_rows(table, source, case)
+                    logical = reviewed_logical_rows(table, source, case)
+                    if any([[_text(c['text']) for c in row['cells']]
+                            for row in logical if row.get('source_row', row['row']) == expected['source_row']]
+                           != [[_text(c) for c in row] for row in expected['rows']]
+                           for expected in case.get('numbered_rows', [])):
+                        continue
                 except (ValueError, KeyError, TypeError, IndexError):
                     continue
             if 'source_line_rows' in case:
@@ -190,6 +195,20 @@ def _complete_table_matches(case, page, source):
                              for item in projected['tables'] if item['table_id'] == table['id']
                              for split in item['split_rows'] for line in split['lines']]
                 if line_rows != [[_text(c) for c in row] for row in case['source_line_rows']]:
+                    continue
+            if 'numbered_rows' in case:
+                from .document_numbered_rows import numbered_source_rows
+                numbered = numbered_source_rows(page, source)['tables']
+                valid = True
+                for expected_group in case['numbered_rows']:
+                    found = [v for v in numbered if v['table_id'] == table['id']
+                             and v['source_row'] == expected_group['source_row']]
+                    if (len(found) != 1 or found[0]['unresolved_lines']
+                            or [[_text(c['text']) for c in row['cells']] for row in found[0]['rows']]
+                            != [[_text(c) for c in row] for row in expected_group['rows']]):
+                        valid = False
+                        break
+                if not valid:
                     continue
             matches.append(table['id'])
     return matches

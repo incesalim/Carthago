@@ -1187,3 +1187,18 @@ of detected tables.
   Region `34112697713` and heading `34116379265` continue unchanged. Live review
   record publication remains pending; goal remains active with concrete source
   review and local delivery completed this turn, not blocked.
+
+- 2026-09-07: independently transcribed TOMK 2023Q3's complete page-13 P&L
+  before comparing candidate text: 62 printed body rows plus the four-column
+  dated header. Its two physical rows remain retained; an explicit reviewed
+  source-word split gives usable printed rows. Literal identifier grouping
+  reconciles 64 source lines, including two wrapped labels, without changing
+  the repeated XIII identifier, note `(11)` or earnings-per-share `Tam TL` unit.
+  Python and Worker checks reject word loss/duplication, changed digits/units,
+  wrong columns, swapped occurrences, row reordering and combined printed rows.
+  The readable local P&L and structured collection now contain 32 complete
+  table reviews across four reports, with 374 reviewed rows / 1,488 slots
+  and all 313 original physical rows retained. The benchmark has 74 selected
+  cases across eight reports. This is further delivery toward the first whole
+  report, not whole-report completion. Current extraction fleets and the queued
+  31-table publication remain unchanged; this P&L is not yet published live.

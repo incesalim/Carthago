@@ -61,7 +61,7 @@ artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
 are not yet published across the corpus. Neither running/queued fleet is
 restarted for subsequent source annotations.
 
-The source benchmark now contains **73 selected cases across eight reports**.
+The source benchmark now contains **74 selected cases across eight reports**.
 Four independently transcribed TOMK 2023Q3 capital fragments cover
 all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
 restores the word finansal, whose final letter physically crosses into an amount
@@ -98,10 +98,24 @@ the distinct printed dates. Wrong digits, dates, currencies, missing references,
 covered slots and dash/zero substitutions fail the new checks. The ten new
 tables and corrected report-level review description are included in the
 pending restricted publication; their live display is not yet verified.
-The four independently captured reports now provide 31 reviewed tables in
+The four independently captured reports now provide 32 reviewed tables in
 `output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
-311 physical rows and 1,236 slots. This is a selected-review count, not the
-corpus's printed-table total.
+313 physical rows and 1,244 slots. The reviewed views contain 374 rows and
+1,488 slots after the explicit P&L row split. These include table headings and
+are selected-review counts, not the corpus's printed-table total.
+
+TOMK 2023Q3's complete P&L on PDF page 13 has now been independently transcribed
+from the original image: 62 printed body rows, four columns and the dated header.
+The physical extraction has only two rows, with the entire body in one band.
+Explicit source-word assignments and literal numbered-line grouping recover the
+62 rows while conserving every character occurrence. Two wrapped labels, the
+bank's repeated XIII identifier, literal note `(11)` and the earnings-per-share
+`Tam TL` unit remain intact. The admin reader independently checks row groups,
+source occurrences, placement and complete literal wording before serving them.
+The local `profit-loss-reviewed.html` is visually inspected; Python and Worker
+corruption tests reject dropped, duplicated, reordered, misassigned and merged
+rows. This addition is not in the pending `34124160052` publication and has not
+yet been verified live. It changes review processing, not PDF extraction.
 Python-produced wire fixtures include original reviewed pages with explicit
 empty placeholders elsewhere solely for protocol tests. They are not complete
 report extracts. The new `annotated_only` capture input limits publication to

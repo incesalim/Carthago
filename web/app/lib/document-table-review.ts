@@ -8,10 +8,11 @@ type Cell = { text: string | null; bbox: Box | null; column: number; word_ids: n
 type PhysicalTable = { id: string; n_cols: number; row_count: number; bbox: Box; rows: { index: number; cells: Cell[] }[] };
 type Span = { row: number; column: number; row_span: number; column_span: number };
 type LogicalRow = { row: number; source_review: string; cells: { text: string; source_word_ids: number[] }[] };
+type RowSplit = { row: number; source_review: string; rows: { cells: LogicalRow["cells"] }[] };
 export type ReviewedTable = { review_id: string; table_id: string; page: number; source_review: string;
   native_page_sha256: string; structure_page_sha256: string;
   scope: "named_table_transcription"; financial_series_interpretation: "not_performed";
-  rows: { row: number; reviewed_assignment: boolean; cells: { column: number; text: string | null; source_fragments: Part[] }[] }[];
+  rows: { row: number; source_row?: number; reviewed_assignment: boolean; cells: { column: number; text: string | null; source_fragments: Part[] }[] }[];
   merged_spans: Span[]; absent_slots: { row: number; column: number }[];
   source_context: { bbox: Box; text: string }[]; physical_table: PhysicalTable };
 
@@ -108,7 +109,7 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
     return parts;
   };
   const physicalRows = saved.physical_rows;
-  const rows = table.rows.map((row, r) => {
+  const rows: ReviewedTable["rows"] = table.rows.map((row, r) => {
     const expected = physicalRows[r] as unknown;
     if (row.index !== r || !Array.isArray(row.cells) || row.cells.length !== table.n_cols || !Array.isArray(expected) || expected.length !== table.n_cols) fail();
     return { row: r, reviewed_assignment: false, cells: row.cells.map((c, column) => {
@@ -126,12 +127,9 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
     for (const p of parts) for (let i = p.start; i < p.end; i++) { const id = `${p.word_id}:${i}`; if (result.has(id)) fail(); result.add(id); }
     return [...result].sort();
   };
-  for (const override of saved.logical_rows as LogicalRow[]) {
-    if (!record(override) || !integer(override.row) || override.row >= rows.length || changed.has(override.row)
-        || typeof override.source_review !== "string" || !override.source_review.trim() || !Array.isArray(override.cells) || override.cells.length !== table.n_cols
-        || spans.some(s => s.row <= override.row && override.row < s.row + s.row_span && s.row_span !== 1)) fail();
-    const r = override.row, before = inventory(rows[r].cells.flatMap(c => c.source_fragments));
-    const cells = override.cells.map((c, column) => {
+  const checkedCells = (input: LogicalRow["cells"], r: number) => {
+    if (!Array.isArray(input) || input.length !== table.n_cols) fail();
+    return input.map((c, column) => {
       if (!record(c) || typeof c.text !== "string" || !Array.isArray(c.source_word_ids) || new Set(c.source_word_ids).size !== c.source_word_ids.length) fail();
       const selected = c.source_word_ids.map(id => words.get(id) ?? fail());
       if (selected.some(w => (w.bbox[0] + w.bbox[2]) / 2 < grid.x[column] || (w.bbox[0] + w.bbox[2]) / 2 > grid.x[column + 1]
@@ -141,8 +139,58 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
       return { column, text: lines.map(line => line.map(w => w.text).join(" ")).join("\n"),
         source_fragments: ordered.map(w => ({ word_id: w.id, start: 0, end: literal(w.text).length, text: w.text, bbox: w.bbox })) };
     });
+  };
+  for (const override of saved.logical_rows as LogicalRow[]) {
+    if (!record(override) || !integer(override.row) || override.row >= rows.length || changed.has(override.row)
+        || typeof override.source_review !== "string" || !override.source_review.trim()
+        || spans.some(s => s.row <= override.row && override.row < s.row + s.row_span && s.row_span !== 1)) fail();
+    const r = override.row, before = inventory(rows[r].cells.flatMap(c => c.source_fragments));
+    const cells = checkedCells(override.cells, r);
     if (!same(before, inventory(cells.flatMap(c => c.source_fragments)))) fail();
     rows[r] = { row: r, reviewed_assignment: true, cells }; changed.add(r);
+  }
+  const rowSplits = saved.row_splits === undefined ? [] : saved.row_splits;
+  if (!Array.isArray(rowSplits)) fail();
+  const expanded = new Map<number, ReviewedTable["rows"]>();
+  for (const split of rowSplits as RowSplit[]) {
+    if (!record(split) || !integer(split.row) || split.row >= rows.length || changed.has(split.row)
+        || typeof split.source_review !== "string" || !split.source_review.trim() || !Array.isArray(split.rows) || split.rows.length < 2
+        || absent.some(a => a.row === split.row)
+        || spans.some(s => s.row <= split.row && split.row < s.row + s.row_span && s.row_span !== 1)) fail();
+    const r = split.row, before = inventory(rows[r].cells.flatMap(c => c.source_fragments));
+    let previousBottom = grid.y[r];
+    const replacements = split.rows.map(subrow => {
+      if (!record(subrow)) fail();
+      const cells = checkedCells(subrow.cells, r), parts = cells.flatMap(c => c.source_fragments);
+      if (!parts.length || Math.min(...parts.map(p => p.bbox[1])) < previousBottom) fail();
+      previousBottom = Math.max(...parts.map(p => p.bbox[3]));
+      return { row: r, source_row: r, reviewed_assignment: true, cells };
+    });
+    if (!same(before, inventory(replacements.flatMap(row => row.cells.flatMap(c => c.source_fragments))))) fail();
+    expanded.set(r, replacements); changed.add(r);
+  }
+  const positions = new Map<number, number>();
+  const displayRows: ReviewedTable["rows"] = [];
+  for (const row of rows) {
+    positions.set(row.row, displayRows.length);
+    for (const replacement of expanded.get(row.row) ?? [row]) {
+      displayRows.push(expanded.size ? { ...replacement, row: displayRows.length, source_row: row.row } : replacement);
+    }
+  }
+  if (saved.numbered_rows !== undefined) {
+    if (!Array.isArray(saved.numbered_rows)) fail();
+    const seen = new Set<number>();
+    for (const group of saved.numbered_rows) {
+      if (!record(group) || !integer(group.source_row) || !expanded.has(group.source_row) || seen.has(group.source_row)
+          || !Array.isArray(group.rows) || !group.rows.length) fail();
+      seen.add(group.source_row);
+      const expected = group.rows.map(row => {
+        if (!Array.isArray(row) || row.length !== table.n_cols || row.some(c => typeof c !== "string")) fail();
+        return (row as string[]).map(norm);
+      });
+      const actual = displayRows.filter(row => row.source_row === group.source_row).map(row => row.cells.map(c => norm(c.text ?? "")));
+      if (!same(actual, expected)) fail();
+    }
   }
   for (const region of saved.source_context) {
     if (!record(region) || !box(region.bbox) || typeof region.text !== "string") fail();
@@ -153,8 +201,9 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
   }
   return { review_id: String(saved.review_id), table_id: table.id, page: Number(saved.page), source_review: String(saved.source_review),
     native_page_sha256: String(saved.native_page_sha256), structure_page_sha256: String(saved.structure_page_sha256),
-    scope: "named_table_transcription", financial_series_interpretation: "not_performed", rows,
-    merged_spans: spans.filter(s => !changed.has(s.row)), absent_slots: absent,
+    scope: "named_table_transcription", financial_series_interpretation: "not_performed", rows: displayRows,
+    merged_spans: spans.filter(s => !changed.has(s.row)).map(s => ({ ...s, row: positions.get(s.row) ?? fail() })),
+    absent_slots: absent.map(a => ({ ...a, row: positions.get(a.row) ?? fail() })),
     source_context: saved.source_context as ReviewedTable["source_context"], physical_table: table };
 }
 

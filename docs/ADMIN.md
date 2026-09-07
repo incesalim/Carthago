@@ -84,7 +84,11 @@ literal dashes and disclosed zero.
 **Source-reviewed tables** shows registered complete-table transcriptions above
 the candidate views. The API rechecks the current PDF identity, exact native
 and structured page hashes, literal grid, merged/absent slots, context text and
-each explicit logical-row assignment. It exposes only named reviewed tables;
+each explicit logical-row assignment. A reviewed table may split one large
+physical cell band into its printed rows; every source character must be retained
+exactly once, and each row keeps its original physical-row reference. Numbered
+row groups are also checked against the independent literal transcription.
+It exposes only named reviewed tables;
 the whole-report verification count remains separate. Hover a cell to inspect
 source-word/character references. **Download reviewed tables and source
 references** returns this page's logical rows alongside its original physical

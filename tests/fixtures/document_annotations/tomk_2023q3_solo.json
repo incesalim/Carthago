@@ -3565,6 +3565,2358 @@
           "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
         }
       ]
+    },
+    {
+      "id": "complete_profit_loss_with_printed_row_groups",
+      "kind": "complete_physical_table",
+      "page": 13,
+      "method": "pymupdf_lines_strict",
+      "bbox": [
+        47,
+        112,
+        577,
+        646
+      ],
+      "rows": [
+        [
+          "GELİR VE GİDER KALEMLERİ",
+          "Dipnot (V-IV)",
+          "Cari Dönem 1 Ocak- 30 Eylül 2023",
+          "Önceki Dönem 1 Ocak- 30 Eylül 2022"
+        ],
+        [
+          "I. KAR PAYI GELİRLERİ 1.1 Kredilerden Alınan Kar Payları 1.2 Zorunlu Karşılıklardan Alınan Gelirler 1.3 Bankalardan Alınan Gelirler 1.4 Para Piyasası İşlemlerinden Alınan Gelirler 1.5 Menkul Değerlerden Alınan Gelirler 1.5.1 Gerçeğe Uygun Değer Farkı Kar Zarara Yansıtılanlar 1.5.2 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılanlar 1.5.3 İtfa Edilmiş Maliyeti İle Ölçülenler 1.6 Finansal Kiralama Gelirleri 1.7 Diğer Kar Payı Gelirleri II. KAR PAYI GİDERLERİ (-) 2.1 Katılma Hesaplarına Verilen Kar Payları 2.2 Kullanılan Kredilere Verilen Kar Payları 2.3 Para Piyasası İşlemlerine Verilen Kar Payları 2.4 İhraç Edilen Menkul Kıymetlere Verilen Kar Payları 2.5 Kiralama Kar Payı Giderleri 2.6 Diğer Kar Payı Giderleri III. NET KAR PAYI GELİRİ/GİDERİ (I - II) IV. NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ 4.1 Alınan Ücret ve Komisyonlar 4.1.1 Gayri Nakdi Kredilerden 4.1.2 Diğer 4.2 Verilen Ücret ve Komisyonlar (-) 4.2.1 Gayri Nakdi Kredilere 4.2.2 Diğer V. TEMETTÜ GELİRLERİ VI. TİCARİ KAR/ZARAR (Net) 6.1 Sermaye Piyasası İşlemleri Karı/Zararı 6.2 Türev Finansal İşlemlerden Kar/Zarar 6.3 Kambiyo İşlemleri Karı/Zararı VII. DİĞER FAALİYET GELİRLERİ VIII. FAALİYET BRÜT KÂRI (III+IV+V+VI+VII) IX. KREDİ KARŞILIKLARI (-) X. PERSONEL GİDERLERİ (-) XI DİĞER FAALİYET GİDERLERİ (-) XII. NET FAALİYET KÂRI/ZARARI (VIII-IX-X-XI) XIII. BİRLEŞME İŞLEMİ SONRASINDA GELİR OLARAK KAYDEDİLEN FAZLALIK TUTARI XIV. ÖZKAYNAK YÖNTEMİ UYGULANAN ORTAKLIKLARDAN KAR/ZARAR XV. NET PARASAL POZİSYON KARI/ZARARI XVI. SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XII+...+XV) XVII. SÜRDÜRÜLEN FAALİYETLER VERGİ KARŞILIĞI (±) 18.1 Cari Vergi Karşılığı 18.2 Ertelenmiş Vergi Gider Etkisi (+) 18.3 Ertelenmiş Vergi Gelir Etkisi (-) XIII. SÜRDÜRÜLEN FAALİYETLER DÖNEM NET K/Z (XVI±XVII) XIX. DURDURULAN FAALİYETLERDEN GELİRLER 20.1 Satış Amaçlı Elde Tutulan Duran Varlık Gelirleri 20.2 İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Karları 20.3 Diğer Durdurulan Faaliyet Gelirleri XX. DURDURULAN FAALİYETLERDEN GİDERLER (-) 21.1 Satış Amaçlı Elde Tutulan Duran Varlık Giderleri 21.2 İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Zararları 21.3 Diğer Durdurulan Faaliyet Giderleri XXI. DURDURULAN FAALİYETLER VERGİ ÖNCESİ K/Z (XIX-XX) XXII. DURDURULAN FAALİYETLER VERGİ KARŞILIĞI (±) 23.1 Cari Vergi Karşılığı 23.2 Ertelenmiş Vergi Gider Etkisi (+) 23.3 Ertelenmiş Vergi Gelir Etkisi (-) XXIII. DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXI±XXII) XXIV. NET DÖNEM KARI/ZARARI (XIII+XXIII) Hisse Başına Kar/Zarar (Tam TL)",
+          "(1) (2) (4) (7) (8) (9) (10) (11)",
+          "112.338 - - 112.338 - - - - - - - 275 - - - - 275 - 112.063 - - - - - - - - 179.095 170.750 - 8.345 - 291.158 - 70.837 82.638 137.683 - - - 137.683 10.388 - (6.802) 17.190 148.071 - - - - - - - - - - - - - - 148.071 0,09871",
+          "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+        ]
+      ],
+      "spans": [],
+      "numbered_rows": [
+        {
+          "source_row": 1,
+          "rows": [
+            [
+              "I. KAR PAYI GELİRLERİ",
+              "(1)",
+              "112.338",
+              "-"
+            ],
+            [
+              "1.1 Kredilerden Alınan Kar Payları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.2 Zorunlu Karşılıklardan Alınan Gelirler",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.3 Bankalardan Alınan Gelirler",
+              "",
+              "112.338",
+              "-"
+            ],
+            [
+              "1.4 Para Piyasası İşlemlerinden Alınan Gelirler",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.5 Menkul Değerlerden Alınan Gelirler",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.5.1 Gerçeğe Uygun Değer Farkı Kar Zarara Yansıtılanlar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.5.2 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılanlar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.5.3 İtfa Edilmiş Maliyeti İle Ölçülenler",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.6 Finansal Kiralama Gelirleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "1.7 Diğer Kar Payı Gelirleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "II. KAR PAYI GİDERLERİ (-)",
+              "(2)",
+              "275",
+              "-"
+            ],
+            [
+              "2.1 Katılma Hesaplarına Verilen Kar Payları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.2 Kullanılan Kredilere Verilen Kar Payları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.3 Para Piyasası İşlemlerine Verilen Kar Payları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.4 İhraç Edilen Menkul Kıymetlere Verilen Kar Payları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "2.5 Kiralama Kar Payı Giderleri",
+              "",
+              "275",
+              "-"
+            ],
+            [
+              "2.6 Diğer Kar Payı Giderleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "III. NET KAR PAYI GELİRİ/GİDERİ (I - II)",
+              "",
+              "112.063",
+              "-"
+            ],
+            [
+              "IV. NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "4.1 Alınan Ücret ve Komisyonlar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "4.1.1 Gayri Nakdi Kredilerden",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "4.1.2 Diğer",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "4.2 Verilen Ücret ve Komisyonlar (-)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "4.2.1 Gayri Nakdi Kredilere",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "4.2.2 Diğer",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "V. TEMETTÜ GELİRLERİ",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "VI. TİCARİ KAR/ZARAR (Net)",
+              "(4)",
+              "179.095",
+              "-"
+            ],
+            [
+              "6.1 Sermaye Piyasası İşlemleri Karı/Zararı",
+              "",
+              "170.750",
+              "-"
+            ],
+            [
+              "6.2 Türev Finansal İşlemlerden Kar/Zarar",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "6.3 Kambiyo İşlemleri Karı/Zararı",
+              "",
+              "8.345",
+              "-"
+            ],
+            [
+              "VII. DİĞER FAALİYET GELİRLERİ",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "VIII. FAALİYET BRÜT KÂRI (III+IV+V+VI+VII)",
+              "",
+              "291.158",
+              "-"
+            ],
+            [
+              "IX. KREDİ KARŞILIKLARI (-)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "X. PERSONEL GİDERLERİ (-)",
+              "",
+              "70.837",
+              "-"
+            ],
+            [
+              "XI DİĞER FAALİYET GİDERLERİ (-)",
+              "(7)",
+              "82.638",
+              "-"
+            ],
+            [
+              "XII. NET FAALİYET KÂRI/ZARARI (VIII-IX-X-XI)",
+              "",
+              "137.683",
+              "-"
+            ],
+            [
+              "XIII. BİRLEŞME İŞLEMİ SONRASINDA GELİR OLARAK KAYDEDİLEN FAZLALIK TUTARI",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XIV. ÖZKAYNAK YÖNTEMİ UYGULANAN ORTAKLIKLARDAN KAR/ZARAR",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XV. NET PARASAL POZİSYON KARI/ZARARI",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XVI. SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XII+...+XV)",
+              "(8)",
+              "137.683",
+              "-"
+            ],
+            [
+              "XVII. SÜRDÜRÜLEN FAALİYETLER VERGİ KARŞILIĞI (±)",
+              "(9)",
+              "10.388",
+              "-"
+            ],
+            [
+              "18.1 Cari Vergi Karşılığı",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "18.2 Ertelenmiş Vergi Gider Etkisi (+)",
+              "",
+              "(6.802)",
+              "-"
+            ],
+            [
+              "18.3 Ertelenmiş Vergi Gelir Etkisi (-)",
+              "",
+              "17.190",
+              "-"
+            ],
+            [
+              "XIII. SÜRDÜRÜLEN FAALİYETLER DÖNEM NET K/Z (XVI±XVII)",
+              "(10)",
+              "148.071",
+              "-"
+            ],
+            [
+              "XIX. DURDURULAN FAALİYETLERDEN GELİRLER",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "20.1 Satış Amaçlı Elde Tutulan Duran Varlık Gelirleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "20.2 İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Karları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "20.3 Diğer Durdurulan Faaliyet Gelirleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XX. DURDURULAN FAALİYETLERDEN GİDERLER (-)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "21.1 Satış Amaçlı Elde Tutulan Duran Varlık Giderleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "21.2 İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Zararları",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "21.3 Diğer Durdurulan Faaliyet Giderleri",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XXI. DURDURULAN FAALİYETLER VERGİ ÖNCESİ K/Z (XIX-XX)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XXII. DURDURULAN FAALİYETLER VERGİ KARŞILIĞI (±)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "23.1 Cari Vergi Karşılığı",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "23.2 Ertelenmiş Vergi Gider Etkisi (+)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "23.3 Ertelenmiş Vergi Gelir Etkisi (-)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XXIII. DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXI±XXII)",
+              "",
+              "-",
+              "-"
+            ],
+            [
+              "XXIV. NET DÖNEM KARI/ZARARI (XIII+XXIII)",
+              "(11)",
+              "148.071",
+              "-"
+            ],
+            [
+              "Hisse Başına Kar/Zarar (Tam TL)",
+              "",
+              "0,09871",
+              "-"
+            ]
+          ]
+        }
+      ],
+      "row_splits": [
+        {
+          "row": 1,
+          "rows": [
+            {
+              "cells": [
+                {
+                  "text": "I. KAR PAYI GELİRLERİ",
+                  "source_word_ids": [
+                    62,
+                    63,
+                    64,
+                    65
+                  ]
+                },
+                {
+                  "text": "(1)",
+                  "source_word_ids": [
+                    66
+                  ]
+                },
+                {
+                  "text": "112.338",
+                  "source_word_ids": [
+                    67
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    68
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.1 Kredilerden Alınan Kar Payları",
+                  "source_word_ids": [
+                    69,
+                    70,
+                    71,
+                    72,
+                    73
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    74
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    75
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.2 Zorunlu Karşılıklardan Alınan Gelirler",
+                  "source_word_ids": [
+                    76,
+                    77,
+                    78,
+                    79,
+                    80
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    81
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    82
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.3 Bankalardan Alınan Gelirler",
+                  "source_word_ids": [
+                    83,
+                    84,
+                    85,
+                    86
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "112.338",
+                  "source_word_ids": [
+                    87
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    88
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.4 Para Piyasası İşlemlerinden Alınan Gelirler",
+                  "source_word_ids": [
+                    89,
+                    90,
+                    91,
+                    92,
+                    93,
+                    94
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    95
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    96
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.5 Menkul Değerlerden Alınan Gelirler",
+                  "source_word_ids": [
+                    97,
+                    98,
+                    99,
+                    100,
+                    101
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    102
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    103
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.5.1 Gerçeğe Uygun Değer Farkı Kar Zarara Yansıtılanlar",
+                  "source_word_ids": [
+                    104,
+                    105,
+                    106,
+                    107,
+                    108,
+                    109,
+                    110,
+                    111
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    112
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    113
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.5.2 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılanlar",
+                  "source_word_ids": [
+                    114,
+                    115,
+                    116,
+                    117,
+                    118,
+                    119,
+                    120,
+                    121,
+                    122
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    123
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    124
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.5.3 İtfa Edilmiş Maliyeti İle Ölçülenler",
+                  "source_word_ids": [
+                    125,
+                    126,
+                    127,
+                    128,
+                    129,
+                    130
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    131
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    132
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.6 Finansal Kiralama Gelirleri",
+                  "source_word_ids": [
+                    133,
+                    134,
+                    135,
+                    136
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    137
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    138
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "1.7 Diğer Kar Payı Gelirleri",
+                  "source_word_ids": [
+                    139,
+                    140,
+                    141,
+                    142,
+                    143
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    144
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    145
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "II. KAR PAYI GİDERLERİ (-)",
+                  "source_word_ids": [
+                    146,
+                    147,
+                    148,
+                    149,
+                    150
+                  ]
+                },
+                {
+                  "text": "(2)",
+                  "source_word_ids": [
+                    151
+                  ]
+                },
+                {
+                  "text": "275",
+                  "source_word_ids": [
+                    152
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    153
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.1 Katılma Hesaplarına Verilen Kar Payları",
+                  "source_word_ids": [
+                    154,
+                    155,
+                    156,
+                    157,
+                    158,
+                    159
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    160
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    161
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.2 Kullanılan Kredilere Verilen Kar Payları",
+                  "source_word_ids": [
+                    162,
+                    163,
+                    164,
+                    165,
+                    166,
+                    167
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    168
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    169
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.3 Para Piyasası İşlemlerine Verilen Kar Payları",
+                  "source_word_ids": [
+                    170,
+                    171,
+                    172,
+                    173,
+                    174,
+                    175,
+                    176
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    177
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    178
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.4 İhraç Edilen Menkul Kıymetlere Verilen Kar Payları",
+                  "source_word_ids": [
+                    179,
+                    180,
+                    181,
+                    182,
+                    183,
+                    184,
+                    185,
+                    186
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    187
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    188
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.5 Kiralama Kar Payı Giderleri",
+                  "source_word_ids": [
+                    189,
+                    190,
+                    191,
+                    192,
+                    193
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "275",
+                  "source_word_ids": [
+                    194
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    195
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "2.6 Diğer Kar Payı Giderleri",
+                  "source_word_ids": [
+                    196,
+                    197,
+                    198,
+                    199,
+                    200
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    201
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    202
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "III. NET KAR PAYI GELİRİ/GİDERİ (I - II)",
+                  "source_word_ids": [
+                    203,
+                    204,
+                    205,
+                    206,
+                    207,
+                    208,
+                    209,
+                    210
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "112.063",
+                  "source_word_ids": [
+                    211
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    212
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "IV. NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+                  "source_word_ids": [
+                    213,
+                    214,
+                    215,
+                    216,
+                    217,
+                    218
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    219
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    220
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "4.1 Alınan Ücret ve Komisyonlar",
+                  "source_word_ids": [
+                    221,
+                    222,
+                    223,
+                    224,
+                    225
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    226
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    227
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "4.1.1 Gayri Nakdi Kredilerden",
+                  "source_word_ids": [
+                    228,
+                    229,
+                    230,
+                    231
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    232
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    233
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "4.1.2 Diğer",
+                  "source_word_ids": [
+                    234,
+                    235
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    236
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    237
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "4.2 Verilen Ücret ve Komisyonlar (-)",
+                  "source_word_ids": [
+                    238,
+                    239,
+                    240,
+                    241,
+                    242,
+                    243
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    244
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    245
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "4.2.1 Gayri Nakdi Kredilere",
+                  "source_word_ids": [
+                    246,
+                    247,
+                    248,
+                    249
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    250
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    251
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "4.2.2 Diğer",
+                  "source_word_ids": [
+                    252,
+                    253
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    254
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    255
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "V. TEMETTÜ GELİRLERİ",
+                  "source_word_ids": [
+                    256,
+                    257,
+                    258
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    259
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    260
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "VI. TİCARİ KAR/ZARAR (Net)",
+                  "source_word_ids": [
+                    261,
+                    262,
+                    263,
+                    264
+                  ]
+                },
+                {
+                  "text": "(4)",
+                  "source_word_ids": [
+                    265
+                  ]
+                },
+                {
+                  "text": "179.095",
+                  "source_word_ids": [
+                    266
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    267
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "6.1 Sermaye Piyasası İşlemleri Karı/Zararı",
+                  "source_word_ids": [
+                    268,
+                    269,
+                    270,
+                    271,
+                    272
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "170.750",
+                  "source_word_ids": [
+                    273
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    274
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "6.2 Türev Finansal İşlemlerden Kar/Zarar",
+                  "source_word_ids": [
+                    275,
+                    276,
+                    277,
+                    278,
+                    279
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    280
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    281
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "6.3 Kambiyo İşlemleri Karı/Zararı",
+                  "source_word_ids": [
+                    282,
+                    283,
+                    284,
+                    285
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "8.345",
+                  "source_word_ids": [
+                    286
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    287
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "VII. DİĞER FAALİYET GELİRLERİ",
+                  "source_word_ids": [
+                    288,
+                    289,
+                    290,
+                    291
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    292
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    293
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "VIII. FAALİYET BRÜT KÂRI (III+IV+V+VI+VII)",
+                  "source_word_ids": [
+                    294,
+                    295,
+                    296,
+                    297,
+                    298
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "291.158",
+                  "source_word_ids": [
+                    299
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    300
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "IX. KREDİ KARŞILIKLARI (-)",
+                  "source_word_ids": [
+                    301,
+                    302,
+                    303,
+                    304
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    305
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    306
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "X. PERSONEL GİDERLERİ (-)",
+                  "source_word_ids": [
+                    307,
+                    308,
+                    309,
+                    310
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "70.837",
+                  "source_word_ids": [
+                    311
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    312
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XI DİĞER FAALİYET GİDERLERİ (-)",
+                  "source_word_ids": [
+                    313,
+                    314,
+                    315,
+                    316,
+                    317
+                  ]
+                },
+                {
+                  "text": "(7)",
+                  "source_word_ids": [
+                    318
+                  ]
+                },
+                {
+                  "text": "82.638",
+                  "source_word_ids": [
+                    319
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    320
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XII. NET FAALİYET KÂRI/ZARARI (VIII-IX-X-XI)",
+                  "source_word_ids": [
+                    321,
+                    322,
+                    323,
+                    324,
+                    325
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "137.683",
+                  "source_word_ids": [
+                    326
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    327
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XIII. BİRLEŞME İŞLEMİ SONRASINDA GELİR OLARAK KAYDEDİLEN FAZLALIK TUTARI",
+                  "source_word_ids": [
+                    328,
+                    329,
+                    330,
+                    331,
+                    332,
+                    333,
+                    334,
+                    335,
+                    336
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    337
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    338
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XIV. ÖZKAYNAK YÖNTEMİ UYGULANAN ORTAKLIKLARDAN KAR/ZARAR",
+                  "source_word_ids": [
+                    339,
+                    340,
+                    341,
+                    342,
+                    343,
+                    344
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    345
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    346
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XV. NET PARASAL POZİSYON KARI/ZARARI",
+                  "source_word_ids": [
+                    347,
+                    348,
+                    349,
+                    350,
+                    351
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    352
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    353
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XVI. SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XII+...+XV)",
+                  "source_word_ids": [
+                    354,
+                    355,
+                    356,
+                    357,
+                    358,
+                    359,
+                    360
+                  ]
+                },
+                {
+                  "text": "(8)",
+                  "source_word_ids": [
+                    361
+                  ]
+                },
+                {
+                  "text": "137.683",
+                  "source_word_ids": [
+                    362
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    363
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XVII. SÜRDÜRÜLEN FAALİYETLER VERGİ KARŞILIĞI (±)",
+                  "source_word_ids": [
+                    364,
+                    365,
+                    366,
+                    367,
+                    368,
+                    369
+                  ]
+                },
+                {
+                  "text": "(9)",
+                  "source_word_ids": [
+                    370
+                  ]
+                },
+                {
+                  "text": "10.388",
+                  "source_word_ids": [
+                    371
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    372
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "18.1 Cari Vergi Karşılığı",
+                  "source_word_ids": [
+                    373,
+                    374,
+                    375,
+                    376
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    377
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    378
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "18.2 Ertelenmiş Vergi Gider Etkisi (+)",
+                  "source_word_ids": [
+                    379,
+                    380,
+                    381,
+                    382,
+                    383,
+                    384
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "(6.802)",
+                  "source_word_ids": [
+                    385
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    386
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "18.3 Ertelenmiş Vergi Gelir Etkisi (-)",
+                  "source_word_ids": [
+                    387,
+                    388,
+                    389,
+                    390,
+                    391,
+                    392
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "17.190",
+                  "source_word_ids": [
+                    393
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    394
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XIII. SÜRDÜRÜLEN FAALİYETLER DÖNEM NET K/Z (XVI±XVII)",
+                  "source_word_ids": [
+                    395,
+                    396,
+                    397,
+                    398,
+                    399,
+                    400,
+                    401
+                  ]
+                },
+                {
+                  "text": "(10)",
+                  "source_word_ids": [
+                    402
+                  ]
+                },
+                {
+                  "text": "148.071",
+                  "source_word_ids": [
+                    403
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    404
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XIX. DURDURULAN FAALİYETLERDEN GELİRLER",
+                  "source_word_ids": [
+                    405,
+                    406,
+                    407,
+                    408
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    409
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    410
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "20.1 Satış Amaçlı Elde Tutulan Duran Varlık Gelirleri",
+                  "source_word_ids": [
+                    411,
+                    412,
+                    413,
+                    414,
+                    415,
+                    416,
+                    417,
+                    418
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    419
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    420
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "20.2 İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Karları",
+                  "source_word_ids": [
+                    421,
+                    422,
+                    423,
+                    424,
+                    425,
+                    426,
+                    427,
+                    428,
+                    429,
+                    430,
+                    431,
+                    432,
+                    433
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    434
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    435
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "20.3 Diğer Durdurulan Faaliyet Gelirleri",
+                  "source_word_ids": [
+                    436,
+                    437,
+                    438,
+                    439,
+                    440
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    441
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    442
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XX. DURDURULAN FAALİYETLERDEN GİDERLER (-)",
+                  "source_word_ids": [
+                    443,
+                    444,
+                    445,
+                    446,
+                    447
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    448
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    449
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "21.1 Satış Amaçlı Elde Tutulan Duran Varlık Giderleri",
+                  "source_word_ids": [
+                    450,
+                    451,
+                    452,
+                    453,
+                    454,
+                    455,
+                    456,
+                    457
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    458
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    459
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "21.2 İştirak, Bağlı Ortaklık ve Birlikte Kontrol Edilen Ortaklıklar (İş Ort.) Satış Zararları",
+                  "source_word_ids": [
+                    460,
+                    461,
+                    462,
+                    463,
+                    464,
+                    465,
+                    466,
+                    467,
+                    468,
+                    469,
+                    470,
+                    471,
+                    472
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    473
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    474
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "21.3 Diğer Durdurulan Faaliyet Giderleri",
+                  "source_word_ids": [
+                    475,
+                    476,
+                    477,
+                    478,
+                    479
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    480
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    481
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XXI. DURDURULAN FAALİYETLER VERGİ ÖNCESİ K/Z (XIX-XX)",
+                  "source_word_ids": [
+                    482,
+                    483,
+                    484,
+                    485,
+                    486,
+                    487,
+                    488
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    489
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    490
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XXII. DURDURULAN FAALİYETLER VERGİ KARŞILIĞI (±)",
+                  "source_word_ids": [
+                    491,
+                    492,
+                    493,
+                    494,
+                    495,
+                    496
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    497
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    498
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "23.1 Cari Vergi Karşılığı",
+                  "source_word_ids": [
+                    499,
+                    500,
+                    501,
+                    502
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    503
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    504
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "23.2 Ertelenmiş Vergi Gider Etkisi (+)",
+                  "source_word_ids": [
+                    505,
+                    506,
+                    507,
+                    508,
+                    509,
+                    510
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    511
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    512
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "23.3 Ertelenmiş Vergi Gelir Etkisi (-)",
+                  "source_word_ids": [
+                    513,
+                    514,
+                    515,
+                    516,
+                    517,
+                    518
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    519
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    520
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XXIII. DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXI±XXII)",
+                  "source_word_ids": [
+                    521,
+                    522,
+                    523,
+                    524,
+                    525,
+                    526,
+                    527
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    528
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    529
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "XXIV. NET DÖNEM KARI/ZARARI (XIII+XXIII)",
+                  "source_word_ids": [
+                    530,
+                    531,
+                    532,
+                    533,
+                    534
+                  ]
+                },
+                {
+                  "text": "(11)",
+                  "source_word_ids": [
+                    535
+                  ]
+                },
+                {
+                  "text": "148.071",
+                  "source_word_ids": [
+                    536
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    537
+                  ]
+                }
+              ]
+            },
+            {
+              "cells": [
+                {
+                  "text": "Hisse Başına Kar/Zarar (Tam TL)",
+                  "source_word_ids": [
+                    538,
+                    539,
+                    540,
+                    541,
+                    542
+                  ]
+                },
+                {
+                  "text": "",
+                  "source_word_ids": []
+                },
+                {
+                  "text": "0,09871",
+                  "source_word_ids": [
+                    543
+                  ]
+                },
+                {
+                  "text": "-",
+                  "source_word_ids": [
+                    544
+                  ]
+                }
+              ]
+            }
+          ],
+          "source_review": "Independently read all 62 printed P&L rows. Two labels span two baselines; note markers remain in their reference column. Repeated XIII and XI without a dot are literal. EPS keeps its Tam TL unit override. Whole original source words and all characters must remain in source order."
+        }
+      ],
+      "source_review": "Complete table, all 62 printed body rows and four dated/reference columns independently transcribed from rendered original PDF page 13 on 2026-09-07, before comparing candidate text. Both original physical rows remain available.",
+      "source_text_regions": [
+        {
+          "bbox": [
+            66,
+            89,
+            329,
+            100
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        },
+        {
+          "bbox": [
+            118,
+            728,
+            493,
+            739
+          ],
+          "text": "İlişikteki açıklama ve dipnotlar bu konsolide olmayan finansal tabloların tamamlayıcı bir parçasıdır."
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."
