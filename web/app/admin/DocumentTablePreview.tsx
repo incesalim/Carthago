@@ -27,7 +27,7 @@ export default function DocumentTablePreview({ table, context, sourceRows }: { t
   return <details className="border-b border-border py-3" open>
     <summary className="cursor-pointer text-xs font-medium">
       Candidate {table.id} · {table.row_count} rows · {table.n_cols} value/text columns
-      <span className="ml-2 font-normal text-faint">{positioned ? "PDF-linked label positions" : numeric ? "Numeric layout" : "Ruled layout"} · unreviewed</span>
+      <span className="ml-2 font-normal text-faint">{positioned ? "PDF-linked label positions" : numeric ? "Numeric layout" : table.method === "segmented_rules_and_source_lines" ? "Printed rules and text positions" : "Ruled layout"} · unreviewed</span>
     </summary>
     {context?.heading && <p className="mt-2 text-xs font-medium">{context.heading.text}</p>}
     {sourceRows && <div className="mt-2 text-xs text-muted-foreground">

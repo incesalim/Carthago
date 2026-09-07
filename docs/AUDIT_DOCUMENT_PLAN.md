@@ -752,3 +752,16 @@ of detected tables.
   ambiguity mutations and admin rendering checks pass locally. Only this page's
   line view changes across the retained 51-page report. Cloud verification and
   publication remain pending; table meanings and header-note links are unverified.
+
+- 2026-09-07: equity probe `34078794091` independently verifies all 51 unchanged
+  native pages, exact committed engine and 17 source cases. Publication/replay
+  `34078940748` matches the probe and leaves all seven observed object versions
+  unchanged. CI/deploy at `b9c89ad` pass; authenticated UI review remains pending.
+- 2026-09-07: independently transcribed the complete page-39 deferred-tax table.
+  Added a separate alternative from repeated segmented rules and complete native
+  header blocks. All 40 slots, 69 source word occurrences, both grouped headings,
+  blank net-row positions and printed units pass the full-table benchmark; the
+  prior fragments fail it. Only page 39 gains this alternative across TOMK's 51
+  pages. Whole-table omission, swapped repeated values, invented zeroes, shifted
+  columns, truncated headings and changed units are rejected. Full Python, 791
+  web tests, lint/type and mobile checks pass. Cloud verification remains pending.

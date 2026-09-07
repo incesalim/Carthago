@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import fixture from "../../../tests/fixtures/document_equity_preview_wire.json";
+import taxFixture from "../../../tests/fixtures/document_segmented_tax_preview_wire.json";
 import TablePreview from "./DocumentTablePreview";
 
 describe("equity source lines in vertically spanning cells", () => {
@@ -25,4 +26,19 @@ describe("equity source lines in vertically spanning cells", () => {
     expect(body.match(/Dönem Sonu Bakiyesi\s+\(III/g)).toHaveLength(1);
     expect(markup).not.toContain("Show separate source lines inside tall cells");
   });
+});
+
+it("keeps both tax header groups and distinguishes blank net slots from merged slots", () => {
+  const markup = renderToStaticMarkup(<TablePreview {...taxFixture} />);
+  const body = markup.split("<tbody>")[1].split("</tbody>")[0];
+  const rows = [...body.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)].map(m => m[1]);
+  expect(rows).toHaveLength(8);
+  expect(rows[0].match(/colSpan="2"/g)).toHaveLength(2);
+  expect(rows[0]).toContain("Toplam Geçici Farklar");
+  expect(rows[0]).toContain("varlıkları / (yükümlülükleri)");
+  expect(rows.at(-1)?.match(/<td\b/g)).toHaveLength(5);
+  expect(rows.at(-1)?.match(/\[empty source cell\]/g)).toHaveLength(2);
+  expect(rows.at(-1)).toContain("11.936");
+  expect(rows[4]).toContain("55.203");
+  expect(markup).toContain("Printed rules and text positions");
 });

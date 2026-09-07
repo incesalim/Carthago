@@ -334,8 +334,29 @@ transcribed opening/movement/closing source cases raise TOMK's benchmark to 17
 cases. Missing, duplicated, misplaced or overlapping content rejects the view.
 All 51 retained page structures were compared locally; only page 15's line view
 changes. Admin rendering tests preserve both merged headers and all body columns.
-Cloud probe/publication and live authenticated display checks remain pending.
-Header-note meaning and accounting-row semantics remain unverified.
+Cloud probe `34078794091` independently matches the source PDF, all 51 native
+pages, the exact committed engine and all 17 source cases; only page 15's line
+view changes. Publication/replay `34078940748` matches the verified probe and
+retains three open content notes. All seven source/acquisition object versions
+remain unchanged on replay. CI/deploy at `b9c89ad` pass; live authenticated
+display checks remain pending. Header-note meaning and accounting-row semantics remain unverified.
+
+TOMK's page-39 deferred-tax table previously appeared as a numeric candidate
+and five overlapping underline fragments, with grouped headings split apart.
+A new whole-table alternative requires matching segmented horizontal rules,
+a separate period-header rule, complete non-overlapping native heading blocks,
+unique amount-column containment and full source-word conservation. It retains
+the original candidates. The 8-by-5 table preserves both grouped headings, four
+period columns, the two blank net-row amount slots and every literal figure.
+A complete-table source annotation checks all 40 slots, 69 word occurrences and
+the separate printed thousand-TL units; this raises TOMK's benchmark to 18 cases.
+The printed 55.203 total is retained even though its displayed components sum
+to 55.202. No correction or financial interpretation is inferred. Corrupted
+headers, rule witnesses, repeated-value occurrences, blank-to-zero substitutions,
+omitted tables and changed units fail validation or the source benchmark.
+Across the 51 retained TOMK pages, only page 39 gets this new alternative.
+Full Python, 791 web tests, lint/type and mobile checks pass. Cloud verification,
+publication and live authenticated display remain pending.
 
 The TOMK PDF itself has unresolved source disagreements: capital adequacy is
 93.93% in page-26 prose, 93.75% in page-28 detail and 93.90% in page-50 summary.

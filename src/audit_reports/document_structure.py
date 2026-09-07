@@ -26,6 +26,7 @@ from .document_positioned_text import positioned_text, verify_positioned_text
 from .document_table_context import table_context, verify_table_context
 from .document_table_rows import table_source_rows, verify_table_source_rows
 from .document_reading_layout import reading_layout, verify_reading_layout
+from .document_segmented_tables import segmented_table_candidates, verify_segmented_tables
 from .prose import role_from_title
 
 STRUCTURE_VERSION = "document-structure-1"
@@ -42,6 +43,7 @@ def structure_engine() -> dict:
                  "document_table_context.py",
                  "document_table_rows.py",
                  "document_reading_layout.py",
+                 "document_segmented_tables.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -331,6 +333,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
             ruled = _ruled_candidates(pdf[observed["page"] - 1], observed)
             extra = underline_candidates(observed, numeric + ruled)
             tables = numeric + ruled + extra
+            tables.extend(segmented_table_candidates(observed, tables))
             positioned = None
             if observed.get('actualtext_changes_word_view'):
                 positioned, alternatives, position_issues = _positioned_candidates(pdf[observed['page'] - 1], observed, captured)
@@ -361,6 +364,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
                                "count": observed["native_structure"]["unmapped_nonblank_spans"]})
             span_blocks = _physical_blocks(observed)
             pages.append({"page": observed["page"], "text_blocks": span_blocks,
+                          "segmented_tables_schema": "segmented-table-candidates-1",
                           "candidate_lines": lines, "tables": tables,
                           "notes": [{**asdict(note), "review_status": "unreviewed"}
                                     for note in captured.notes],
@@ -408,6 +412,7 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
         errors.extend(prefix + error for error in verify_narrative(page, source))
         errors.extend(prefix + error for error in verify_reading_layout(page, source))
         errors.extend(prefix + error for error in verify_table_source_rows(page, source))
+        errors.extend(prefix + error for error in verify_segmented_tables(page, source))
         spans = {s["id"]: s for s in source["spans"]}
         used = Counter()
         for block in page["text_blocks"]:

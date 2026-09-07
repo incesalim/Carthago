@@ -628,6 +628,101 @@
         "-",
         "1.646.196"
       ]
+    },
+    {
+      "id": "complete-deferred-tax-table-with-grouped-headings",
+      "kind": "complete_physical_table",
+      "page": 39,
+      "method": "segmented_rules_and_source_lines",
+      "bbox": [
+        127,
+        178,
+        545,
+        301
+      ],
+      "rows": [
+        [
+          "",
+          "Toplam Geçici Farklar",
+          null,
+          "Ertelenmiş vergi varlıkları / (yükümlülükleri)",
+          null
+        ],
+        [
+          "",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 31 Aralık 2022",
+          "Cari Dönem 30 Eylül 2023",
+          "Önceki Dönem 31 Aralık 2022"
+        ],
+        [
+          "Mali Zararlar",
+          "51.453",
+          "3.200",
+          "15.436",
+          "800"
+        ],
+        [
+          "Karşılıklar",
+          "3.749",
+          "4.163",
+          "1.125",
+          "1.041"
+        ],
+        [
+          "Ertelenmiş vergi varlığı",
+          "55.203",
+          "7.364",
+          "16.561",
+          "1.841"
+        ],
+        [
+          "Maddi Duran Varlık Ekonomik Ömür Farkı",
+          "15.416",
+          "1.174",
+          "4.625",
+          "294"
+        ],
+        [
+          "Ertelenmiş vergi yükümlülüğü",
+          "15.416",
+          "1.174",
+          "4.625",
+          "294"
+        ],
+        [
+          "Ertelenmiş Vergi Varlığı (Net)",
+          "",
+          "",
+          "11.936",
+          "1.547"
+        ]
+      ],
+      "spans": [
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        }
+      ],
+      "source_text_regions": [
+        {
+          "bbox": [
+            84,
+            96,
+            347,
+            107
+          ],
+          "text": "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (“TL”) olarak ifade edilmiştir.)"
+        }
+      ]
     }
   ],
   "content_review_method": "Independent visual inventory of original pages; exact source spans and page-artifact hashes attached afterward. Differences are preserved without deciding which figure to use."

@@ -1,0 +1,1217 @@
+{
+  "table": {
+    "id": "p39:segmented0",
+    "kind": "table_candidate",
+    "method": "segmented_rules_and_source_lines",
+    "bbox": [
+      127.82,
+      179.0864,
+      544.06,
+      299.45000000000005
+    ],
+    "rows": [
+      {
+        "index": 0,
+        "cells": [
+          {
+            "row": 0,
+            "column": 0,
+            "bbox": [
+              127.82,
+              179.0864,
+              275.685,
+              197.66
+            ],
+            "text": "",
+            "word_ids": [],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 0,
+            "column": 1,
+            "bbox": [
+              275.685,
+              179.0864,
+              414.19,
+              197.66
+            ],
+            "text": "Toplam Geçici Farklar",
+            "word_ids": [
+              52,
+              53,
+              54
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 0,
+            "column": 2,
+            "bbox": null,
+            "text": null,
+            "word_ids": [],
+            "source_text_matches": true,
+            "slot_status": "absent_or_merged"
+          },
+          {
+            "row": 0,
+            "column": 3,
+            "bbox": [
+              414.19,
+              179.0864,
+              544.06,
+              197.66
+            ],
+            "text": "Ertelenmiş vergi\nvarlıkları / (yükümlülükleri)",
+            "word_ids": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 0,
+            "column": 4,
+            "bbox": null,
+            "text": null,
+            "word_ids": [],
+            "source_text_matches": true,
+            "slot_status": "absent_or_merged"
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "cells": [
+          {
+            "row": 1,
+            "column": 0,
+            "bbox": [
+              127.82,
+              197.66,
+              275.685,
+              216.62
+            ],
+            "text": "",
+            "word_ids": [],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 1,
+            "column": 1,
+            "bbox": [
+              275.685,
+              197.66,
+              347.712,
+              216.62
+            ],
+            "text": "Cari Dönem\n30 Eylül 2023",
+            "word_ids": [
+              60,
+              61,
+              62,
+              63,
+              64
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "bbox": [
+              347.712,
+              197.66,
+              414.19,
+              216.62
+            ],
+            "text": "Önceki Dönem\n31 Aralık 2022",
+            "word_ids": [
+              65,
+              66,
+              67,
+              68,
+              69
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "bbox": [
+              414.19,
+              197.66,
+              478.297,
+              216.62
+            ],
+            "text": "Cari Dönem\n30 Eylül 2023",
+            "word_ids": [
+              70,
+              71,
+              72,
+              73,
+              74
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 1,
+            "column": 4,
+            "bbox": [
+              478.297,
+              197.66,
+              544.06,
+              216.62
+            ],
+            "text": "Önceki Dönem\n31 Aralık 2022",
+            "word_ids": [
+              75,
+              76,
+              77,
+              78,
+              79
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "cells": [
+          {
+            "row": 2,
+            "column": 0,
+            "bbox": [
+              127.82,
+              216.62,
+              275.685,
+              234.0365
+            ],
+            "text": "Mali Zararlar",
+            "word_ids": [
+              80,
+              81
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "bbox": [
+              275.685,
+              216.62,
+              347.712,
+              234.0365
+            ],
+            "text": "51.453",
+            "word_ids": [
+              82
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 2,
+            "column": 2,
+            "bbox": [
+              347.712,
+              216.62,
+              414.19,
+              234.0365
+            ],
+            "text": "3.200",
+            "word_ids": [
+              83
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 2,
+            "column": 3,
+            "bbox": [
+              414.19,
+              216.62,
+              478.297,
+              234.0365
+            ],
+            "text": "15.436",
+            "word_ids": [
+              84
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 2,
+            "column": 4,
+            "bbox": [
+              478.297,
+              216.62,
+              544.06,
+              234.0365
+            ],
+            "text": "800",
+            "word_ids": [
+              85
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "cells": [
+          {
+            "row": 3,
+            "column": 0,
+            "bbox": [
+              127.82,
+              234.0365,
+              275.685,
+              243.51645
+            ],
+            "text": "Karşılıklar",
+            "word_ids": [
+              86
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "bbox": [
+              275.685,
+              234.0365,
+              347.712,
+              243.51645
+            ],
+            "text": "3.749",
+            "word_ids": [
+              87
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 3,
+            "column": 2,
+            "bbox": [
+              347.712,
+              234.0365,
+              414.19,
+              243.51645
+            ],
+            "text": "4.163",
+            "word_ids": [
+              88
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 3,
+            "column": 3,
+            "bbox": [
+              414.19,
+              234.0365,
+              478.297,
+              243.51645
+            ],
+            "text": "1.125",
+            "word_ids": [
+              89
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 3,
+            "column": 4,
+            "bbox": [
+              478.297,
+              234.0365,
+              544.06,
+              243.51645
+            ],
+            "text": "1.041",
+            "word_ids": [
+              90
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "cells": [
+          {
+            "row": 4,
+            "column": 0,
+            "bbox": [
+              127.82,
+              243.51645,
+              275.685,
+              257.37645000000003
+            ],
+            "text": "Ertelenmiş vergi varlığı",
+            "word_ids": [
+              91,
+              92,
+              93
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 4,
+            "column": 1,
+            "bbox": [
+              275.685,
+              243.51645,
+              347.712,
+              257.37645000000003
+            ],
+            "text": "55.203",
+            "word_ids": [
+              94
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 4,
+            "column": 2,
+            "bbox": [
+              347.712,
+              243.51645,
+              414.19,
+              257.37645000000003
+            ],
+            "text": "7.364",
+            "word_ids": [
+              95
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 4,
+            "column": 3,
+            "bbox": [
+              414.19,
+              243.51645,
+              478.297,
+              257.37645000000003
+            ],
+            "text": "16.561",
+            "word_ids": [
+              96
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 4,
+            "column": 4,
+            "bbox": [
+              478.297,
+              243.51645,
+              544.06,
+              257.37645000000003
+            ],
+            "text": "1.841",
+            "word_ids": [
+              97
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "cells": [
+          {
+            "row": 5,
+            "column": 0,
+            "bbox": [
+              127.82,
+              257.37645000000003,
+              275.685,
+              271.2365
+            ],
+            "text": "Maddi Duran Varlık Ekonomik Ömür Farkı",
+            "word_ids": [
+              98,
+              99,
+              100,
+              101,
+              102,
+              103
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 5,
+            "column": 1,
+            "bbox": [
+              275.685,
+              257.37645000000003,
+              347.712,
+              271.2365
+            ],
+            "text": "15.416",
+            "word_ids": [
+              104
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 5,
+            "column": 2,
+            "bbox": [
+              347.712,
+              257.37645000000003,
+              414.19,
+              271.2365
+            ],
+            "text": "1.174",
+            "word_ids": [
+              105
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 5,
+            "column": 3,
+            "bbox": [
+              414.19,
+              257.37645000000003,
+              478.297,
+              271.2365
+            ],
+            "text": "4.625",
+            "word_ids": [
+              106
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 5,
+            "column": 4,
+            "bbox": [
+              478.297,
+              257.37645000000003,
+              544.06,
+              271.2365
+            ],
+            "text": "294",
+            "word_ids": [
+              107
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "cells": [
+          {
+            "row": 6,
+            "column": 0,
+            "bbox": [
+              127.82,
+              271.2365,
+              275.685,
+              285.33645
+            ],
+            "text": "Ertelenmiş vergi yükümlülüğü",
+            "word_ids": [
+              108,
+              109,
+              110
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 6,
+            "column": 1,
+            "bbox": [
+              275.685,
+              271.2365,
+              347.712,
+              285.33645
+            ],
+            "text": "15.416",
+            "word_ids": [
+              111
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 6,
+            "column": 2,
+            "bbox": [
+              347.712,
+              271.2365,
+              414.19,
+              285.33645
+            ],
+            "text": "1.174",
+            "word_ids": [
+              112
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 6,
+            "column": 3,
+            "bbox": [
+              414.19,
+              271.2365,
+              478.297,
+              285.33645
+            ],
+            "text": "4.625",
+            "word_ids": [
+              113
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 6,
+            "column": 4,
+            "bbox": [
+              478.297,
+              271.2365,
+              544.06,
+              285.33645
+            ],
+            "text": "294",
+            "word_ids": [
+              114
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "cells": [
+          {
+            "row": 7,
+            "column": 0,
+            "bbox": [
+              127.82,
+              285.33645,
+              275.685,
+              299.45000000000005
+            ],
+            "text": "Ertelenmiş Vergi Varlığı (Net)",
+            "word_ids": [
+              115,
+              116,
+              117,
+              118
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 7,
+            "column": 1,
+            "bbox": [
+              275.685,
+              285.33645,
+              347.712,
+              299.45000000000005
+            ],
+            "text": "",
+            "word_ids": [],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 7,
+            "column": 2,
+            "bbox": [
+              347.712,
+              285.33645,
+              414.19,
+              299.45000000000005
+            ],
+            "text": "",
+            "word_ids": [],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 7,
+            "column": 3,
+            "bbox": [
+              414.19,
+              285.33645,
+              478.297,
+              299.45000000000005
+            ],
+            "text": "11.936",
+            "word_ids": [
+              119
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          },
+          {
+            "row": 7,
+            "column": 4,
+            "bbox": [
+              478.297,
+              285.33645,
+              544.06,
+              299.45000000000005
+            ],
+            "text": "1.547",
+            "word_ids": [
+              120
+            ],
+            "source_text_matches": true,
+            "slot_status": "present"
+          }
+        ]
+      }
+    ],
+    "row_count": 8,
+    "n_cols": 5,
+    "rule_witnesses": [
+      {
+        "y": 216.62,
+        "edges": [
+          127.82,
+          275.685,
+          347.712,
+          414.19,
+          478.297,
+          544.06
+        ],
+        "drawing_ids": [
+          8,
+          10,
+          12,
+          14,
+          16
+        ]
+      },
+      {
+        "y": 243.29000000000002,
+        "edges": [
+          127.82,
+          275.685,
+          347.712,
+          414.19,
+          478.297,
+          544.06
+        ],
+        "drawing_ids": [
+          17,
+          19,
+          21,
+          23,
+          25
+        ]
+      },
+      {
+        "y": 253.25,
+        "edges": [
+          127.82,
+          275.925,
+          347.952,
+          414.43,
+          478.537,
+          544.06
+        ],
+        "drawing_ids": [
+          26,
+          28,
+          30,
+          32,
+          34
+        ]
+      },
+      {
+        "y": 271.01,
+        "edges": [
+          127.82,
+          275.685,
+          347.712,
+          414.19,
+          478.297,
+          544.06
+        ],
+        "drawing_ids": [
+          35,
+          37,
+          39,
+          41,
+          43
+        ]
+      },
+      {
+        "y": 280.97,
+        "edges": [
+          127.82,
+          275.925,
+          347.952,
+          414.43,
+          478.537,
+          544.06
+        ],
+        "drawing_ids": [
+          44,
+          46,
+          48,
+          50,
+          52
+        ]
+      },
+      {
+        "y": 289.49,
+        "edges": [
+          127.82,
+          275.685,
+          347.712,
+          414.19,
+          478.297,
+          544.06
+        ],
+        "drawing_ids": [
+          53,
+          55,
+          57,
+          59,
+          61
+        ]
+      },
+      {
+        "y": 299.45000000000005,
+        "edges": [
+          127.1,
+          275.565,
+          347.592,
+          414.07,
+          478.177,
+          544.06
+        ],
+        "drawing_ids": [
+          62,
+          64,
+          66,
+          68,
+          70
+        ]
+      }
+    ],
+    "period_header_rule": {
+      "y": 197.66,
+      "edges": [
+        275.45,
+        347.712,
+        414.19,
+        478.297,
+        544.06
+      ],
+      "drawing_ids": [
+        1,
+        3,
+        5,
+        7
+      ]
+    },
+    "header_block_witnesses": [
+      {
+        "source_block": 4,
+        "columns": [
+          1,
+          2
+        ],
+        "word_ids": [
+          52,
+          53,
+          54
+        ]
+      },
+      {
+        "source_block": 5,
+        "columns": [
+          3,
+          4
+        ],
+        "word_ids": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ]
+      }
+    ],
+    "source_drawing_ids": [
+      1,
+      3,
+      5,
+      7,
+      8,
+      10,
+      12,
+      14,
+      16,
+      17,
+      19,
+      21,
+      23,
+      25,
+      26,
+      28,
+      30,
+      32,
+      34,
+      35,
+      37,
+      39,
+      41,
+      43,
+      44,
+      46,
+      48,
+      50,
+      52,
+      53,
+      55,
+      57,
+      59,
+      61,
+      62,
+      64,
+      66,
+      68,
+      70
+    ],
+    "review_status": "unreviewed",
+    "header_association_verified": false,
+    "physical_source_unchanged": true,
+    "semantic_verification": "not_performed"
+  },
+  "context": {
+    "table_id": "p39:segmented0",
+    "heading": {
+      "page": 39,
+      "element_id": "p39:narrative8",
+      "text": "Ertelenmiş vergi varlığına ilişkin açıklamalar: ",
+      "source_span_ids": [
+        17,
+        18
+      ],
+      "bbox": [
+        148.94,
+        155.681,
+        335.92,
+        165.644
+      ]
+    },
+    "physical_grid": {
+      "method": "cell_rectangles_on_shared_grid",
+      "x_edges": [
+        127.82,
+        275.685,
+        347.712,
+        414.19,
+        478.297,
+        544.06
+      ],
+      "y_edges": [
+        179.0864,
+        197.66,
+        216.62,
+        234.0365,
+        243.51645,
+        257.37645000000003,
+        271.2365,
+        285.33645,
+        299.45000000000005
+      ],
+      "anchors": [
+        {
+          "row": 0,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 0,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 2
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 1,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 2,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 3,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 4,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 5,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 5,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 5,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 6,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 6,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 6,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 7,
+          "column": 0,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 7,
+          "column": 1,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "row_span": 1,
+          "column_span": 1
+        },
+        {
+          "row": 7,
+          "column": 4,
+          "row_span": 1,
+          "column_span": 1
+        }
+      ],
+      "covered_slots": [
+        {
+          "row": 0,
+          "column": 2,
+          "anchor": [
+            0,
+            1
+          ]
+        },
+        {
+          "row": 0,
+          "column": 4,
+          "anchor": [
+            0,
+            3
+          ]
+        }
+      ],
+      "semantic_verification": "not_performed"
+    },
+    "column_identifiers": null
+  }
+}

@@ -1887,3 +1887,14 @@ unambiguous source baseline bands; horizontal merges in the group are rejected.
 The admin displays each grouped source line once, including a closing balance
 whose label cell spans an earlier row. Turning off the line view restores the
 original row/column spans. These relationships do not certify logical rows.
+
+`segmented_rules_and_source_lines` is a separate table alternative for a repeated
+cell-width horizontal-rule chain with a preceding period-header rule. Complete
+native heading blocks must cover the amount columns exactly once; blocks are
+never truncated to fit. Original words must fit unique columns and disjoint
+source-line bands. The result retains all rule, header-block and word occurrence
+witnesses, original candidates, blank cells and merged heading slots. New page
+records carry `segmented_tables_schema`; validation recomputes every alternative
+from retained source geometry, including detection of a removed table. Older
+captures remain readable. Complete-table annotations separately check every
+slot, source word and contextual unit against independently transcribed regions.

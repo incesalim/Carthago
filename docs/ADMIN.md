@@ -52,6 +52,10 @@ labels remain separate lines and accounting-row associations require review.
 When a label cell spans several physical rows, the line view keeps the group
 together in its original columns and displays its closing balance once. Turning
 the checkbox off restores the original cell spans.
+Some partially ruled tables also offer a **Printed rules and text positions**
+alternative with complete grouped headings and literal period columns. It keeps
+blank cells separate from covered merged-header slots; all earlier candidates
+remain available for comparison. This reconstruction still requires source review.
 The complete physical text remains accessible underneath. Table counts
 are detector candidates, potentially overlapping; they are never a completeness
 denominator. Reading order, headers and narrative roles remain unreviewed.
