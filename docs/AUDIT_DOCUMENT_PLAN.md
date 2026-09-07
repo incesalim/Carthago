@@ -7,9 +7,9 @@ the existing analytical extraction lanes using those examples as source tests.
 ## Current delivery priority (2026-09-07)
 
 Keep the existing corpus outputs as evidence. Do not add another standalone
-annotation batch or replace the website lanes wholesale. First repair omissions
-in the equity statement and extend the capital summary with the reviewed buffer
-disclosures. Source completeness and arithmetic validity remain distinct: retain
+annotation batch or replace the website lanes wholesale. The user's clarification
+on 2026-09-07 applies to ALL existing lanes and unserved report content: equity
+and capital were examples, not the scope. Source completeness and arithmetic validity remain distinct: retain
 a completely read, inconsistent equity row so validation can report what the
 filing actually prints. Coverage must describe selected figures where that is
 all a lane captures.
@@ -24,6 +24,60 @@ TOMK 2024Q1 equity was tested read-only in Actions and rejected by the unchanged
 publication guard: the closing row has a 2,576 component discrepancy and the
 stored OCI statement disagrees in sign. Do not publish that candidate by removing
 validation. Full capital-table completeness and whole-corpus capture remain open.
+
+### All-lane repair map (2026-09-08)
+
+This is a source-code inventory of all 19 registry entries, not a claim that all
+filings have been compared. Reuse the retained 49 reviewed tables and prose as
+regression evidence. No source-table completeness percentage can be inferred
+from an extractor's row minimum or successful accounting checks.
+
+| Registry entry | Existing analytical contract | Outstanding source-completeness work |
+|---|---|---|
+| balance_sheet_assets | Numeric statement rows, six current/prior currency cells | Reconcile every printed row/header/footnote against retained assets review; keep settled values protected |
+| balance_sheet_liabilities | Numeric statement rows, six currency cells | Same, including displaced amounts and their label association |
+| profit_loss | Typed P&L items and reporting-period amounts | Repeated identifiers, wrapped labels, note references and EPS units require source-level comparison |
+| other_comprehensive_income | Typed OCI statement items | Source signs and cross-statement roles; current equity/OCI disagreement remains unresolved |
+| equity_change | Typed equity movement matrix | Preserve every native column, row and explanation; one source discrepancy remains rejected |
+| cash_flow | Typed cash-flow statement items | Reconcile printed rows and unassigned marks without inventing comparative cells |
+| off_balance | Numeric off-balance statement rows | Preserve all six amount columns, row labels, notes and source zeros/dashes |
+| credit_quality | Selected stage/group closing balances | Full movement rows, intermediate balances and their explanatory notes are omitted by design |
+| stages | Derived credit-quality aggregates | Preserve lineage to the exact source section; this is not an additional captured table |
+| loans_by_sector | Stage 2, Stage 3 and ECL by normalized sector | Gross loan exposure and other source columns are outside the existing schema; taxonomy must not hide rows |
+| npl_movement | Named movement fields by BRSA group | Compare every printed movement and period, including labels outside the fixed taxonomy |
+| capital | Selected own-funds figures and five buffer percentages | Full deductions, thresholds, detailed template rows and notes remain outside the serving table |
+| liquidity | Four headline ratios | LCR comparative omission repaired in this increment; complete LCR/NSFR/leverage, maturity, monthly and high/low tables still absent |
+| fx_position | Selected currency summary rows and derived net position | Detailed asset/liability rows, rates and notes are absent; restore stored source-page access in analyst tools |
+| repricing | Three summary rows and a derived cumulative gap | Detailed asset/liability rows and nonstandard bucket layouts; enable bucket-specific history and retain source pages |
+| profile | Branch/personnel counts | Ownership, management, organization and other profile text/tables require structured access |
+| audit_opinion | Verdict, auditor and basis text | Complete report paragraphs, key matters, qualifications and boundaries require source review |
+| free_provision | Selected current/prior reserve stocks and source text | Surrounding provision rows, explanations and movement semantics remain distinct |
+| prose | Paragraphs with section/heading/topic metadata | Routine loader excludes prose unless explicitly enabled; retained local prose is not a delivered analytical corpus |
+
+Source-code anchors: `src/audit_reports/registry.py`, `extractor.py`, each lane's
+module and `loader.py`'s `with_prose` gate; serving contracts are in
+`web/app/lib/analyst/v2/registry.ts` and `tools.ts`. The retained TOMK examples
+also include shareholder, bank placement, fair-value, fixed-asset, software,
+lease, tax, income, expense and risk-weighted-asset tables without a complete
+serving lane. These remain in scope even though no registry entry names them.
+
+Execution order: (1) repair demonstrated wrong-period, omitted-cell and source-link
+defects in serving lanes; (2) compare all seven primary statements to the retained
+complete reviews; (3) widen the summary lanes with source-linked rows/columns and
+explicit coverage; (4) deliver structured prose and currently unserved tables
+through the existing admin/analyst paths. Each increment needs independent source
+expectations, omission/swap tests, an exact-partition Actions trial and live readback
+before it is described as published. Do not force an entire lane or treat an
+inconsistent PDF as valid merely because its transcription is complete.
+
+The 2026-09-08 increment adds LCR period headings, literal cells and page evidence,
+keeps explicit dashes NULL, reads displaced value bands and repeated thousands
+groups, and leaves unchanged rows' timestamps alone. Source regressions cover
+TOMK 2023Q3/2024Q1 and GARAN 2022Q4 consolidated. TOMK 2023Q3's conflicting
+current/high-low disclosures fail the new source-range check while retaining
+both literal disclosures, and are excluded from the
+publication trial. The proposed trial covers only TOMK 2024Q1 solo and GARAN
+2022Q4 consolidated liquidity. Deployment and cloud verification are pending.
 
 ## Objective and scope
 

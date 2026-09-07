@@ -1469,15 +1469,78 @@ def check_liquidity(rows: list[dict]) -> ValidationResult:
     ratio, not a composition error. Calibrated first: **0 violations across all
     981 prior rows**, so it ships with no false positives to absorb."""
     res = ValidationResult()
-    cur = next((r for r in rows if r.get("period_type") == "current"), None)
-    if cur is None:
+    if not rows:
         res.add_skip()
         return res
-    _check_liquidity_row(res, cur)
-    pri = next((r for r in rows if r.get("period_type") == "prior"), None)
-    if pri is not None:
-        _check_liquidity_row(res, pri, label_suffix=" [prior]")
+    for row in rows:
+        suffix = " [prior]" if row.get("period_type") == "prior" else ""
+        _check_liquidity_row(res, row, label_suffix=suffix)
+        _check_lcr_source(res, row, suffix)
     return res
+
+
+def _check_lcr_source(res: ValidationResult, row: dict, suffix: str) -> None:
+    """Old rows lack evidence; new LCR reads must agree with every retained cell."""
+    if row.get("lcr_source_json") is None:
+        return
+    from .liquidity_coverage import heading_period, ratio_value
+    try:
+        evidence = json.loads(row["lcr_source_json"])
+        if not isinstance(evidence, dict) or not evidence:
+            raise ValueError("empty or non-object evidence")
+        for field in ("lcr_total", "lcr_fc"):
+            item = evidence.get(field)
+            if item is None and row.get(field) is None:
+                continue
+            if not isinstance(item, dict) or item.get("status") != "read":
+                raise ValueError(f"{field}: missing evidence or conflicting source rows")
+            sources = item.get("sources")
+            if not isinstance(sources, list) or not sources:
+                raise ValueError(f"{field}: empty sources")
+            for source in sources:
+                page = source.get("source_page")
+                if (type(page) is not int or page < 1
+                        or source.get("period_type") != row.get("period_type")
+                        or not source.get("raw_snippet")):
+                    raise ValueError(f"{field}: invalid page/period/source text")
+                if row.get("period_type") == "prior" and (
+                        source.get("period_assignment") != "heading"
+                        or not source.get("period_heading")
+                        or type(source.get("period_heading_page")) is not int
+                        or not 0 < source["period_heading_page"] <= page):
+                    raise ValueError(f"{field}: prior ratio lacks its printed heading")
+                if source.get("period_assignment") == "heading" and heading_period(
+                        source.get("period_heading", "")) != row.get("period_type"):
+                    raise ValueError(f"{field}: printed heading disagrees with stored period")
+                expected = ratio_value(source["raw_value"], source.get("hqla", ""),
+                                       source.get("outflows", ""))
+                actual = row.get(field)
+                if actual != expected:
+                    res.add_fail("liq_source_value", f"{field}: stored {actual!r} != source {expected!r}" + suffix,
+                                 expected=0, actual=1)
+                else:
+                    res.add_pass()
+                reported_range = source.get("reported_range")
+                if reported_range is not None:
+                    if (reported_range.get("period_type") != row.get("period_type")
+                            or type(reported_range.get("source_page")) is not int
+                            or reported_range["source_page"] < 1 or not reported_range.get("raw_snippet")):
+                        raise ValueError(f"{field}: invalid reported range source")
+                    if any(re.fullmatch(r"\d{1,3}[,.]\d{3}", reported_range[k].strip("%"))
+                           for k in ("minimum", "maximum")):
+                        # The dated range has no independent component totals
+                        # with which to disambiguate a lone separator.
+                        res.add_skip()
+                        continue
+                    low, high = (ratio_value(reported_range[k]) for k in ("minimum", "maximum"))
+                    if low is None or high is None or low > high:
+                        raise ValueError(f"{field}: invalid reported range")
+                    if expected is not None and not low - 0.01 <= expected <= high + 0.01:
+                        res.add_fail("liq_source_range", f"{field}: printed ratio outside printed minimum/maximum" + suffix,
+                                     expected=high if expected > high else low, actual=expected)
+    except (ValueError, TypeError, KeyError, AttributeError):
+        res.add_fail("liq_source_evidence", "invalid or conflicting LCR source evidence" + suffix,
+                     expected=0, actual=1)
 
 
 def _check_liquidity_row(res: ValidationResult, cur: dict,

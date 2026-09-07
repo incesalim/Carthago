@@ -17,6 +17,16 @@ exact bank/period/basis row. The source comparison labels these links explicitly
 and offers the retained listing as a checked download. Earlier bank-site
 observations stay in the origin history, and acquisitions are unchanged.
 
+## Broader extraction scope (2026-09-08)
+
+Equity and capital are examples; the repair scope includes all 19 registered
+extractors plus structured prose and unserved report tables. See the all-lane map
+in [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md#all-lane-repair-map-2026-09-08).
+Credit-quality coverage refers to closing balances; liquidity, FX and repricing
+refer to selected ratios or summary rows. A passing cell does not certify a
+complete source table. The pending liquidity increment preserves LCR current/prior
+headings and literal/page evidence; it does not publish the full liquidity tables.
+
 ## Code map
 
 The existing audit coverage matrix measures predefined analytical lanes. A green

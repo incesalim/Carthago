@@ -274,7 +274,7 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
         "countercyclical_buffer_ratio", "systemic_buffer_ratio", "cet1_available_buffer_ratio",
         "buffer_source_json"}),
     "bank_audit_liquidity": frozenset({
-        "leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page"}),
+        "leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page", "lcr_source_json"}),
     "bank_audit_fx_position": frozenset({"source_page"}),
     "bank_audit_repricing": frozenset({"source_page"}),
     "bank_audit_free_provision": frozenset({"source_page"}),

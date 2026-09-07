@@ -13,6 +13,27 @@ machine involvement is required for routine refreshes.
 
 ## Schedules
 
+### Broader lane repair and liquidity trial (2026-09-08)
+
+Migration `0049_liquidity_source.sql` adds nullable `lcr_source_json` to
+`bank_audit_liquidity`. Apply it before the analyst queries and targeted publication.
+Existing rows retain NULL evidence and their timestamps. No new workflow, secret
+or environment key is introduced. Deployment and cloud verification are pending.
+
+Trial via the existing `reextract-statement.yml`, statement `liquidity`, exact
+`partitions=TOMK:2024Q1:unconsolidated,GARAN:2022Q4:consolidated`, banks TOMK,GARAN,
+periods 2024Q1,2022Q4 and blank kind. Use `dry_run=true`, `only_failing=false`,
+`force=true`, `require_passing=true`; this force is restricted to two named
+partitions. Read candidate logs before any identical-scope publication. Expected
+LCR total/FC: TOMK current 266.99/767.43 and prior 3768/399.37, source pages 35/36;
+GARAN current 215.60/522.77 and prior 197.05/406.54, source pages 85/86. TOMK's
+printed `3,768` retains its literal and separately printed component evidence
+supporting the grouped reading. Read back the D1 cells, JSON and publication
+scope. TOMK 2023Q3 is regression evidence only: its two current-ratio disclosures
+conflict and now fail `liq_source_range`, so this trial does not publish it or
+bypass any gate. The dated high/low range check is limited to unambiguous source
+values; it does not infer an unknown range or rewrite either printed value.
+
 ### Equity/capital increment and scoped rollout (2026-09-07)
 
 Migration `0048_capital_buffers.sql` adds five nullable percentage fields and

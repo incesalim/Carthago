@@ -14,6 +14,28 @@ coverage or known issues change.
 
 ---
 
+## Existing audit lanes: broader repair (2026-09-08)
+
+The active scope includes all 19 registered lanes, structured prose and unserved
+report tables; equity/capital were examples. The code-based repair map is in
+[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md#all-lane-repair-map-2026-09-08).
+The liquidity repair retains current/prior LCR headings, literal cells and actual
+source pages in `lcr_source_json`; it fixes dropped comparative ratios, displaced
+value bands and multi-group percentage literals. Explicit nil dashes remain NULL.
+Identical liquidity upserts preserve timestamps. Source regressions reuse TOMK
+2023Q3/2024Q1 and GARAN 2022Q4 consolidated originals. TOMK 2023Q3 remains excluded
+from publication because its current LCR conflicts with the printed high/low table.
+The validator also flags a retained LCR outside an unambiguously read, explicitly
+headed Turkish dated high/low range; the TOMK 2023Q3 contradiction now fails this
+check without changing its transcription.
+Migration 0049, deployment and the two-partition liquidity cloud trial are pending.
+
+Analyst tools also regain stored FX source pages and source pages in row histories;
+repricing buckets, loan sectors and current/prior histories become addressable.
+Admin/analyst descriptions now identify credit-quality closing balances and the
+liquidity, FX and repricing summaries. These changes do not deliver full tables or
+activate the prose corpus. The complete broader extraction objective remains open.
+
 ## Complete audit document corpus (2026-09-07; content verification in progress)
 
 **Delivery direction, 2026-09-07:** further standalone corpus expansion is paused

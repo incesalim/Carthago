@@ -10,8 +10,8 @@ values), e.g. (GARAN 2026Q1):
 Same deterministic approach as capital_adequacy.py: scan the risk-management
 pages for each metric's data row (the `(%)` + trailing numbers distinguish a
 real table row from the policy prose that also names these ratios), and parse
-the trailing values. The first LCR row gives the current period's total / FC
-LCR; NSFR's first/second occurrences are current/prior; the leverage row carries
+the trailing values. LCR rows retain their printed current/prior heading and
+literal/page evidence; NSFR's first/second occurrences are current/prior; the leverage row carries
 current+prior in two columns. All values are percentages.
 """
 from __future__ import annotations
@@ -23,7 +23,8 @@ from pathlib import Path
 
 
 from .capital_adequacy import _parse_ratio, _repair_split_digits, _trailing_two_tokens
-from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
+from .liquidity_coverage import resolve_lcr, scan_lcr
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text
 from .units import UnitContext
 
 _SKIP_PAGES = 12
@@ -74,6 +75,7 @@ class LiquidityRow:
     lcr_total: float | None = None
     lcr_fc: float | None = None
     nsfr: float | None = None
+    lcr_source_json: str | None = None
 
 
 @dataclass
@@ -112,60 +114,29 @@ def _fitz_lines(pdf_path: str, page_idx: int, ytol: float = 4.0) -> list[str]:
     return [" ".join(t for _, t in sorted(c)) for c in lines]
 
 
-def _scan(get_lines, scan_start: int, scan_end: int) -> tuple[list, list, list]:
-    """Walk pages [scan_start, scan_end) reading the LCR / NSFR / leverage rows.
-    `get_lines(i)` supplies page i's lines (pdfplumber or fitz fallback)."""
-    lcr: list[list[str]] = []
-    nsfr: list[list[str]] = []
-    lev: list[list[str]] = []
-    hqla: list[str] = []
-    outflows: list[str] = []
-    def _add(lst, toks):
-        # Skip a row whose current value is nil ("-") — TFKB prints a placeholder
-        # "Kaldıraç oranı - -" above the real "15 Kaldıraç oranı 5.53 5.92".
-        if toks and not all(c in "-—– " for c in toks[0]):
-            lst.append(toks)
-
-    for i in range(scan_start, scan_end):
-        for raw in get_lines(i):
-            # Turkish-aware lower-casing: TFKB prints the labels in UPPER CASE
-            # ("LİKİDİTE KARŞILAMA ORANI (%)"), and Python's IGNORECASE does NOT
-            # fold İ→i or I→ı, so the mixed-case patterns miss them.
+def _scan(get_lines, scan_start: int, scan_end: int, *, lcr_records=None) -> tuple[list, list, list]:
+    """Read the bounded liquidity section, including comparative tables."""
+    pages = [(i + 1, get_lines(i)) for i in range(scan_start, scan_end)]
+    observations = scan_lcr(pages)
+    if lcr_records is not None:
+        lcr_records.extend(observations)
+    # Retain the historical helper's token interface for callers and regressions.
+    lcr = [[str(v) if v is not None and _parse_ratio(t) != v else t
+            for t, v in zip(o["raw_values"], o["values"])]
+           for o in observations if any(v is not None for v in o["values"])]
+    nsfr, lev = [], []
+    for page, lines in pages:
+        for raw in lines:
             ln = _repair_split_digits(raw.strip().translate(_TR_LOWER).lower())
-            if not ln:
-                continue
-            if re.match(rf"^{_RN}(?:total\s*hqla|total\s*high[\s-]*quality\s*liquid\s*assets"
-                        r"|toplam\s+yklv\s+stoku)\b", ln):
-                hqla = _trailing_two_tokens(ln)
-            elif re.match(rf"^{_RN}(?:total\s*net\s*cash\s*outflows|toplam\s+net\s+nakit\s+çıkışları)\b", ln):
-                outflows = _trailing_two_tokens(ln)
-            if _match(_LCR_RX, ln):
+            target = nsfr if _match(_NSFR_RX, ln) else lev if _match(_LEV_RX, ln) else None
+            if target is not None:
                 tokens = _trailing_two_tokens(ln)
-                for col, token in enumerate(tokens):
-                    # A lone separator followed by three digits is ambiguous:
-                    # TOMK 2023Q4 prints "3,768" (grouped integer). Choose that
-                    # interpretation only when separately printed weighted
-                    # HQLA/outflows corroborate its scale. LCR is an average of
-                    # daily ratios, so do not replace it with the component ratio.
-                    if (re.fullmatch(r"\d{1,3}[,.]\d{3}", token)
-                            and col < len(hqla) and col < len(outflows)):
-                        numerator, denominator = parse_num(hqla[col]), parse_num(outflows[col])
-                        decimal = _parse_ratio(token)
-                        grouped = float(token.replace(",", "").replace(".", ""))
-                        if numerator and denominator and denominator > 0 and decimal:
-                            implied = numerator / denominator * 100
-                            if (abs(grouped - implied) <= abs(implied) * 0.05
-                                    and abs(decimal - implied) > abs(implied) * 0.5):
-                                tokens[col] = str(grouped)
-                _add(lcr, tokens)
-                # Never borrow a current table's components for a prior table
-                # whose totals were not disclosed/read.
-                hqla, outflows = [], []
-            elif _match(_NSFR_RX, ln):
-                _add(nsfr, _trailing_two_tokens(ln))
-            elif _match(_LEV_RX, ln):
-                _add(lev, _trailing_two_tokens(ln))
-        if lcr and nsfr and lev:  # have current values for all three → done
+                if tokens and not all(c in "-—– " for c in tokens[0]):
+                    target.append(tokens)
+        # Preserve the established NSFR/leverage stop. LCR observations were
+        # read separately across the bounded section, including later priors.
+        if nsfr and lev and any(o["source_page"] <= page and any(v is not None for v in o["values"])
+                                for o in observations):
             break
     return lcr, nsfr, lev
 
@@ -200,10 +171,18 @@ def extract_from_pdf(pdf_path: str = "") -> LiquidityReport:
     # the flat text dropped from tight y-CLUSTERED fitz lines: TFKB letter-spaces
     # the §4 page so its figures sit on separate baselines, which the flat layer
     # drops but the clusterer rebuilds onto one line.
-    lcr, nsfr, lev = _scan(lambda i: _fitz_page_text(pdf_path, i).splitlines(), scan_start, scan_end)
-    if not (lcr and nsfr and lev):
-        flcr, fnsfr, flev = _scan(lambda i: _fitz_lines(pdf_path, i), scan_start, scan_end)
+    observations: list[dict] = []
+    lcr, nsfr, lev = _scan(lambda i: _fitz_page_text(pdf_path, i).splitlines(),
+                          scan_start, scan_end, lcr_records=observations)
+    periods_read = {o["period_type"] for o in observations}
+    if not (lcr and nsfr and lev) or not {"current", "prior"} <= periods_read:
+        fallback_observations: list[dict] = []
+        flcr, fnsfr, flev = _scan(lambda i: _fitz_lines(pdf_path, i), scan_start, scan_end,
+                                 lcr_records=fallback_observations)
         lcr, nsfr, lev = (lcr or flcr), (nsfr or fnsfr), (lev or flev)
+        observations.extend(o for o in fallback_observations
+                            if o["period_type"] not in periods_read)
+
     # Prose fallback (older FIBA): the §4.7 table lists only the leverage exposure
     # components, and the ratio itself is stated in a sentence — "…hesaplamış
     # olduğu konsolide kaldıraç oranı 31 Mart 2022 itibarıyla %6,06…". Anchor on
@@ -217,9 +196,10 @@ def extract_from_pdf(pdf_path: str = "") -> LiquidityReport:
 
     cur = LiquidityRow(period_type="current")
     pri = LiquidityRow(period_type="prior")
-    if lcr:
-        cur.lcr_total = _parse_ratio(lcr[0][0])
-        cur.lcr_fc = _parse_ratio(lcr[0][1]) if len(lcr[0]) > 1 else None
+    for period_type, values in resolve_lcr(observations).items():
+        row = cur if period_type == "current" else pri
+        for field_name, value in values.items():
+            setattr(row, field_name, value)
     if nsfr:
         cur.nsfr = _parse_ratio(nsfr[0][0])
         if len(nsfr) > 1:
@@ -229,9 +209,9 @@ def extract_from_pdf(pdf_path: str = "") -> LiquidityReport:
         if len(lev[0]) > 1:
             pri.leverage_ratio = _parse_ratio(lev[0][1])
 
-    if any(v is not None for v in (cur.lcr_total, cur.nsfr, cur.leverage_ratio)):
+    if cur.lcr_source_json or any(v is not None for v in (cur.lcr_total, cur.nsfr, cur.leverage_ratio)):
         rep.rows.append(cur)
-    if any(v is not None for v in (pri.lcr_total, pri.nsfr, pri.leverage_ratio)):
+    if pri.lcr_source_json or any(v is not None for v in (pri.lcr_total, pri.nsfr, pri.leverage_ratio)):
         rep.rows.append(pri)
     return rep
 
@@ -243,7 +223,7 @@ def extract(pdf_path: str | Path) -> LiquidityReport:
 # ---------------------------------------------------------------------------
 # DB loader
 # ---------------------------------------------------------------------------
-_VALUE_COLS = ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr"]
+_VALUE_COLS = ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "lcr_source_json"]
 
 
 def upsert(
@@ -257,20 +237,24 @@ def upsert(
     commit: bool = True,
 ) -> int:
     cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM bank_audit_liquidity WHERE bank_ticker=? AND period=? AND kind=?",
-        (bank_ticker, period, kind),
-    )
     cols = ["bank_ticker", "period", "kind", "period_type", *_VALUE_COLS, "source_page"]
     ph = ", ".join("?" for _ in cols)
     rows = [(
         bank_ticker, period, kind, r.period_type,
-        *[getattr(r, c) for c in _VALUE_COLS],
+        *[getattr(r, c, None) for c in _VALUE_COLS],
         rep.source_page,
     ) for r in rep.rows]
     # Normalise to canonical `bin` BEFORE the insert; the factor comes
     # from the caller because this function has no PDF to read.
     rows = unit.scale_rows("bank_audit_liquidity", cols, rows)
+    previous = [tuple(r) for r in cur.execute(
+        f"SELECT {', '.join(cols)} FROM bank_audit_liquidity "
+        "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY period_type",
+        (bank_ticker, period, kind))]
+    if previous == sorted(rows, key=lambda r: r[3]):
+        return len(rows)
+    cur.execute("DELETE FROM bank_audit_liquidity WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank_ticker, period, kind))
     if rows:
         cur.executemany(
             f"INSERT INTO bank_audit_liquidity ({', '.join(cols)}) VALUES ({ph})", rows

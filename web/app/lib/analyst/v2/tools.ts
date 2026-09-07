@@ -156,16 +156,20 @@ function collectPages(rows: Record<string, unknown>[]): number[] {
   };
   for (const r of rows) {
     add(r["source_page"]);
-    // Buffer disclosures often continue on a later page than the headline
-    // capital figures. Carry their own evidence pages into analyst citations.
-    if (typeof r.buffer_source_json === "string") {
+    // Selected disclosures may continue beyond the table locator page.
+    for (const sourceField of ["buffer_source_json", "lcr_source_json"]) {
+      if (typeof r[sourceField] !== "string") continue;
       try {
-        const evidence = JSON.parse(r.buffer_source_json);
+        const evidence = JSON.parse(r[sourceField] as string);
         if (evidence && typeof evidence === "object" && !Array.isArray(evidence)) {
           for (const item of Object.values(evidence)) {
             if (item && typeof item === "object" && "sources" in item && Array.isArray(item.sources)) {
               for (const source of item.sources) {
-                if (source && typeof source === "object") add(source.source_page);
+                if (source && typeof source === "object") {
+                  add(source.source_page);
+                  add(source.period_heading_page);
+                  if (source.reported_range && typeof source.reported_range === "object") add(source.reported_range.source_page);
+                }
               }
             }
           }
@@ -287,6 +291,9 @@ export const TOOLS: ToolSpec[] = [
       { name: "group_code", type: "string", enum: ["III", "IV", "V"], description: "npl_movement group" },
       { name: "section", type: "string", description: "credit_quality section" },
       { name: "currency", type: "string", enum: ["USD", "EUR", "OTHER", "TOTAL"], description: "fx_position row" },
+      { name: "bucket", type: "string", description: "repricing bucket, e.g. lt_1m or total" },
+      { name: "sector", type: "string", description: "loans_by_sector row" },
+      { name: "period_type", type: "string", enum: ["current", "prior"], description: "reported or comparative values (default current); prior is the comparison printed in each filing" },
       { name: "column", type: "string", description: "numeric column to return (defaults to all numeric columns)" },
     ],
     run: async (ctx, a) => {
@@ -298,16 +305,24 @@ export const TOOLS: ToolSpec[] = [
         : spec.numericColumns;
       let where = "bank_ticker = ? AND kind = ?" + (spec.where ? ` AND ${spec.where}` : "");
       const binds: unknown[] = [a.bank, a.kind];
-      if (spec.hasPeriodType) where += " AND period_type = 'current'";
+      if (spec.hasPeriodType) where += a.period_type === "prior" ? " AND period_type = 'prior'" : " AND period_type = 'current'";
       if (a.hierarchy != null) { where += " AND hierarchy = ?"; binds.push(a.hierarchy); }
       if (a.group_code != null) { where += " AND group_code = ?"; binds.push(a.group_code); }
       if (a.section != null) { where += " AND section = ?"; binds.push(a.section); }
       if (a.currency != null) { where += " AND currency = ?"; binds.push(a.currency); }
+      for (const dimension of ["bucket", "sector"]) {
+        if (a[dimension] != null) {
+          if (!spec.rowIdentity.includes(dimension)) bad(`${dimension} is not a row dimension for ${a.statement}`);
+          where += ` AND ${dimension} = ?`; binds.push(a[dimension]);
+        }
+      }
       const idCols = spec.rowIdentity.length ? spec.rowIdentity.join(", ") + ", " : "";
-      const bufferEvidence = a.statement === "capital" && cols.some((column) => column.includes("buffer"))
-        ? ", source_page, buffer_source_json" : "";
+      const sourceColumns = spec.hasSourcePage ? ["source_page"] : [];
+      if (a.statement === "capital" && cols.some((column) => column.includes("buffer"))) sourceColumns.push("buffer_source_json");
+      if (a.statement === "liquidity" && cols.some((column) => column.startsWith("lcr_"))) sourceColumns.push("lcr_source_json");
+      const sourceEvidence = sourceColumns.length ? `, ${sourceColumns.join(", ")}` : "";
       const rows = await ctx.db.all<Record<string, unknown>>(
-        `SELECT period, ${idCols}${cols.join(", ")}${bufferEvidence} FROM ${spec.table} WHERE ${where} ORDER BY period`,
+        `SELECT period, ${idCols}${cols.join(", ")}${sourceEvidence} FROM ${spec.table} WHERE ${where} ORDER BY period`,
         binds,
       );
       let filtered = rows;
@@ -316,13 +331,13 @@ export const TOOLS: ToolSpec[] = [
         filtered = rows.filter((r) => typeof r.item_name === "string" && foldTr(r.item_name as string).includes(needle));
         if (!filtered.length) warnings.push(`no rows matched label fragment '${a.item_name_like}' — labels vary by language and template; try a shorter fragment or hierarchy`);
       }
-      if (spec.rowIdentity.length && !a.hierarchy && !a.item_name_like && !a.group_code && !a.section && !a.currency) {
-        bad("this statement has row identity — pass hierarchy/item_name_like/group_code/section/currency to pick a row");
+      if (spec.rowIdentity.length && !a.hierarchy && !a.item_name_like && !a.group_code && !a.section && !a.currency && !a.bucket && !a.sector) {
+        bad("this statement has row identity — pass hierarchy/item_name_like/group_code/section/currency/bucket/sector to pick a row");
       }
       const out = truncateRows(filtered, warnings);
       if (!out.length && !warnings.length) warnings.push("no history rows found");
       return { data: out, warnings, tables: [spec.table], rows: filtered.length,
-        sourcePages: bufferEvidence ? collectPages(filtered) : undefined };
+        sourcePages: sourceEvidence ? collectPages(filtered) : undefined };
     },
   },
   {

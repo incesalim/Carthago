@@ -158,6 +158,7 @@ export const STATEMENTS: Record<string, StatementSpec> = {
     hasPeriodType: true,
     hasSourcePage: true,
     caveats: [
+      "Selected closing balances, not complete credit-quality movement tables",
       "stage columns are SECTION-DEPENDENT: in the npl_brsa_* sections they hold BRSA groups III/IV/V, not IFRS stages",
       "prefer sections loans_by_stage / npl_brsa_gross / npl_brsa_provision / npl_brsa_net / loans_ecl_expense — the legacy sections cover ≤2 banks",
       "prior columns in this lane were historically unvalidated — treat prior-side anomalies as possible extraction defects first",
@@ -187,18 +188,18 @@ export const STATEMENTS: Record<string, StatementSpec> = {
   },
   liquidity: {
     table: "bank_audit_liquidity",
-    columns: ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page"],
+    columns: ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page", "lcr_source_json"],
     rowIdentity: [],
     numericColumns: ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr"],
     hasPeriodType: true,
     hasSourcePage: true,
-    caveats: ["nsfr is NULL before 2024Q1 fleet-wide — a disclosure gap, not a zero"],
+    caveats: ["Selected ratios, not full liquidity-table coverage. LCR evidence retains literal cells, source pages and current/prior headings; historical rows without evidence are unreviewed.", "nsfr is NULL before 2024Q1 fleet-wide — a disclosure gap, not a zero"],
   },
   fx_position: {
     table: "bank_audit_fx_position",
     columns: [
       "currency", "on_bs_assets", "on_bs_liab", "net_on_balance", "net_off_balance",
-      "off_bs_receivable", "off_bs_payable", "net_position",
+      "off_bs_receivable", "off_bs_payable", "net_position", "source_page",
     ],
     rowIdentity: ["currency"],
     numericColumns: [
@@ -206,8 +207,8 @@ export const STATEMENTS: Record<string, StatementSpec> = {
       "off_bs_receivable", "off_bs_payable", "net_position",
     ],
     hasPeriodType: true,
-    hasSourcePage: false,
-    caveats: ["currency='TOTAL' is a ROLLUP of USD/EUR/OTHER — never sum across currencies"],
+    hasSourcePage: true,
+    caveats: ["Selected summary rows, not the full currency-risk table", "currency='TOTAL' is a ROLLUP of USD/EUR/OTHER — never sum across currencies"],
   },
   repricing: {
     table: "bank_audit_repricing",
@@ -216,7 +217,7 @@ export const STATEMENTS: Record<string, StatementSpec> = {
     numericColumns: ["rate_sensitive_assets", "rate_sensitive_liab", "gap", "cumulative_gap"],
     hasPeriodType: true,
     hasSourcePage: true,
-    caveats: [`bucket 'total' is a rollup; exclude legacy 'b1'..'b8' rows unless asked; ~29 of ${BANK_COUNT} banks covered`],
+    caveats: ["Three printed summary rows plus a derived cumulative gap; detailed asset/liability rows are not stored", `bucket 'total' is a rollup; exclude legacy 'b1'..'b8' rows unless asked; ~29 of ${BANK_COUNT} banks covered`],
   },
   stages: {
     table: "bank_audit_stages",

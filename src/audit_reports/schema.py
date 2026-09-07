@@ -473,6 +473,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_liquidity (
     lcr_total       REAL,                 -- Liquidity Coverage Ratio, total, percent
     lcr_fc          REAL,                 -- LCR, foreign currency, percent
     nsfr            REAL,                 -- Net Stable Funding Ratio, percent
+    lcr_source_json TEXT,                 -- literal cells, period headings and source pages
     source_page     INTEGER,
     extracted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (bank_ticker, period, kind, period_type)
@@ -796,6 +797,7 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("bank_audit_capital", "systemic_buffer_ratio", "REAL"),
     ("bank_audit_capital", "cet1_available_buffer_ratio", "REAL"),
     ("bank_audit_capital", "buffer_source_json", "TEXT"),
+    ("bank_audit_liquidity", "lcr_source_json", "TEXT"),
 ]
 
 
