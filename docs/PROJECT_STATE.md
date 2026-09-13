@@ -1,5 +1,29 @@
 # Project State
 
+## Audit measurement and repricing repair (2026-09-13)
+
+Code `9fbb64f` passed CI `34765040683` and deployment `34765139227`.
+The read-only `audit-extraction-gates.yml` run `34765053277` covered 1,146 filings,
+19 lanes and 21,774 fresh baselines; all eight shards used the same source
+snapshot, tested 261,917 isolated mutations and left their inputs unchanged.
+For sampled value/sign/zero changes, the gates accepted 81.0% in cash flow,
+45.4% in P&L and 55.0% in OCI. All 701 sampled footnote removals and eight source
+JSON removals passed. These are mutation escape rates, not production error
+estimates; failing, unproven and empty baselines are recorded separately.
+
+The audit also found 39 repricing filings marked OK but missing all serving rows.
+Read-only trial `34765080626` found 546 missing rows with no conflicting facts.
+Scoped repair `34765320472` restored them and verified exact factual equality and
+no-op replay. Independent D1 readback confirms all 12,143 existing rows and their
+timestamps are unchanged, exactly 546 rows were added to the 39 named filings,
+and 294 restored cells match the pre-repair audit. Repricing now has 12,689 rows.
+This repairs publication drift; it does not complete the native source tables.
+Detailed source/code evidence and per-lane results:
+`docs/knowledge/2026-09-13-extraction-gate-audit/RESULTS.md`.
+Full tables/dipnotes, source-completeness validators and structured prose coverage
+remain the active sequence in AUDIT_DOCUMENT_PLAN.md.
+
+
 ## Audit completeness priority (2026-09-13)
 
 The user's active order is: independently audit all listed extractors and actual

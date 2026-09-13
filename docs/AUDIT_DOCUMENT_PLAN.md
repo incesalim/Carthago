@@ -74,6 +74,25 @@ Fresh source/code review identifies these contract gaps before expansion:
 
 These findings are a starting audit, not a completed review of every source.
 
+The first corpus measurement is complete: code `9fbb64f`, CI `34765040683`,
+deployment `34765139227`, audit run `34765053277`, all successful. Eight shards
+used the same pinned snapshot for 1,146 filings / 19 lanes / 21,774 baselines
+and 261,917 isolated mutations, leaving their input databases unchanged.
+Among sampled value/sign/zero mutations, cash flow accepted 5,404/6,672 (81.0%),
+P&L 3,042/6,696 (45.4%), and OCI 3,680/6,690 (55.0%). All 701 sampled footnote
+removals and eight source-JSON removals escaped. These are controlled mutation
+results, not estimated production error rates; failing/unproven/empty baselines
+are excluded. Full operator and filing evidence is retained internally at
+`docs/knowledge/2026-09-13-extraction-gate-audit/RESULTS.md`.
+
+The same audit found 39 repricing filings marked OK with no D1 rows. Read-only
+trial `34765080626` and scoped repair `34765320472` restored 546 snapshot rows
+without re-extracting PDFs. All 12,143 existing rows, including timestamps, were
+independently confirmed unchanged; 294 restored cells independently match the
+pre-repair audit. The repair also verified full factual equality and no-op replay.
+This resolves publication drift; complete native tables and dipnote integration
+remain required before the next validator/prose phases.
+
 ## Earlier incremental pipeline priority (2026-09-13, superseded)
 
 Earlier on this date the user reaffirmed expansion of the existing pipeline.

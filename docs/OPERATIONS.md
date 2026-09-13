@@ -1,5 +1,18 @@
 # Operations
 
+## Repricing publication repair receipt (2026-09-13)
+
+The extraction-gate audit's live coverage comparison found 39 OK repricing cells
+without serving rows. Exact targets are retained in
+`docs/knowledge/2026-09-13-extraction-gate-audit/repricing-exact-targets.txt`.
+`repair-missing-audit-rows.yml` dry run `34765080626` established 546 missing rows
+and no conflicting facts. Apply run `34765320472` restored only those partitions,
+verified full factual equality and a no-op second comparison. Independent live
+readback preserved all 12,143 prior rows including timestamps, found exactly 546
+new rows, and checked 294 restored cells against the preceding read-only audit.
+No force re-extraction was used. The source-table completeness work remains open.
+
+
 ## Extractor and validator audit (manual, read-only)
 
 `audit-extraction-gates.yml` pins `state/bank_audit.db.gz` by ETag, then runs eight
