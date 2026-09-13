@@ -10,6 +10,10 @@
     "the same commit."
   ],
   "workflows": {
+    "audit-extraction-gates.yml": {
+      "state": "active",
+      "reason": "Manual read-only gate audit; ETag-pinned snapshot, disposable in-memory faults, reports only. No D1 or R2 writes."
+    },
     "recover-document-corpus.yml": {
       "state": "active",
       "reason": "Manual source-bound image/outline recovery to separate R2 page indexes. Retains raw readings and failures; no core capture or analytical writes."

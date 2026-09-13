@@ -1,0 +1,94 @@
+name: Audit extraction gates
+
+# Manual fault-injection diagnostic. All faults are rolled back in a disposable
+# in-memory SQLite copy; no D1 writes, R2 uploads or PDF re-extraction.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "Bank tickers, comma-separated; ALL = registered corpus"
+        type: string
+        default: "ALL"
+      lanes:
+        description: "Registry keys, comma-separated; ALL = all listed lanes"
+        type: string
+        default: "ALL"
+      per_operator:
+        description: "Faults per operator per filing/lane (2 = sampled; 0 = exhaustive)"
+        type: string
+        default: "2"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-extraction-gates
+  cancel-in-progress: false
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      etag: ${{ steps.snapshot.outputs.etag }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install boto3
+      - id: snapshot
+        name: Pin the source snapshot for all shards
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          from src.audit_reports.r2_storage import get_client, _bucket
+          obj = get_client().head_object(Bucket=_bucket(), Key='state/bank_audit.db.gz')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"etag={obj['ETag']}\n")
+          PY
+  measure:
+    needs: pin
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Recompute baselines and inject isolated faults
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          BANKS: ${{ inputs.banks }}
+          LANES: ${{ inputs.lanes }}
+          PER_OPERATOR: ${{ inputs.per_operator }}
+          AUDIT_SNAPSHOT_ETAG: ${{ needs.pin.outputs.etag }}
+          AUDIT_SHARD: ${{ matrix.shard }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python scripts/diagnostics/audit_extraction_gates.py \
+            --db "$RUNNER_TEMP/audit-source.db" --pull-snapshot \
+            --snapshot-etag "$AUDIT_SNAPSHOT_ETAG" \
+            --banks "$BANKS" --lanes "$LANES" --per-operator "$PER_OPERATOR" \
+            --shard "$AUDIT_SHARD" --shards 8 \
+            --output "output/audit-gates/shard-$AUDIT_SHARD.json"
+      - name: Retain findings even when a validator crashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-gates-${{ matrix.shard }}
+          path: output/audit-gates/
+          if-no-files-found: error
+          retention-days: 14

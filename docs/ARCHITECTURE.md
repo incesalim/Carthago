@@ -1,5 +1,15 @@
 # Architecture
 
+## Read-only audit diagnostics
+
+The manual `audit-extraction-gates.yml` workflow measures the actual registered
+candidate gates using an ETag-pinned R2 audit snapshot and disposable SQLite
+copies. Reports identify rejected and escaped mutations, excluded baselines and
+execution errors. It has no production write edge and does not certify complete
+source extraction. The source-table/dipnot contract and ordered repair work are
+tracked in [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md).
+
+
 End-to-end cloud stack. Ingestion runs in GitHub Actions; storage is
 Cloudflare R2 + D1; display is Next.js on Cloudflare Workers. No local
 machine is involved in the production data flow.

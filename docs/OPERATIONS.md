@@ -1,5 +1,24 @@
 # Operations
 
+## Extractor and validator audit (manual, read-only)
+
+`audit-extraction-gates.yml` pins `state/bank_audit.db.gz` by ETag, then runs eight
+shards over the registered census plus the snapshot's expected filings. Each
+shard opens its input read-only and injects faults only in an in-memory copy;
+there is no PDF extraction, D1 write, R2 upload or snapshot replacement. It uses
+existing `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` credentials.
+`AUDIT_SNAPSHOT_ETAG` and `AUDIT_SHARD` are workflow-internal values, not secrets.
+Inputs: `banks` and `lanes` default ALL; `per_operator` defaults 2 (a sample, not
+exhaustive coverage); 0 tests all generated faults and can require longer runs.
+Artifacts contain per-filing baselines, exact row keys, fault outcomes and source
+hashes. Compare only reports with identical input hashes/code and complete shards.
+A successful run means the measurement completed; escaped faults remain findings.
+A validator exception fails the diagnostic and retains the report for review.
+For a light fixture check, run `pytest tests/test_audit_extraction_gates.py`.
+Whole-corpus measurement belongs in Actions. See AUDIT_DOCUMENT_PLAN.md for the
+required audit → full tables/dipnotes → validators → structured prose sequence.
+
+
 The data pipeline runs entirely from GitHub Actions. The scheduled
 workflows pick up new BDDK bulletins, new audit reports, and fresh
 EVDS data on their own and push everything to Cloudflare D1 — no local

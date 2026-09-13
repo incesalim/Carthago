@@ -108,6 +108,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: `${BANK_COUNT} banks · +13 auto-discover quarters`, statusKey: "audit" },
 
   // ── Audit lane · ingestion (workflows) ─────────────────────────────────
+  { id: "wf-audit-gates", kind: "workflow", layer: "ingestion", lane: "audit", label: "audit extraction gates", sublabel: "manual · isolated faults in a snapshot copy; reports only", workflowFile: "audit-extraction-gates.yml" },
   { id: "wf-document-corpus", kind: "workflow", layer: "ingestion", lane: "audit", label: "preserve audit documents", sublabel: "after acquisition + manual · source-bound tables/text; semantic review pending", workflowFile: "build-document-corpus.yml" },
   { id: "wf-document-recovery", kind: "workflow", layer: "ingestion", lane: "audit", label: "recover audit document text", sublabel: "after source capture + manual · images, outlines and fonts; review pending", workflowFile: "recover-document-corpus.yml" },
   { id: "wf-document-origins", kind: "workflow", layer: "ingestion", lane: "audit", label: "compare official audit sources", sublabel: "manual · retain source revisions and unresolved differences", workflowFile: "review-document-origins.yml" },

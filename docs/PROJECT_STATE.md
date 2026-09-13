@@ -1,5 +1,22 @@
 # Project State
 
+## Audit completeness priority (2026-09-13)
+
+The user's active order is: independently audit all listed extractors and actual
+publication gates; fully capture their source tables with linked dipnotes; fix
+validators against that source contract; then structure prose by sections and
+passages. This supersedes selected-field expansion and prose-first priorities.
+The new manual `audit-extraction-gates.yml` measures isolated corruptions in a
+read-only snapshot's disposable copy. It records unproven/empty/failing baselines,
+exceptions and sampling limits separately; it is not source-completeness proof.
+Fresh review confirms that primary-statement comparative values are parsed but
+not retained in serving tables, and TOMK 2023Q3 assets' dipnot markers remain in
+item labels with NULL footnote fields. Summary-lane checks permit omitted detail.
+No financial rows are changed by this diagnostic. Full table/note integration,
+validator repairs and structured prose coverage remain active work. See
+[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for acceptance criteria.
+
+
 Concise snapshot of what's in the system right now. Updated as data
 coverage or known issues change.
 
