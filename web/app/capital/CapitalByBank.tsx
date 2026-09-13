@@ -68,6 +68,7 @@ export default function CapitalByBank({
             {tx(belowCet1Req)} {tx(belowCet1Req === 1 ? "has" : "have")}{tx(" dipped into the buffer")}</b>
         )}{" "}{tx("— a constraint on distributions, not a breach of the ")}{tx(CET1_MIN)}{tx("% floor.")}</p>
 
+      <div role="region" aria-label={tx("Capital ratios by bank")} tabIndex={0} className="max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2">
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -135,6 +136,7 @@ export default function CapitalByBank({
           })}
         </tbody>
       </table>
+      </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
         <span>
           <span className="mr-1 inline-block size-2 bg-data align-middle" aria-hidden />{tx(" CET1")}</span>

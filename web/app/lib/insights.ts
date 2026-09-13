@@ -541,7 +541,7 @@ export function profitabilityInsights(d: {
 
   const headline =
     tx("The sector earns {0} on equity — {1} inflation", {0: pct(roe), 1: real != null ? (real > 5 ? "comfortably above" : real > 0 ? "roughly at" : "below") : "vs"}) +
-    `${real != null ? tx(" ({0}{1}pp real)", {0: real >= 0 ? "+" : "", 1: real.toFixed(1)}) : ""} — ` +
+    `${real != null ? tx(" ({0}{1}% real)", {0: real >= 0 ? "+" : "", 1: real.toFixed(1)}) : ""} — ` +
     tx("with NIM at {0}{1}.", {0: pct(nim, 2), 1: nimD != null && nimD > 0.05 ? " and widening" : nimD != null && nimD < -0.05 ? " and compressing" : ""});
 
   return { asOf: period, headline, items };

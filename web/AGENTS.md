@@ -38,8 +38,8 @@ database the Python pipeline writes. Repo-wide rules: [../AGENTS.md](../AGENTS.m
 
 ## Design
 All UI work follows **[DESIGN.md](DESIGN.md)** ("The Desk" system): white sheet on
-paper ground, hairlines not boxes, blue = links only, mono figures, two-layer
-pages (computed brief above carried-over evidence). Chart colours live in
+paper ground, hairlines not boxes, blue = links only, mono figures, and financial
+topics with their indicators and analysis together. Chart colours live in
 `app/lib/chart-theme.ts` in LOCKSTEP with `app/globals.css` tokens.
 
 ## Local dev & deploy

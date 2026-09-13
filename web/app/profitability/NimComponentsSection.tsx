@@ -53,10 +53,10 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+      className={`border-b-2 px-2 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
         active
-          ? "bg-primary/10 font-semibold text-primary"
-          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          ? "border-foreground font-semibold text-foreground"
+          : "border-transparent text-muted-foreground hover:text-foreground"
       }`}
     >
       {tx(label)}
@@ -65,6 +65,7 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
 
   return (
     <ChartCard
+      plain
       title={tx("NIM components — {0} (% of avg total assets, annualized)", {0: group.label})}
       description={
         tx(view === "annual"
@@ -72,13 +73,13 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
           : "Trailing-12-month interest income/expense over 13-month average total assets.")
       }
       action={
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
+          <div role="group" aria-label={tx("Bank group")} className="flex max-w-full flex-wrap items-center gap-0.5 border-b border-hair">
             {tx(NIM_GROUPS.map((g) =>
               pill(g.key === groupKey, g.label, () => setGroupKey(g.key)),
             ))}
           </div>
-          <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
+          <div role="group" aria-label={tx("Reporting period")} className="flex max-w-full flex-wrap items-center gap-0.5 border-b border-hair">
             {tx(pill(view === "annual", "Annual", () => setView("annual")))}
             {tx(pill(view === "monthly", "Monthly TTM", () => setView("monthly")))}
           </div>

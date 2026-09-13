@@ -1,5 +1,5 @@
 import { GlobalRangeSelector } from "@/app/components/range-context";
-import { SectorPage, SectorNav, SectorLead, LeadChartLink } from "@/app/components/sector-page";
+import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
 /**
  * Market Risk tab — CAMELS "S" (Sensitivity to market risk). Homes spine S8
  * (the dashboard audit's P0). Per-bank §4 audit data aggregated "of reporting
@@ -12,15 +12,9 @@ import { localizeMetadata } from "@/i18n/metadata";
 import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import {
-  Colophon,
-  Depth,
-  DeskHeader,
-  SecHead,
   Vital,
-  Vitals,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import TrendChart from "@/app/components/TrendChart";
@@ -107,22 +101,10 @@ export default async function MarketRiskPage() {
   const signedBn = (v: number, d = 0) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)}`;
 
   return (
-    <SectorPage>
-      <DeskHeader
-        title={tx("Market Risk")}
-        record={
-          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(latest))}</b>{tx(" · quarterly BRSA §4 · Σ of reporting banks")}</>
-        }
-        right="every figure computed from source series"
-      />
-      <SectorNav sections={[{ "id": "overview", "label": "Overview" }, { "id": "snapshot", "label": "The vitals" }, { "id": "evidence-1", "label": "FX exposure" }, { "id": "evidence-2", "label": "Interest-rate sensitivity" }, ...(nii.scenarios.length ? [{ "id": "evidence-3", "label": "What a rate move does to NII" }] : [])]} />
-
-      <SectorLead
-        question="Where is the balance sheet exposed?"
-        observation={latest}
-        controls={<GlobalRangeSelector />}
-
-        metric={<Vital
+    <SectorReport>
+<SectorHeader sector="market-risk" record={<>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(latest))}</b>{tx(" · quarterly BRSA §4 · Σ of reporting banks")}</>} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "fx-position", label: "FX position"}, {id: "repricing", label: "Repricing gap"}, ...(nii.scenarios.length > 0 ? [{id: "scenarios", label: "Rate scenarios"}] : [])]} controls={<GlobalRangeSelector />} />
+<SectorMetrics><Vital
           label={tx("FX net open / capital")}
           value={nopNow != null ? nopNow.toFixed(1) : "—"}
           unit="%"
@@ -142,33 +124,8 @@ export default async function MarketRiskPage() {
                 </b>{" "}{tx("the ±20% regulatory limit")}</>
             ) : undefined
           }
-        />}
-        chart={<TrendChart plain
-          data={nop}
-          seriesLabels={SECTOR}
-          title={
-            tx(seriesFinding(nop.filter((r) => r.bank_type_code === "SECTOR"), { noun: "The FX net open position", decimals: 1 }, tx.locale) ??
-              "FX net open position / regulatory capital (%)")
-          }
-          description={tx("FX net open position / regulatory capital, %, quarterly · Σ of reporting banks")}
-          source={tx("Source: BRSA quarterly filings (§4)")}
-          yFormat="pct"
-          decimals={1}
-          zeroLine
-        />}
-      />
-
-
-      {/* ── The vitals ─────────────────────────────────────────────────── */}
-      <SecHead
-        title={tx("The vitals")}
-        meta={tx("fx position · repricing gap · sized scenarios")}
-        className="mb-2.5 mt-6"
-      />
-      <div id="snapshot" />
-      <Vitals cols={4}>
-
-        <Vital
+        />
+<Vital
           label={tx("≤1y repricing gap / assets")}
           value={gapNow != null ? gapNow.toFixed(1) : "—"}
           unit="%"
@@ -183,19 +140,19 @@ export default async function MarketRiskPage() {
             ) : undefined
           }
         />
-        <Vital
+<Vital
           label={tx("≤1y net gap")}
           value={le1yBn != null ? signedBn(le1yBn) : "—"}
           unit="₺bn"
           note={
             deepest != null ? (
               <>{tx("deepest bucket ")}{tx(deepest.x)} ({tx(signedBn(deepest.gap))}{tx("₺bn) · per-bank ladders on")}{" "}
-                <Link href="/banks" className="font-semibold text-primary">{tx("/banks")}</Link>
+                <Link href="/banks" className="font-semibold text-primary">{tx("Banks")}</Link>
               </>
             ) : undefined
           }
         />
-        <Vital
+<Vital
           label={tx("ΔNII if rates +250bp")}
           value={nii250 != null ? signedBn(nii250.niiBn) : "—"}
           unit="₺bn"
@@ -210,8 +167,10 @@ export default async function MarketRiskPage() {
                 )}{tx("first-order, one year — not a forecast")}</>
             ) : undefined
           }
-        />
-        <Vital
+        /></SectorMetrics>
+<Takeaway variant="report" data={await withLlmHeadline("market-risk", read, tx.locale)} />
+<SectorSection id="fx-position" title={tx("FX position")} description={tx("The sector's net foreign-currency position. A small net-open-position / capital ratio means on- and off-balance FX is well-matched; the by-currency split shows where the system is net long (+) or short (−).")}>
+<Vital
           label={tx("Largest FX book")}
           value={bigCcy != null ? signedBn(bigCcy.v) : "—"}
           unit="₺bn"
@@ -230,29 +189,28 @@ export default async function MarketRiskPage() {
             ) : undefined
           }
         />
-      </Vitals>
-
-      {/* ── In depth — the evidence layer ──────────────────────────────── */}
-      <Depth id="evidence">
-        <Takeaway variant="desk" data={await withLlmHeadline("market-risk", read, tx.locale)} />
-
-        <Section id="evidence-1"
-          title={tx("FX exposure")}
-          description={tx("The sector's net foreign-currency position. A small net-open-position / capital ratio means on- and off-balance FX is well-matched; the by-currency split shows where the system is net long (+) or short (−).")}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <LeadChartLink />
+<TrendChart plain
+          data={nop}
+          seriesLabels={SECTOR}
+          title={
+            tx(seriesFinding(nop.filter((r) => r.bank_type_code === "SECTOR"), { noun: "The FX net open position", decimals: 1 }, tx.locale) ??
+              "FX net open position / regulatory capital (%)")
+          }
+          description={tx("FX net open position / regulatory capital, %, quarterly · Σ of reporting banks")}
+          source={tx("Source: BRSA quarterly filings (§4)")}
+          yFormat="pct"
+          decimals={1}
+          zeroLine
+        />
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            
             <ChartCard plain title={tx("FX net position by currency (₺bn) — net long (+) / short (−)")}>
               <BopFlowChart data={byCcy} bars={FX_CURRENCY_BARS} unit=" ₺bn" decimals={0} />
             </ChartCard>
           </div>
-        </Section>
-
-        <Section id="evidence-2"
-          title={tx("Interest-rate sensitivity")}
-          description={tx("The repricing/maturity gap — rate-sensitive assets minus liabilities by bucket. A large net gap in the near buckets means net interest income is exposed to a rate move. Participation banks that don't disclose the schedule are excluded.")}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+</SectorSection>
+<SectorSection id="repricing" title={tx("Repricing gap")} description={tx("The repricing/maturity gap — rate-sensitive assets minus liabilities by bucket. A large net gap in the near buckets means net interest income is exposed to a rate move. Participation banks that don't disclose the schedule are excluded.")}>
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ChartCard plain title={tx("Repricing gap by bucket (₺bn){0}", { 0: ladder.period ? ` · ${ladder.period}` : "" })}>
               <BopFlowChart data={ladder.data} bars={[{ key: "gap", label: "Net repricing gap" }]} unit=" ₺bn" decimals={0} />
             </ChartCard>
@@ -265,29 +223,30 @@ export default async function MarketRiskPage() {
               zeroLine
             />
           </div>
-        </Section>
-
-        {nii.scenarios.length > 0 && (
-          <Section id="evidence-3"
-            title={tx("What a rate move does to NII")}
-            description={tx("First-order one-year ΔNII from a parallel shift, off the {0} sector repricing ladder (≤1y buckets, bucket midpoints). Assumes no repricing beta or behavioral offsets — a sizing device, not a forecast.", { 0: nii.period ?? "latest" })}
-          >
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+</SectorSection>
+{nii.scenarios.length > 0 && (<SectorSection id="scenarios" title={tx("Rate scenarios")} description={tx("First-order one-year ΔNII from a parallel shift, off the {0} sector repricing ladder (≤1y buckets, bucket midpoints). Assumes no repricing beta or behavioral offsets — a sizing device, not a forecast.", { 0: nii.period ?? "latest" })}>
+<ChartCard plain title={tx("Estimated annual change in net interest income")}
+  description={tx("Parallel interest-rate shifts, basis points · change in net interest income, TL bn")}
+  source={tx("Source: BRSA quarterly filings (§4)")}>
+  <BopFlowChart
+    data={nii.scenarios.map(s => ({ x: tx("{0}{1} bps", { 0: s.bps > 0 ? "+" : "", 1: s.bps }), nii: s.niiBn }))}
+    bars={[{ key: "nii", label: "Change in net interest income", fill: { light: "#2B4E7E", dark: "#7FA3D8" } }]}
+    unit=" ₺bn" decimals={0} height={260}
+  />
+</ChartCard>
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {nii.scenarios.map((s) => (
-                <Stat
+                <Vital
                   key={s.bps}
                   label={tx("{0}{1} bps", { 0: s.bps > 0 ? "+" : "", 1: s.bps })}
                   value={`${s.niiBn >= 0 ? "+" : "−"}₺${Math.abs(s.niiBn).toFixed(0)}bn`}
-                  hint={tx(s.pctRsa != null ? tx("{0}{1}% of rate-sensitive assets", { 0: s.pctRsa >= 0 ? "+" : "", 1: s.pctRsa.toFixed(2) }) : undefined)}
-                  tone={s.niiBn >= 0 ? "positive" : "warning"}
+                  note={tx(s.pctRsa != null ? tx("{0}{1}% of rate-sensitive assets", { 0: s.pctRsa >= 0 ? "+" : "", 1: s.pctRsa.toFixed(2) }) : undefined)}
                 />
               ))}
             </div>
-          </Section>
-        )}
-      </Depth>
-
-      <Colophon />
-    </SectorPage>
+</SectorSection>)}
+<SectorDirectory sector="market-risk" />
+<SectorFooter />
+</SectorReport>
   );
 }

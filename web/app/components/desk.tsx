@@ -626,6 +626,7 @@ export function Flags({
   flags,
   quietNote,
   showCleared = false,
+  variant,
 }: {
   flags: Flag[];
   quietNote?: string;
@@ -635,10 +636,31 @@ export function Flags({
    * Each cleared rule needs a `clear` line saying what the test measured.
    */
   showCleared?: boolean;
+  variant?: "report";
 }) {
   const tx = useText();
   const active = flags.filter((f) => f.active);
   const cleared = flags.filter((f) => !f.active && f.clear);
+
+  if (variant === "report") {
+    const visible = showCleared ? [...active, ...cleared] : active;
+    return <div data-sector-monitoring>
+      {active.length === 0 && <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">{tx("No monitoring threshold is currently exceeded.")}</p>}
+      <ul className="divide-y divide-hair">
+        {visible.map(f => <li key={f.code} className="py-3">
+          <div className="flex gap-3 text-[12px] leading-[1.7]">
+            <span aria-hidden="true" className={f.active ? "text-warning" : "text-muted-foreground"}>{f.active ? "●" : "—"}</span>
+            <div>{tx(f.active ? f.body : f.clear)}
+              <details className="mt-2 text-[11px] text-muted-foreground">
+                <summary className="w-fit cursor-pointer underline decoration-border underline-offset-4">{tx("Monitoring criterion")}</summary>
+                <p className="mt-2 break-words font-mono text-[10px]">{tx(f.rule)}</p>
+              </details>
+            </div>
+          </div>
+        </li>)}
+      </ul>
+    </div>;
+  }
 
   const clearedList = showCleared && cleared.length > 0 && (
     <>

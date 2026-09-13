@@ -58,14 +58,24 @@ coverage or known issues change.
 ## Sector layout redesign (2026-09-13)
 
 Overview, Credit, Deposits, Liquidity, Asset Quality, Capital, Profitability and
-Market Risk now share a question, principal measure and existing chart above
-topic navigation's linked analysis. All original metrics, tables, source notes,
-scenarios, filters and chart exports remain available. Twelve overlapping trend
-charts now use shared-scale small multiples; missing observations remain gaps
-and blank CSV cells. The global date selector sits beside the opening chart.
-The implementation follows `web/DESIGN.md`; local verification and preservation
-receipts are in `docs/knowledge/2026-09-13-sector-suite/`. This layout change does not
-change database coverage or ingestion.
+Market Risk use `sector-report.tsx`: descriptive page headers, dated indicators,
+an assessment, and financial-topic sections that bring each subject's metrics,
+charts and comparisons together. Active section navigation and the shared chart
+period control remain available while scrolling. The overview links to all
+seven specialist pages; each specialist page links to related sector analysis.
+Generic Now/Drivers/Evidence layers and implementation commentary no longer
+appear in these pages. Monitoring results remain visible; calculation criteria
+and dataset definitions have their own accessible disclosures.
+
+All original analytical data remain available. The duplicate monthly profit
+bridge is consolidated with its detailed table. Liquidity's leverage ratio has
+its own plot, separate from LCR/NSFR; market-risk scenarios also have a signed
+bar chart. Small-multiple percentage changes are labelled in percentage points.
+Sources, reporting bases, null observations, scenarios, filters and chart exports
+are retained. Queries and calculations stay on the server; only navigation state
+and existing chart interactions run in the browser. This changes presentation,
+not database coverage or ingestion. Research and preservation receipts are in
+`docs/knowledge/2026-09-13-sector-report-redesign/`.
 
 ## Liquidity component expansion (2026-09-13)
 

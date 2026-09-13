@@ -24,10 +24,11 @@ do all the work; nothing is decorated.
    (record lines, section metas, rules, colophons) are mono-caps 8–10px.
 5. **No serif anywhere.** Instrument Sans carries body and display; `--font-serif`
    deliberately resolves to the sans stack so legacy `font-serif` degrades.
-6. **Automation honesty.** The site is compiled, not written: flags print their
-   rule (`consecutive_rise(npl) ≥ 6m`), metas say how a number was made
-   ("transmission computed", "rule-based — 2 of 5"), and
-   each page ends with the `<Colophon/>`.
+6. **Explain the data in the reader's language.** Sources, reporting dates,
+   definitions and scenario assumptions stay available. Implementation plans,
+   database names, code identifiers and release commentary do not become page
+   headings or analytical copy. Monitoring results are visible; their literal
+   calculation criteria may sit in an accessible method disclosure.
 7. **A claim is computed, or it does not print.** A sentence that asserts a
    **direction**, a **level** or a **ranking** is a claim about the data, not a
    label — and the series that settles it is almost always the chart's own `data`
@@ -154,44 +155,43 @@ Worked example, on real rows, with the arithmetic:
 
 ## Sector reading order
 
-Every sector tab is a **brief whose reading order is visible on the page**.
-The eight sector routes use `app/components/sector-page.tsx` for a shared
-opening and topic navigation; the existing analysis components remain in
-`app/components/desk.tsx`. Queries and calculations belong to each route.
+The eight sector pages form one banking report within the existing site shell.
+`app/components/sector-report.tsx` owns presentation; route modules retain all
+queries and calculations. `sector-contents.tsx` is the small client boundary for
+reading position. Static page descriptions and related routes belong to
+`app/lib/sector-pages.ts`, separate from data access.
 
-```
-<SectorPage>
-  <DeskHeader title record observations={[…]} />
-  <SectorNav sections={[…]} />             ← sticky links to the visible topics
-  <SectorLead question observation
-    metric={<Vital … />}                  ← principal measure, with its own date
-    chart={<TrendChart … />}              ← existing explanatory chart + exports
-    controls={<GlobalRangeSelector />} />  ← applies to every chart, not the brief
-  <Tape items={…} />                       ← Overview only
-  <LayerHead id="snapshot" index="01" title="Now" />
-  <Vitals>…</Vitals>                       ← all remaining original metrics
-  <CadenceBand observation={…}>…</CadenceBand>
-  <LayerHead id="drivers" index="02" title="Drivers" />
-  [Movers | Transmission | Flags | Standings]
-  <Depth id="evidence">                    ← fully open; topics in analytical order
-    …all original charts, tables, definitions, scenarios and source notes…
-  </Depth>
-  <Colophon />
-</SectorPage>
-```
+A page starts with its financial subject, a short description, reporting dates
+and key indicators. An assessment follows. Each financial topic then owns its
+related metrics, charts, comparisons and explanation in one continuous section.
+Use conventional financial terms: loan growth, deposit maturities, credit
+stages, capital composition, income statement and repricing gaps. Never expose
+an internal Now/Drivers/Evidence hierarchy or carry-over commentary to visitors.
 
-The primary chart is moved, not copied. Its original section links back to it.
-Liquidity carries its complete daily cadence band into the opening. Monthly,
-weekly, daily and audited observations keep their separate bases. Conditional
-topic links appear only when the corresponding analysis is available.
+The overview covers the whole sector and links to all seven specialist pages.
+Each specialist page ends with relevant sibling analysis. These links supplement
+rather than duplicate the global sidebar. Local topic navigation uses stable
+subject names, visible focus and an active section indicator. It scrolls
+horizontally on narrow screens; the page itself never widens. The chart-period
+control affects historical charts, not the dated current-indicator band.
 
-Keep all evidence in normal page flow. Reordering and choosing a different
-chart form must retain series, units, filters, missing values, source notes and
-export actions. Ownership and product trends use shared-scale small multiples;
-combined lines remain where their relative paths explain the question. Explicit
-null observations remain gaps and blank CSV cells. Weekly comparison labels
-must name weeks. Phone layouts stack the opening and scroll topic navigation
-horizontally without widening the document.
+Keep all analytical content visible. A redesign may consolidate an exact
+repetition, but must retain every distinct measure, series, breakdown, table,
+scenario, date basis, source note, filter and export. Definitions and literal
+monitoring criteria may use labelled disclosures; substantive analysis does not.
+Daily, weekly, monthly and audited quarterly figures keep their separate bases.
+Conditional section links appear only when the corresponding section exists.
+
+Choose charts by task, not a uniform template. Lines show history; paired lines
+support a direct comparison; shared-scale small multiples separate crowded group
+trends; composition uses shares with amounts still available; signed bars or
+waterfalls explain contributions and scenarios. Different regulatory ratios
+with materially different scales (for example LCR versus leverage) need separate
+plots. State percentage-point changes as percentage points, not percentages.
+
+Use the Desk palette, whitespace and hairlines. Topic headings are 22-24px;
+chart titles 15px; explanatory copy 12-14px. Avoid tiny all-caps prose. Key
+indicators use two columns on phones/tablets and three or four on wide screens.
 
 **Sparkline geometry:** a `<Vital>` sparkline is a compact trend glyph, not a
 full-width time-series chart. Its plot is capped at `26rem` and uses a `3rem`
@@ -218,23 +218,22 @@ calendar data in the pipeline for products that need it, but do not render it
 inside sector or economy briefs.
 
 **Carry-over contract:** converting a page to the Desk preserves both analytical
-content and default visibility. Existing charts, tables and sections may move
-under `<Depth>` or a visible `<EvidenceSection>` when they are method, scenario
-or specialist evidence, but they remain in the normal reading flow. They keep
+content and default visibility. Existing charts, tables and sections may move into financial-topic sections,
+but they remain in the normal reading flow. They keep
 their data wiring (range selector, bank-type filters, finding titles) and only
 lose chrome. Do not put analytical evidence behind a disclosure merely to reduce
 page density. Vitals notes and flags must be **computed from series the page
 already fetches** — no hand-written claims, no forecasts.
 
 **The evidence layer speaks the brief's language** (shipped 2026-07-12 on
-Overview; the pattern the other tabs follow). Below the `<Depth>` rule a page
-must not invent a second grid or re-introduce surfaces:
+Overview; the pattern the other tabs follow). Within financial-topic sections a page must not invent a second grid or
+re-introduce surfaces:
 
 - **No `Stat`/`Card` boxes.** A row of KPI cards becomes the page's own
   `<Vitals rule="hair">` band — the *same cells* as the brief, re-rendered for
   whatever the filter selects, with `<Levels>` carrying the level figures above
   it and `<PeerBar>` marking where the sector sits in the league of groups.
-- **`<Takeaway variant="desk">`** — kicker, headline, hairline-ruled drivers.
+- **`<Takeaway variant="report">`** — dated assessment and readable supporting points.
   The boxed variant survives only on tabs not yet converted.
 - **Charts sit on the sheet** (`<TrendChart plain …>`): finding title, mono-caps
   sub-line, and `<ChartFoot>` under the mark (hero latest, Δ 12m, leading and
@@ -242,10 +241,10 @@ must not invent a second grid or re-introduce surfaces:
   survives a screenshot). Two per row, so each spans three cells of the band.
 - **Controls are mono-caps with an ink underline** (`BankTypeFilter`), never
   pills and never blue — blue is a verb, and switching a band navigates nowhere.
-- **A rule prints whether or not it fires.** `<Flags showCleared>` lists the
-  tests that did *not* trip, with their thresholds (`/deposits`): a quiet page is
-  evidence the tests ran, not an absence of work. Give each `Flag` a `clear` line
-  saying what the test measured.
+- **Monitoring includes the current result.** `<Flags variant="report" showCleared>`
+  shows active and cleared results in plain language. A labelled method
+  disclosure keeps the calculation criterion inspectable. Give each `Flag` a
+  `clear` line saying what was measured.
 - **A split that IS the page's frame gets a table.** `<Compare a b rows>`
   (`/liquidity`: public vs private) — where the whole analysis rests on two
   populations, print them side by side with the gap, instead of making the reader

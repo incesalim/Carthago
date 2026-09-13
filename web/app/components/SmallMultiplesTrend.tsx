@@ -155,7 +155,9 @@ export default function SmallMultiplesTrend({
                     {current?.value != null ? tx(fmt(current.value, decimals)) : "—"}
                   </div>
                   <div className="text-[8px] uppercase tracking-[0.05em] text-faint">
-                    {delta == null ? "—" : <>{tx(signed(delta, fmt(Math.abs(delta), decimals)))} · {tx(deltaLabel)}</>}
+                    {delta == null ? "—" : <>{yFormat === "pct"
+                      ? tx("{0} pp", { 0: signed(delta, formatters.raw(Math.abs(delta), decimals)) })
+                      : tx(signed(delta, fmt(Math.abs(delta), decimals)))} · {tx(deltaLabel)}</>}
                   </div>
                 </div>
               </div>

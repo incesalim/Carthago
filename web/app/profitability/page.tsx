@@ -1,4 +1,4 @@
-import { SectorPage, SectorNav, SectorLead, LeadChartLink } from "@/app/components/sector-page";
+import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
 /**
  * Profitability tab — "The Desk" two-layer page.
  *
@@ -44,10 +44,6 @@ import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   ChartFoot,
   ChartRow,
-  Colophon,
-  Depth,
-  DeskHeader,
-  LayerHead,
   Flags,
   Levels,
   Movers,
@@ -55,7 +51,6 @@ import {
   Standings,
   Transmission,
   Vital,
-  Vitals,
   type Flag,
   type MoverRow,
   type StandingsGroup,
@@ -262,7 +257,7 @@ export default async function ProfitabilityPage() {
       effect: (
         <>{tx("{0} of deposits pay no interest. The sector pays {1} on interest-bearing deposits; the blended cost is {2}.",
           {0: fmtPct(E.demandShare), 1: fmtPct(E.paidOnTime), 2: fmtPct(E.blended)})}{" "}
-          <Go href="/deposits">{tx("/deposits")}</Go>
+          <Go href="/deposits">{tx("Deposits")}</Go>
         </>
       ),
     });
@@ -295,7 +290,7 @@ export default async function ProfitabilityPage() {
           ? "Published ROE is {0}; deflated by {1} 12m-average CPI, it is {2} in real terms. The sector remains below the inflation hurdle."
           : "Published ROE is {0}; deflated by {1} 12m-average CPI, it is {2} in real terms. The sector clears the inflation hurdle.",
         {0: fmtPct(roeNow), 1: fmtPct(cpiAvgNow), 2: roeReal != null ? signedPct(roeReal, 1) : "—"})}{" "}
-          <Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
+          <Go href="/economy/inflation">{tx("Inflation")}</Go>
         </>
       ),
     });
@@ -417,15 +412,9 @@ export default async function ProfitabilityPage() {
   ];
 
   return (
-    <SectorPage>
-      <DeskHeader
-        title={tx("Profitability")}
-        record={
-          <>{tx("Record ")}<b className="font-normal text-foreground">{tx(recMonth)}</b>{tx(" · vs ")}{tx(vsMonth)}
-          </>
-        }
-        right="every figure computed from source series"
-        observations={[
+    <SectorReport>
+<SectorHeader sector="profitability" record={<>{tx("Record ")}<b className="font-normal text-foreground">{tx(recMonth)}</b>{tx(" · vs ")}{tx(vsMonth)}
+          </>} observations={[
           {
             cadence: "monthly",
             role: "current",
@@ -440,15 +429,9 @@ export default async function ProfitabilityPage() {
             window: "month alone, de-cumulated",
             basis: "reported P&L reconciled before display",
           },
-        ]}
-      />
-      <SectorNav sections={[{ "id": "overview", "label": "Overview" }, { "id": "snapshot", "label": "The vitals" }, { "id": "drivers", "label": "Drivers" }, { "id": "evidence-2", "label": "The month’s P&L" }, ...(E ? [{ "id": "evidence-1", "label": "The engine" }] : []), { "id": "evidence-4", "label": "Margins & costs" }, { "id": "evidence-3", "label": "Returns" }]} />
-
-      <SectorLead
-        question="What is producing the return?"
-        observation={monthLabel(sectorRows.roe.at(-1)?.period)}
-        controls={<GlobalRangeSelector />}
-        metric={<Vital
+        ]} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "income", label: "Income statement"}, ...(E ? [{id: "funding-cost", label: "Funding cost"}] : []), {id: "margins", label: "Margins and costs"}, {id: "returns", label: "Returns"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector />} />
+<SectorMetrics><Vital
           label={tx("ROE, ann.")}
           value={roeNow != null ? roeNow.toFixed(1) : "—"}
           unit="%"
@@ -466,46 +449,8 @@ export default async function ProfitabilityPage() {
                 {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}{tx(" real")}</em>
             </>
           }
-        />}
-        chart={<SmallMultiplesTrend
-          plain
-          data={roe}
-          seriesLabels={BANK_TYPE_LABELS}
-          title={
-            tx(seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), {
-              noun: "ROE",
-              decimals: 1,
-            }, tx.locale) ?? "ROE — annualized, by group")
-          }
-          description={tx("return on equity, %, annualized (ytd × 12/month) · by ownership group")}
-          source={<ChartFoot data={roe} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
-          yFormat="pct"
-          decimals={1}
-          deltaPeriods={12}
-          deltaLabel="12m"
-          height={104}
-          columns={3}
-          zeroLine
-        />}
-      />
-
-
-      <LayerHead id="snapshot"
-        index="01"
-        title="Now"
-        description="Current position, primary clock and the first answer."
-        className="mt-6"
-      />
-
-      {/* ── The vitals ─────────────────────────────────────────────────── */}
-      <SecHead
-        title={tx("The vitals")}
-        meta={tx("sector aggregate · annualized · trailing 13 months")}
-        className="mb-2.5 mt-6"
-      />
-      <Vitals cols={5}>
-
-        <Vital
+        />
+<Vital
           label={tx("ROA, ann.")}
           value={roaNow != null ? roaNow.toFixed(2) : "—"}
           unit="%"
@@ -518,7 +463,7 @@ export default async function ProfitabilityPage() {
             )
           }
         />
-        <Vital
+<Vital
           label={tx("Net int. margin")}
           value={nimNow != null ? nimNow.toFixed(2) : "—"}
           unit="%"
@@ -532,7 +477,7 @@ export default async function ProfitabilityPage() {
             )
           }
         />
-        <Vital
+<Vital
           label={tx("OPEX / avg assets")}
           value={opexNow != null ? opexNow.toFixed(2) : "—"}
           unit="%"
@@ -549,69 +494,12 @@ export default async function ProfitabilityPage() {
                 {tx(opexDelta != null ? signedPp(opexDelta, 2) : "—")}
               </b>{" "}{tx("y/y cost intensity")}</>
           }
-        />
-        <Vital
-          label={tx("Fees / revenue")}
-          value={feesNow != null ? feesNow.toFixed(1) : "—"}
-          unit="%"
-          series={spark(sectorRows.fees)}
-          decimals={1}
-          note={<>{tx(feesDelta != null ? signedPp(feesDelta, 1) : "—")} {tx("y/y share of revenue")}</>}
-        />
-        <Vital
-          label={tx("CPI, 12m-avg")}
-          value={cpiAvgNow != null ? cpiAvgNow.toFixed(1) : "—"}
-          unit="%"
-          series={cpiAvg.slice(-13)}
-          decimals={1}
-          note={
-            cpiFallStreak >= 3 ? (
-              <>
-                <b className="font-semibold text-positive">{tx("CPI has declined for {0} consecutive months.", { 0: cpiFallStreak })}</b>{" "}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
-              </>
-            ) : (
-              <>
-                {tx(cpiDelta12 != null ? signedPp(cpiDelta12, 1) : "—")} {tx("y/y — the real-return hurdle ")}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
-              </>
-            )
-          }
-        />
-      </Vitals>
-
-      {br?.reconciles && (
-        <div className="mt-8">
+        /></SectorMetrics>
+<Takeaway data={await withLlmHeadline("profitability", read, tx.locale)} variant="report" />
+<SectorSection id="income" title={tx("Income statement")} description={tx("Monthly income and expenses, derived from year-to-date reported figures.")}>
+<div>
           <SecHead
-            title={tx("What produced this month's profit")}
-            meta={tx("month alone · de-cumulated from YTD · reconciled")}
-            className="mb-2.5"
-          />
-          <ProfitBridge
-            bridge={br}
-            prior={brPrior}
-            title={
-              tx(brPrior && br.nii > brPrior.nii && br.net < brPrior.net
-                ? tx("{0} — net interest income rose, and the profit still fell", { 0: monthLabel(br.period) })
-                : tx("{0} — the month in one line each", { 0: monthLabel(br.period) }))
-            }
-            description={tx("₺ trn, the month alone · not the year to date")}
-            source={tx("Source: BDDK monthly income statement · bridge reconciles to reported net profit")}
-            height={280}
-          />
-        </div>
-      )}
-
-      <LayerHead id="drivers"
-        index="02"
-        title="Drivers"
-        description="The mechanisms and comparisons behind the current reading."
-        className="mt-10"
-      />
-
-      {/* ── Movers | The engine → the return ───────────────────────────── */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
-        <div>
-          <SecHead
-            title={tx("Movers")}
+            title={tx("Period changes")}
             meta={tx("{0} → {1} · monthly", { 0: vsMonth, 1: monthLabel(sectorRows.roe.at(-1)?.period, false) })}
             className="mb-2.5"
           />
@@ -621,53 +509,7 @@ export default async function ProfitabilityPage() {
             rows={moverRows}
           />
         </div>
-        <div>
-          <SecHead
-            title={tx("The engine → the return")}
-            meta={tx("where the margin actually comes from · computed")}
-            className="mb-2.5"
-          />
-          <Transmission items={transmission} />
-        </div>
-      </div>
-
-      {/* ── Flags | Standings ──────────────────────────────────────────── */}
-      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-2">
-        <div>
-          <SecHead
-            title={tx("Flags")}
-            meta={tx("rule-based — {0} of {1}", { 0: activeFlags, 1: flags.length })}
-            className="mb-2.5"
-          />
-          <Flags
-            flags={flags}
-            showCleared
-            quietNote="Free funding, real returns, cost/income and the saver's real rate are all below threshold."
-          />
-        </div>
-        <div>
-          <SecHead
-            title={tx("Standings")}
-            meta={tx("roe, ann. · {0}", { 0: recMonth })}
-            href="/banks"
-            hrefLabel={tx("by bank →")}
-            className="mb-2.5"
-          />
-          <Standings groups={standings} />
-        </div>
-      </div>
-
-      {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth id="evidence" >
-        <Takeaway data={await withLlmHeadline("profitability", read, tx.locale)} variant="desk" />
-
-        <div id="evidence-2">
-          <SecHead
-            title={tx("The month's P&L")}
-            meta={tx("de-cumulated from the year-to-date statement · reconciles to the reported line")}
-            className="mb-2.5"
-          />
-          {br?.reconciles ? (
+{br?.reconciles ? (
             <div className="grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-[8fr_4fr]">
               <ProfitBridge
                 bridge={br}
@@ -749,18 +591,20 @@ export default async function ProfitabilityPage() {
             </div>
           ) : (
             <p className="max-w-[90ch] border-l-2 border-warning bg-warning/[0.07] py-2 pl-3 text-[12px] leading-relaxed text-foreground">
-              <b className="font-semibold">{tx("The bridge is withheld.")}</b>{tx(" Its parts no longer sum to the statement’s own net-profit line (")}{tx(br ? signedTrn(br.gap) : "—")}{tx("), which means the BDDK item numbering has moved. The chart is not drawn on numbers that do not add up — see the flag above.")}</p>
+              <b className="font-semibold">{tx("Income-statement reconciliation is unavailable.")}</b>{tx(" Its parts no longer sum to the statement’s own net-profit line (")}{tx(br ? signedTrn(br.gap) : "—")}{tx("), which means the BDDK item numbering has moved. The chart is not drawn on numbers that do not add up — see the flag above.")}</p>
           )}
+<div>
+          <SecHead
+            title={tx("Profitability components")}
+            meta={tx("Deposit costs and net interest income")}
+            className="mb-2.5"
+          />
+          <Transmission items={transmission} />
         </div>
+</SectorSection>
+{E && (<SectorSection id="funding-cost" title={tx("Funding cost")} description={tx("Deposit costs and the contribution of demand deposits to profitability.")}>
 
-        {E && (
-          <div id="evidence-1">
-            <SecHead
-              title={tx("The engine")}
-              meta={tx("what the free deposits are worth · BDDK income statement ÷ balance sheet")}
-              className="mb-2.5"
-            />
-            <Levels
+<Levels
               items={[
                 { k: "Demand share", v: E.demandShare.toFixed(1), unit: "%" },
                 { k: "Paid on the rest", v: E.paidOnTime.toFixed(1), unit: "%" },
@@ -768,7 +612,7 @@ export default async function ProfitabilityPage() {
                 { k: "The free book, priced", v: `₺${E.worth.toFixed(2)}`, unit: "trn" },
               ]}
             />
-            <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
               <TrendChart
                 plain
                 data={[
@@ -847,18 +691,19 @@ export default async function ProfitabilityPage() {
                 height={280}
               />
             </div>
-            <p className="mt-4 max-w-[100ch] text-[12px] leading-relaxed text-muted-foreground">
+<p className="mt-4 max-w-[100ch] text-[12px] leading-relaxed text-muted-foreground">
               <b className="font-semibold text-foreground">{tx("A sizing device, not a forecast.")}</b>{" "}{tx("Demand deposits are not literally free — servicing them (branches, payments, cards) is part of the ")}{tx(fmtPct(ciNow))}{tx(" cost/income below — and if the sector paid market rates on them the balance sheet would not stay the same. The arithmetic only says what the free funding is ")}<i>{tx("worth")}</i>{tx(" at the sector’s own paid rate: ")}{tx(fmtTrn(E.worth))}{tx(" a year against ")}{tx(fmtTrn(E.profit))}{tx(" of profit. One ROE is used throughout — BDDK’s published ratio (")}{tx(fmtPct(roeNow))}{tx("); the counterfactual is a cost applied to it, not a second ROE computed a different way.")}</p>
-          </div>
-        )}
-
-        <div id="evidence-4">
-          <SecHead
-            title={tx("Margins & costs")}
-            meta={tx("what the engine leaves behind")}
-            className="mb-2.5"
-          />
-          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+</SectorSection>)}
+<SectorSection id="margins" title={tx("Margins and costs")} description={tx("Net interest margin, operating costs and fee income")}>
+<Vital
+          label={tx("Fees / revenue")}
+          value={feesNow != null ? feesNow.toFixed(1) : "—"}
+          unit="%"
+          series={spark(sectorRows.fees)}
+          decimals={1}
+          note={<>{tx(feesDelta != null ? signedPp(feesDelta, 1) : "—")} {tx("y/y share of revenue")}</>}
+        />
+<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
             <SmallMultiplesTrend
               plain
               data={nim}
@@ -929,7 +774,7 @@ export default async function ProfitabilityPage() {
               hero="CI"
             />
           </div>
-          <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
             <SmallMultiplesTrend
               plain
               data={opex}
@@ -945,7 +790,7 @@ export default async function ProfitabilityPage() {
               plain
               data={fees}
               seriesLabels={BANK_TYPE_LABELS}
-              title={tx("The non-interest share of revenue")}
+              title={tx("Fee and commission share of revenue")}
               description={tx("fees & commissions ÷ total revenue, %, monthly · by ownership group")}
               source={<ChartFoot data={fees} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
               yFormat="pct"
@@ -953,25 +798,67 @@ export default async function ProfitabilityPage() {
               height={142}
               columns={3} />
           </div>
-          <div className="mt-8 space-y-1">
+<div className="mt-8 space-y-1">
             <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
             <p className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint">{tx("NIM components of private banks: BDDK monthly income-statement interest items (income 1–14, expense 16–22) over 13-month average total assets. Private = domestic-private + foreign deposit banks.")}</p>
           </div>
-        </div>
-
-        <div id="evidence-3">
+</SectorSection>
+<SectorSection id="returns" title={tx("Returns")} description={tx("Return on equity, return on assets and comparison with inflation.")}>
+<SmallMultiplesTrend
+          plain
+          data={roe}
+          seriesLabels={BANK_TYPE_LABELS}
+          title={
+            tx(seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), {
+              noun: "ROE",
+              decimals: 1,
+            }, tx.locale) ?? "ROE — annualized, by group")
+          }
+          description={tx("return on equity, %, annualized (ytd × 12/month) · by ownership group")}
+          source={<ChartFoot data={roe} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
+          yFormat="pct"
+          decimals={1}
+          deltaPeriods={12}
+          deltaLabel="12m"
+          height={104}
+          columns={3}
+          zeroLine
+        />
+<Vital
+          label={tx("CPI, 12m-avg")}
+          value={cpiAvgNow != null ? cpiAvgNow.toFixed(1) : "—"}
+          unit="%"
+          series={cpiAvg.slice(-13)}
+          decimals={1}
+          note={
+            cpiFallStreak >= 3 ? (
+              <>
+                <b className="font-semibold text-positive">{tx("CPI has declined for {0} consecutive months.", { 0: cpiFallStreak })}</b>{" "}<Go href="/economy/inflation">{tx("Inflation")}</Go>
+              </>
+            ) : (
+              <>
+                {tx(cpiDelta12 != null ? signedPp(cpiDelta12, 1) : "—")} {tx("y/y — the real-return hurdle ")}<Go href="/economy/inflation">{tx("Inflation")}</Go>
+              </>
+            )
+          }
+        />
+<div>
           <SecHead
-            title={tx("Returns")}
-            meta={tx("by ownership group · the CPI hurdle on the same axis")}
+            title={tx("Bank comparisons")}
+            meta={tx("roe, ann. · {0}", { 0: recMonth })}
+            href="/banks"
+            hrefLabel={tx("by bank →")}
             className="mb-2.5"
           />
-          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <LeadChartLink />
+          <Standings groups={standings} />
+        </div>
+<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            
             <SmallMultiplesTrend
               plain
               data={roa}
               seriesLabels={BANK_TYPE_LABELS}
-              title={tx("ROA — the leverage-free read")}
+              title={tx("Return on assets by bank group")}
               description={tx("return on assets, %, annualized · by ownership group")}
               source={<ChartFoot data={roa} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
               yFormat="pct"
@@ -980,7 +867,7 @@ export default async function ProfitabilityPage() {
               zeroLine
               columns={3} />
           </div>
-          {cpiAvg.length > 0 && (
+{cpiAvg.length > 0 && (
             <div className="mt-6">
               <ChartRow
                 data={roePlusCpi}
@@ -1003,7 +890,7 @@ export default async function ProfitabilityPage() {
                     [BANK_TYPES.STATE]: "State ROE",
                     CPI: "CPI 12m avg",
                   }}
-                  title={tx("Distance from the CPI line is the real return")}
+                  title={tx("Return on equity and inflation")}
                   description={tx("roe annualized vs the 12-month rolling average of CPI y/y, %, monthly")}
                   yFormat="pct"
                   decimals={1}
@@ -1013,10 +900,19 @@ export default async function ProfitabilityPage() {
               </ChartRow>
             </div>
           )}
+</SectorSection>
+<SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
+<div>
+          <p className="mb-3 text-[12px] text-muted-foreground">{tx("{0} of {1} monitoring thresholds exceeded", { 0: activeFlags, 1: flags.length })}</p>
+          <Flags variant="report"
+            flags={flags}
+            showCleared
+            quietNote="Free funding, real returns, cost/income and the saver's real rate are all below threshold."
+          />
         </div>
-      </Depth>
-
-      <Colophon />
-    </SectorPage>
+</SectorSection>
+<SectorDirectory sector="profitability" />
+<SectorFooter />
+</SectorReport>
   );
 }
