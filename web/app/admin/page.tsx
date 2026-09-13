@@ -141,6 +141,12 @@ export default async function AdminPage({
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-4">
             <a
+              href="/admin/signals"
+              className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current"
+            >
+              Signals
+            </a>
+            <a
               href="/admin/agents"
               className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current"
             >

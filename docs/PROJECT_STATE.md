@@ -2,7 +2,7 @@
 
 ## Standalone sector signals (2026-09-13)
 
-`/signals` collects the 33 existing monitoring conditions from the sector
+The admin-only `/admin/signals` workspace collects the 33 existing monitoring conditions from the sector
 overview, credit, deposits, liquidity, asset-quality, capital and profitability
 pages. Those pages retain their charts and analyses; their monitoring sections
 and navigation anchors are removed. Market risk had no such conditions.
@@ -12,15 +12,18 @@ the React presentation. Stable IDs, original conditions, numerical facts, source
 bases and reporting dates are preserved. Missing inputs are explicitly
 unavailable, distinct from conditions evaluated as not triggered. The research
 page supports topic/status/search filters, source inspection and filtered JSON
-export; the read-only `/api/sector-signals` endpoint exposes the full collection
-and any failed topics.
+export; the read-only `/api/admin/sector-signals` endpoint exposes the full
+collection and any failed topics after checking the existing admin session.
+Both page and API authorize before querying data and return private, uncached
+responses. Public navigation and the sitemap omit Signals. The former `/signals`
+URL redirects to the protected workspace; the public API endpoint is removed.
 
 The records are leads for analysts to investigate before using material findings
 in articles. No automatic analyst execution or article publication is introduced.
 The endpoint describes latest-available observations, not a historical Analyst
 V2 snapshot. No schema or data write is needed. Release evidence is kept in
-`docs/knowledge/2026-09-13-sector-signals/`.
-
+`docs/knowledge/2026-09-13-sector-signals/`; the admin access correction is recorded
+in `docs/knowledge/2026-09-13-admin-signals/`.
 
 ## Refresh previews do not trigger corpus publication (2026-09-13)
 

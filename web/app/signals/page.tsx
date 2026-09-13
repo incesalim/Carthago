@@ -1,17 +1,9 @@
-import { getLocale } from "next-intl/server";
-import { loadSignalSnapshot } from "../lib/sector-signals";
-import SignalsView from "./SignalsView";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
-export async function generateMetadata() {
-  const tr = await getLocale() === "tr";
-  return {
-    title: tr ? "Sinyaller" : "Signals",
-    description: tr ? "Bankacılık verilerinden araştırma sinyalleri, gözlemler ve değerlendirme koşulları." : "Research signals from banking data, with observations and evaluation criteria.",
-  };
-}
+export const metadata = { robots: { index: false, follow: false } };
 
-export default async function SignalsPage() {
-  const [snapshot, locale] = await Promise.all([loadSignalSnapshot(), getLocale()]);
-  return <SignalsView snapshot={snapshot} locale={locale} />;
+/** Compatibility link only; observations are rendered behind the admin gate. */
+export default function SignalsRedirect() {
+  redirect("/admin/signals");
 }

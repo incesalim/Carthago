@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filterSignals, formatSignalFact } from "./model";
-import { signalState, signalText, type SectorSignal } from "../lib/sector-signals/types";
+import { signalState, signalText, type SectorSignal } from "../../lib/sector-signals/types";
 
 const fixture = (id: string, state: SectorSignal["state"], sector: SectorSignal["sector"]): SectorSignal => ({
   id, state, sector, title: signalText("Credit conditions", "İhtiyaç kredileri"),

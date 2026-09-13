@@ -1,5 +1,19 @@
 # Admin control center
 
+## Signals research workspace (2026-09-13)
+
+Choose **Signals** from the authenticated control center to open
+`/admin/signals`. It collects sector research leads for source inspection and
+analyst review before a material finding is incorporated into an article.
+Topic, evaluation-state and text filters, condition/source details and filtered
+JSON export remain available.
+
+The page and `GET /api/admin/sector-signals` independently require the existing
+admin authorization before loading any signal data. Responses are private and
+uncached. The workspace is excluded from public navigation and the sitemap;
+`/signals` redirects to it, and `/api/sector-signals` no longer exists. This does
+not add an analyst run, automatic publication, a new credential or a data write.
+
 ## Capital tables with their qualifications (2026-09-13)
 
 “Read disclosure and qualifications” opens the enclosing printed disclosure

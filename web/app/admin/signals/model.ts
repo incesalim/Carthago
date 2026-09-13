@@ -1,6 +1,6 @@
-import type { SectorKey } from "../lib/sector-pages";
-import type { SectorSignal, SignalFact, SignalState, SignalText } from "../lib/sector-signals/types";
-import { nf } from "../lib/chart-format";
+import type { SectorKey } from "../../lib/sector-pages";
+import type { SectorSignal, SignalFact, SignalState, SignalText } from "../../lib/sector-signals/types";
+import { nf } from "../../lib/chart-format";
 
 export type SignalFilters = { sector: SectorKey | "all"; state: SignalState | "all"; query: string };
 export const localText = (text: SignalText, locale: string) => locale === "tr" ? text.tr : text.en;

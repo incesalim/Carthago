@@ -31,8 +31,8 @@ do all the work; nothing is decorated.
 6. **Explain the data in the reader's language.** Sources, reporting dates,
    definitions and scenario assumptions stay available. Implementation plans,
    database names, code identifiers and release commentary do not become page
-   headings or analytical copy. Research signals live on `/signals`, separate
-   from sector analysis; their criteria and sources remain inspectable there.
+   headings or analytical copy. Research signals live in the admin-only
+   `/admin/signals` workspace; their criteria and sources remain inspectable there.
 7. **A claim is computed, or it does not print.** A sentence that asserts a
    **direction**, a **level** or a **ranking** is a claim about the data, not a
    label — and the series that settles it is almost always the chart's own `data`
@@ -220,7 +220,7 @@ latest levels and original comparisons remain available. Substantive analysis
 stays in the normal reading flow. Keep daily, weekly, monthly and audited
 quarterly bases distinct; `null` never becomes zero. Threshold methodology may
 use a disclosure. Signal conditions, observations and evaluation states live
-on the separate `/signals` research page; sector pages retain their analyses.
+in the admin-only `/admin/signals` research workspace; sector pages retain their analyses.
 
 Validate actual desktop and phone rendering: no page-wide horizontal overflow,
 clipped labels, orphan half-rows, narrow value columns or gratuitous empty panels.

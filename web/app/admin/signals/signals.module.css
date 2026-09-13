@@ -1,5 +1,6 @@
 .page { min-height:100vh; padding:32px clamp(20px,3vw,48px) 40px; background:var(--background); font:15px/1.6 var(--font-sans); }
 .page > * { max-width:1400px; margin-inline:auto; }
+.back { display:block; margin-bottom:18px; font-size:13px; color:var(--primary); }
 .header { display:flex; justify-content:space-between; align-items:center; gap:24px; margin-bottom:28px; }
 .header h1 { font-size:36px; line-height:1.15; font-weight:650; letter-spacing:-.035em; }
 .header p { margin-top:10px; color:var(--muted-foreground); }

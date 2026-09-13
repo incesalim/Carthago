@@ -19,13 +19,17 @@ to pass and explicit human approval.
 
 ### Sector research input
 
-`/signals` collects the conditions previously displayed as monitoring flags
+The admin-only `/admin/signals` workspace collects the conditions previously displayed as monitoring flags
 on the sector pages. The shared `web/app/lib/sector-signals/` collectors return
 JSON-serializable observations with stable `sector:code` identities, numeric
 facts and units, source/basis, observation dates, calculation conditions and
 three evaluation states: active, clear and unavailable. A missing input is not
-a clear condition. The page exports its filtered view; `GET /api/sector-signals`
+a clear condition. The page exports its filtered view; `GET /api/admin/sector-signals`
 returns the complete current collection and explicitly names failed topics.
+Both authorize the existing admin session before collecting any observations.
+Responses are private and uncached. Signals are absent from public navigation
+and the sitemap; `/signals` redirects to the protected workspace, and the former
+public `/api/sector-signals` endpoint is removed.
 
 These are research leads. An analyst must inspect sources and counterevidence
 before incorporating a material finding into an article. This collection does

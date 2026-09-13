@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Download, Search } from "lucide-react";
 import { useText } from "@/i18n/use-text";
-import { SECTOR_PAGES, type SectorKey } from "../lib/sector-pages";
-import type { SignalSnapshot } from "../lib/sector-signals";
-import type { SectorSignal, SignalState } from "../lib/sector-signals/types";
+import { SECTOR_PAGES, type SectorKey } from "../../lib/sector-pages";
+import type { SignalSnapshot } from "../../lib/sector-signals";
+import type { SectorSignal, SignalState } from "../../lib/sector-signals/types";
 import { filterSignals, formatSignalFact, localText, type SignalFilters } from "./model";
 import styles from "./signals.module.css";
 
@@ -89,7 +89,8 @@ export default function SignalsView({ snapshot, locale }: { snapshot: SignalSnap
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  return <main className={styles.page} data-signals-page>
+  return <main className={styles.page} data-signals-page lang={locale}>
+    <Link className={styles.back} href="/admin">{locale === "tr" ? "← Yönetim" : "← Control center"}</Link>
     <header className={styles.header}>
       <div><h1>{c.title}</h1><p>{c.description}</p></div>
       <button className={styles.download} onClick={download} disabled={!filtered.length}><Download size={16} aria-hidden="true" />{c.export}</button>
