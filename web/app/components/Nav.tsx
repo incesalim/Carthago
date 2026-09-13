@@ -76,6 +76,7 @@ const SECTIONS: NavSection[] = [
     id: "more",
     label: "More",
     items: [
+      { href: "/signals", label: "Signals" },
       { href: "/regulation", label: "Regulation" },
       {
         href: "/news",

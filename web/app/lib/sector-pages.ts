@@ -1,4 +1,4 @@
-/** Visitor-facing subjects. Data access and calculations stay in the route modules. */
+/** Visitor-facing subjects shared by sector analysis and the signal research index. */
 export const SECTOR_PAGES = {
   overview: { href: "/", title: "Sector overview", description: "The Turkish banking sector: balance sheet, funding, profitability and risk." },
   credit: { href: "/credit", title: "Credit", description: "Loan growth, currency effects and lending by product and bank group." },

@@ -17,6 +17,22 @@ to pass and explicit human approval.
 
 ## Architecture
 
+### Sector research input
+
+`/signals` collects the conditions previously displayed as monitoring flags
+on the sector pages. The shared `web/app/lib/sector-signals/` collectors return
+JSON-serializable observations with stable `sector:code` identities, numeric
+facts and units, source/basis, observation dates, calculation conditions and
+three evaluation states: active, clear and unavailable. A missing input is not
+a clear condition. The page exports its filtered view; `GET /api/sector-signals`
+returns the complete current collection and explicitly names failed topics.
+
+These are research leads. An analyst must inspect sources and counterevidence
+before incorporating a material finding into an article. This collection does
+not invoke the analyst or publish prose. Its `latest-available` basis and
+per-fact dates must not be treated as a historical V2 database snapshot; the
+existing snapshot-based tool loop is unchanged.
+
 ```mermaid
 flowchart TD
     S["R2 snapshots (audit + bulletin + analyst state)\n+ filing PDF per-page text"] --> B

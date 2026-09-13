@@ -62,7 +62,6 @@ import {
   ChartFoot,
   ChartRow,
   Compare,
-  Flags,
   Levels,
   Movers,
   SecHead,
@@ -70,7 +69,6 @@ import {
   Vital,
   Vitals,
   type CompareRow,
-  type Flag,
   type MoverRow,
   type TransmissionItem,
 } from "@/app/components/desk";
@@ -618,171 +616,6 @@ export default async function LiquidityPage() {
     });
   }
 
-  // ---- flags: seven rules, each printed whether or not it fires ------------
-  const flags: Flag[] = [
-    {
-      code: "thin-own-buffer",
-      active: ownPctGross != null && ownPctGross < 40,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Thin own-buffer")}</b>
-          {tx(" — the CBRT’s own net reserves are")} {tx(fmtBn(ownNow))},{" "}
-          {tx(fmtPct(ownPctGross, 0))}
-          {tx(" of the ")}
-          {tx(fmtBn(grossNow))}
-          {tx(
-            " headline. The rest is the banks’ required reserves and swapped-in FX.",
-          )}
-        </>
-      ),
-      rule: "net_excl_swaps / gross < 40%",
-      clear: (
-        <>
-          {tx("Own buffer — ")}
-          {tx(fmtPct(ownPctGross, 0))}
-          {tx(" of gross is the CBRT’s own FX")}
-        </>
-      ),
-    },
-    {
-      code: "swap-dependence",
-      active: swapPctNet != null && swapPctNet > 25,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Swap dependence")}</b> —{" "}
-          {tx(fmtBn(swapStock))}
-          {tx(" of the")} {tx(fmtBn(netNow))}
-          {tx(" net buffer is borrowed (")}
-          {tx(fmtPct(swapPctNet, 0))}
-          {tx("). A swap is a liability with a date on it.")}
-        </>
-      ),
-      rule: "swaps / nir > 25%",
-      clear: (
-        <>
-          {tx("Swaps — ")}
-          {tx(fmtPct(swapPctNet, 0))}
-          {tx(" of the net buffer")}
-        </>
-      ),
-    },
-    {
-      code: "tl-deficit",
-      active: fundNow != null && fundNow < 0,
-      body: (
-        <>
-          <b className="font-semibold">{tx("TL deficit")}</b>
-          {tx(" — net CBRT funding is")}{" "}
-          <b>
-            ₺{tx(fundNow?.toFixed(0))}
-            {tx("bn")}
-          </b>
-          {tx(
-            ": the system is short of lira and funds the gap at the policy rate.",
-          )}
-        </>
-      ),
-      rule: "net_cbrt_funding < 0",
-      clear: (
-        <>
-          {tx("TL liquidity — net CBRT funding ₺")}
-          {tx(fundNow?.toFixed(0))}
-          {tx("bn, in surplus")}
-        </>
-      ),
-    },
-    {
-      code: "private-ldr",
-      active: privNow != null && privNow > LDR_WEEKLY_TL.line,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Private LDR at the line")}</b>
-          {tx(" — private TL loan/deposit")}{" "}
-          {tx(
-            "{0}; {1}pp below 100%. New lending requires additional funding. This is the TL book; the published TL+FC sector ratio is on",
-            {
-              0: fmtPct(privNow),
-              1: privNow != null ? (100 - privNow).toFixed(1) : "—",
-            },
-          )}{" "}
-          <Link href="/deposits" className="font-semibold text-primary">
-            {tx("Deposits")}
-          </Link>
-          .
-        </>
-      ),
-      rule: LDR_WEEKLY_TL.rule,
-      clear: (
-        <>
-          {tx("Private TL loan/deposit — ")}
-          {tx(fmtPct(privNow))}
-          {tx(", clear of the line")}
-        </>
-      ),
-    },
-    {
-      code: "lcr-floor",
-      active: lcrNow != null && lcrNow < 100,
-      body: (
-        <>
-          <b className="font-semibold">{tx("LCR below the floor")}</b> —{" "}
-          {tx(fmtPct(lcrNow, 0))}
-          {tx(" against the 100% regulatory minimum (audited ")}
-          {tx(auditQ)}).
-        </>
-      ),
-      rule: "lcr < 100%",
-      clear: (
-        <>
-          {tx("LCR — ")}
-          {tx(fmtPct(lcrNow, 0))}
-          {tx(", clear of the floor")}
-        </>
-      ),
-    },
-    {
-      code: "nsfr-floor",
-      active: nsfrNow != null && nsfrNow < 100,
-      body: (
-        <>
-          <b className="font-semibold">{tx("NSFR below the floor")}</b> —{" "}
-          {tx(fmtPct(nsfrNow, 0))}
-          {tx(" against the 100% regulatory minimum (audited ")}
-          {tx(auditQ)}).
-        </>
-      ),
-      rule: "nsfr < 100%",
-      clear: (
-        <>
-          {tx("NSFR — ")}
-          {tx(fmtPct(nsfrNow, 0))}
-          {tx(", clear of the floor")}
-        </>
-      ),
-    },
-    {
-      code: "re-dollarization",
-      active: dollYoY != null && dollYoY > 1,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Re-dollarization")}</b>
-          {tx(" — FC share ")}
-          {tx(fmtPct(dollNow))},{" "}
-          {tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}
-          {tx(" y/y: savers are moving back into hard currency.")}
-        </>
-      ),
-      rule: "Δ52w(fc_share) > +1pp",
-      clear: (
-        <>
-          {tx("Dollarization — FC share ")}
-          {tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}
-          {tx(" over 52w")}
-        </>
-      ),
-    },
-  ];
-  const activeFlags = flags.filter((f) => f.active).length;
 
   // ---- the two systems ----------------------------------------------------
   const fcPub = lastVal(fcLtd.filter((r) => r.bank_type_code === "PUBLIC"));
@@ -851,7 +684,6 @@ export default async function LiquidityPage() {
           { id: "lira-funding", label: "Lira funding" },
           { id: "fx-funding", label: "FX liquidity" },
           { id: "reserves", label: "Reserves" },
-          { id: "monitoring", label: "Monitoring" },
         ]}
         controls={<GlobalRangeSelector compact />}
       />
@@ -1569,28 +1401,6 @@ export default async function LiquidityPage() {
             height={320}
           />
         </SectorGrid>
-      </SectorSection>
-      <SectorSection
-        id="monitoring"
-        title={tx("Monitoring indicators")}
-        description={tx("Thresholds and developments relevant to this sector.")}
-      >
-        <SectorPanel>
-          <div>
-            <p className="mb-3 text-[13px] text-muted-foreground">
-              {tx("{0} of {1} monitoring thresholds exceeded", {
-                0: activeFlags,
-                1: flags.length,
-              })}
-            </p>
-            <Flags
-              variant="report"
-              flags={flags}
-              showCleared
-              quietNote="The buffer, the swap stock, the TL deficit, the private LDR, both regulatory floors and dollarization are all below threshold."
-            />
-          </div>
-        </SectorPanel>
       </SectorSection>
       <SectorDirectory sector="liquidity" />
       <SectorFooter />

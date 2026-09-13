@@ -31,14 +31,12 @@ import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   ChartFoot,
-  Flags,
   Levels,
   Movers,
   SecHead,
   Standings,
   Transmission,
   Vital,
-  type Flag,
   type MoverRow,
   type StandingsGroup,
   type TransmissionItem,
@@ -294,73 +292,7 @@ export default async function ProfitabilityPage() {
     });
   }
 
-  // ---- flags ---------------------------------------------------------------
-  const flags: Flag[] = [
-    {
-      code: "free-funding",
-      active: E != null && E.ratio > 1,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Free-funding dependence")}</b>{tx(" — Pricing demand deposits at the sector's {0} paid-deposit rate would cost {1}, equal to {2}× the sector's {3} profit. The return relies heavily on the funding mix.",
-          {0: fmtPct(E?.paidOnTime), 1: fmtTrn(E?.worth), 2: E?.ratio.toFixed(1) ?? "—", 3: fmtTrn(E?.profit)})}</>
-      ),
-      rule: "demand_book_at_paid_rate / net_profit > 1",
-      clear: <>{tx("Funding — the free deposits are worth less than the profit they produce")}</>,
-    },
-    {
-      code: "real-roe",
-      active: roeReal != null && roeReal < 0,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Real returns")}</b>{tx(" — Published ROE is {0}; after Fisher deflation with {1} average CPI, the real return is {2}.",
-          {0: fmtPct(roeNow), 1: fmtPct(cpiAvgNow), 2: signedPct(roeReal ?? 0, 1)})}</>
-      ),
-      rule: "(1+roe)/(1+cpi_12m_avg) − 1 < 0",
-      clear: <>{tx("Real returns — Fisher-deflated ROE is ")}{tx(signedPct(roeReal ?? 0, 1))}</>,
-    },
-    {
-      code: "cost-income",
-      active: ciNow != null && ciNow > 50,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Cost / income above half")}</b> — {tx(fmtPct(ciNow))}{tx(" of income goes on costs (")}{tx(fmtPct(ci12))}{tx(" a year ago).")}{" "}
-          {tx(ciNow != null && ci12 != null && ciNow < ci12 ? "Improving, still heavy." : "And rising.")}
-        </>
-      ),
-      rule: "cost_income > 50%",
-      clear: <>{tx("Cost / income — ")}{tx(fmtPct(ciNow))}{tx(", under half of income")}</>,
-    },
-    {
-      code: "savers-below-cpi",
-      active: E != null && cpiAvgNow != null && E.blended < cpiAvgNow,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Savers below inflation")}</b>{tx(" — The blended deposit cost is {0}, versus {1} inflation. The {2}pp nominal gap supports the margin; it is not itself a real-return calculation.",
-          {0: fmtPct(E?.blended), 1: fmtPct(cpiAvgNow), 2: E != null && cpiAvgNow != null ? Math.abs(E.blended - cpiAvgNow).toFixed(1) : "—"})}</>
-      ),
-      rule: "blended_deposit_cost − cpi_12m_avg < 0",
-      clear: <>{tx("Savers — the blended deposit cost clears inflation")}</>,
-    },
-    {
-      // The deploy gate. The bridge is built from fixed item_order positions; if
-      // BDDK renumbers a line the sum drifts silently, so it is checked against
-      // the statement's own net-profit line and the chart is withheld instead.
-      code: "pnl-reconcile",
-      active: br != null && !br.reconciles,
-      body: (
-        <>
-          <b className="font-semibold">{tx("P&L does not reconcile")}</b>{tx(" — the bridge sums to")}{" "}
-          {tx(fmtTrn(br?.computed, 3))}{tx(" against a reported net profit of ")}{tx(fmtTrn(br?.net, 3))}{tx(" (gap")}{" "}
-          {tx(signedTrn(br?.gap))}{tx("). The statement’s item numbering has probably moved; the bridge is withheld until it is remapped.")}</>
-      ),
-      rule: "|bridge − reported_net| > ₺0.001trn",
-      clear: (
-        <>{tx("P&L reconciles — the gap between the bridge and reported net profit is {0}.",
-          {0: br ? tx("₺{0}trn", {0: Math.abs(br.gap).toFixed(4)}) : "—"})}</>
-      ),
-    },
-  ];
-  const activeFlags = flags.filter((f) => f.active).length;
+
 
   // ---- standings: ROE by group against the CPI hurdle -----------------------
   const groupRoe = (PRIMARY_BANK_TYPES as readonly string[])
@@ -419,7 +351,7 @@ export default async function ProfitabilityPage() {
             basis: "reported P&L reconciled before display",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "returns", label: "Returns"}, {id: "margins", label: "Margins and costs"}, {id: "income", label: "Income statement"}, ...(E ? [{id: "funding-cost", label: "Funding cost"}] : []), {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "returns", label: "Returns"}, {id: "margins", label: "Margins and costs"}, {id: "income", label: "Income statement"}, ...(E ? [{id: "funding-cost", label: "Funding cost"}] : [])]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening>
 <SectorMetrics><Vital
           label={tx("ROE, ann.")}
@@ -877,18 +809,7 @@ export default async function ProfitabilityPage() {
               <b className="font-semibold text-foreground">{tx("A sizing device, not a forecast.")}</b>{" "}{tx("Demand deposits are not literally free — servicing them (branches, payments, cards) is part of the ")}{tx(fmtPct(ciNow))}{tx(" cost/income below — and if the sector paid market rates on them the balance sheet would not stay the same. The arithmetic only says what the free funding is ")}<i>{tx("worth")}</i>{tx(" at the sector’s own paid rate: ")}{tx(fmtTrn(E.worth))}{tx(" a year against ")}{tx(fmtTrn(E.profit))}{tx(" of profit. One ROE is used throughout — BDDK’s published ratio (")}{tx(fmtPct(roeNow))}{tx("); the counterfactual is a cost applied to it, not a second ROE computed a different way.")}</p>
 </SectorPanel>
 </SectorSection>)}
-<SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
-<SectorPanel>
-<div>
-          <p className="mb-3 text-[13px] text-muted-foreground">{tx("{0} of {1} monitoring thresholds exceeded", { 0: activeFlags, 1: flags.length })}</p>
-          <Flags variant="report"
-            flags={flags}
-            showCleared
-            quietNote="Free funding, real returns, cost/income and the saver's real rate are all below threshold."
-          />
-        </div>
-</SectorPanel>
-</SectorSection>
+
 <SectorDirectory sector="profitability" />
 <SectorFooter />
     </SectorReport>

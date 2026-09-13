@@ -1,5 +1,27 @@
 # Project State
 
+## Standalone sector signals (2026-09-13)
+
+`/signals` collects the 33 existing monitoring conditions from the sector
+overview, credit, deposits, liquidity, asset-quality, capital and profitability
+pages. Those pages retain their charts and analyses; their monitoring sections
+and navigation anchors are removed. Market risk had no such conditions.
+
+Signals are plain data records in `web/app/lib/sector-signals/`, separate from
+the React presentation. Stable IDs, original conditions, numerical facts, source
+bases and reporting dates are preserved. Missing inputs are explicitly
+unavailable, distinct from conditions evaluated as not triggered. The research
+page supports topic/status/search filters, source inspection and filtered JSON
+export; the read-only `/api/sector-signals` endpoint exposes the full collection
+and any failed topics.
+
+The records are leads for analysts to investigate before using material findings
+in articles. No automatic analyst execution or article publication is introduced.
+The endpoint describes latest-available observations, not a historical Analyst
+V2 snapshot. No schema or data write is needed. Release evidence is kept in
+`docs/knowledge/2026-09-13-sector-signals/`.
+
+
 ## Refresh previews do not trigger corpus publication (2026-09-13)
 
 Automatic document capture now requires a successful upstream run from this

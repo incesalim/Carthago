@@ -19,7 +19,7 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { sectorCapitalRatios, perBankCapital, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
-import { CAR_TARGET, CAR_LEGAL_MIN, CET1_MIN, CET1_TARGET } from "@/app/lib/capital-thresholds";
+import { CAR_TARGET, CAR_LEGAL_MIN } from "@/app/lib/capital-thresholds";
 import { BANK_NAMES } from "@/app/lib/bank_names";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
@@ -33,7 +33,6 @@ import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   CadenceBand,
   ChartFoot,
-  Flags,
   Levels,
   Movers,
   SecHead,
@@ -41,7 +40,6 @@ import {
   Transmission,
   Vital,
   Vitals,
-  type Flag,
   type MoverRow,
   type StandingsGroup,
   type TransmissionItem,
@@ -188,16 +186,6 @@ export default async function CapitalPage() {
   const stackNow = stack.at(-1) ?? null;
   const hybrids = stackNow ? stackNow.at1 + stackNow.t2 : null;
   const cet1Share = stackNow && stackNow.car > 0 ? (stackNow.cet1 / stackNow.car) * 100 : null;
-  // CET1 answers to its OWN requirement (4.5 + 2.5 conservation = 7), never to
-  // the 12% total-capital target — AT1 and Tier-2 count toward that target, so a
-  // bank below 12% on common equity alone is not thin, it is hybrid-funded. This
-  // counted `cet1 < 12` and reported 18 of 37 banks as short of common equity;
-  // all 18 cleared their actual stack. `thinCet1` now means what it says.
-  const thinCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.cet1 < CET1_TARGET).length;
-  // How much of the 12% target is met with common equity rather than instruments
-  // — a COMPOSITION reading, not a breach count. Kept because it is the honest
-  // version of what the old flag was gesturing at.
-  const cet1BelowTarget = byBankCap.rows.filter((b) => b.cet1 != null && b.cet1 < CAR_TARGET).length;
   // Compare like with like: the hybrid stack is AUDITED (Σ/Σ over the filings),
   // so it must be set against the AUDITED buffer — not the monthly bulletin's
   // CAR, which is a different basis (16.02% vs 16.34%) and would flatter it.
@@ -311,75 +299,7 @@ export default async function CapitalPage() {
     });
   }
 
-  // ---- flags ---------------------------------------------------------------
-  const flags: Flag[] = [
-    {
-      code: "structural-break",
-      active: !!step?.isBreak,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Structural break")}</b>{tx(" — In {0}, CAR changed {1}pp in one month, versus a typical move of {2}pp. A 12-month trend spanning this break would mainly describe the level shift.",
-          {0: monthLabel(step?.period ?? null), 1: step ? step.delta.toFixed(2) : "—", 2: step ? step.typical.toFixed(2) : "—"})}</>
-      ),
-      rule: "|Δ1m| > 3 × mean(|Δ1m|, 13m)",
-      clear: <>{tx("Trend — the largest monthly move is within 3× the typical one")}</>,
-    },
-    {
-      code: "hybrid-buffer",
-      active: hybrids != null && auditBuffer != null && hybrids > auditBuffer,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Hybrid-funded buffer")}</b>{tx(" — AT1 and Tier-2 equal {0}pp of RWA, versus a {1}pp buffer above the {2}% target. Both are audited for {3}. Without those instruments, total capital is {4}; the target is met with instruments rather than common equity.",
-          {0: hybrids?.toFixed(2) ?? "—", 1: auditBuffer?.toFixed(2) ?? "—", 2: CAR_TARGET, 3: auditQ, 4: fmtPct(stackNow?.cet1, 2)})}</>
-      ),
-      rule: `at1 + tier2 > car_audited − ${CAR_TARGET}`,
-      clear: <>{tx("Buffer — more common equity than instruments")}</>,
-    },
-    {
-      code: "thin-cet1",
-      active: thinCet1 > 0,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Into the conservation buffer")}</b>{tx(" — {0} of {1} banks report CET1 below {2}% ({3}% minimum plus a 2.5pp conservation buffer). This is not a breach: {3}% is the hard minimum, while entering the buffer restricts distributions. The test excludes additional systemic-bank buffers because BDDK designations are unavailable.",
-          {0: thinCet1, 1: byBankCap.rows.length, 2: CET1_TARGET, 3: CET1_MIN})}</>
-      ),
-      rule: `count(cet1 < ${CET1_TARGET}%) > 0`,
-      clear: (
-        <>{tx("Common equity — every bank holds CET1 above ")}{tx(CET1_TARGET)}{tx("%, buffer intact;")}{" "}
-          {tx(cet1BelowTarget)}{tx(" sit below ")}{tx(CAR_TARGET)}{tx("% on CET1 alone, which AT1 and Tier-2 are there to meet")}</>
-      ),
-    },
-    {
-      code: "generation-gap",
-      active: genGap != null && genGap < 0,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Capital generation gap")}</b>{tx(" — equity ")}{tx(fmtPct(eqG))}{tx(" vs assets")}{" "}
-          {tx(fmtPct(asG))}{tx(" y/y: the balance sheet is outgrowing the capital that carries it.")}</>
-      ),
-      rule: "equity_yoy − assets_yoy < 0",
-      clear:
-        genGap != null ? (
-          <>{tx("Capital generation — equity grew {0}, assets {1}; the gap is {2}.",
-          {0: fmtPct(eqG), 1: fmtPct(asG), 2: signedPp(genGap, 1)})}</>
-        ) : (
-          <>{tx("Capital generation — equity or asset growth not published this month")}</>
-        ),
-    },
-    {
-      code: "thin-buffer",
-      active: buffer != null && buffer < 2,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Thin buffer")}</b>{tx(" — CAR is {0}pp above BDDK's {1}% target.",
-          {0: buffer?.toFixed(2) ?? "—", 1: CAR_TARGET})}</>
-      ),
-      rule: `car − ${CAR_TARGET} < 2pp`,
-      clear: <>{tx("Buffer — CAR is {0}pp above the {1}% target.",
-        {0: buffer?.toFixed(2) ?? "—", 1: CAR_TARGET})}</>,
-    },
-  ];
-  const activeFlags = flags.filter((f) => f.active).length;
+
 
   // ---- standings: the thin end of the register -----------------------------
   const withCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.car != null);
@@ -432,7 +352,7 @@ export default async function CapitalPage() {
             basis: "sum of reporting banks' BRSA filings",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "adequacy", label: "Capital adequacy"}, {id: "composition", label: "Capital composition"}, {id: "banks", label: "Capital by bank"}, {id: "leverage", label: "Equity and leverage"}, {id: "risk-weights", label: "Risk-weighted assets"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "adequacy", label: "Capital adequacy"}, {id: "composition", label: "Capital composition"}, {id: "banks", label: "Capital by bank"}, {id: "leverage", label: "Equity and leverage"}, {id: "risk-weights", label: "Risk-weighted assets"}]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening>
 <SectorMetrics><Vital
           label={tx("Capital adequacy")}
@@ -817,18 +737,7 @@ export default async function CapitalPage() {
               height={320}
                />
 </SectorSection>
-<SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
-<SectorPanel>
-<div>
-          <p className="mb-3 text-[13px] text-muted-foreground">{tx("{0} of {1} monitoring thresholds exceeded", { 0: activeFlags, 1: flags.length })}</p>
-          <Flags variant="report"
-            flags={flags}
-            showCleared
-            quietNote="The break test, the hybrid stack, common equity, generation and the buffer are all below threshold."
-          />
-        </div>
-</SectorPanel>
-</SectorSection>
+
 <SectorDirectory sector="capital" />
 <SectorFooter />
     </SectorReport>

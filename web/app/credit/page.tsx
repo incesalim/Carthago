@@ -7,7 +7,7 @@ import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorOpenin
  * page owned both corrections already — it just never composed them. It now
  * leads with the bridge (nominal → −currency → −inflation → real), then says
  * WHERE the growth came from (segment contributions, which reconcile to the
- * headline exactly), then raises the computed flags. See app/lib/credit.ts.
+ * headline exactly). Research conditions are collected separately in lib/sector-signals/credit.ts.
  *
  * Sourced from the BDDK *weekly* bulletin (`weekly_series`) for every series the
  * weekly feed carries — fresher and denser than the monthly tables, at the cost
@@ -35,11 +35,9 @@ import {
 } from "@/app/lib/metrics";
 import {
   ChartRow,
-  Flags,
   Movers,
   SecHead,
   Vital,
-  type Flag,
   type MoverRow,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
@@ -314,51 +312,10 @@ export default async function CreditPage() {
   const unsecNow = lastVal(unsecuredYoY);
   const unsecLevel = lastVal(unsecuredLvl);
 
-  // ---- flags — each prints the rule that raised it --------------------------
   const realNegRun = trailingRun(realFxAdjSeries, (v) => v < 0);
-  const autoNegRun = trailingRun(consAuto, (v) => v < 0);
   const cardsHotRun = trailingRunVs(consCards, yoySector, (v, o) => v > o);
   const gplHotRun = trailingRunVs(consGpl, yoySector, (v, o) => v > o);
   const unsecuredHotRun = Math.min(cardsHotRun, gplHotRun);
-  const autoNow = lastVal(consAuto);
-  const cardsNow = lastVal(consCards);
-  const gplNow = lastVal(consGpl);
-
-  const flags: Flag[] = [
-    {
-      code: "real_credit_contraction",
-      active: realNegRun > 0 && realFxNow != null && realFxNow < 0,
-      rule: `real_fxadj(52w) < 0 for ${realNegRun}w`,
-      body: (
-        <>{tx("Real, constant-FX credit has contracted {0} for {1} consecutive weeks. The published {2} nominal rate includes lira and inflation effects.",
-          {0: fmtPct(Math.abs(realFxNow ?? 0)), 1: realNegRun, 2: fmtPct(yoyNow)})}</>
-      ),
-      clear: <>{tx("Real, constant-FX growth is positive at ")}{tx(fmtPct(realFxNow))}.</>,
-    },
-    {
-      code: "auto_contraction",
-      active: autoNegRun >= 8 && autoNow != null && autoNow < 0,
-      rule: `auto_yoy < 0 for ${autoNegRun}w`,
-      body: (
-        <>{tx("Auto loans have contracted {0} and remained negative for {1} consecutive weeks. The book is small ({2}), so its effect on total growth is limited.",
-          {0: fmtPct(Math.abs(autoNow ?? 0)), 1: autoNegRun, 2: autoLvl.at(-1)?.value != null ? `₺${((autoLvl.at(-1)!.value as number) / 1_000).toFixed(0)}bn` : "—"})}</>
-      ),
-      clear: <>{tx("Auto loans are growing at ")}{tx(fmtPct(autoNow))}.</>,
-    },
-    {
-      code: "unsecured_retail_hot",
-      active: unsecuredHotRun >= 8,
-      rule: `cards_yoy > sector AND gpl_yoy > sector for ${unsecuredHotRun}w`,
-      body: (
-        <>{tx("Cards ({0}) and general-purpose loans ({1}) have both outgrown the sector ({2}) for {3} consecutive weeks. Follow the asset-quality implications in",
-          {0: fmtPct(cardsNow), 1: fmtPct(gplNow), 2: fmtPct(yoyNow), 3: unsecuredHotRun})}{" "}
-          <Link href="/asset-quality" className="font-semibold text-primary">{tx("Asset Quality")}</Link>
-          .
-        </>
-      ),
-      clear: <>{tx("Neither cards nor general-purpose has outrun the sector for 8 straight weeks.")}</>,
-    },
-  ];
 
   // ---- movers — which book accelerated, vs 13 weeks ago ---------------------
   const moverRows: MoverRow[] = (
@@ -425,7 +382,7 @@ export default async function CreditPage() {
             basis: "CPI deflator only; never nowcast",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "growth", label: "Loan growth"}, {id: "contributions", label: "Growth contributions"}, {id: "retail", label: "Retail lending"}, {id: "sme", label: "SME loans"}, {id: "bank-groups", label: "Bank groups"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "growth", label: "Loan growth"}, {id: "contributions", label: "Growth contributions"}, {id: "retail", label: "Retail lending"}, {id: "sme", label: "SME loans"}, {id: "bank-groups", label: "Bank groups"}]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening><SectorMetrics><Vital
           label={tx("Nominal growth, 52w")}
           value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
@@ -821,13 +778,6 @@ export default async function CreditPage() {
               plain
             />
 </SectorGrid>
-</SectorSection>
-<SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
-<SectorPanel><Flags variant="report"
-        flags={flags}
-        showCleared
-        quietNote="No credit rule fired this week."
-      /></SectorPanel>
 </SectorSection>
 <SectorDirectory sector="credit" />
 <SectorFooter />

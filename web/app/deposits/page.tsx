@@ -44,7 +44,6 @@ import {
   CadenceBand,
   ChartFoot,
   ChartRow,
-  Flags,
   Levels,
   Movers,
   SecHead,
@@ -52,7 +51,6 @@ import {
   Transmission,
   Vital,
   Vitals,
-  type Flag,
   type MoverRow,
   type StandingsGroup,
   type TransmissionItem,
@@ -555,129 +553,6 @@ export default async function DepositsPage() {
     });
   }
 
-  // ---- flags: five rules, each printed whether or not it fires -------------
-  const flags: Flag[] = [
-    {
-      code: "reprice-cliff",
-      active: repriceQuarter != null && repriceQuarter > 85,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Repricing cliff")}</b>
-          {tx(
-            " — {0} of deposits reprice within three months: {1} demand deposits and {2} with maturity up to three months. Funding costs therefore follow the policy rate with very little delay.",
-            {
-              0: fmtPct(repriceQuarter),
-              1: fmtPct(demandPct),
-              2: fmtPct(
-                m1Pct != null && m13Pct != null ? m1Pct + m13Pct : null,
-              ),
-            },
-          )}
-        </>
-      ),
-      rule: "share(demand + ≤3m) > 85%",
-      clear: (
-        <>
-          {tx("Maturity ladder — ")}
-          {tx(fmtPct(repriceQuarter))}
-          {tx(" of the book reprices inside a quarter")}
-        </>
-      ),
-    },
-    {
-      code: "funding-gap",
-      active: fundingGap != null && fundingGap > 3,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Funding gap")}</b>
-          {tx(
-            " — Loans grew {0} and deposits {1} over 52 weeks. The loan book is growing {2}pp faster than its deposit base.",
-            {
-              0: fmtPct(loansYoYNow),
-              1: fmtPct(depYoYNow),
-              2: Math.abs(fundingGap ?? 0).toFixed(1),
-            },
-          )}
-        </>
-      ),
-      rule: "loans_52w − deposits_52w > 3pp",
-      clear: (
-        <>
-          {tx("Funding gap — loans ")}
-          {tx(fmtPct(loansYoYNow))}
-          {tx(" vs deposits ")}
-          {tx(fmtPct(depYoYNow))}
-        </>
-      ),
-    },
-    {
-      code: "real-base",
-      active: realNow != null && realNow < 0,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Real base shrinking")}</b>
-          {tx(" — deposits ")}
-          {tx(fmtPct(depYoYNow))} {tx("against ")}
-          {tx(fmtPct(cpiImplied))}
-          {tx(" CPI: the base loses")}{" "}
-          {tx(realNow != null ? Math.abs(realNow).toFixed(1) : "—")}
-          {tx("% of its purchasing power a year while the loan book grows.")}
-        </>
-      ),
-      rule: "deposits_52w − cpi_yoy < 0",
-      clear: (
-        <>
-          {tx("Real growth — deposits clear CPI by ")}
-          {tx(realNow != null ? signedPp(realNow, 1) : "—")}
-        </>
-      ),
-    },
-    {
-      code: "dollarization",
-      active: fxShareDelta != null && fxShareDelta > 1,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Re-dollarization")}</b>
-          {tx(" — FX share ")}
-          {tx(fmtPct(fxShareNow))},{" "}
-          {tx(fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—")}
-          {tx(" over 52 weeks: savers are moving back into hard currency.")}
-        </>
-      ),
-      rule: "Δ52w(fx_share) > +1pp",
-      clear: (
-        <>
-          {tx("Dollarization — FX share ")}
-          {tx(fxShareDelta != null ? signedPp(fxShareDelta, 2) : "—")}
-          {tx(" over 52w")}
-        </>
-      ),
-    },
-    {
-      code: "funding-stretch",
-      active: ldrNow != null && ldrNow > LDR_PUBLISHED.line,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Funding stretch")}</b>
-          {tx(" — TL+FC loan/deposit ")}
-          {tx(fmtPct(ldrNow))}
-          {tx(
-            ": lending leans on non-deposit funding. The TL-only book is tested separately, against a tighter line, on ",
-          )}
-          <Go href="/liquidity">{tx("Liquidity")}</Go>.
-        </>
-      ),
-      rule: LDR_PUBLISHED.rule,
-      clear: (
-        <>
-          {tx("Funding stretch — TL+FC loan/deposit ")}
-          {tx(fmtPct(ldrNow))}
-          {tx(", below the line")}
-        </>
-      ),
-    },
-  ];
-  const activeFlags = flags.filter((f) => f.active).length;
 
   // ---- standings: growth by group, and who is closest to the 100% line -----
   const growthRanked = [...yoyByBank]
@@ -756,7 +631,6 @@ export default async function DepositsPage() {
           { id: "currency", label: "Currency composition" },
           { id: "maturity", label: "Maturity structure" },
           { id: "loan-funding", label: "Loan-to-deposit" },
-          { id: "monitoring", label: "Monitoring" },
         ]}
         controls={<GlobalRangeSelector compact />}
       />
@@ -1384,28 +1258,6 @@ export default async function DepositsPage() {
             </>
           }
         />
-      </SectorSection>
-      <SectorSection
-        id="monitoring"
-        title={tx("Monitoring indicators")}
-        description={tx("Thresholds and developments relevant to this sector.")}
-      >
-        <SectorPanel>
-          <div>
-            <p className="mb-3 text-[13px] text-muted-foreground">
-              {tx("{0} of {1} monitoring thresholds exceeded", {
-                0: activeFlags,
-                1: flags.length,
-              })}
-            </p>
-            <Flags
-              variant="report"
-              flags={flags}
-              showCleared
-              quietNote="Repricing, the funding gap, real growth, dollarization and the 100% line are all below threshold."
-            />
-          </div>
-        </SectorPanel>
       </SectorSection>
       <SectorDirectory sector="deposits" />
       <SectorFooter />

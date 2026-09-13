@@ -46,12 +46,10 @@ import {
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
   ChartRow,
-  Flags,
   Movers,
   SecHead,
   Transmission,
   Vital,
-  type Flag,
   type MoverRow,
   type TransmissionItem,
 } from "@/app/components/desk";
@@ -346,126 +344,6 @@ export default async function AssetQualityPage() {
     tx.locale,
   );
 
-  // ---- flags — each prints the rule that raised it --------------------------
-  const s2OverS3 =
-    ladder && ladder.stage3Share > 0
-      ? ladder.stage2Share / ladder.stage3Share
-      : null;
-  const flags: Flag[] = [
-    {
-      code: "watchlist_thinly_covered",
-      active: !!(
-        ladder &&
-        s2OverS3 &&
-        s2OverS3 >= 2 &&
-        ladder.cov2 < ladder.cov3 / 5
-      ),
-      rule: ladder
-        ? `stage2 ÷ stage3 = ${s2OverS3?.toFixed(1)}× AND cov2 < cov3 ÷ 5`
-        : "stage2 ÷ stage3 AND cov2 < cov3 ÷ 5",
-      body: ladder ? (
-        <>
-          {tx(
-            "Stage 2 totals {0}, versus {1} in Stage 3. Coverage is {2} and {3}, respectively. Stage 2 is a watchlist rather than an impaired-loan classification, so lower coverage is expected; the migration scenario sizes a possible cost, not a current shortfall.",
-            {
-              0: fmtTrnFromBn(ladder.stage2Bn),
-              1: fmtTrnFromBn(ladder.stage3Bn),
-              2: fmtPct(ladder.cov2),
-              3: fmtPct(ladder.cov3),
-            },
-          )}
-        </>
-      ) : null,
-      clear: ladder ? (
-        <>
-          {tx("Stage-2 cover is ")}
-          {tx(fmtPct(ladder.cov2))}
-          {tx(" against Stage 3's ")}
-          {tx(fmtPct(ladder.cov3))}.
-        </>
-      ) : undefined,
-    },
-    {
-      code: "formation_doubling",
-      active: !!(
-        formationMultiple &&
-        formationMultiple >= 1.5 &&
-        rollNow &&
-        rollNow.net > 0
-      ),
-      rule:
-        rollNow && rollPrev
-          ? `formation(${rollNow.year}) ÷ formation(${rollPrev.year}) = ${formationMultiple?.toFixed(1)}×`
-          : "formation ÷ prior year ≥ 1.5×",
-      body: rollNow ? (
-        <>
-          {tx(
-            "New NPL formation was {0}, versus {1} of exits, leaving net formation of {2}. Collections account for {3} of exits; write-offs or sales are not driving the ratio down, so the deterioration is in the book itself.",
-            {
-              0: fmtBn(rollNow.additions),
-              1: fmtBn(rollNow.exits),
-              2: signed(rollNow.net, fmtBn),
-              3: fmtPct(rollNow.collectionShare),
-            },
-          )}
-        </>
-      ) : null,
-      clear: rollNow ? (
-        <>
-          {tx("Formation of ")}
-          {tx(fmtBn(rollNow.additions))}
-          {tx(" is not outrunning the prior year.")}
-        </>
-      ) : undefined,
-    },
-    {
-      code: "stock_compounding",
-      active: !!(
-        stockRealNow != null &&
-        loanRealNow != null &&
-        stockRealNow > 3 * Math.max(loanRealNow, 0.1)
-      ),
-      rule:
-        stockRealNow != null && loanRealNow != null
-          ? `npl_stock_real (${fmtPct(stockRealNow)}) > 3× loan_book_real (${fmtPct(loanRealNow)})`
-          : "npl_stock_real > 3× loan_book_real",
-      body: (
-        <>
-          {tx(
-            "On the same CPI-deflated basis, the NPL stock grew {0} in real terms, versus {1} real growth in the loan book.",
-            { 0: fmtPct(stockRealNow), 1: fmtPct(loanRealNow) },
-          )}
-        </>
-      ),
-      clear: (
-        <>
-          {tx("The NPL stock is growing ")}
-          {tx(fmtPct(stockRealNow))}
-          {tx(" in real terms.")}
-        </>
-      ),
-    },
-    {
-      code: "npl_ratio_streak",
-      active: publishedRun >= 6,
-      rule: tx("npl_ratio rising for {0} consecutive months", {
-        0: publishedRun,
-      }),
-      body: (
-        <>
-          {tx(
-            "The published NPL ratio rose from {0} to {1}. It is registering the deterioration, but slowly: the direction is informative even when the level looks low.",
-            {
-              0: fmtPct(nplSector.at(-1 - publishedRun)?.value, 2),
-              1: fmtPct(publishedNow, 2),
-            },
-          )}
-        </>
-      ),
-      clear: <>{tx("The NPL ratio has not risen for six months straight.")}</>,
-    },
-  ];
-
   // ---- movers — each segment's NPL ratio, 52w ago vs now --------------------
   const moverRows: MoverRow[] = segs
     .map((s) => ({
@@ -548,7 +426,6 @@ export default async function AssetQualityPage() {
           { id: "products", label: "Risk by loan type" },
           { id: "bank-groups", label: "Bank groups" },
           { id: "method", label: "Definitions and methodology" },
-          { id: "monitoring", label: "Monitoring" },
         ]}
         controls={<GlobalRangeSelector compact />}
       />
@@ -1201,20 +1078,6 @@ export default async function AssetQualityPage() {
             </p>
           </SectorPanel>
         </SectorGrid>
-      </SectorSection>
-      <SectorSection
-        id="monitoring"
-        title={tx("Monitoring indicators")}
-        description={tx("Thresholds and developments relevant to this sector.")}
-      >
-        <SectorPanel>
-          <Flags
-            variant="report"
-            flags={flags}
-            showCleared
-            quietNote="No asset-quality rule fired this month."
-          />
-        </SectorPanel>
       </SectorSection>
       <SectorDirectory sector="asset-quality" />
       <SectorFooter />

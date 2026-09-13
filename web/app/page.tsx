@@ -36,7 +36,6 @@ import { LDR_PUBLISHED } from "@/app/lib/ldr";
 import { realRate } from "@/app/lib/real-terms";
 import {
   ChartFoot,
-  Flags,
   Levels,
   Movers,
   PeerBar,
@@ -45,7 +44,6 @@ import {
   Transmission,
   Vital,
   Vitals,
-  type Flag,
   type MoverRow,
   type StandingsGroup,
   type TransmissionItem,
@@ -237,7 +235,6 @@ export default async function OverviewPage({
   // is the 12m AVERAGE because ROE is earned across the year, not at a point —
   // and the surfaces below print which base they used. (series.ts / real-terms.ts)
   const roeReal = realRate(roeNow, cpiAvgNow);
-  const carDrift12 = carNow != null && valAgo(sCar, 12) != null ? carNow - (valAgo(sCar, 12) as number) : null;
 
   const recMonth = monthLabel(sNpl.at(-1)?.period);
   const vsMonth = monthLabel(sNpl.at(-2)?.period, false);
@@ -375,54 +372,6 @@ export default async function OverviewPage({
     });
   }
 
-  // ---- flags (rules printed) ------------------------------------------------
-  const flags: Flag[] = [
-    {
-      code: "real-roe",
-      active: roeReal != null && roeReal < 0,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Real returns")}</b>{tx(" — ROE ")}{tx(fmtPct(roeNow, 1))}{tx(" vs")}{" "}
-          {tx(fmtPct(cpiAvgNow, 1))}{tx(" 12m-avg CPI: equity compounds a")}{" "}
-          {tx(roeReal != null ? Math.abs(roeReal).toFixed(1) : "—")}{tx("% real loss.")}</>
-      ),
-      rule: "(1+roe)/(1+cpi_12m_avg) − 1 < 0",
-    },
-    {
-      code: "npl-streak",
-      active: nplStreak >= 6,
-      body: (
-        <>
-          <b className="font-semibold">{tx("NPL streak")}</b> — {tx(nplStreak)}{tx(" monthly rises (")}{tx(fmtPct(valAgo(sNpl, nplStreak), 2))} → {tx(fmtPct(nplNow, 2))}{tx("). Level")}{" "}
-          {tx(nplNow != null && nplNow < 3 ? "benign" : "elevated")}{tx("; persistence is the signal. Next read: Stage-2 at the quarterly filings.")}</>
-      ),
-      rule: "consecutive_rise(npl) ≥ 6m",
-    },
-    {
-      code: "car-drift",
-      active: carDrift12 != null && carDrift12 < -0.5,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Capital drift")}</b>{tx(" — buffer")}{" "}
-          {tx(buffer != null ? buffer.toFixed(1) : "—")}{tx("pp over the 12% target ratio, drifting")}{" "}
-          {tx(carDrift12 != null ? signedPp(carDrift12, 1) : "—")}{tx("/yr.")}</>
-      ),
-      rule: "Δcar_12m < −0.5pp",
-    },
-    {
-      code: "funding-stretch",
-      active: ldrNow != null && ldrNow > LDR_PUBLISHED.line,
-      body: (
-        <>
-          <b className="font-semibold">{tx("Funding stretch")}</b>{tx(" — TL+FC loan/deposit")}{" "}
-          {tx(fmtPct(ldrNow, 1))}{tx(": growth leans on non-deposit funding. The TL-only book is tested against a tighter line on ")}<Go href="/liquidity">{tx("Liquidity")}</Go>.
-        </>
-      ),
-      rule: LDR_PUBLISHED.rule,
-    },
-  ];
-  const activeFlags = flags.filter((f) => f.active).length;
-
   // ---- standings ------------------------------------------------------------
   const ranked = league.rows.filter((r) => r.car != null);
   const standings: StandingsGroup[] = [
@@ -500,7 +449,7 @@ export default async function OverviewPage({
             basis: "bank-level standings only",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "developments", label: "Sector developments"}, {id: "by-type", label: "Bank groups"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "developments", label: "Sector developments"}, {id: "by-type", label: "Bank groups"}]} controls={<GlobalRangeSelector compact />} />
 <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...datasetJsonLd, name: tx(datasetJsonLd.name), description: tx(datasetJsonLd.description), inLanguage: tx.locale }) }}
@@ -685,15 +634,7 @@ export default async function OverviewPage({
           <Standings groups={standings} />
         </SectorPanel>
 </SectorSection>
-<SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
-<SectorPanel>
-          <p className="mb-3 text-[12px] text-muted-foreground">{tx("{0} monitoring thresholds exceeded", { 0: activeFlags })}</p>
-          <Flags variant="report"
-            flags={flags}
-            quietNote="NPL streak, capital drift, funding stretch and real returns are all below threshold."
-          />
-        </SectorPanel>
-</SectorSection>
+
 
 <SectorDirectory />
 <SectorFooter />

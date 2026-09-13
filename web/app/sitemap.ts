@@ -52,6 +52,7 @@ const STATIC_ROUTES: {
   // sitemap must not list redirecting URLs, so only /actions appears.
   { path: "/actions", priority: 0.7, changeFrequency: "daily" },
   { path: "/regulation", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/signals", priority: 0.5, changeFrequency: "daily" },
   { path: "/news", priority: 0.7, changeFrequency: "daily" },
   { path: "/news/google", priority: 0.6, changeFrequency: "daily" },
   { path: "/digital", priority: 0.6, changeFrequency: "monthly" },
