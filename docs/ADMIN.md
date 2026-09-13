@@ -1,5 +1,31 @@
 # Admin control center
 
+## Source tables and dipnotes (2026-09-13)
+
+Open an audit coverage cell and choose **Read source tables and dipnotes**. The
+drawer widens and reads the filing's retained source. The same reader is in
+**Complete audit documents**. Filter by suggested table family or physical page;
+choose all candidates to inspect tables whose family has not been identified.
+The IFRS-9 stages lane points to its underlying credit-quality disclosure.
+
+Tables retain every detected column, printed period labels, page units and raw
+blank/dash/zero/absent states. A **Read note** link moves focus to the referenced
+note and its embedded tables, source qualifications and original PDF citation.
+The download exports all candidates and source-addressed passages, independently
+of the selected filter. Named source-reviewed assignments are distinguished from
+unreviewed physical rows. Candidates with unassigned columns can be shown using
+the explicit toggle; they are always retained in the JSON.
+
+Roman dipnot columns and fully numbered English Footnotes columns use their
+printed addresses. A whole-group reference such as GARAN's 5.6 opens the entire
+cash-flow note, including nested explanations and beginning/end cash tables.
+
+Native-cell checks do not certify a complete table or report. Rejected cells,
+open or competing note intervals, and contradictory printed addresses stay
+visible. For example, TOMK 2023Q3's P&L points to V-IV while its page 43
+continuation prints III; the reader does not silently change that address.
+Numerical coverage statuses and the later prose coverage redesign are separate.
+
 A protected `/admin` page in the dashboard that consolidates **pipeline/data
 health**, **manual refresh triggers**, and **site traffic** into one view.
 

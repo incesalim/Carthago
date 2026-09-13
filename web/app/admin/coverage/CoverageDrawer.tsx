@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button } from "@/app/components/ui";
 import { relativeFromIso } from "@/app/lib/format-time";
 import { STATUS_LABEL, STATUS_VARIANT } from "./status";
+import DocumentSourceTables from "../DocumentSourceTables";
 
 export interface OpenCell {
   bank: string;
@@ -92,6 +93,7 @@ export default function CoverageDrawer({
   reextractBusy: boolean;
 }) {
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [wide, setWide] = useState(false);
 
   // The parent remounts this component (key=cell) whenever the cell changes, so
   // `open` is fixed for this instance — a mount-only fetch is correct and keeps
@@ -153,7 +155,7 @@ export default function CoverageDrawer({
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
-      <div className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-border bg-background shadow-xl">
+      <div className={`relative flex h-full w-full ${wide ? "max-w-6xl" : "max-w-md"} flex-col overflow-y-auto border-l border-border bg-background shadow-xl`}>
         <div className="flex items-start justify-between gap-3 border-b border-border p-4">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
@@ -172,6 +174,7 @@ export default function CoverageDrawer({
         </div>
 
         <div className="flex flex-col gap-4 p-4 text-sm">
+          {open.type !== "prose" && <DocumentSourceTables filing={`${open.bank}|${open.period}|${open.kind}`} initialLane={open.type} onRead={() => setWide(true)} />}
           {acquiredNotExtracted && (
             <div className="rounded-md border border-info/40 bg-info/10 p-3 text-xs text-info">
               PDF acquired into R2 but this partition hasn&apos;t been extracted yet —

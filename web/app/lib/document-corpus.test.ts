@@ -12,6 +12,7 @@ vi.mock("@/app/lib/document-editions", () => import("./document-editions"));
 vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
 vi.mock("@/app/lib/document-table-review", () => import("./document-table-review"));
 vi.mock("@/app/lib/document-prose", () => import("./document-prose"));
+vi.mock("@/app/lib/document-source-tables", () => import("./document-source-tables"));
 import { GET } from "../api/admin/document-corpus/route";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_corpus_wire.json", import.meta.url), "utf8"));
@@ -103,6 +104,26 @@ describe("private corpus route", () => {
     const response = await GET(new Request("https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=prose"));
     expect(response.status).toBe(403);
     expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it("requires admin for tables with dipnotes before reading storage", async () => {
+    mocks.gate.mockResolvedValue({ response: Response.json({ error: "forbidden" }, { status: 403 }) });
+    const response = await GET(new Request("https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=tables"));
+    expect(response.status).toBe(403);
+    expect(mocks.context).not.toHaveBeenCalled();
+  });
+  it("exports tables and dipnotes privately and rejects a partial report request", async () => {
+    const get = vi.fn(async (key: string) => key.endsWith("consolidated.json")
+      ? { size: 100, json: async () => fixture.index }
+      : { size: 100, body: body(key.includes(".structure.") ? "structure" : "source") });
+    mocks.context.mockResolvedValue({ env: { AUDIT_DOCUMENTS: { get } } });
+    const base = "https://test/api/admin/document-corpus?filing=TEST%7C2026Q1%7Cconsolidated&artifact=tables";
+    expect((await GET(new Request(base + "&page=1"))).status).toBe(400);
+    const response = await GET(new Request(base + "&download=1"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Content-Disposition")).toContain(".tables-with-dipnotes.json");
+    expect(await response.json()).toMatchObject({ schema_version: "audit-source-tables-1", page_count: 2,
+      verification: { report_complete: false, financial_interpretation: "not_performed", pages_read: 2 } });
   });
   it("refuses a citation after the filing's source changes", async () => {
     const bucket = indexBucket(fixture.index);

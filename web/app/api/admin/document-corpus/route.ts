@@ -6,6 +6,7 @@ import { getEditionRevision } from "@/app/lib/document-editions";
 import { getContentReviews } from "@/app/lib/document-content-review";
 import { getReviewedTables } from "@/app/lib/document-table-review";
 import { readDocumentProse } from "@/app/lib/document-prose";
+import { readSourceTables } from "@/app/lib/document-source-tables";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
   if (edition !== null && (!/^[a-f0-9]{64}$/.test(edition) || related !== null)
       || origin !== null && (!related || !/^[a-f0-9]{64}$/.test(origin))) return json({ error: "Choose one valid document source." }, 400);
   if (related !== null && !/^[a-f0-9]{64}$/.test(related)) return json({ error: "Invalid related document." }, 400);
-  if (artifact !== null && !["original", "source", "structure", "reviews", "table-reviews", "prose"].includes(artifact)) {
+  if (artifact !== null && !["original", "source", "structure", "reviews", "table-reviews", "prose", "tables"].includes(artifact)) {
     return json({ error: "Unknown document artifact." }, 400);
   }
   const bucket = await getCorpusBucket();
@@ -43,6 +44,13 @@ export async function GET(req: Request) {
       return json({ error: "The source revision has changed. Reload the filing before following this citation." }, 409);
     }
     if (!artifact) return json({ revision });
+    if (artifact === "tables") {
+      if (related || edition || params.has("page")) return json({ error: "Tables and dipnotes are read across the registered report; omit page and separate sources." }, 400);
+      const response = json(await readSourceTables(bucket, revision));
+      if (params.get("download") === "1") response.headers.set("Content-Disposition",
+        `attachment; filename="${filing.bank_ticker}_${filing.period}_${filing.kind}.tables-with-dipnotes.json"`);
+      return response;
+    }
     if (artifact === "prose") {
       if (params.has("page")) return json({ error: "Prose is read across the full report; omit page." }, 400);
       const prose = await readDocumentProse(bucket, revision);

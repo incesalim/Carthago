@@ -1,5 +1,26 @@
 # Operations
 
+## Read source tables with dipnotes (2026-09-13)
+
+The authenticated `document-corpus` endpoint accepts `artifact=tables` for a
+registered filing. It streams and verifies the complete native and structured
+report, then returns `audit-source-tables-1`: physical cells, optional named
+reviewed assignments, printed units, note intervals/passages and addressed
+dipnote links. Use `source_hash` to pin a citation and `download=1` for JSON.
+Page-limited requests and separate observed/related sources are rejected for
+this artifact; a partial page cannot establish a note's end. There are no new
+bindings, secrets, D1 writes, R2 uploads or extraction dispatches in this reader.
+
+Both Roman group references such as V-I-(1) and qualified numeric addresses
+such as 5.1.1.1 are supported. Whole-group references such as 5.6 include their
+child notes, continuation pages and tables, ending at the next printed group.
+
+The reader distinguishes checked cell evidence from logical-row/table-boundary
+review. It never upgrades a coverage cell or labels a whole report complete.
+Unsupported legacy column assignments remain in the export and can be shown in
+the UI. Missing/ambiguous note addresses require source review; matching a title
+or another group's note number is not an acceptable automatic replacement.
+
 ## Repricing publication repair receipt (2026-09-13)
 
 The extraction-gate audit's live coverage comparison found 39 OK repricing cells

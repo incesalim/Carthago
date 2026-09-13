@@ -1,12 +1,12 @@
 /** Reviewed transcription views rechecked against the current stored source pages. */
 import { CORPUS_PREFIX, parseCorpusRevision, readVerifiedPage, type CorpusBucket, type CorpusRevision, type FilingIdentity } from "./document-corpus";
 
-type Box = [number, number, number, number];
+export type Box = [number, number, number, number];
 type Word = { id: number; text: string; bbox: Box };
-type Part = { word_id: number; start: number; end: number; text: string; bbox: Box };
+export type Part = { word_id: number; start: number; end: number; text: string; bbox: Box };
 type Cell = { text: string | null; bbox: Box | null; column: number; word_ids: number[]; source_fragments?: Part[] };
-type PhysicalTable = { id: string; n_cols: number; row_count: number; bbox: Box; rows: { index: number; cells: Cell[] }[] };
-type Span = { row: number; column: number; row_span: number; column_span: number };
+export type PhysicalTable = { id: string; n_cols: number; row_count: number; bbox: Box; rows: { index: number; cells: Cell[] }[] };
+export type Span = { row: number; column: number; row_span: number; column_span: number };
 type LogicalRow = { row: number; source_review: string; cells: { text: string; source_word_ids: number[] }[] };
 type RowSplit = { row: number; source_review: string; rows: { cells: LogicalRow["cells"] }[] };
 export type ReviewedTable = { review_id: string; table_id: string; page: number; source_review: string;
@@ -40,7 +40,7 @@ function sourceLines(words: Word[], reviewedFontOverlap = false): Word[][] {
   return lines;
 }
 
-function validateGrid(table: PhysicalTable, spans: Span[], absent: { row: number; column: number }[]) {
+export function validateGrid(table: PhysicalTable, spans: Span[], absent: { row: number; column: number }[]) {
   if (!Array.isArray(spans) || !Array.isArray(absent) || !box(table.bbox)) fail();
   const spanMap = new Map<string, Span>(), holes = new Set<string>(), covered = new Set<string>();
   const edges = [new Map<number, number>(), new Map<number, number>()];
@@ -271,11 +271,9 @@ function view(saved: Record<string, unknown>, source: Record<string, unknown>, s
     source_context: saved.source_context as ReviewedTable["source_context"], physical_table: table };
 }
 
-export async function getReviewedTables(bucket: CorpusBucket, filing: FilingIdentity, revision: CorpusRevision, page: number): Promise<ReviewedTable[]> {
-  if (!integer(page) || page < 1 || page > revision.page_count) fail();
-  const object = await bucket.get(`${CORPUS_PREFIX}filings/${filing.bank_ticker}/${filing.period}/${filing.kind}.json`);
-  if (!object || object.size > 8_000_000) fail();
-  const index: unknown = await object.json(), current = parseCorpusRevision(index, filing);
+export function tableReviewRecords(index: unknown, filing: FilingIdentity, revision: CorpusRevision, page?: number): Record<string, unknown>[] {
+  if (page !== undefined && (!integer(page) || page < 1 || page > revision.page_count)) fail();
+  const current = parseCorpusRevision(index, filing);
   if (!current || current.source.pdf_sha256 !== revision.source.pdf_sha256 || current.evidence_key !== revision.evidence_key
       || current.structure_current?.key !== revision.structure_current?.key) fail();
   const receipt = record(index) && record(index.resume_receipt) ? index.resume_receipt : null;
@@ -288,16 +286,33 @@ export async function getReviewedTables(bucket: CorpusBucket, filing: FilingIden
     if (check.reviewed_tables === undefined) continue;
     if (check.passed !== true || !Array.isArray(check.reviewed_tables)) fail();
     for (const entry of check.reviewed_tables) {
-      if (!record(entry) || !integer(entry.page)) fail();
-      if (entry.page === page) records.push(entry);
+      if (!record(entry) || !integer(entry.page) || entry.page < 1 || entry.page > revision.page_count) fail();
+      if (page === undefined || entry.page === page) records.push(entry);
     }
   }
   if (!records.length) return [];
-  if (records.length > 100 || new Set(records.map(r => r.review_id)).size !== records.length
+  if (records.length > (page === undefined ? 5000 : 100) || new Set(records.map(r => r.review_id)).size !== records.length
       || new Set(records.map(r => r.table_id)).size !== records.length || !receipt || !revision.structure_current
       || receipt.schema_version !== "corpus-receipt-1" || benchmark.status !== "passed" || benchmark.scope !== "annotated_cases_only"
       || revision.evidence_key !== `${CORPUS_PREFIX}sources/${revision.source.pdf_sha256}/${receipt.evidence_artifact_sha256}.jsonl.gz`
       || revision.structure_current.artifact_sha256 !== receipt.structure_artifact_sha256) fail();
+  return records;
+}
+
+export function checkedReviewedTable(saved: Record<string, unknown>, source: Record<string, unknown>, structured: Record<string, unknown>,
+  nativePageHash: unknown, structurePageHash: unknown): ReviewedTable {
+  if (typeof nativePageHash !== "string" || typeof structurePageHash !== "string"
+      || nativePageHash !== saved.native_page_sha256 || structurePageHash !== saved.structure_page_sha256) fail();
+  return view(saved, source, structured);
+}
+
+export async function getReviewedTables(bucket: CorpusBucket, filing: FilingIdentity, revision: CorpusRevision, page: number): Promise<ReviewedTable[]> {
+  if (!integer(page) || page < 1 || page > revision.page_count) fail();
+  const object = await bucket.get(`${CORPUS_PREFIX}filings/${filing.bank_ticker}/${filing.period}/${filing.kind}.json`);
+  if (!object || object.size > 8_000_000) fail();
+  const records = tableReviewRecords(await object.json(), filing, revision, page);
+  if (!records.length) return [];
+  if (!revision.structure_current) fail();
   const read = async (key: string, kind: "source" | "structure") => {
     const object = await bucket.get(key); if (!object) fail();
     return readVerifiedPage(object.body, page, revision.source.pdf_sha256, revision.page_count, kind);
@@ -306,6 +321,6 @@ export async function getReviewedTables(bucket: CorpusBucket, filing: FilingIden
   return records.map(r => {
     if (!Array.isArray(native.manifest.page_sha256) || !Array.isArray(structured.manifest.page_sha256)
         || native.manifest.page_sha256[page - 1] !== r.native_page_sha256 || structured.manifest.page_sha256[page - 1] !== r.structure_page_sha256) fail();
-    return view(r, native.page, structured.page);
+    return checkedReviewedTable(r, native.page, structured.page, native.manifest.page_sha256[page - 1], structured.manifest.page_sha256[page - 1]);
   });
 }

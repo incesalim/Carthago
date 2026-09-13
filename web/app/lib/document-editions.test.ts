@@ -15,6 +15,7 @@ vi.mock("@/app/lib/document-recovery", () => import("./document-recovery"));
 vi.mock("@/app/lib/document-content-review", () => import("./document-content-review"));
 vi.mock("@/app/lib/document-table-review", () => import("./document-table-review"));
 vi.mock("@/app/lib/document-prose", () => import("./document-prose"));
+vi.mock("@/app/lib/document-source-tables", () => import("./document-source-tables"));
 import { GET as corpusGet } from "../api/admin/document-corpus/route";
 import { GET as recoveryGet } from "../api/admin/document-recovery/route";
 import { GET as originGet } from "../api/admin/document-origin/route";

@@ -12,6 +12,7 @@ import DocumentNarrativePreview, { type Narrative, type ReadingLayout } from "./
 import TablePreview, { type Table, type TableContext, type SourceRows, type TableNotes, type PeriodHeaders } from "./DocumentTablePreview";
 import DocumentNavigationPreview, { type Navigation } from "./DocumentNavigationPreview";
 import DocumentProseReader from "./DocumentProseReader";
+import DocumentSourceTables from "./DocumentSourceTables";
 
 const endpoint = "/api/admin/document-corpus";
 const id = (f: CorpusFiling) => `${f.bank_ticker}|${f.period}|${f.kind}`;
@@ -71,6 +72,7 @@ function FilingPreview({ filing }: { filing: CorpusFiling }) {
     <DocumentOriginPanel filing={id(filing)} sourceHash={source?.pdf_sha256} />
     {source && <DocumentContentReviews filing={id(filing)} sourceHash={source.pdf_sha256} />}
     {filing.capture?.structure_engine && <>
+      {source && <DocumentSourceTables key={`tables:${id(filing)}:${source.pdf_sha256}`} filing={id(filing)} sourceHash={source.pdf_sha256} />}
       {source && <DocumentProseReader key={`${id(filing)}:${source.pdf_sha256}`} filing={id(filing)} sourceHash={source.pdf_sha256} onPage={setPage} />}
       <div className="my-4 flex flex-wrap items-center gap-3 text-xs">
         <button className={control} disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>

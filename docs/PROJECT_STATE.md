@@ -1,5 +1,35 @@
 # Project State
 
+## Source tables and dipnotes (2026-09-13)
+
+The existing admin coverage drawer and document browser now share a private
+source-table reader. It retains all detected physical columns and literal cell
+states, rechecks native word/character inventories and grid geometry, and reuses
+the named source-reviewed row assignments only after checking their evidence.
+Printed dipnot addresses link to section/group/note intervals, including their
+tables and qualifications. Source-page units and PDF citations remain visible.
+Unassigned legacy columns, rejected cells and unresolved or competing note
+addresses remain explicit; suggested table families are not coverage proof.
+
+Source-backed tests cover all six TOMK 2023Q3 assets dipnotes and prior figures
+1,004,154 and 1,545. A read-only probe of its 51 retained pages returned 83
+candidates (including alternatives), 47 with checked native cells and 26 note
+intervals. This is a single-report probe, not a corpus completion claim. The PDF
+itself prints a conflicting P&L continuation group on page 43; references to
+V-IV-4 remain unresolved rather than being redirected to III-4.
+
+The same reader supports GARAN's fully numbered hierarchy, including nested
+5.1.1.1 and whole-group 5.6 references. Its retained 184-page 2022Q4 consolidated
+report yields 498 candidates, 274 with checked native cells, 180 note intervals
+and 22 resolved references. PDF-checked regression cases retain the cash-flow
+note's prose and both beginning/end cash tables. Unassigned source columns and
+unresolved references remain; these are diagnostic counts, not coverage totals.
+
+This changes neither D1 financial rows nor coverage statuses. Full source-table
+completion across the registered corpus, source-completeness publication gates
+and the later structured prose coverage phase remain open. Evidence and release
+receipts: `docs/knowledge/2026-09-13-table-dipnotes/RESULTS.md`.
+
 ## Audit measurement and repricing repair (2026-09-13)
 
 Code `9fbb64f` passed CI `34765040683` and deployment `34765139227`.
