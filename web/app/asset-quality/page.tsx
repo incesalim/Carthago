@@ -58,6 +58,8 @@ import { lastVal, monthLabel, signedPp } from "@/app/lib/desk";
 import { signed, toneClass } from "@/app/lib/prose";
 import BarByBank from "@/app/components/BarByBank";
 import SectorTrend from "@/app/components/SectorTrend";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import { assetQualityBulletinDetail } from "@/app/lib/sector-bddk-detail";
 import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
@@ -201,6 +203,7 @@ export default async function AssetQualityPage() {
     ladder,
     roll,
     problemCov,
+    bulletin,
   ] = await Promise.all([
     ratioNpl(PRIMARY_BANK_TYPES),
     latestPerBank(ratioNpl, groups),
@@ -227,6 +230,7 @@ export default async function AssetQualityPage() {
     stageLadder(),
     nplRollForwardAnnual(),
     problemBookCoverage(),
+    assetQualityBulletinDetail(),
   ]);
   const cpiYoY = await cpiYoYByMonth();
 
@@ -421,9 +425,10 @@ export default async function AssetQualityPage() {
         sections={[
           { id: "overview", label: "Key indicators" },
           { id: "npl", label: "Non-performing loans" },
+          { id: "products", label: "Risk by loan type" },
+          { id: "sector-risk", label: "Manufacturing credit risk" },
           { id: "stages", label: "Credit stages" },
           { id: "flows", label: "NPL flows and scenarios" },
-          { id: "products", label: "Risk by loan type" },
           { id: "bank-groups", label: "Bank groups" },
           { id: "method", label: "Definitions and methodology" },
         ]}
@@ -551,7 +556,8 @@ export default async function AssetQualityPage() {
           />
         </SectorMetrics>
       </SectorOpening>
-      <SectorSection
+
+<SectorSection
         id="npl"
         title={tx("Non-performing loans")}
         description={tx(
@@ -590,229 +596,21 @@ export default async function AssetQualityPage() {
 <Takeaway data={sectorAssessment} variant="report" />
 
       </SectorSection>
-      <SectorSection
-        id="stages"
-        title={tx("Credit stages")}
-        description={tx(
-          "TFRS 9 credit stages and provisions, based on quarterly financial statements.",
-        )}
-      >
-        <SectorGrid columns={2} ratio="wide-left">
-          <SectorPanel>
-            <SecHead
-              title={tx("Credit stages and coverage")}
-              meta={tx("TFRS-9 staging · % of gross loans")}
-              action={
-                ladder ? (
-                  <span className="text-[13px] text-faint">
-                    {tx("audited ")}
-                    {tx(ladder.period)} · n={tx(ladder.n)}
-                  </span>
-                ) : undefined
-              }
-              className="mb-2.5 mt-6"
-            />
-            <Waterline ladder={ladder} />
-          </SectorPanel>
-          <SectorPanel>
-            <div className="self-center">
-              {ladder ? (
-                <>
-                  <p className="text-[19px] leading-snug tracking-tight text-foreground">
-                    {tx(
-                      "Audited Stage 3 is {0} of loans. Including the Stage-2 watchlist, the problem book reaches {1} — {2}× the visible tip.",
-                      {
-                        0: fmtPct(ladder.stage3Share),
-                        1: fmtPct(ladder.problemShare),
-                        2: ladder.multipleOfPrinted.toFixed(1),
-                      },
-                    )}
-                  </p>
-                  <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-                    {tx(
-                      "Stage 2 accounts for {0} of the problem book but never enters the published NPL ratio. Its coverage is {1}, versus {2} for Stage 3.",
-                      {
-                        0: fmtPct((ladder.stage2Bn / ladder.problemBn) * 100),
-                        1: fmtPct(ladder.cov2),
-                        2: fmtPct(ladder.cov3),
-                      },
-                    )}
-                  </p>
-                  {rollNow && formationMultiple && (
-                    <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-                      {tx(
-                        "Stage 2 is a watchlist, not an impaired-loan classification; lower coverage is therefore expected, not automatically a shortfall. The stronger warning is the flow: new NPL formation ran at {0}× last year's level and net formation was {1}.",
-                        {
-                          0: formationMultiple.toFixed(1),
-                          1: signed(rollNow.net, fmtBn),
-                        },
-                      )}
-                    </p>
-                  )}
-                  <p className="mt-3 border-t border-hair pt-2.5 text-[13px] leading-relaxed text-faint">
-                    {tx(
-                      "Problem loans = Stage 2 + Stage 3, both from the same audited TFRS-9 filings. The {0}× multiple is {1} ÷ {2}; it never mixes in the monthly published ratio.",
-                      {
-                        0: ladder.multipleOfPrinted.toFixed(1),
-                        1: fmtPct(ladder.problemShare),
-                        2: fmtPct(ladder.stage3Share),
-                      },
-                    )}
-                  </p>
-                </>
-              ) : (
-                <p className="text-[13px] text-faint">
-                  {tx("The staging ladder awaits an audited quarter.")}
-                </p>
-              )}
-            </div>
-          </SectorPanel>
-        </SectorGrid>
-        <SectorTrend
-          data={stageShares}
-          seriesLabels={STAGE_SHARE_LABELS}
-          description={tx(
-            "Stage 2 is the watchlist the NPL ratio never prints.",
-          )}
-          yFormat="pct"
-          decimals={1}
-          title={tx("TFRS-9 staging — % of gross loans (audited quarterly)")}
-          height={320}
-          mode="trend"
-        />
-      </SectorSection>
-      <SectorSection
-        id="flows"
-        title={tx("NPL flows and scenarios")}
-        description={tx(
-          "New non-performing loans, collections and potential migration from Stage 2.",
-        )}
-      >
-        <Vital
-          label={tx("Net NPL formation")}
-          // Net formation turning negative is the GOOD case — the stock is
-          // shrinking. It used to render "+-42".
-          value={
-            rollNow ? signed(rollNow.net, (v) => String(Math.round(v))) : "—"
-          }
-          unit="₺bn"
-          series={roll.map((y) => ({ period: y.year, value: y.net }))}
-          format="raw"
-          decimals={0}
-          observation={{
-            cadence: "annual",
-            role: "audited",
-            asOf: rollNow?.year,
-            window: "year flow",
-            basis: "NPL roll-forward",
-          }}
-          note={
-            rollNow && formationMultiple ? (
-              <>
-                {tx("formation ")}
-                <b className="font-semibold text-foreground">
-                  {tx(formationMultiple.toFixed(1))}×
-                </b>{" "}
-                {tx("last year · exits are")}{" "}
-                <b className="font-semibold text-foreground">
-                  {tx(rollNow.collectionShare.toFixed(0))}
-                  {tx("% collections")}
-                </b>
-              </>
-            ) : undefined
-          }
-        />
-        <SectorGrid columns={2} ratio="balanced">
-          <SectorPanel>
-            <SecHead
-              title={tx("NPL formation and collections")}
-              meta={tx("audited NPL roll-forward · annual · ₺bn")}
-              className="mb-2.5"
-            />
-            <FormationBars data={roll} />
-            {rollNow && formationMultiple && rollPrev && (
-              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                {tx("Formation is ")}
-                <b className="font-semibold text-foreground">
-                  {tx(formationMultiple.toFixed(1))}×
-                </b>{" "}
-                {tx("last year (")}
-                {tx(fmtBn(rollPrev.additions))} → {tx(fmtBn(rollNow.additions))}
-                {tx("), net")}{" "}
-                <b
-                  className={`font-semibold ${toneClass(rollNow.net, "down")}`}
-                >
-                  {tx(signed(rollNow.net, fmtBn))}
-                </b>
-                {tx(". Exits are")}{" "}
-                <b className="font-semibold text-foreground">
-                  {tx(rollNow.collectionShare.toFixed(0))}
-                  {tx("% collections")}
-                </b>{" "}
-                {tx("— not write-offs or sales.")}{" "}
-                <em>
-                  {tx(
-                    "The ratio is not being managed down; the book is genuinely deteriorating.",
-                  )}
-                </em>
-              </p>
-            )}
-          </SectorPanel>
-          <SectorPanel>
-            <SecHead
-              title={tx("Stage 2 migration scenarios")}
-              meta={tx("Illustrative scenario; not a forecast")}
-              className="mb-2.5 mt-0"
-            />
-            {migrationItems.length > 0 ? (
-              <>
-                <Transmission items={migrationItems} />
-                <p className="mt-2.5 text-[13px] leading-relaxed text-faint">
-                  {tx("Migration provisioned at Stage 3's rate (")}
-                  {tx(
-                    migration.cov3 != null
-                      ? `${(migration.cov3 * 100).toFixed(0)}%`
-                      : "—",
-                  )}
-                  {tx(") against Stage 2 today (")}
-                  {tx(
-                    migration.cov2 != null
-                      ? `${(migration.cov2 * 100).toFixed(0)}%`
-                      : "—",
-                  )}
-                  {tx("), on a ₺")}
-                  {tx(migration.stage2Bn?.toFixed(0))}
-                  {tx("bn book · ")}
-                  {tx(migration.period)}
-                  {tx(". Stage 2 is")}{" "}
-                  <b className="font-semibold text-muted-foreground">
-                    {tx("not")}
-                  </b>
-                  {tx(" impaired — this is what migration would cost, ")}
-                  <b className="font-semibold text-muted-foreground">
-                    {tx("not a gap the banks owe")}
-                  </b>
-                  .
-                </p>
-              </>
-            ) : (
-              <p className="text-[13px] text-faint">
-                {tx(
-                  "The migration sizing needs Stage-3 cover above Stage-2 cover in the latest filing.",
-                )}
-              </p>
-            )}
-          </SectorPanel>
-        </SectorGrid>
-      </SectorSection>
-      <SectorSection
+<SectorSection
         id="products"
         title={tx("Risk by loan type")}
         description={tx(
           "Non-performing loans in consumer, credit card, commercial and SME portfolios.",
         )}
       >
-        <Vital
+        <SectorBreakdown data={bulletin.retail.rows} mode="paired" format="pct" decimals={1} maxValue={100} totalLabel="Gross loans" totalFormat="bn"
+          series={[{ key: "loans", label: "Share of gross retail loans" }, { key: "npl", label: "Share of retail NPLs" }]}
+          title={tx("Retail lending and non-performing loan shares")}
+          description={tx("Housing, auto, general-purpose loans and retail cards share the same four-product universe. Gross loans include performing and non-performing balances; the small FX-indexed consumer category is excluded.")}
+          source={tx("Source: BDDK monthly bulletin · Table 4")} asOf={bulletin.retail.period} />
+        <SectorGrid ratio="balanced">
+<SectorPanel>
+<Vital
           label={tx("SME NPL")}
           value={sme ? sme.now.toFixed(2) : "—"}
           unit="%"
@@ -838,6 +636,13 @@ export default async function AssetQualityPage() {
             ) : undefined
           }
         />
+</SectorPanel>
+<SectorBreakdown data={bulletin.sme.rows} mode="paired" format="pct" decimals={2} totalLabel="Gross loans" totalFormat="bn"
+              series={[{ key: "ratio", label: "NPL ratio by SME size" }, { key: "sector", label: "Total SME NPL ratio" }]}
+              title={tx("SME loan quality by business size")}
+              description={tx("Non-performing loans divided by performing plus non-performing loans. The comparison uses the total SME ratio from the same monthly table.")}
+              source={tx("Source: BDDK monthly bulletin · Table 6")} asOf={bulletin.sme.period} />
+</SectorGrid>
         <SectorGrid columns={2} ratio="wide-left">
           <SectorPanel>
             <SecHead
@@ -986,7 +791,232 @@ export default async function AssetQualityPage() {
           }
         />
       </SectorSection>
-      <SectorSection
+<SectorSection id="sector-risk" title={tx("Manufacturing credit risk")}
+  description={tx("The distribution of non-performing loans across manufacturing subsectors.")}>
+  <SectorBreakdown data={bulletin.manufacturing.rows} mode="ranking" format="pct" decimals={1} totalLabel="NPL balance" totalFormat="bn"
+            series={[{ key: "share", label: "Share of manufacturing NPLs" }]}
+            title={tx("Manufacturing NPLs by subsector")}
+            description={tx("All 14 non-overlapping manufacturing subsectors. The share measures each subsector's contribution to manufacturing NPL balances, not its own NPL ratio.")}
+            source={tx("Source: BDDK monthly bulletin · Table 5")} asOf={bulletin.manufacturing.period} />
+  <p className="text-sm leading-relaxed text-muted-foreground">{tx("A large share of non-performing loans can reflect a large lending book. Product shares and SME ratios answer different questions; the gross-loan denominator is stated beside each chart.")}</p>
+  <Link href="/credit#economic-sectors" className="inline-block text-sm font-semibold text-primary">{tx("Explore the sectoral loan distribution")}</Link>
+</SectorSection>
+<SectorSection
+        id="stages"
+        title={tx("Credit stages")}
+        description={tx(
+          "TFRS 9 credit stages and provisions, based on quarterly financial statements.",
+        )}
+      >
+        <SectorGrid columns={2} ratio="wide-left">
+          <SectorPanel>
+            <SecHead
+              title={tx("Credit stages and coverage")}
+              meta={tx("TFRS-9 staging · % of gross loans")}
+              action={
+                ladder ? (
+                  <span className="text-[13px] text-faint">
+                    {tx("audited ")}
+                    {tx(ladder.period)} · n={tx(ladder.n)}
+                  </span>
+                ) : undefined
+              }
+              className="mb-2.5 mt-6"
+            />
+            <Waterline ladder={ladder} />
+          </SectorPanel>
+          <SectorPanel>
+            <div className="self-center">
+              {ladder ? (
+                <>
+                  <p className="text-[19px] leading-snug tracking-tight text-foreground">
+                    {tx(
+                      "Audited Stage 3 is {0} of loans. Including the Stage-2 watchlist, the problem book reaches {1} — {2}× the visible tip.",
+                      {
+                        0: fmtPct(ladder.stage3Share),
+                        1: fmtPct(ladder.problemShare),
+                        2: ladder.multipleOfPrinted.toFixed(1),
+                      },
+                    )}
+                  </p>
+                  <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+                    {tx(
+                      "Stage 2 accounts for {0} of the problem book but never enters the published NPL ratio. Its coverage is {1}, versus {2} for Stage 3.",
+                      {
+                        0: fmtPct((ladder.stage2Bn / ladder.problemBn) * 100),
+                        1: fmtPct(ladder.cov2),
+                        2: fmtPct(ladder.cov3),
+                      },
+                    )}
+                  </p>
+                  {rollNow && formationMultiple && (
+                    <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+                      {tx(
+                        "Stage 2 is a watchlist, not an impaired-loan classification; lower coverage is therefore expected, not automatically a shortfall. The stronger warning is the flow: new NPL formation ran at {0}× last year's level and net formation was {1}.",
+                        {
+                          0: formationMultiple.toFixed(1),
+                          1: signed(rollNow.net, fmtBn),
+                        },
+                      )}
+                    </p>
+                  )}
+                  <p className="mt-3 border-t border-hair pt-2.5 text-[13px] leading-relaxed text-faint">
+                    {tx(
+                      "Problem loans = Stage 2 + Stage 3, both from the same audited TFRS-9 filings. The {0}× multiple is {1} ÷ {2}; it never mixes in the monthly published ratio.",
+                      {
+                        0: ladder.multipleOfPrinted.toFixed(1),
+                        1: fmtPct(ladder.problemShare),
+                        2: fmtPct(ladder.stage3Share),
+                      },
+                    )}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[13px] text-faint">
+                  {tx("The staging ladder awaits an audited quarter.")}
+                </p>
+              )}
+            </div>
+          </SectorPanel>
+        </SectorGrid>
+        <SectorTrend
+          data={stageShares}
+          seriesLabels={STAGE_SHARE_LABELS}
+          description={tx(
+            "Stage 2 is the watchlist the NPL ratio never prints.",
+          )}
+          yFormat="pct"
+          decimals={1}
+          title={tx("TFRS-9 staging — % of gross loans (audited quarterly)")}
+          height={320}
+          mode="trend"
+        />
+      </SectorSection>
+<SectorSection
+        id="flows"
+        title={tx("NPL flows and scenarios")}
+        description={tx(
+          "New non-performing loans, collections and potential migration from Stage 2.",
+        )}
+      >
+        <Vital
+          label={tx("Net NPL formation")}
+          // Net formation turning negative is the GOOD case — the stock is
+          // shrinking. It used to render "+-42".
+          value={
+            rollNow ? signed(rollNow.net, (v) => String(Math.round(v))) : "—"
+          }
+          unit="₺bn"
+          series={roll.map((y) => ({ period: y.year, value: y.net }))}
+          format="raw"
+          decimals={0}
+          observation={{
+            cadence: "annual",
+            role: "audited",
+            asOf: rollNow?.year,
+            window: "year flow",
+            basis: "NPL roll-forward",
+          }}
+          note={
+            rollNow && formationMultiple ? (
+              <>
+                {tx("formation ")}
+                <b className="font-semibold text-foreground">
+                  {tx(formationMultiple.toFixed(1))}×
+                </b>{" "}
+                {tx("last year · exits are")}{" "}
+                <b className="font-semibold text-foreground">
+                  {tx(rollNow.collectionShare.toFixed(0))}
+                  {tx("% collections")}
+                </b>
+              </>
+            ) : undefined
+          }
+        />
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorPanel>
+            <SecHead
+              title={tx("NPL formation and collections")}
+              meta={tx("audited NPL roll-forward · annual · ₺bn")}
+              className="mb-2.5"
+            />
+            <FormationBars data={roll} />
+            {rollNow && formationMultiple && rollPrev && (
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                {tx("Formation is ")}
+                <b className="font-semibold text-foreground">
+                  {tx(formationMultiple.toFixed(1))}×
+                </b>{" "}
+                {tx("last year (")}
+                {tx(fmtBn(rollPrev.additions))} → {tx(fmtBn(rollNow.additions))}
+                {tx("), net")}{" "}
+                <b
+                  className={`font-semibold ${toneClass(rollNow.net, "down")}`}
+                >
+                  {tx(signed(rollNow.net, fmtBn))}
+                </b>
+                {tx(". Exits are")}{" "}
+                <b className="font-semibold text-foreground">
+                  {tx(rollNow.collectionShare.toFixed(0))}
+                  {tx("% collections")}
+                </b>{" "}
+                {tx("— not write-offs or sales.")}{" "}
+                <em>
+                  {tx(
+                    "The ratio is not being managed down; the book is genuinely deteriorating.",
+                  )}
+                </em>
+              </p>
+            )}
+          </SectorPanel>
+          <SectorPanel>
+            <SecHead
+              title={tx("Stage 2 migration scenarios")}
+              meta={tx("Illustrative scenario; not a forecast")}
+              className="mb-2.5 mt-0"
+            />
+            {migrationItems.length > 0 ? (
+              <>
+                <Transmission items={migrationItems} />
+                <p className="mt-2.5 text-[13px] leading-relaxed text-faint">
+                  {tx("Migration provisioned at Stage 3's rate (")}
+                  {tx(
+                    migration.cov3 != null
+                      ? `${(migration.cov3 * 100).toFixed(0)}%`
+                      : "—",
+                  )}
+                  {tx(") against Stage 2 today (")}
+                  {tx(
+                    migration.cov2 != null
+                      ? `${(migration.cov2 * 100).toFixed(0)}%`
+                      : "—",
+                  )}
+                  {tx("), on a ₺")}
+                  {tx(migration.stage2Bn?.toFixed(0))}
+                  {tx("bn book · ")}
+                  {tx(migration.period)}
+                  {tx(". Stage 2 is")}{" "}
+                  <b className="font-semibold text-muted-foreground">
+                    {tx("not")}
+                  </b>
+                  {tx(" impaired — this is what migration would cost, ")}
+                  <b className="font-semibold text-muted-foreground">
+                    {tx("not a gap the banks owe")}
+                  </b>
+                  .
+                </p>
+              </>
+            ) : (
+              <p className="text-[13px] text-faint">
+                {tx(
+                  "The migration sizing needs Stage-3 cover above Stage-2 cover in the latest filing.",
+                )}
+              </p>
+            )}
+          </SectorPanel>
+        </SectorGrid>
+      </SectorSection>
+<SectorSection
         id="bank-groups"
         title={tx("Bank groups")}
         description={tx("NPL by ownership group.")}
@@ -1027,7 +1057,7 @@ export default async function AssetQualityPage() {
           mode="groups"
         />
       </SectorSection>
-      <SectorSection id="method" title={tx("Definitions and methodology")}>
+<SectorSection id="method" title={tx("Definitions and methodology")}>
         <SectorGrid columns={2} ratio="balanced">
           <SectorPanel>
             <h4 className="mb-1 text-[13px] font-semibold text-foreground">
@@ -1075,6 +1105,7 @@ export default async function AssetQualityPage() {
           </SectorPanel>
         </SectorGrid>
       </SectorSection>
+
       <SectorDirectory sector="asset-quality" />
       <SectorFooter />
     </SectorReport>

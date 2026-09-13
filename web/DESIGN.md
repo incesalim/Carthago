@@ -123,10 +123,13 @@ take on trust. Pick the form from the question, then check it against these.
   the reader meets first. Only the bottom band of a stack has a flat baseline, so
   a stack can never show four trends: when each series' own shape is the point,
   use small multiples with a shared scale.
-- **Every nominal ₺ level ships with its real twin.** In a ~30% CPI regime a
-  nominal level chart is mostly a chart of the deflator (deposits: nominal ×2.86
-  since May 2023, **real ×0.91**). Deflate, or index nominal-vs-real on one axis,
-  and print the deflator's lag rather than hiding it.
+- **Name the growth basis and choose it for the analytical question.** Use
+  nominal balances for balance-sheet size and composition, constant-FX growth
+  for lending momentum, and inflation-adjusted comparisons where purchasing
+  power changes the interpretation. Constant FX is not real growth. Preserve
+  access to existing real comparisons and disclose the deflator's lag, but do
+  not force a second real chart beside every nominal balance or make real
+  contraction the default headline for every sector analysis.
 - **A weekly Δ gets a Δ mark**, not a level chart with a Δ in the title: a signed
   strip (per group, zero-centred) beside the level, with the 4w/13w columns that
   say whether one week is noise.

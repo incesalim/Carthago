@@ -22,6 +22,8 @@ import {
 import { sectorPnl, sectorDepositMix } from "@/app/lib/metrics";
 import { buildNimDatasets } from "@/app/lib/nim-components";
 import SectorTrend from "@/app/components/SectorTrend";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import { feeOperatingCostCoverage, monthlyNetProfit } from "@/app/lib/sector-bddk-detail";
 import NimComponentsSection from "./NimComponentsSection";
 import EngineBars from "./EngineBars";
 import ProfitBridge from "./ProfitBridge";
@@ -73,7 +75,7 @@ export default async function ProfitabilityPage() {
     roe, roa, nim,
     opex, fees, lev,
     cpiRaw, nimRows,
-    pnl, depMix,
+    pnl, depMix, feeCoverage,
   ] = await Promise.all([
     ratioRoe(PRIMARY_BANK_TYPES),
     ratioRoa(PRIMARY_BANK_TYPES),
@@ -88,9 +90,17 @@ export default async function ProfitabilityPage() {
     // CUMULATIVE year-to-date — lib/profitability.ts de-cumulates it.
     sectorPnl(),
     sectorDepositMix(),
+    feeOperatingCostCoverage(),
   ]);
 
   const nimDatasets = buildNimDatasets(nimRows);
+  const monthlyProfit = monthlyNetProfit(pnl);
+  const feePeriod = feeCoverage.filter(row => row.bank_type_code === BANK_TYPES.SECTOR).at(-1)?.period;
+  const feePriorPeriod = feePeriod ? `${Number(feePeriod.slice(0, 4)) - 1}${feePeriod.slice(4)}` : undefined;
+  const feeComparisons = PRIMARY_BANK_TYPES.map(code => ({ id: code, label: BANK_TYPE_LABELS[code], values: {
+    prior: feeCoverage.find(row => row.period === feePriorPeriod && row.bank_type_code === code)?.value ?? null,
+    current: feeCoverage.find(row => row.period === feePeriod && row.bank_type_code === code)?.value ?? null,
+  } }));
   const nimThrough = nimRows.length > 0
     ? `${nimRows[nimRows.length - 1].year}-${String(nimRows[nimRows.length - 1].month).padStart(2, "0")}`
     : undefined;
@@ -351,7 +361,7 @@ export default async function ProfitabilityPage() {
             basis: "reported P&L reconciled before display",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "returns", label: "Returns"}, {id: "margins", label: "Margins and costs"}, {id: "income", label: "Income statement"}, ...(E ? [{id: "funding-cost", label: "Funding cost"}] : [])]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "returns", label: "Returns"}, {id: "income", label: "Income statement"}, {id: "margins", label: "Margins and costs"}, ...(E ? [{id: "funding-cost", label: "Funding cost"}] : [])]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening>
 <SectorMetrics><Vital
           label={tx("ROE, ann.")}
@@ -516,7 +526,119 @@ export default async function ProfitabilityPage() {
         </div>
 </SectorPanel>
 </SectorSection>
+<SectorSection id="income" title={tx("Income statement")} description={tx("Monthly income and expenses, derived from year-to-date reported figures.")}>
+<SectorTrend data={monthlyProfit} seriesLabels={{ [BANK_TYPES.SECTOR]: "Monthly net profit" }}
+  title={tx("Monthly net profit")}
+  description={tx("Each month alone: reported year-to-date profit less the preceding month. January starts a new year; missing months remain gaps.")}
+  source={tx("Source: BDDK monthly income statement · nominal TL billion")}
+  yFormat="bn" decimals={0} zeroLine height={260} />
+{br?.reconciles ? (
+            <SectorGrid ratio="wide-left">
+              <ProfitBridge
+                bridge={br}
+                prior={brPrior}
+                title={tx("Monthly income and expenses")}
+                description={<>{tx(monthLabel(br.period))}{" · "}{tx("₺ trn, the month alone · not the year to date")}
+                  {brPrior && br.nii > brPrior.nii && br.net < brPrior.net && <p className="mt-2">{tx("{0} — net interest income rose, and the profit still fell", { 0: monthLabel(br.period) })}</p>}
+                </>}
+                source={
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{tx("NET PROFIT")}{" "}
+                      <b className="font-semibold text-foreground">{tx(fmtTrn(br.net, 3))}</b>
+                    </span>
+                    {brPrior && (
+                      <span>
+                        {tx("Annual change")}{" "}
+                        <b className="font-semibold text-foreground">
+                          {tx(signedTrn(br.net - brPrior.net))}
+                        </b>
+                      </span>
+                    )}
+                    <span>{tx("Reconciliation difference")}{" "}
+                      <b className="font-semibold text-foreground">
+                        ₺{tx(Math.abs(br.gap).toFixed(4))}{tx("trn")}</b>
+                    </span>
+                  </div>
+                }
+                height={300}
+              />
+              {/* The read: each line of the month, against the same month a year
+                  ago — the comparison a YTD average cannot make. */}
+              <SectorPanel>
+                <h5 className="mb-1 text-[14px] font-semibold text-faint">{tx("The month, vs a year ago · ₺ trn")}</h5>
+                <table className="w-full border-collapse">
+                  <tbody>
+                    {(
+                      [
+                        ["Net interest income", "nii"],
+                        ["− Provisions", "prov"],
+                        ["+ Fees & other", "fees"],
+                        ["− Operating costs", "opex"],
+                        ["± Trading / FX", "other"],
+                        ["− Tax", "tax"],
+                        ["= Net profit", "net"],
+                      ] as const
+                    ).map(([label, k]) => {
+                      const v = br[k] as number;
+                      const d = brPrior ? v - (brPrior[k] as number) : null;
+                      return (
+                        <tr key={k} className={k === "net" ? "font-semibold" : undefined}>
+                          <td className="border-b border-hair py-1.5 text-[13px] text-foreground">
+                            {tx(label)}
+                          </td>
+                          <td className="border-b border-hair py-1.5 text-right font-mono text-[13px] tabular-nums text-foreground">
+                            {tx(v.toFixed(3))}
+                          </td>
+                          <td
+                            className={`w-16 border-b border-hair py-1.5 pl-2 text-right font-mono text-[13px] tabular-nums ${d == null ? "text-faint" : d >= 0 ? "text-positive" : "text-negative"
+                              }`}
+                          >
+                            {tx(d == null ? "—" : `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(3)}`)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {brPrior && (
+                  <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{tx("The statement is ")}<b className="font-semibold text-foreground">{tx("cumulative year-to-date")}</b>{tx("; this is the month alone, de-cumulated. Net interest income")}{" "}
+                    {tx(signedTrn(br.nii - brPrior.nii))}{tx(" year-on-year and the profit still")}{" "}
+                    <b className="font-semibold text-foreground">
+                      {tx(br.net < brPrior.net ? "fell" : "rose")}
+                    </b>{" "}{tx("— costs ")}{tx(signedTrn(br.opex - brPrior.opex))}{tx(" and trading")}{" "}
+                    {tx(signedTrn(br.other - brPrior.other))}{tx(". A YTD average cannot show that.")}</p>
+                )}
+              </SectorPanel>
+            </SectorGrid>
+          ) : (
+            <p className="max-w-[90ch] border-l-2 border-warning bg-warning/[0.07] py-2 pl-3 text-[13px] leading-relaxed text-foreground">
+              <b className="font-semibold">{tx("Income-statement reconciliation is unavailable.")}</b>{tx(" Its parts no longer sum to the statement’s own net-profit line (")}{tx(br ? signedTrn(br.gap) : "—")}{tx("), which means the BDDK item numbering has moved. The chart is not drawn on numbers that do not add up — see the flag above.")}</p>
+          )}
+<SectorPanel>
+<div>
+          <SecHead
+            title={tx("Profitability components")}
+            meta={tx("Deposit costs and net interest income")}
+            className="mb-2.5"
+          />
+          <Transmission items={transmission} />
+        </div>
+</SectorPanel>
+</SectorSection>
 <SectorSection id="margins" title={tx("Margins and costs")} description={tx("Net interest margin, operating costs and fee income")}>
+<SectorGrid ratio="balanced">
+  <SectorTrend data={feeCoverage.filter(row => row.bank_type_code === BANK_TYPES.SECTOR)}
+    seriesLabels={{ [BANK_TYPES.SECTOR]: "Fee income / operating costs" }}
+    title={tx("Operating costs covered by fee income")}
+    description={tx("Fees, commissions and banking-service income relative to operating expenses. The 100% line marks equal income and costs.")}
+    source={tx("Source: BDDK monthly bulletin · published ratio, Table 15")}
+    references={[{ value: 100, label: "Income equals operating costs" }]} yFormat="pct" decimals={1} height={280} />
+  <SectorBreakdown data={feeComparisons} mode="paired" format="pct" decimals={1} maxValue={100}
+    series={[{ key: "prior", label: feePriorPeriod ?? "Prior year" }, { key: "current", label: feePeriod ?? "Latest" }]}
+    title={tx("Fee coverage by bank group")}
+    description={tx("Same calendar month, one year apart. This published fee-to-cost ratio differs from fees as a share of revenue.")}
+    source={tx("Source: BDDK monthly bulletin · published ratio, Table 15")} asOf={feePeriod} />
+</SectorGrid>
 <div className="space-y-1">
             <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
             <p className="text-[13px] font-medium text-faint">{tx("NIM components of private banks: BDDK monthly income-statement interest items (income 1–14, expense 16–22) over 13-month average total assets. Private = domestic-private + foreign deposit banks.")}</p>
@@ -621,100 +743,7 @@ export default async function ProfitabilityPage() {
               height={320}
                />
 </SectorSection>
-<SectorSection id="income" title={tx("Income statement")} description={tx("Monthly income and expenses, derived from year-to-date reported figures.")}>
-{br?.reconciles ? (
-            <SectorGrid ratio="wide-left">
-              <ProfitBridge
-                bridge={br}
-                prior={brPrior}
-                title={tx("Monthly income and expenses")}
-                description={<>{tx(monthLabel(br.period))}{" · "}{tx("₺ trn, the month alone · not the year to date")}
-                  {brPrior && br.nii > brPrior.nii && br.net < brPrior.net && <p className="mt-2">{tx("{0} — net interest income rose, and the profit still fell", { 0: monthLabel(br.period) })}</p>}
-                </>}
-                source={
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <span>{tx("NET PROFIT")}{" "}
-                      <b className="font-semibold text-foreground">{tx(fmtTrn(br.net, 3))}</b>
-                    </span>
-                    {brPrior && (
-                      <span>
-                        {tx("Annual change")}{" "}
-                        <b className="font-semibold text-foreground">
-                          {tx(signedTrn(br.net - brPrior.net))}
-                        </b>
-                      </span>
-                    )}
-                    <span>{tx("Reconciliation difference")}{" "}
-                      <b className="font-semibold text-foreground">
-                        ₺{tx(Math.abs(br.gap).toFixed(4))}{tx("trn")}</b>
-                    </span>
-                  </div>
-                }
-                height={300}
-              />
-              {/* The read: each line of the month, against the same month a year
-                  ago — the comparison a YTD average cannot make. */}
-              <SectorPanel>
-                <h5 className="mb-1 text-[14px] font-semibold text-faint">{tx("The month, vs a year ago · ₺ trn")}</h5>
-                <table className="w-full border-collapse">
-                  <tbody>
-                    {(
-                      [
-                        ["Net interest income", "nii"],
-                        ["− Provisions", "prov"],
-                        ["+ Fees & other", "fees"],
-                        ["− Operating costs", "opex"],
-                        ["± Trading / FX", "other"],
-                        ["− Tax", "tax"],
-                        ["= Net profit", "net"],
-                      ] as const
-                    ).map(([label, k]) => {
-                      const v = br[k] as number;
-                      const d = brPrior ? v - (brPrior[k] as number) : null;
-                      return (
-                        <tr key={k} className={k === "net" ? "font-semibold" : undefined}>
-                          <td className="border-b border-hair py-1.5 text-[13px] text-foreground">
-                            {tx(label)}
-                          </td>
-                          <td className="border-b border-hair py-1.5 text-right font-mono text-[13px] tabular-nums text-foreground">
-                            {tx(v.toFixed(3))}
-                          </td>
-                          <td
-                            className={`w-16 border-b border-hair py-1.5 pl-2 text-right font-mono text-[13px] tabular-nums ${d == null ? "text-faint" : d >= 0 ? "text-positive" : "text-negative"
-                              }`}
-                          >
-                            {tx(d == null ? "—" : `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(3)}`)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {brPrior && (
-                  <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{tx("The statement is ")}<b className="font-semibold text-foreground">{tx("cumulative year-to-date")}</b>{tx("; this is the month alone, de-cumulated. Net interest income")}{" "}
-                    {tx(signedTrn(br.nii - brPrior.nii))}{tx(" year-on-year and the profit still")}{" "}
-                    <b className="font-semibold text-foreground">
-                      {tx(br.net < brPrior.net ? "fell" : "rose")}
-                    </b>{" "}{tx("— costs ")}{tx(signedTrn(br.opex - brPrior.opex))}{tx(" and trading")}{" "}
-                    {tx(signedTrn(br.other - brPrior.other))}{tx(". A YTD average cannot show that.")}</p>
-                )}
-              </SectorPanel>
-            </SectorGrid>
-          ) : (
-            <p className="max-w-[90ch] border-l-2 border-warning bg-warning/[0.07] py-2 pl-3 text-[13px] leading-relaxed text-foreground">
-              <b className="font-semibold">{tx("Income-statement reconciliation is unavailable.")}</b>{tx(" Its parts no longer sum to the statement’s own net-profit line (")}{tx(br ? signedTrn(br.gap) : "—")}{tx("), which means the BDDK item numbering has moved. The chart is not drawn on numbers that do not add up — see the flag above.")}</p>
-          )}
-<SectorPanel>
-<div>
-          <SecHead
-            title={tx("Profitability components")}
-            meta={tx("Deposit costs and net interest income")}
-            className="mb-2.5"
-          />
-          <Transmission items={transmission} />
-        </div>
-</SectorPanel>
-</SectorSection>
+
 {E && (<SectorSection id="funding-cost" title={tx("Funding cost")} description={tx("Deposit costs and the contribution of demand deposits to profitability.")}>
 <SectorPanel>
 <Levels

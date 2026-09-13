@@ -1,0 +1,38 @@
+.body { width:100%; }
+.legend { display:flex; flex-wrap:wrap; gap:8px 20px; margin-bottom:18px; color:var(--muted-foreground); font-size:12px; line-height:1.5; }
+.legend span,.readout span,.detail dt { display:inline-flex; align-items:center; gap:6px; }
+.legend i,.readout i,.detail i { flex:none; width:8px; height:8px; border-radius:2px; }
+.rows { display:flex; flex-direction:column; }
+.row { display:grid; grid-template-columns:minmax(110px,1.15fr) minmax(80px,2fr) minmax(80px,.85fr); gap:12px 18px; align-items:center; width:100%; padding:15px 0; border-top:1px solid var(--hair); text-align:left; cursor:pointer; color:var(--foreground); }
+.row:hover,.row[aria-pressed="true"] { background:color-mix(in srgb,var(--data) 5%,var(--card)); }
+.row:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+.label { font-size:13px; font-weight:500; line-height:1.5; overflow-wrap:anywhere; }
+.label small { display:block; margin-top:3px; color:var(--muted-foreground); font-size:12px; font-weight:400; font-variant-numeric:tabular-nums; }
+.plot { display:block; min-width:0; }
+.stack { display:flex; width:100%; height:22px; overflow:hidden; background:var(--hair); border-radius:2px; }
+.stack > span { height:100%; box-shadow:inset -1px 0 var(--card); }
+.pairs { display:flex; flex-direction:column; gap:5px; }
+.track { display:block; position:relative; height:12px; width:100%; background:color-mix(in srgb,var(--hair) 65%,transparent); }
+.mark { display:block; position:absolute; top:0; height:12px; border-radius:1px; }
+.zero { position:absolute; top:-3px; height:18px; width:1px; background:var(--faint); z-index:1; }
+.readout { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:3px 12px; font-size:12px; font-weight:550; font-variant-numeric:tabular-nums; line-height:1.5; }
+.readout span { white-space:nowrap; }
+.detail { margin-top:14px; padding:14px 16px; background:var(--background); border-radius:6px; font-size:13px; }
+.detail > strong { font-weight:600; }
+.detail dl { display:flex; flex-wrap:wrap; gap:10px 26px; margin-top:10px; }
+.detail dl > div { display:flex; flex-direction:column; gap:3px; }
+.detail dt { color:var(--muted-foreground); font-size:12px; }
+.detail dd { font-weight:600; font-variant-numeric:tabular-nums; }
+.empty { padding:24px 0; color:var(--muted-foreground); font-size:14px; }
+.bridgeRow { display:grid; grid-template-columns:minmax(9rem,1fr) minmax(0,2fr) 8.5rem; align-items:center; gap:8px 16px; padding:12px 0; font-size:14px; }
+.bridgeTotal { margin-top:12px; border-top:1px solid var(--border); font-weight:600; }
+.bridgePlot { position:relative; height:28px; min-width:0; }
+.bridgeValue { white-space:nowrap; text-align:right; font-variant-numeric:tabular-nums; }
+@container chart (max-width:540px) {
+  .row { grid-template-columns:minmax(0,1fr) auto; gap:9px 12px; padding:13px 0; }
+  .plot { grid-column:1/-1; grid-row:2; }
+  .readout { max-width:170px; }
+  .bridgeRow { grid-template-columns:minmax(0,1fr) auto; }
+  .bridgePlot { grid-column:1/-1; grid-row:2; }
+  .bridgeValue { grid-column:2; grid-row:1; }
+}

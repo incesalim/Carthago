@@ -1,5 +1,30 @@
 # Project State
 
+## Sector report analytical coverage (2026-09-14)
+
+The eight sector reports use the Garanti BBVA sector-outlook framework and the
+private BDDK visualization catalogue to broaden analysis beyond headline ratios.
+Credit now leads with constant-FX 13-week momentum, product and bank-group
+distribution; real/constant-FX comparisons remain in a dedicated later section.
+The assessment no longer automatically describes all lending growth as inflation
+or asserts a real contraction when the input is positive.
+
+New cached, read-only BDDK views cover balance-sheet composition and the operating
+network; credit by economic sector, maturity, SME size/currency, overdrafts and
+guarantees; deposit customer/currency/maturity and amount bands; published
+liquidity gaps and selected funding sources; regulatory-capital and FX bridges;
+manufacturing and SME credit risk; monthly profit and fee/OPEX coverage; and
+securities accounting and non-derivative commitments. Existing analytical views,
+data controls and sources remain accessible. Signals remain admin-only.
+
+Cross-sections display their own reporting period and retain exact source-unit
+values in data tables/CSV. T05 thousand-TL amounts convert to million TL;
+incomplete identities stay unavailable, and monthly profit de-cumulation
+preserves missing periods. No schema or ingestion change is needed. Source
+mappings, deliberately deferred experiments and verification evidence are in
+`docs/knowledge/2026-09-14-sector-analytics/` and its linked route investigations.
+
+
 ## NPL comparative cells and signed reclassifications (2026-09-14)
 
 The existing NPL extractor reads bounded movement disclosures across pages,

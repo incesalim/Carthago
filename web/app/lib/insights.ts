@@ -151,20 +151,17 @@ export function overviewInsights(d: {
 export function creditInsights(d: {
   yoy: SeriesPoint[]; // sector loan growth, 52w NOMINAL
   mom4: SeriesPoint[]; // 4w annualized momentum
+  fxAdjusted13w?: SeriesPoint[]; // 13w annualized, constant FX (not inflation-adjusted)
   yoyState: SeriesPoint[];
   yoyPrivate: SeriesPoint[];
   fxShare: SeriesPoint[]; // weekly
   cardsYoY: SeriesPoint[];
   smeYoY: SeriesPoint[];
-  /**
-   * The bridge: nominal -> minus lira -> minus inflation -> real, constant FX.
-   * Without it this engine opened with "Credit expands 36.6% y/y ... confirming
-   * acceleration", which flatly CONTRADICTS the brief above it: the same book
-   * SHRANK 2.1% once the lira and the price level are stripped. The Read must not
-   * argue with the page it sits on.
-   */
+  /** Complementary price/FX interpretation; not the default lending-cycle headline. */
   bridge?: {
     nominal: number | null;
+    nominalAtReal?: number | null;
+    asOfReal?: string | null;
     realFxAdj: number | null;
     currencyPp: number | null;
     inflationPp: number | null;
@@ -176,30 +173,34 @@ export function creditInsights(d: {
 
   const y = last(d.yoy);
   const m4 = last(d.mom4);
+  const m13 = d.fxAdjusted13w?.find(row => row.period === period)?.value ?? null;
   const b = d.bridge ?? null;
   const real = b?.realFxAdj ?? null;
+  const bridgeNominal = b && "nominalAtReal" in b ? b.nominalAtReal ?? null : b?.nominal ?? null;
+  const bridgeDate = b?.asOfReal ? tx("As of {0}: ", {0: b.asOfReal}) : "";
   const pace =
     y != null && m4 != null ? (m4 > y + 2 ? "accelerating" : m4 < y - 2 ? "cooling" : "steady") : null;
 
-  // Lead with what the book actually did, not with the nominal print.
-  if (real != null && y != null) {
-    items.push({
+  const realItems: Insight[] = [];
+  if (real != null && bridgeNominal != null) {
+    realItems.push({
       label: tx("Real credit growth"),
       text:
-        tx("Nominal credit grows {0} y/y — but strip the lira and the price level and the book ", {0: pct(y)}) +
+        bridgeDate + tx("Nominal credit grows {0} y/y — but strip the lira and the price level and the book ", {0: pct(bridgeNominal)}) +
         tx("{0} {1} in real, constant-FX terms.", {0: real < 0 ? "shrank" : "grew", 1: pct(Math.abs(real))}),
       tone: real < 0 ? "warn" : "neutral",
     });
     if (b?.currencyPp != null && b?.inflationPp != null) {
-      items.push({
+      realItems.push({
         label: tx("Currency and inflation effects"),
         text:
-          tx("Of that {0} print, {1} is lira depreciation revaluing the FX book ", {0: pct(y), 1: ppStr(b.currencyPp)}) +
+          bridgeDate + tx("Of that {0} print, {1} is lira depreciation revaluing the FX book ", {0: pct(bridgeNominal), 1: ppStr(b.currencyPp)}) +
           tx("and {0} is inflation. What remains is real volume.", {0: ppStr(b.inflationPp)}),
         tone: "neutral",
       });
     }
-  } else if (y != null) {
+  }
+  if (y != null) {
     items.push({
       label: tx("Nominal credit growth"),
       text: tx("Loan growth {0} y/y (nominal){1}.", {0: pct(y), 1: m4 != null ? tx("; the 4-week pace ({0}) says the trend is {1}", {0: pct(m4), 1: pace}) : ""}),
@@ -207,16 +208,16 @@ export function creditInsights(d: {
     });
   }
 
-  if (real != null && y != null && m4 != null) {
+  if (m13 != null) {
     items.push({
-      label: tx("Short-term credit growth"),
-      text: tx("The 4-week pace ({0}) says the NOMINAL trend is {1} — on a book that is not growing in real terms.", {0: pct(m4), 1: pace}),
+      label: tx("FX-adjusted credit momentum"),
+      text: tx("FX-adjusted 13-week annualized credit growth is {0}. This measure removes exchange-rate valuation changes; it is not adjusted for inflation.", {0: pct(m13)}),
       tone: "neutral",
     });
   }
 
-  const st = last(d.yoyState);
-  const pr = last(d.yoyPrivate);
+  const st = d.yoyState.find(point => point.period === period)?.value ?? null;
+  const pr = d.yoyPrivate.find(point => point.period === period)?.value ?? null;
   if (st != null && pr != null) {
     items.push({
       label: tx("Bank groups"),
@@ -247,13 +248,13 @@ export function creditInsights(d: {
     });
   }
 
-  const headline =
-    real != null && y != null
-      ? tx("The {0} loan-growth print is mostly lira and inflation: in real, constant-FX terms the book ", {0: pct(y)}) +
-        `${real < 0 ? tx("shrank {0}", {0: pct(Math.abs(real))}) : tx("grew {0}", {0: pct(real)})}` +
-        `${st != null && pr != null ? tx(", with {0} banks leading the cycle", {0: st >= pr ? "state" : "private"}) : ""}.`
-      : tx("Credit is growing {0} y/y and {1}, led by {2} banks; ", {0: pct(y), 1: pace ?? "—", 2: st != null && pr != null && st >= pr ? "state" : "private"}) +
-        tx("FX share of the book {0}.", {0: fx != null ? tx("at {0}", {0: pct(fx)}) : "—"});
+  items.push(...realItems);
+  const headline = [
+    y != null ? tx("Annual nominal loan growth is {0}.", {0: pct(y)}) : tx("The latest annual loan-growth reading is unavailable."),
+    m13 != null ? tx("FX-adjusted 13-week annualized growth is {0}.", {0: pct(m13)}) : "",
+    st != null && pr != null ? tx("{0} banks have the higher annual growth rate: {1} versus {2}.",
+      {0: st >= pr ? "State" : "Private", 1: pct(Math.max(st, pr)), 2: pct(Math.min(st, pr))}) : "",
+  ].filter(Boolean).join(" ");
 
   return { asOf: period, headline, items };
 }

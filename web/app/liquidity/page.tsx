@@ -83,12 +83,19 @@ import { LDR_WEEKLY_TL } from "@/app/lib/ldr";
 import { VERBS, bandsFor, direction, firstClaim } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import SectorTrend from "@/app/components/SectorTrend";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import {
+  loadLiquidityFundingDetail,
+  NON_DEPOSIT_FUNDING_LABELS,
+  SYNDICATION_LABELS,
+} from "@/app/lib/sector-funding";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import ReserveBuffer from "@/app/components/ReserveBuffer";
 import Takeaway from "@/app/components/Takeaway";
 import { liquidityInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
+import { createFormatters } from "@/app/lib/chart-format";
 
 export const dynamic = "force-dynamic";
 
@@ -197,6 +204,7 @@ export default async function LiquidityPage() {
     reer,
     fwdDeep,
     liqRatios,
+    fundingDetail,
   ] = await Promise.all([
     // Loan-to-deposit ratios, public vs private
     weeklyOwnershipRatio(
@@ -246,6 +254,7 @@ export default async function LiquidityPage() {
     evdsSeries("TP.DOVVARNC.K15", FWD_YEARS_BACK),
     // Audited §4 regulatory-liquidity ratios (LCR/NSFR/leverage), sector view
     sectorLiquidityRatios(),
+    loadLiquidityFundingDetail(),
   ]);
 
   // EVDS-derived series. APIFON3 is million TL → TrendChart "bn" divides by 1000.
@@ -683,6 +692,8 @@ export default async function LiquidityPage() {
           { id: "liquidity-ratios", label: "Liquidity ratios" },
           { id: "lira-funding", label: "Lira funding" },
           { id: "fx-funding", label: "FX liquidity" },
+          { id: "funding-sources", label: "Funding sources" },
+          { id: "maturity-gaps", label: "Liquidity by maturity" },
           { id: "reserves", label: "Reserves" },
         ]}
         controls={<GlobalRangeSelector compact />}
@@ -1201,6 +1212,82 @@ export default async function LiquidityPage() {
                 </p>
               </>
             }
+          />
+        </SectorGrid>
+      </SectorSection>
+      <SectorSection
+        id="funding-sources"
+        title={tx("Funding sources")}
+        description={tx("Bank borrowing, securities issuance and repo complement the deposit base.")}
+      >
+        <SectorTrend
+          data={fundingDetail.funding}
+          seriesLabels={NON_DEPOSIT_FUNDING_LABELS}
+          title={tx("Selected non-deposit funding")}
+          description={tx("Domestic and foreign bank borrowing, securities issued and repo balances. These four sources are not the entirety of funding.")}
+          source={tx("Source: BDDK weekly bulletin, other balance-sheet items. Outstanding amounts in Turkish lira, including the lira value of foreign-currency liabilities.")}
+          yFormat="bn"
+          decimals={0}
+          mode="trend"
+          height={330}
+        />
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorTrend
+            data={fundingDetail.syndication}
+            seriesLabels={SYNDICATION_LABELS}
+            title={tx("Syndicated and securitization loans")}
+            description={tx("Month-end funding balances by instrument. Changes reflect repayments, new borrowing and currency valuation; this is not a rollover ratio.")}
+            source={tx("Source: BDDK monthly bulletin, syndication and securitization loans. Foreign-currency balances are shown at their Turkish-lira equivalent.")}
+            yFormat="bn"
+            decimals={0}
+            mode="trend"
+            height={310}
+          />
+          <SectorTrend
+            data={fundingDetail.securities}
+            seriesLabels={{ repo: "Securities used in repo", pledged: "Securities pledged as collateral" }}
+            title={tx("Securities used in repo and as collateral")}
+            description={tx("Each series is a separate share of the securities portfolio. The categories can overlap, so they cannot be added or subtracted together to estimate an unencumbered portfolio.")}
+            source={tx("Source: BDDK monthly bulletin, securities portfolio memorandum items. Monthly balances divided by the same month's total portfolio.")}
+            yFormat="pct"
+            decimals={1}
+            mode="trend"
+            height={310}
+          />
+        </SectorGrid>
+      </SectorSection>
+      <SectorSection
+        id="maturity-gaps"
+        title={tx("Liquidity by maturity")}
+        description={tx("Published liquidity assets and liabilities over four BDDK maturity horizons.")}
+      >
+        <SectorGrid columns={1}>
+          <SectorBreakdown
+            data={fundingDetail.maturity.horizons}
+            series={[{ key: "net", label: "Net liquidity surplus / shortfall" }]}
+            mode="ranking"
+            percent={false}
+            format="bn"
+            title={tx("Net liquidity surplus or shortfall by horizon")}
+            description={tx("Assets less liabilities in each published horizon. A positive value is a surplus. The horizons overlap and must not be added.")}
+            asOf={fundingDetail.maturity.period ?? undefined}
+            source={tx("Source: BDDK monthly liquidity-position table. Published weighted amounts; this is neither a cash-flow forecast nor the regulatory liquidity coverage ratio (LCR).")}
+          />
+          <SectorBreakdown
+            data={fundingDetail.maturity.components}
+            series={[{ key: "net", label: "Contribution to the one-month net balance" }]}
+            mode="ranking"
+            percent={false}
+            format="bn"
+            title={tx("Components of the one-month liquidity balance")}
+            description={<>
+              {tx("Asset contributions are positive and liability contributions are negative. Derivative receivables and payables are netted once; the contributions reconcile to the published one-month balance.")}
+              {fundingDetail.maturity.net != null && <p className="mt-2 font-medium text-foreground">
+                {tx("Published one-month net balance: {0}.", { 0: createFormatters(tx.locale).bn(fundingDetail.maturity.net, 0) })}
+              </p>}
+            </>}
+            asOf={fundingDetail.maturity.period ?? undefined}
+            source={tx("Source: BDDK monthly liquidity-position table, one-month horizon. Other horizons and derivative sub-items are excluded from the sum.")}
           />
         </SectorGrid>
       </SectorSection>

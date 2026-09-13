@@ -1,20 +1,9 @@
 import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorOpening, SectorGrid, SectorPanel, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
 /**
- * Credit tab — the Desk brief above the carried-over evidence.
- *
- * The page's claim used to be its nominal loan print (36%+). In a 32% CPI
- * regime with a depreciating lira that number is mostly not credit, and the
- * page owned both corrections already — it just never composed them. It now
- * leads with the bridge (nominal → −currency → −inflation → real), then says
- * WHERE the growth came from (segment contributions, which reconcile to the
- * headline exactly). Research conditions are collected separately in lib/sector-signals/credit.ts.
- *
- * Sourced from the BDDK *weekly* bulletin (`weekly_series`) for every series the
- * weekly feed carries — fresher and denser than the monthly tables, at the cost
- * of a ~3-year rolling history. The two metrics weekly does NOT carry stay on the
- * monthly tables: the card retail-vs-corporate split (`cardsSplit`) and the SME
- * micro/small/medium mix (`smeBreakdown`). Growth windows: monthly YoY → weekly
- * 52w; the old monthly MoM chart → weekly 4w annualized momentum.
+ * Credit analysis: currency-adjusted momentum, allocation and product detail.
+ * Weekly activity and monthly structural snapshots retain their own dates.
+ * Real purchasing power and the exchange-rate/inflation bridge remain a
+ * separate analysis; research conditions stay in the admin workspace.
  */
 import { localizeMetadata } from "@/i18n/metadata";
 import { getText } from "@/i18n/server";
@@ -54,7 +43,8 @@ import {
   type Pt,
 } from "@/app/lib/credit";
 import { GlobalRangeSelector } from "@/app/components/range-context";
-import BarByBank from "@/app/components/BarByBank";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import { loadCreditStructure } from "@/app/lib/sector-credit";
 import SectorTrend from "@/app/components/SectorTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
@@ -114,18 +104,18 @@ function computeFxShare(tl: WeeklyRow[], fx: WeeklyRow[]): TimeSeriesRow[] {
 /** Pivot several weekly series into wide rows ({period, [key]: value}) for StackedArea. */
 function joinWeekly(
   parts: { key: string; rows: WeeklyRow[] }[],
-): Record<string, string | number>[] {
+): Record<string, string | number | null>[] {
   const keys = parts.map((p) => p.key);
-  const byPeriod = new Map<string, Record<string, string | number>>();
+  const byPeriod = new Map<string, Record<string, string | number | null>>();
   for (const { key, rows } of parts) {
     for (const r of rows) {
       let row = byPeriod.get(r.period);
       if (!row) {
         row = { period: r.period };
-        for (const k of keys) row[k] = 0;
+        for (const k of keys) row[k] = null;
         byPeriod.set(r.period, row);
       }
-      row[key] = r.value ?? 0;
+      row[key] = r.value ?? null;
     }
   }
   return Array.from(byPeriod.values()).sort((a, b) =>
@@ -159,6 +149,7 @@ export default async function CreditPage() {
     yoyPubPriv, tlYoyPubPriv,
     smeLevel,
     cards, smeBreak,
+    tlByGroup, fxByGroup, cardInstalments, cardNonInstalments, consumerOverdraft, commercialOverdraft, structure,
   ] = await Promise.all([
     weeklySeries(KREDI, TOTAL, "TOTAL", sector, 156),
     weeklySeries(KREDI, TOTAL, "TL", sector, 156),
@@ -183,6 +174,13 @@ export default async function CreditPage() {
     weeklySeries(KREDI, SME, "TOTAL", smeGroups, 156),
     cardsSplit(),
     smeBreakdown(),
+    weeklySeries(KREDI, TOTAL, "TL", pubPriv, 156),
+    weeklySeries(KREDI, TOTAL, "FX", pubPriv, 156),
+    weeklySeries(KREDI, "1.0.9", "TOTAL", sector, 156),
+    weeklySeries(KREDI, "1.0.10", "TOTAL", sector, 156),
+    weeklySeries(KREDI, "1.0.23", "TOTAL", sector, 156),
+    weeklySeries(KREDI, "1.0.24", "TOTAL", sector, 156),
+    loadCreditStructure(),
   ]);
   const [cpiYoY, usdTry] = await Promise.all([cpiYoYByMonth(), evdsSeries("TP.DK.USD.A", 4)]);
 
@@ -192,6 +190,21 @@ export default async function CreditPage() {
   // ---- the bridge: nominal → −currency → −inflation → real ------------------
   const fxAdjSeries = fxAdjustedGrowth(tlSec, fxSec, usdTry);
   const fxAdj13w = annualizeGrowth(fxAdjustedGrowth(tlSec, fxSec, usdTry, 13 * 7), 13 * 7);
+  const momentumByGroup = combineWeekly([
+    { code: WEEKLY_BANK_TYPES.SECTOR, rows: fxAdj13w },
+    ...pubPriv.map(code => ({ code, rows: annualizeGrowth(fxAdjustedGrowth(
+      tlByGroup.filter(row => row.bank_type_code === code),
+      fxByGroup.filter(row => row.bank_type_code === code), usdTry, 13 * 7,
+    ), 13 * 7) })),
+  ]);
+  const instalmentMix = joinWeekly([
+    { key: "INSTALMENTS", rows: cardInstalments },
+    { key: "NON_INSTALMENTS", rows: cardNonInstalments },
+  ]);
+  const overdrafts = combineWeekly([
+    { code: "CONSUMER", rows: consumerOverdraft },
+    { code: "COMMERCIAL", rows: commercialOverdraft },
+  ]);
   const realFxAdjSeries = deflate(fxAdjSeries, cpiYoY);
   const bridge = creditBridge(yoySector, fxAdjSeries, cpiYoY);
 
@@ -273,6 +286,7 @@ export default async function CreditPage() {
   const read = creditInsights({
     yoy: yoySector,
     mom4: mom4Sector,
+    fxAdjusted13w: fxAdj13w,
     yoyState,
     yoyPrivate,
     fxShare,
@@ -378,12 +392,25 @@ export default async function CreditPage() {
           {
             cadence: "monthly",
             role: "structure",
-            asOf: bridge.asOfReal,
-            basis: "CPI deflator only; never nowcast",
+            asOf: structure.sectorDistribution.asOf,
+            basis: "Monthly sector allocation, maturity, SME and non-cash lending",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "growth", label: "Loan growth"}, {id: "contributions", label: "Growth contributions"}, {id: "retail", label: "Retail lending"}, {id: "sme", label: "SME loans"}, {id: "bank-groups", label: "Bank groups"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "growth", label: "Credit momentum"}, {id: "contributions", label: "Growth contributions"}, {id: "bank-groups", label: "Bank groups"}, {id: "economic-sectors", label: "Economic sectors and maturities"}, {id: "retail", label: "Retail lending"}, {id: "sme", label: "SME loans"}, {id: "guarantees", label: "Non-cash lending"}, {id: "real-growth", label: "Real growth"}]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening><SectorMetrics><Vital
+          label={tx("FX-adjusted momentum, 13w ann.")}
+          observation={{ cadence: "weekly", asOf: fxAdj13w.at(-1)?.period }}
+          value={
+            fxAdj13Now != null
+              ? `${fxAdj13Now < 0 ? "−" : ""}${Math.abs(fxAdj13Now).toFixed(1)}`
+              : "—"
+          }
+          unit="%"
+          series={fxAdj13w.slice(-26)}
+          decimals={1}
+          note={tx(fxAdj13Now != null ? "Exchange-rate valuation effects excluded." : "awaits a 13-week comparison base")}
+        />
+<Vital
           label={tx("Nominal growth, 52w")}
           value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
           unit="%"
@@ -396,18 +423,6 @@ export default async function CreditPage() {
               </>
             ) : undefined
           }
-        />
-<Vital
-          label={tx("FX-adjusted momentum, 13w ann.")}
-          value={
-            fxAdj13Now != null
-              ? `${fxAdj13Now < 0 ? "−" : ""}${Math.abs(fxAdj13Now).toFixed(1)}`
-              : "—"
-          }
-          unit="%"
-          series={fxAdj13w.slice(-26)}
-          decimals={1}
-          note={tx(fxAdj13Now != null ? "Exchange-rate valuation effects excluded." : "awaits a 13-week comparison base")}
         />
 <Vital label={tx("Real, constant-FX growth, 52w")} observation={{ cadence: "weekly", asOf: bridge.asOfReal, basis: "Currency and price effects removed; published CPI only." }} value={realFxNow != null ? realFxNow.toFixed(1) : "—"} unit="%" series={realFxAdjSeries.slice(-26)} decimals={1} />
 <Vital
@@ -426,67 +441,14 @@ export default async function CreditPage() {
           }
         /></SectorMetrics>
 </SectorOpening>
-<SectorSection id="growth" title={tx("Loan growth")} description={tx("Nominal growth and the effects of exchange rates and inflation.")}>
-<SectorGrid ratio="wide-left">
-<SectorTrend height={320} hero="REALFX"
-          data={threePrints}
-          seriesLabels={{
-            NOMINAL: "Nominal",
-            FXADJ: "FX-adjusted",
-            REALFX: "Real, constant FX",
-          }}
-          title={tx("Loan growth and purchasing power")}
-          description={<>{tx(seriesFinding(realFxAdjSeries as TimeSeriesRow[], {
-            noun: "Real, constant-FX loan growth", decimals: 1, windowLabel: "12w",
-          }, tx.locale))}{" · "}{tx("Loan growth 52w, %, weekly · sector · the gap between the lines is the lira and the price level")}</>}
-          source={tx("Source: BDDK weekly bulletin · TÜİK CPI · TCMB USD/TRY")}
-          yFormat="pct"
-          decimals={1}
-          zeroLine
-          plain
-        />
-<SectorPanel>
-<SecHead
-        title={tx("Exchange-rate and inflation effects")}
-        meta={tx("nominal → constant currency → constant prices · 52w")}
-        action={
-          bridge.lagged ? (
-            <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx("real legs at W/E ")}{tx(realWeek)}{tx(" — CPI lags the weekly print")}</span>
-          ) : undefined
-        }
-        className="mb-4"
-      />
-<Bridge bridge={bridge} />
-<div className="mt-4">
-          <p className="text-[16px] leading-snug tracking-tight text-foreground">
-            {/* nominalAtReal, NOT nominal: this sentence then subtracts the legs, which
-                are read at the real week. Pairing the latest nominal with June legs made
-                the sentence stop adding up (36.2% − 7.1 − 31.4 ≠ −2.1%). */}
-            {tx(realFxNow != null && realFxNow < 0
-              ? "Nominal loan growth is {0}. After removing currency and price effects, the book contracts {1} in real terms."
-              : "Nominal loan growth is {0}. After removing currency and price effects, the book expands {1} in real terms.",
-              { 0: fmtPct(bridge.nominalAtReal), 1: fmtPct(Math.abs(realFxNow ?? 0)) })}
-          </p>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
-            {bridge.currencyPp != null && bridge.inflationPp != null ? (
-              <>{tx("Of that print, ")}{tx(signedPp(bridge.currencyPp, 1))}{tx(" is lira depreciation revaluing the FX book and ")}{tx(signedPp(bridge.inflationPp, 1))}{tx(" is inflation (CPI ")}{tx(fmtPct(bridge.cpi))}{tx("). What remains is real volume —")}{" "}
-                {/* The run count was computed and the word "negative" was typed, so the
-                    week real growth turned positive this read "negative for 0 weeks". */}
-                {tx(runPhrase(realNegRun, "negative", "w", tx.locale) ??
-                  (realFxNow != null ? tx("positive at {0}", { 0: fmtPct(realFxNow) }) : "not yet negative"))}
-                .
-              </>
-            ) : (
-              <>{tx("The bridge awaits a CPI print.")}</>
-            )}
-          </p>
-          <p className="mt-3 border-t border-hair pt-3 text-[12px] leading-relaxed text-muted-foreground">{tx("Real growth = (1 + FX-adjusted growth) ÷ (1 + annual CPI) − 1. Foreign-currency loans are valued at the base week’s USD/TRY rate and assumed to be denominated in US dollars.")}</p>
-        </div>
-</SectorPanel>
-</SectorGrid>
-<Takeaway data={readData} variant="report" />
-
-<SectorGrid columns={3}>
+<SectorSection id="growth" title={tx("Credit momentum")} description={tx("Currency-adjusted lending momentum and the short-term nominal pace.")}>
+<SectorGrid>
+<SectorTrend data={momentumByGroup} seriesLabels={{
+  [WEEKLY_BANK_TYPES.SECTOR]: "Sector", [WEEKLY_BANK_TYPES.STATE]: "State", [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+}} hero={WEEKLY_BANK_TYPES.SECTOR} title={tx("FX-adjusted credit growth, 13-week annualised")}
+  description={tx("Sector, public and private banks · exchange-rate valuation effects excluded")}
+  source={tx("Source: BDDK weekly bulletin · TCMB USD/TRY. Foreign-currency loans are valued at the base week's exchange rate; the FX book is assumed to be in US dollars.")}
+  yFormat="pct" decimals={1} height={300} zeroLine plain />
 <SectorTrend height={280}
               data={mom4Sector}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
@@ -496,26 +458,8 @@ export default async function CreditPage() {
               zeroLine
               plain
             />
-<SectorTrend height={280}
-              data={realVsNominal}
-              seriesLabels={REAL_TERMS_LABELS}
-              title={tx("Loan Growth YoY — nominal vs real (sector, %)")}
-              description={tx("The CPI-deflated twin alone — it does not remove the currency effect.")}
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-              plain
-            />
-<SectorTrend height={280}
-              data={fxShare}
-              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
-              title={tx("FX Share of Total Loans (%)")}
-              description={tx("How much of the book the currency adjustment is acting on.")}
-              yFormat="pct"
-              decimals={1}
-              plain
-            />
 </SectorGrid>
+<Takeaway data={readData} variant="report" />
 </SectorSection>
 <SectorSection id="contributions" title={tx("Growth contributions")} description={tx("Contribution by loan type to annual sector growth, in percentage points.")}>
 <SectorGrid>
@@ -550,6 +494,87 @@ export default async function CreditPage() {
           <Movers from="13w ago" to="Now" rows={moverRows} />
         </SectorPanel>
       </SectorGrid>
+</SectorSection>
+<SectorSection id="bank-groups" title={tx("Bank groups")} description={tx("Loan growth by bank ownership and currency.")}>
+<Vital
+          label={tx("State − private gap")}
+          value={gapNow != null ? `${gapNow >= 0 ? "+" : "−"}${Math.abs(gapNow).toFixed(1)}` : "—"}
+          unit="pp"
+          series={gapSeries.slice(-26)}
+          format="raw"
+          decimals={1}
+          note={
+            stateNow != null && privNow != null && gapNow != null ? (
+              <>{tx(gapNow >= 0
+                ? "State-bank growth is {0}, versus {1} for private banks; state banks lead the cycle."
+                : "State-bank growth is {0}, versus {1} for private banks; private banks lead the cycle.",
+                { 0: fmtPct(stateNow), 1: fmtPct(privNow) })}</>
+            ) : undefined
+          }
+        />
+<SectorTrend mode="groups"
+                data={yoyAll}
+                seriesLabels={WEEKLY_BANK_TYPE_LABELS}
+                title={
+                  tx(seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
+                    "Loan Growth YoY (%) by group")
+                }
+                description={tx("Loan growth YoY, %, weekly · by ownership group")}
+                source={tx("Source: BDDK weekly bulletin")}
+                yFormat="pct"
+                decimals={1}
+                deltaPeriods={13}
+                deltaLabel="13w"
+                height={160}
+                zeroLine
+                plain
+              />
+<SectorGrid columns={3}>
+<SectorBreakdown
+  data={yoyByBank.map(row => ({id: row.bank_type_code, label: WEEKLY_BANK_TYPE_LABELS[row.bank_type_code], values: {growth: row.value}}))}
+  series={[{key: "growth", label: "Annual growth"}]} mode="ranking" format="pct" decimals={1}
+  title={tx("Loan YoY by group · {0}", { 0: yoyByBank[0]?.period ?? "" })}
+  asOf={yoyByBank[0]?.period} />
+<SectorTrend height={280}
+              data={yoyPubPriv}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title={tx("Total Credit YoY — Public vs Private")}
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+              plain
+            />
+<SectorTrend height={280}
+              data={tlYoyPubPriv}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title={tx("TL Loans YoY — Public vs Private")}
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+              plain
+            />
+</SectorGrid>
+</SectorSection>
+<SectorSection id="economic-sectors" title={tx("Economic sectors and maturities")} description={tx("Monthly credit allocation by economic activity and the maturity profile of loan products.")}>
+<SectorGrid columns={1}>
+<SectorBreakdown data={structure.sectorDistribution.data} series={[{key: "credit", label: "Gross cash credit"}]}
+  mode="ranking" format="bn" decimals={0} asOf={structure.sectorDistribution.asOf ?? undefined}
+  title={tx("Credit by economic activity")}
+  description={tx("Main economic sectors · gross cash credit, including non-performing loans")}
+  source={tx("Source: BDDK monthly Table 5. Main sectors are mutually exclusive; manufacturing sub-sectors are not added again. Retail and other unallocated lending are outside this comparison. Source thousands of TL converted to millions of TL.")} />
+<SectorBreakdown data={structure.maturities.data} series={[{key: "short", label: "Short term"}, {key: "long", label: "Medium and long term"}]}
+  mode="composition" percent format="bn" decimals={0} asOf={structure.maturities.asOf ?? undefined}
+  title={tx("Maturity profile by loan type")}
+  description={tx("Each row represents 100% of that loan type; the exact amounts remain available.")}
+  source={tx("Source: BDDK monthly Table 3. Published short-term and medium/long-term classifications; these are not remaining maturities or interest repricing dates. Missing or unreconciled components are not estimated.")} />
+</SectorGrid>
+<p className="text-[13px] text-muted-foreground"><Link href="/asset-quality#sector-risk" className="font-medium text-primary">{tx("Asset Quality")}</Link>{" · "}{tx("Manufacturing sub-sectors and SME credit quality")}</p>
 </SectorSection>
 <SectorSection id="retail" title={tx("Retail lending")} description={<>{tx("Housing, auto, general-purpose loans and credit cards: volumes, shares and growth.")}{" "}{claim(consLead.length === 2, tx("The composition behind the attribution bars — {0} & {1} lead the consumer book.", { 0: consLead[0], 1: consLead[1] }))}</>}>
 <Vital
@@ -613,6 +638,16 @@ export default async function CreditPage() {
               decimals={2}
               plain
             />
+</SectorGrid>
+<SectorGrid>
+<StackedArea data={instalmentMix} series={[{key: "INSTALMENTS", label: "Instalment balances"}, {key: "NON_INSTALMENTS", label: "Non-instalment balances"}]}
+  title={tx("Retail card balances by instalment structure")} percentStack height={280} plain
+  description={tx("Weekly balances · each observation represents total retail card credit")}
+  source={tx("Source: BDDK weekly bulletin, retail cards. Non-instalment balances are not a measure of arrears or interest-bearing debt; balances are not spending flows.")} />
+<SectorTrend data={overdrafts} seriesLabels={{CONSUMER: "Consumer overdrafts", COMMERCIAL: "Commercial instalment overdrafts"}}
+  title={tx("Overdraft balances")} yFormat="bn" decimals={0} height={280} plain
+  description={tx("Consumer overdrafts and overdrafts within commercial instalment loans")}
+  source={tx("Source: BDDK weekly bulletin. Overdrafts are already included in loan aggregates and must not be added again. Nominal balance growth does not measure borrower numbers, real growth or credit quality.")} />
 </SectorGrid>
 </SectorSection>
 <SectorSection id="sme" title={tx("SME loans")} description={tx(smeContrib
@@ -709,72 +744,112 @@ export default async function CreditPage() {
               plain
             />
           </ChartRow>
+<SectorGrid>
+<SectorBreakdown data={structure.smeCurrency.data} series={[{key: "tl", label: "Turkish lira"}, {key: "fx", label: "Foreign currency"}]}
+  mode="composition" percent format="bn" decimals={0} asOf={structure.smeCurrency.asOf ?? undefined}
+  title={tx("SME lending by size and currency")}
+  description={tx("Currency composition within each enterprise-size class")}
+  source={tx("Source: BDDK monthly Table 6. Credit-amount rows only; customer-count rows are not monetary balances.")} />
+<SectorBreakdown data={structure.smeRecords.data} series={[{key: "records", label: "Customer record share"}, {key: "credit", label: "Cash-credit share"}]}
+  mode="paired" format="pct" decimals={1} asOf={structure.smeRecords.asOf ?? undefined}
+  title={tx("SME customer records and credit volumes")}
+  description={tx("Share of cash-credit customer records compared with share of cash-credit balances")}
+  source={tx("Source: BDDK monthly Table 6. Customer records are not unique enterprises across banks. Each measure has its own total; these shares do not measure average credit per unique borrower.")} />
+</SectorGrid>
 </SectorSection>
-<SectorSection id="bank-groups" title={tx("Bank groups")} description={tx("Loan growth by bank ownership and currency.")}>
-<Vital
-          label={tx("State − private gap")}
-          value={gapNow != null ? `${gapNow >= 0 ? "+" : "−"}${Math.abs(gapNow).toFixed(1)}` : "—"}
-          unit="pp"
-          series={gapSeries.slice(-26)}
-          format="raw"
+<SectorSection id="guarantees" title={tx("Non-cash lending")} description={tx("Guarantees and credit commitments beyond the cash-loan book.")}>
+<SectorGrid>
+<SectorBreakdown data={structure.nonCash.data} series={[{key: "tl", label: "Turkish lira"}, {key: "fx", label: "Foreign currency"}]}
+  mode="composition" percent={false} format="bn" decimals={0} asOf={structure.nonCash.asOf ?? undefined}
+  title={tx("Non-cash credit by instrument and currency")}
+  description={tx("Nominal balances in TL equivalents; derivatives are a separate population")}
+  source={tx("Source: BDDK monthly Table 14. These are nominal commitments, not expected losses or cash outflows. Zero disclosures remain zero; missing amounts are not estimated.")} />
+<SectorBreakdown data={structure.guaranteePurpose.data} series={[{key: "amount", label: "Letters of guarantee"}]}
+  mode="ranking" format="bn" decimals={0} asOf={structure.guaranteePurpose.asOf ?? undefined}
+  title={tx("Letters of guarantee by purpose")}
+  description={tx("Seven purposes within the published letters-of-guarantee total")}
+  source={tx("Source: BDDK monthly Table 14, purpose classification. Collateral types are a separate classification of the same book and are not added to these purposes.")} />
+</SectorGrid>
+</SectorSection>
+<SectorSection id="real-growth" title={tx("Real growth and valuation effects")} description={tx("Nominal growth and the effects of exchange rates and inflation.")}>
+<SectorGrid ratio="wide-left">
+<SectorTrend height={320} hero="REALFX"
+          data={threePrints}
+          seriesLabels={{
+            NOMINAL: "Nominal",
+            FXADJ: "FX-adjusted",
+            REALFX: "Real, constant FX",
+          }}
+          title={tx("Loan growth and purchasing power")}
+          description={<>{tx(seriesFinding(realFxAdjSeries as TimeSeriesRow[], {
+            noun: "Real, constant-FX loan growth", decimals: 1, windowLabel: "12w",
+          }, tx.locale))}{" · "}{tx("Loan growth 52w, %, weekly · sector · the gap between the lines is the lira and the price level")}</>}
+          source={tx("Source: BDDK weekly bulletin · TÜİK CPI · TCMB USD/TRY")}
+          yFormat="pct"
           decimals={1}
-          note={
-            stateNow != null && privNow != null && gapNow != null ? (
-              <>{tx(gapNow >= 0
-                ? "State-bank growth is {0}, versus {1} for private banks; state banks lead the cycle."
-                : "State-bank growth is {0}, versus {1} for private banks; private banks lead the cycle.",
-                { 0: fmtPct(stateNow), 1: fmtPct(privNow) })}</>
-            ) : undefined
-          }
+          zeroLine
+          plain
         />
-<SectorTrend mode="groups"
-                data={yoyAll}
-                seriesLabels={WEEKLY_BANK_TYPE_LABELS}
-                title={
-                  tx(seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
-                    "Loan Growth YoY (%) by group")
-                }
-                description={tx("Loan growth YoY, %, weekly · by ownership group")}
-                source={tx("Source: BDDK weekly bulletin")}
-                yFormat="pct"
-                decimals={1}
-                deltaPeriods={13}
-                deltaLabel="13w"
-                height={160}
-                zeroLine
-                plain
-              />
-<SectorGrid columns={3}>
-<BarByBank
-              data={yoyByBank}
-              labels={WEEKLY_BANK_TYPE_LABELS}
-              title={tx("Loan YoY by group · {0}", { 0: yoyByBank[0]?.period ?? "" })}
-              format="pct"
-              decimals={1}
-              plain
-            />
+<SectorPanel>
+<SecHead
+        title={tx("Exchange-rate and inflation effects")}
+        meta={tx("nominal → constant currency → constant prices · 52w")}
+        action={
+          bridge.lagged ? (
+            <span className="text-[12px] leading-relaxed text-muted-foreground">{tx("real legs at W/E ")}{tx(realWeek)}{tx(" — CPI lags the weekly print")}</span>
+          ) : undefined
+        }
+        className="mb-4"
+      />
+<Bridge bridge={bridge} />
+<div className="mt-4">
+          <p className="text-[16px] leading-snug tracking-tight text-foreground">
+            {/* nominalAtReal, NOT nominal: this sentence then subtracts the legs, which
+                are read at the real week. Pairing the latest nominal with June legs made
+                the sentence stop adding up (36.2% − 7.1 − 31.4 ≠ −2.1%). */}
+            {tx(realFxNow != null && realFxNow < 0
+              ? "Nominal loan growth is {0}. After removing currency and price effects, the book contracts {1} in real terms."
+              : "Nominal loan growth is {0}. After removing currency and price effects, the book expands {1} in real terms.",
+              { 0: fmtPct(bridge.nominalAtReal), 1: fmtPct(Math.abs(realFxNow ?? 0)) })}
+          </p>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            {bridge.currencyPp != null && bridge.inflationPp != null ? (
+              <>{tx("Of that print, ")}{tx(signedPp(bridge.currencyPp, 1))}{tx(" is lira depreciation revaluing the FX book and ")}{tx(signedPp(bridge.inflationPp, 1))}{tx(" is inflation (CPI ")}{tx(fmtPct(bridge.cpi))}{tx("). What remains is real volume —")}{" "}
+                {/* The run count was computed and the word "negative" was typed, so the
+                    week real growth turned positive this read "negative for 0 weeks". */}
+                {tx(runPhrase(realNegRun, "negative", "w", tx.locale) ??
+                  (realFxNow != null ? tx("positive at {0}", { 0: fmtPct(realFxNow) }) : "not yet negative"))}
+                .
+              </>
+            ) : (
+              <>{tx("The bridge awaits a CPI print.")}</>
+            )}
+          </p>
+          <p className="mt-3 border-t border-hair pt-3 text-[12px] leading-relaxed text-muted-foreground">{tx("Real growth = (1 + FX-adjusted growth) ÷ (1 + annual CPI) − 1. Foreign-currency loans are valued at the base week’s USD/TRY rate and assumed to be denominated in US dollars.")}</p>
+        </div>
+</SectorPanel>
+</SectorGrid>
+
+
+<SectorGrid>
+
 <SectorTrend height={280}
-              data={yoyPubPriv}
-              seriesLabels={{
-                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-                [WEEKLY_BANK_TYPES.STATE]: "State",
-              }}
-              title={tx("Total Credit YoY — Public vs Private")}
+              data={realVsNominal}
+              seriesLabels={REAL_TERMS_LABELS}
+              title={tx("Loan Growth YoY — nominal vs real (sector, %)")}
+              description={tx("The CPI-deflated twin alone — it does not remove the currency effect.")}
               yFormat="pct"
               decimals={1}
               zeroLine
               plain
             />
 <SectorTrend height={280}
-              data={tlYoyPubPriv}
-              seriesLabels={{
-                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-                [WEEKLY_BANK_TYPES.STATE]: "State",
-              }}
-              title={tx("TL Loans YoY — Public vs Private")}
+              data={fxShare}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
+              title={tx("FX Share of Total Loans (%)")}
+              description={tx("How much of the book the currency adjustment is acting on.")}
               yFormat="pct"
               decimals={1}
-              zeroLine
               plain
             />
 </SectorGrid>

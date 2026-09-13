@@ -66,6 +66,14 @@ import { LDR_PUBLISHED } from "@/app/lib/ldr";
 import { everyOf, firstClaim } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import SectorTrend from "@/app/components/SectorTrend";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import {
+  loadDepositFundingDetail,
+  DEPOSIT_BRACKETS,
+  DEPOSIT_CURRENCIES,
+  DEPOSIT_TERM_BUCKETS,
+  DEPOSIT_SHORT_TERM_BUCKETS,
+} from "@/app/lib/sector-funding";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { depositsInsights } from "@/app/lib/insights";
@@ -208,6 +216,7 @@ export default async function DepositsPage() {
     ldr,
     loansYoYSector,
     tlYoySector,
+    fundingDetail,
   ] = await Promise.all([
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", sector, 156),
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", groups, 156),
@@ -225,6 +234,7 @@ export default async function DepositsPage() {
     weeklyGrowth("krediler", "1.0.1", "TOTAL", 52, sector, 104),
     // TL-only deposit growth — the vitals' de-dollarized read of the base.
     weeklyGrowth(MEVDUAT, TOTAL, "TL", 52, sector, 104),
+    loadDepositFundingDetail(),
   ]);
 
   const cpiYoY = await cpiYoYByMonth();
@@ -629,6 +639,7 @@ export default async function DepositsPage() {
           { id: "growth", label: "Deposit growth" },
           { id: "bank-groups", label: "Bank groups" },
           { id: "currency", label: "Currency composition" },
+          { id: "depositors", label: "Depositor structure" },
           { id: "maturity", label: "Maturity structure" },
           { id: "loan-funding", label: "Loan-to-deposit" },
         ]}
@@ -1014,6 +1025,34 @@ export default async function DepositsPage() {
         </SectorGrid>
       </SectorSection>
       <SectorSection
+        id="depositors"
+        title={tx("Depositor structure")}
+        description={tx("Deposit amounts by customer type, currency and balance bracket.")}
+      >
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorBreakdown
+            data={fundingDetail.customers}
+            series={[...DEPOSIT_CURRENCIES]}
+            mode="composition"
+            format="bn"
+            title={tx("Deposit currencies by customer type")}
+            description={tx("Domestic residents. Each bar shows the currency mix within one customer group; totals show the different sizes of those groups.")}
+            asOf={fundingDetail.maturityPeriod ?? undefined}
+            source={tx("Source: BDDK monthly bulletin, deposits by maturity. Foreign currency and precious metals are valued in Turkish lira.")}
+          />
+          <SectorBreakdown
+            data={fundingDetail.concentration}
+            series={[...DEPOSIT_BRACKETS]}
+            mode="composition"
+            format="bn"
+            title={tx("Deposit amounts by balance bracket")}
+            description={tx("Domestic residents, all currencies. Shares measure deposit amounts in each bracket, not the number of depositors or their personal wealth.")}
+            asOf={fundingDetail.concentrationPeriod ?? undefined}
+            source={tx("Source: BDDK monthly bulletin, deposits by amount. Customer counts are excluded; balances across banks do not identify unique depositors.")}
+          />
+        </SectorGrid>
+      </SectorSection>
+      <SectorSection
         id="maturity"
         title={tx("Maturity structure")}
         description={tx("weekly demand share · monthly maturity ladder")}
@@ -1124,6 +1163,16 @@ export default async function DepositsPage() {
             height={300}
           />
         </SectorGrid>
+        <SectorBreakdown
+          data={fundingDetail.maturity}
+          series={[...DEPOSIT_TERM_BUCKETS]}
+          mode="composition"
+          format="bn"
+          title={tx("Maturity structure by deposit currency")}
+          description={tx("Domestic residents. Each currency has its own deposit total; precious-metal accounts are shown separately from other foreign-currency deposits.")}
+          asOf={fundingDetail.maturityPeriod ?? undefined}
+          source={tx("Source: BDDK monthly bulletin, deposits by maturity. Contractual maturity does not predict early withdrawals.")}
+        />
         <SectorPanel>
           <StackedArea
             plain
@@ -1162,6 +1211,19 @@ export default async function DepositsPage() {
             height={320}
           />
         </SectorPanel>
+        <SectorBreakdown
+          data={fundingDetail.customerMaturity.map((row) => ({
+            ...row,
+            label: row.label.split(" · ").map((part) => tx(part)).join(" · "),
+          }))}
+          series={[...DEPOSIT_SHORT_TERM_BUCKETS]}
+          mode="composition"
+          format="bn"
+          title={tx("Deposit maturity by customer and currency")}
+          description={tx("Domestic residents. Demand, term deposits up to three months and longer maturities are mutually exclusive. Each row uses its own deposit balance as the denominator.")}
+          asOf={fundingDetail.maturityPeriod ?? undefined}
+          source={tx("Source: BDDK monthly bulletin, deposits by maturity. These balances describe contractual terms, not future funding outflows.")}
+        />
       </SectorSection>
       <SectorSection
         id="loan-funding"

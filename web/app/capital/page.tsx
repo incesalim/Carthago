@@ -24,6 +24,9 @@ import { BANK_NAMES } from "@/app/lib/bank_names";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
 import StepWaterfall from "./StepWaterfall";
+import SectorBalanceBridge from "@/app/components/SectorBalanceBridge";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import { capitalBulletinDetail } from "@/app/lib/sector-bddk-detail";
 import SectorTrend from "@/app/components/SectorTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
@@ -89,7 +92,7 @@ export default async function CapitalPage() {
 
   const [
     carAll, carByBank, equity, equityYoYSec, lev,
-    rwa, offBsDeriv, capRatios, assetsYoYSec, byBankCap,
+    rwa, offBsDeriv, capRatios, assetsYoYSec, byBankCap, bulletin,
   ] = await Promise.all([
     ratioCar(PRIMARY_BANK_TYPES),
     latestPerBank(ratioCar, groups),
@@ -101,6 +104,7 @@ export default async function CapitalPage() {
     sectorCapitalRatios(),
     totalAssetsYoY(sector),
     perBankCapital(),
+    capitalBulletinDetail(),
   ]);
 
   // ---- the step, not the drift --------------------------------------------
@@ -352,7 +356,7 @@ export default async function CapitalPage() {
             basis: "sum of reporting banks' BRSA filings",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "adequacy", label: "Capital adequacy"}, {id: "composition", label: "Capital composition"}, {id: "banks", label: "Capital by bank"}, {id: "leverage", label: "Equity and leverage"}, {id: "risk-weights", label: "Risk-weighted assets"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "adequacy", label: "Capital adequacy"}, {id: "composition", label: "Capital composition"}, {id: "risk-weights", label: "Risk-weighted assets"}, {id: "leverage", label: "Equity and leverage"}, {id: "banks", label: "Capital by bank"}]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening>
 <SectorMetrics><Vital
           label={tx("Capital adequacy")}
@@ -407,6 +411,7 @@ export default async function CapitalPage() {
             : <>{tx("The current bulletin does not provide this ratio.")}</>}
         /></SectorMetrics>
 </SectorOpening>
+
 <SectorSection id="adequacy" title={tx("Capital adequacy")} description={tx("Published sector ratios, changes over time and bank-group comparisons.")}>
 <SectorTrend mode="groups" references={[{ value: CAR_TARGET, label: tx("BDDK target") }, { value: CAR_LEGAL_MIN, label: tx("Statutory minimum") }]}
 
@@ -531,7 +536,10 @@ export default async function CapitalPage() {
         </div>
 </SectorPanel>
 </SectorSection>
-<SectorSection id="composition" title={tx("Capital composition")} description={tx("audited §4 · Σ component ÷ Σ RWA · {0}", { 0: auditQ })}>
+<SectorSection id="composition" title={tx("Capital composition")} description={tx("Monthly regulatory capital and the quarterly capital structure of reporting banks.")}>
+<SectorBalanceBridge rows={bulletin.bridge} title={tx("From core capital to regulatory capital")}
+  description={tx("The monthly sector total combines common equity Tier 1, other Tier 1 and Tier 2, less regulatory deductions.")}
+  source={tx("Source: BDDK monthly bulletin · Table 12")} asOf={bulletin.period} />
 <SectorPanel>
 <CadenceBand
         title={tx("Audited capital composition")}
@@ -616,16 +624,57 @@ export default async function CapitalPage() {
               />
 </SectorGrid>
 </SectorSection>
-<SectorSection id="banks" title={tx("Capital by bank")} description={tx("Bank-level capital ratios from quarterly financial statements.")}>
-<SectorPanel>
-<div>
-          <SecHead title={tx("Bank comparisons")} meta={tx("audited {0}", { 0: auditQ })} href="/banks" hrefLabel={tx("by bank →")} className="mb-2.5" />
-          <Standings groups={standings} />
-        </div>
-</SectorPanel>
-<SectorPanel>
-<CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
-</SectorPanel>
+<SectorSection id="risk-weights" title={tx("Risk-weighted assets")} description={tx("Risk-weighted assets and off-balance-sheet exposures")}>
+<SectorBreakdown data={bulletin.riskRows} mode="composition" format="trn" decimals={2}
+  series={[{ key: "credit", label: "Credit risk" }, { key: "market", label: "Market risk" }, { key: "operational", label: "Operational risk" }]}
+  title={tx("Risk-weighted assets by risk type")}
+  description={tx("Each bank group's total is divided into credit, market and operational risk. Ownership and bank-type groups overlap and are not additive.")}
+  source={tx("Source: BDDK monthly bulletin · Table 12")} asOf={bulletin.period} />
+<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
+
+              data={rwa}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={tx("Risk-weighted asset density")}
+              description={<><span className="block">{tx(firstClaim(
+                  [
+                    step?.isBreak && rwaHeld && !!sw,
+                    tx("Risk density barely moved through the step — the {0} came from capital, not the risk mix", { 0: sw?.noun }),
+                  ],
+                  [
+                    step?.isBreak && !rwaHeld && rwaStepDelta != null,
+                    tx("Risk density {0} {1} through the step — the risk mix moved with it", { 0: rwaStepMove, 1: signedPp(rwaStepDelta ?? 0, 1) }),
+                  ],
+                ) ?? "RWA net / gross — by group")}</span><span className="mt-1 block">{tx("rwa net ÷ gross, %, monthly · lower = more low-weight exposure")}</span></>}
+              source={
+                <ChartFoot data={rwa} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
+              }
+              yFormat="pct"
+              decimals={1}
+              height={320}
+               />
+<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
+
+              data={offBsDeriv}
+              seriesLabels={BANK_TYPE_LABELS}
+              // "a foreign-bank story" — true when written, and never re-checked.
+              // Phrased so it reads for whichever group actually leads.
+              title={tx("Off-balance-sheet derivatives relative to assets")}
+              description={<><span className="block">{tx(claim(
+                  derivTopLabel != null,
+                  tx("The derivative book is concentrated in the {0} banks", { 0: derivTopLabel }),
+                ) ?? "Off-balance-sheet derivatives ÷ assets — by group")}</span><span className="mt-1 block">{tx("off-balance-sheet derivatives ÷ total assets, %, monthly · by group")}</span></>}
+              source={
+                <ChartFoot
+                  data={offBsDeriv}
+                  labels={BANK_TYPE_LABELS}
+                  decimals={1}
+                  deltaPeriods={12}
+                />
+              }
+              yFormat="pct"
+              decimals={1}
+              height={320}
+               />
 </SectorSection>
 <SectorSection id="leverage" title={tx("Equity and leverage")} description={tx("Equity levels, annual growth and leverage")}>
 <SectorGrid ratio="balanced">
@@ -689,53 +738,18 @@ export default async function CapitalPage() {
               height={320}
                />
 </SectorSection>
-<SectorSection id="risk-weights" title={tx("Risk-weighted assets")} description={tx("Risk-weighted assets and off-balance-sheet exposures")}>
-<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
-
-              data={rwa}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={tx("Risk-weighted asset density")}
-              description={<><span className="block">{tx(firstClaim(
-                  [
-                    step?.isBreak && rwaHeld && !!sw,
-                    tx("Risk density barely moved through the step — the {0} came from capital, not the risk mix", { 0: sw?.noun }),
-                  ],
-                  [
-                    step?.isBreak && !rwaHeld && rwaStepDelta != null,
-                    tx("Risk density {0} {1} through the step — the risk mix moved with it", { 0: rwaStepMove, 1: signedPp(rwaStepDelta ?? 0, 1) }),
-                  ],
-                ) ?? "RWA net / gross — by group")}</span><span className="mt-1 block">{tx("rwa net ÷ gross, %, monthly · lower = more low-weight exposure")}</span></>}
-              source={
-                <ChartFoot data={rwa} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
-              }
-              yFormat="pct"
-              decimals={1}
-              height={320}
-               />
-<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
-
-              data={offBsDeriv}
-              seriesLabels={BANK_TYPE_LABELS}
-              // "a foreign-bank story" — true when written, and never re-checked.
-              // Phrased so it reads for whichever group actually leads.
-              title={tx("Off-balance-sheet derivatives relative to assets")}
-              description={<><span className="block">{tx(claim(
-                  derivTopLabel != null,
-                  tx("The derivative book is concentrated in the {0} banks", { 0: derivTopLabel }),
-                ) ?? "Off-balance-sheet derivatives ÷ assets — by group")}</span><span className="mt-1 block">{tx("off-balance-sheet derivatives ÷ total assets, %, monthly · by group")}</span></>}
-              source={
-                <ChartFoot
-                  data={offBsDeriv}
-                  labels={BANK_TYPE_LABELS}
-                  decimals={1}
-                  deltaPeriods={12}
-                />
-              }
-              yFormat="pct"
-              decimals={1}
-              height={320}
-               />
+<SectorSection id="banks" title={tx("Capital by bank")} description={tx("Bank-level capital ratios from quarterly financial statements.")}>
+<SectorPanel>
+<div>
+          <SecHead title={tx("Bank comparisons")} meta={tx("audited {0}", { 0: auditQ })} href="/banks" hrefLabel={tx("by bank →")} className="mb-2.5" />
+          <Standings groups={standings} />
+        </div>
+</SectorPanel>
+<SectorPanel>
+<CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
+</SectorPanel>
 </SectorSection>
+
 
 <SectorDirectory sector="capital" />
 <SectorFooter />

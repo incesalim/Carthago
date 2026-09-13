@@ -49,6 +49,8 @@ import {
   type TransmissionItem,
 } from "@/app/components/desk";
 import SectorTrend from "@/app/components/SectorTrend";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import { sectorBalanceSheetStructure, sectorOperatingNetwork, operatingNetworkViews } from "@/app/lib/sector-overview";
 import BankTypeFilter from "@/app/components/BankTypeFilter";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import Takeaway from "@/app/components/Takeaway";
@@ -158,6 +160,7 @@ export default async function OverviewPage({
   const bt = [bankType];
 
   const [
+    balanceStructure, operatingNetwork,
     // Sector vitals for the brief.
     sCar, sNpl, sNim, sLdr, sRoe, sRoa, sAssetsYoY, sLoansYoY, sDepositsYoY,
     // By-group series: the four in-depth charts, and the league spread each
@@ -168,6 +171,7 @@ export default async function OverviewPage({
     // In-depth scorecard for the selected bank type.
     assets, assetsYoY, loansYoY, depositsYoY, npl, car, nim, ldr, roa, roe,
   ] = await Promise.all([
+    sectorBalanceSheetStructure(), sectorOperatingNetwork(),
     ratioCar(sector),
     ratioNpl(sector),
     ratioNim(sector),
@@ -404,6 +408,7 @@ export default async function OverviewPage({
     npl: sNpl, car: sCar, ldr: sLdr, roe: sRoe,
   }, tx.locale);
   const read = await withLlmHeadline("overview", pulse, tx.locale);
+  const network = operatingNetworkViews(operatingNetwork);
 
   // ---- the scorecard = the brief's band, for the selected group ------------
   // Same six vitals, same cell, same sparkline — only the group changes. Each
@@ -449,7 +454,7 @@ export default async function OverviewPage({
             basis: "bank-level standings only",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "developments", label: "Sector developments"}, {id: "by-type", label: "Bank groups"}]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "balance-sheet", label: "Balance sheet structure"}, {id: "developments", label: "Sector developments"}, {id: "by-type", label: "Bank groups"}, {id: "operating-network", label: "Operating network"}]} controls={<GlobalRangeSelector compact />} />
 <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...datasetJsonLd, name: tx(datasetJsonLd.name), description: tx(datasetJsonLd.description), inLanguage: tx.locale }) }}
@@ -540,6 +545,21 @@ export default async function OverviewPage({
           note="the leverage-free read"
         /></SectorMetrics>
 </SectorOpening>
+<SectorSection id="balance-sheet" title={tx("Balance sheet structure")} description={tx("How the sector's assets and funding are distributed.")}>
+  <SectorGrid>
+    <SectorBreakdown title={tx("Asset composition")} data={balanceStructure.assets} series={[{key:"amount",label:"Amount"}]}
+      mode="ranking" format="trn" maxValue={balanceStructure.total ?? undefined} asOf={balanceStructure.period}
+      source={tx("BDDK monthly balance sheet. Loans include non-performing balances and exclude expected loss allowances. Both charts use the same scale.")} />
+    <SectorBreakdown title={tx("Funding composition")} data={balanceStructure.funding} series={[{key:"amount",label:"Amount"}]}
+      mode="ranking" format="trn" maxValue={balanceStructure.total ?? undefined} asOf={balanceStructure.period}
+      source={tx("BDDK monthly balance sheet. Each side reconciles to its published total; the charts do not assign funding sources to individual assets.")} />
+  </SectorGrid>
+  <SectorTrend data={[...sLoansYoY.map(row => ({...row,bank_type_code:"loans"})), ...sDepositsYoY.map(row => ({...row,bank_type_code:"deposits"}))]}
+    seriesLabels={{loans:"Loans",deposits:"Deposits"}} title={tx("Loan and deposit growth")}
+    description={tx("Annual growth on the same monthly reporting basis")}
+    source={tx("BDDK monthly bulletin · nominal annual growth, including currency effects.")}
+    yFormat="pct" height={260} zeroLine />
+</SectorSection>
 <SectorSection id="developments" title={tx("Sector developments")} description={tx("Credit growth, asset quality, capital adequacy and profitability by bank group.")}>
 <SectorGrid>
   <SectorPanel title={tx("Period changes")} description={tx(`${vsMonth} → ${monthLabel(sNpl.at(-1)?.period, false)}`)}>
@@ -635,7 +655,19 @@ export default async function OverviewPage({
         </SectorPanel>
 </SectorSection>
 
-
+<SectorSection id="operating-network" title={tx("Operating network")} description={tx("Domestic distribution and the share of overseas branches within bank groups.")}>
+  <SectorGrid>
+    <SectorTrend data={network.history} seriesLabels={{"2":"Domestic branches","5":"ATMs","6":"Domestic employees"}}
+      title={tx("Branches, ATMs and employees")}
+      description={tx("Common starting period: {0} = 100",{0:network.basePeriod ?? "—"})}
+      source={tx("BDDK monthly bulletin · counts indexed to a common starting month. Changes do not establish a causal link with digital banking.")}
+      yFormat="raw" height={290} references={[{value:100,label:"Starting period"}]} />
+    <SectorBreakdown title={tx("Overseas branches within bank groups")} data={network.overseas}
+      series={[{key:"1",label:"Loan share"},{key:"2",label:"Asset share"},{key:"3",label:"Deposit share"}]}
+      mode="paired" format="pct" asOf={network.overseasPeriod}
+      source={tx("BDDK published ratios. Each share uses its own bank group's corresponding total. Overseas subsidiaries are outside this branch measure.")} />
+  </SectorGrid>
+</SectorSection>
 <SectorDirectory />
 <SectorFooter />
 </SectorReport>

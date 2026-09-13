@@ -61,7 +61,7 @@ export function SectorOpening({ children }: { children: ReactNode }) {
 
 export function SectorGrid({ children, columns = 2, ratio = "balanced" }: {
   children: ReactNode;
-  columns?: 2 | 3;
+  columns?: 1 | 2 | 3;
   ratio?: "balanced" | "wide-left" | "wide-right";
 }) {
   return <div className={styles.grid} data-columns={columns} data-ratio={ratio}>{children}</div>;

@@ -64,7 +64,7 @@ export function buildCreditSignals(input: CreditSignalInput): SectorSignal[] {
       criterion: t("Real, constant-currency 52-week growth is below zero in the latest observation. The FX book is held at the base-period USD/TRY rate, assuming all FX is USD; the result is deflated using (1 + growth)/(1 + annual CPI) − 1. Only published monthly CPI is used, so the real series may lag weekly nominal data.", "Son gözlemde reel, sabit kurla 52 haftalık büyümenin sıfırın altında olması. YP portföyü, tamamının ABD doları olduğu varsayımıyla baz dönem USD/TL kurunda tutulur; sonuç (1 + büyüme)/(1 + yıllık TÜFE) − 1 formülüyle fiyat etkisinden arındırılır. Yalnızca yayımlanmış aylık TÜFE kullanıldığından reel seri haftalık nominal veriden geride kalabilir."),
       rule: `real_fxadj(52w) < 0 for ${realRun}w`, asOf: date(realConstantFx), cadence: "mixed",
       source: t("BDDK weekly credit bulletin; TCMB USD/TRY; TÜİK monthly CPI via EVDS. Weekly real observations use their calendar month's published CPI; no nowcast.", "BDDK haftalık kredi bülteni; TCMB USD/TL; EVDS üzerinden TÜİK aylık TÜFE. Haftalık reel gözlemde ilgili takvim ayının yayımlanmış TÜFE verisi kullanılır; tahminle tamamlama yapılmaz."),
-      href: "/credit#growth",
+      href: "/credit#real-growth",
       facts: [fact("real_growth", "Real, constant-currency growth", "Reel, sabit kurla büyüme", realConstantFx), fact("nominal_growth", "Latest nominal growth", "Son nominal büyüme", nominal), runFact("negative_run", "Consecutive negative observations", "Ardışık negatif gözlem", realRun, date(realConstantFx), realState !== "unavailable")],
     },
     {

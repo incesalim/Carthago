@@ -18,6 +18,10 @@ import {
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import SectorTrend from "@/app/components/SectorTrend";
+import SectorBalanceBridge from "@/app/components/SectorBalanceBridge";
+import SectorBreakdown from "@/app/components/SectorBreakdown";
+import StackedArea from "@/app/components/StackedArea";
+import { marketRiskBulletinDetail } from "@/app/lib/sector-bddk-detail";
 import BopFlowChart from "@/app/components/BopFlowChart";
 import {
   fxNopToCapital,
@@ -53,13 +57,14 @@ const LE_1Y_LABELS = new Set(["≤1 month", "1–3 months", "3–12 months"]);
 
 export default async function MarketRiskPage() {
   const tx = await getText();
-  const [nop, byCcy, gap1y, ladder, latest, nii] = await Promise.all([
+  const [nop, byCcy, gap1y, ladder, latest, nii, bulletin] = await Promise.all([
     fxNopToCapital(),
     fxByCurrency(),
     repricingGap1y(),
     repricingLadder(),
     marketRiskLatestPeriod(),
     niiSensitivity(),
+    marketRiskBulletinDetail(),
   ]);
 
   // "The Read" — deterministic, computed from the same series the charts show.
@@ -105,7 +110,7 @@ export default async function MarketRiskPage() {
   return (
     <SectorReport>
 <SectorHeader sector="market-risk" record={<>{tx("Record ")}<b className="font-normal text-foreground">{tx(monthLabel(latest))}</b>{tx(" · quarterly BRSA §4 · Σ of reporting banks")}</>} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "fx-position", label: "FX position"}, {id: "repricing", label: "Repricing gap"}, ...(nii.scenarios.length > 0 ? [{id: "scenarios", label: "Rate scenarios"}] : [])]} controls={<GlobalRangeSelector compact />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "fx-position", label: "FX position"}, {id: "securities", label: "Securities portfolio"}, {id: "repricing", label: "Repricing gap"}, ...(nii.scenarios.length > 0 ? [{id: "scenarios", label: "Rate scenarios"}] : []), {id: "commitments", label: "Off-balance-sheet commitments"}]} controls={<GlobalRangeSelector compact />} />
 <SectorOpening>
 <SectorMetrics><Vital
           label={tx("FX net open / capital")}
@@ -172,7 +177,16 @@ export default async function MarketRiskPage() {
           }
         /></SectorMetrics>
 </SectorOpening>
-<SectorSection id="fx-position" title={tx("FX position")} description={tx("The sector's net foreign-currency position. A small net-open-position / capital ratio means on- and off-balance FX is well-matched; the by-currency split shows where the system is net long (+) or short (−).")}>
+<SectorSection id="fx-position" title={tx("FX position")} description={tx("Monthly bulletin totals show the whole sector. Quarterly financial statements add the currency breakdown for reporting banks.")}>
+<SectorGrid ratio="balanced">
+  <SectorBalanceBridge rows={bulletin.fx.bridge} title={tx("On- and off-balance-sheet FX positions")}
+    description={tx("FX assets less FX liabilities. Opposing positions reconcile to the published net position; these are not gross derivative amounts.")}
+    source={tx("Source: BDDK monthly bulletin · Table 13")} asOf={bulletin.fx.period} />
+  <SectorTrend data={bulletin.fx.history} seriesLabels={{ INSIDE: "On-balance-sheet FX position", OUTSIDE: "Off-balance-sheet FX position", NET: "Net FX position" }}
+    title={tx("Monthly FX position history")} hero="NET" zeroLine yFormat="bn" decimals={0} height={290}
+    description={tx("Monthly sector totals · TL billion · a small net position can sit between two large opposing positions.")}
+    source={tx("Source: BDDK monthly bulletin · Table 13")} />
+</SectorGrid>
 <SectorGrid ratio="balanced">
 <SectorTrend mode="trend" references={[{ value: 20, label: tx("Upper regulatory limit") }, { value: -20, label: tx("Lower regulatory limit") }]} height={320}
           data={nop}
@@ -214,6 +228,15 @@ export default async function MarketRiskPage() {
 
 
 </SectorSection>
+<SectorSection id="securities" title={tx("Securities portfolio")}
+  description={tx("The accounting treatment of the sector's securities portfolio, from the weekly bulletin.")}>
+  <StackedArea data={bulletin.securities} plain
+    series={[{ key: "fvpl", label: "Fair value through profit or loss" }, { key: "fvoci", label: "Fair value through other comprehensive income" }, { key: "amortized", label: "Amortized cost" }]}
+    title={tx("Securities by accounting classification")}
+    description={tx("Share of the total securities portfolio. A change in the mix alone does not establish a reclassification or a valuation loss.")}
+    source={tx("Source: BDDK weekly bulletin · securities accounting classes")}
+    yFormat="pct" decimals={1} height={320} />
+</SectorSection>
 <SectorSection id="repricing" title={tx("Repricing gap")} description={tx("The repricing/maturity gap — rate-sensitive assets minus liabilities by bucket. A large net gap in the near buckets means net interest income is exposed to a rate move. Participation banks that don't disclose the schedule are excluded.")}>
 <SectorGrid ratio="balanced">
 <ChartCard plain title={tx("Repricing gap by bucket (₺bn){0}", { 0: ladder.period ? ` · ${ladder.period}` : "" })}>
@@ -249,6 +272,14 @@ export default async function MarketRiskPage() {
 </SectorPanel>
 </SectorGrid>
 </SectorSection>)}
+<SectorSection id="commitments" title={tx("Off-balance-sheet commitments")}
+  description={tx("The composition of commitments other than derivatives, including unused credit card limits.")}>
+  <SectorBreakdown data={bulletin.commitments.rows} mode="ranking" format="pct" decimals={1} totalLabel="Nominal commitment amount" totalFormat="bn"
+    series={[{ key: "share", label: "Share of non-derivative commitments" }]}
+    title={tx("Non-derivative commitments by type")}
+    description={tx("Shares use the published non-derivative commitment total. Recorded nominal amounts are neither drawn loans nor expected losses or certain future payments.")}
+    source={tx("Source: BDDK monthly bulletin · Table 14")} asOf={bulletin.commitments.period} />
+</SectorSection>
 <SectorDirectory sector="market-risk" />
 <SectorFooter />
     </SectorReport>
