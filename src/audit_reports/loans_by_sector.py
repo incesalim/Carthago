@@ -625,6 +625,110 @@ def _page_has_sector_heading(text: str) -> bool:
 PARENT_SECTORS = {"agri_total", "mfg_total", "construction", "svc_total", "other", "total"}
 
 
+def _sector_disclosure_lines(
+    page_lines: dict[int, list[str]],
+) -> set[tuple[int, int]] | None:
+    """Use explicit numbered disclosure boundaries when both ends are retained.
+
+    Broad page discovery also finds accounting policies and neighboring risk
+    tables. Keep their text, but do not call their amounts sector-loan cells.
+    Missing headings, closing boundaries or intervening pages retain the old
+    conservative classification; they cannot silently hide an unknown table.
+    """
+    heading = re.compile(r"^\s*(\d+(?:\.\d+)+)\.?\s+(.+)")
+    active: tuple[int, ...] | None = None
+    found = False
+    selected: set[tuple[int, int]] = set()
+    previous_page = None
+    for page, lines in sorted(page_lines.items()):
+        if active and previous_page is not None and page != previous_page + 1:
+            return None
+        for order, line in enumerate(lines, 1):
+            match = heading.match(line)
+            if match:
+                path = tuple(int(part) for part in match[1].split("."))
+                if (active and len(path) <= len(active)
+                        and path[:-1] == active[:len(path) - 1]
+                        and path[-1] > active[len(path) - 1]):
+                    active = None
+                if any(pattern.search(match[2]) for pattern in _HEADING_PATTERNS):
+                    active = path
+                    found = True
+            if active:
+                selected.add((page, order))
+        previous_page = page
+    return selected if found and active is None else None
+
+def _extract_three_column_disclosure(page_lines: dict[int, list[list[tuple[float, float, str]]]]
+                                     ) -> list[SectorRow] | None:
+    """Read an explicitly bounded Stage 2 / Stage 3 / ECL disclosure.
+
+    Period captions and headers belong to the table, not to a PDF page. Require
+    all three printed columns and three aligned cells on every recognized row;
+    wider layouts stay with the existing column-aware parser.
+    """
+    texts = {page: [" ".join(t for _, _, t in line) for line in lines]
+             for page, lines in page_lines.items()}
+    selected = _sector_disclosure_lines(texts)
+    if selected is None:
+        return None
+    rows: list[SectorRow] = []
+    headers = []
+    period_type = None
+    anchors = None
+    for page, lines in sorted(page_lines.items()):
+        for order, line in enumerate(lines, 1):
+            if (page, order) not in selected:
+                continue
+            text = texts[page][order - 1].strip()
+            caption = re.match(r"^(current|prior|cari|önceki)\s+(?:period|dönem)\b", text, re.I)
+            if caption:
+                period_type = "prior" if caption[1].lower() in {"prior", "önceki"} else "current"
+                headers, anchors = [], None
+                continue
+            if period_type is None:
+                continue
+            tail = _THREE_NUMS_TAIL.search(text)
+            label = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", text[:tail.start()] if tail else text)
+            label = re.sub(r"\(\*+\)\s*$", "", label).strip()
+            key = _LABEL_TO_KEY.get(label.lower())
+            if key is None:
+                if tail and any(label.lower().startswith(known + " ") for known in _LABEL_TO_KEY):
+                    return None  # extra cells or an unrecognized sector suffix
+                headers.append(line)
+                continue
+            if tail is None:
+                return None
+            if anchors is None:
+                s2, s3 = _stage_col_x(headers)
+                ecl = []
+                for header in headers:
+                    for i in range(len(header) - 2):
+                        phrase = " ".join(t.lower().strip("():") for _, _, t in header[i:i + 3])
+                        if phrase in {"expected credit losses", "beklenen kredi zararları", "beklenen zarar karşılıkları"}:
+                            ecl.append(header[i + 2][1])
+                if s2 is None or s3 is None or len(set(ecl)) != 1 or not s2 < s3 < ecl[0]:
+                    return None
+                anchors = (s2, s3, ecl[0])
+            # Ignore a left-side row index. Exactly three numeric cells must lie
+            # in the column band, each nearest its own printed header.
+            gap = min(anchors[1] - anchors[0], anchors[2] - anchors[1])
+            nums = [(parse_amount(t), x1) for x0, x1, t in line
+                    if re.fullmatch(_NUM_TOKEN, t) and x1 >= anchors[0] - gap / 2]
+            if len(nums) != 3 or any(v is None for v, _ in nums):
+                return None
+            for index, (_, x) in enumerate(nums):
+                distances = [abs(x - anchor) for anchor in anchors]
+                if distances[index] != min(distances) or distances[index] > gap / 2:
+                    return None
+            rows.append(SectorRow(key, *(v for v, _ in nums), period_type, page, label))
+    identities = {(row.period_type, row.sector) for row in rows}
+    if (not rows or ("current", "total") not in identities or len(identities) != len(rows)
+            or any((period, "total") not in identities for period, _ in identities)):
+        return None
+    return rows
+
+
 def extract_from_pdf(
     pdf_path: str = "",
     skip_pages: int = 30,
@@ -638,7 +742,7 @@ def extract_from_pdf(
     """
     # Scan + parse with fitz (the engine the statement locators use) — faster and
     # poison-hang-safe, consistent with the OCI/CF/NPL lanes; fitz's row text
-    # parses identically here. Falls back to pdfplumber text only without fitz.
+    # parses identically here.
     rep = LoansBySectorReport(pdf_path=pdf_path)
     if not (pdf_path and _HAS_FITZ):
         return rep
@@ -650,7 +754,10 @@ def extract_from_pdf(
     # a bank the text parser already read correctly.
     xy_rows: list[SectorRow] = []
     txt_rows: list[SectorRow] = []
+    captured_pages: set[int] = set()
     for i in range(skip_pages + 1, n_pages + 1):
+        if i in captured_pages:
+            continue
         text = _fitz_page_text(pdf_path, i - 1)
         if not _page_has_sector_heading(text):
             continue
@@ -666,6 +773,21 @@ def extract_from_pdf(
             s2, s3 = _stage_col_x(lines) if lines else (None, None)
             if s2 is None or s3 is None:
                 continue
+        # A numbered disclosure can span a heading page, current table and
+        # comparative table. Read through its closing heading before parsing;
+        # an unbounded or wider disclosure retains the established fallback.
+        window = {i: lines}
+        bounded = None
+        for following in range(i + 1, min(i + 4, n_pages + 1)):
+            window[following] = _xy_lines(pdf_path, following - 1)
+            bounded = _extract_three_column_disclosure(window)
+            if bounded:
+                break
+        if bounded:
+            xy_rows.extend(bounded)
+            txt_rows.extend(bounded)
+            captured_pages.update(row.page for row in bounded)
+            continue
         if lines is not None:
             xy = _extract_section_xy(i, lines)
             # GARAN unconsolidated splits the table: the stage-column HEADER sits on
@@ -676,7 +798,9 @@ def extract_from_pdf(
             if not xy and i < n_pages:
                 s2, s3 = _stage_col_x(lines)
                 if s2 is not None and s3 is not None:
-                    xy = _extract_section_xy(i, lines + _xy_lines(pdf_path, i))
+                    # No sector row was found on the heading page. The retry's
+                    # rows come from the continuation page and must cite it.
+                    xy = _extract_section_xy(i + 1, lines + _xy_lines(pdf_path, i))
                     txt_rows.extend(_extract_section(i + 1, _fitz_page_text(pdf_path, i)))
             if xy:
                 xy_rows.extend(xy)
@@ -774,11 +898,16 @@ def upsert(
 ) -> int:
     """Idempotently store one bank's sector rows. Returns row count."""
     cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM bank_audit_loans_by_sector "
-        "WHERE bank_ticker=? AND period=? AND kind=?",
-        (bank_ticker, period, kind),
-    )
+    keys = {(r.sector, r.period_type) for r in rep.rows}
+    if len(keys) != len(rep.rows):
+        raise ValueError("duplicate sector/period rows in extracted table")
+    existing = set(cur.execute(
+        "SELECT sector,period_type FROM bank_audit_loans_by_sector "
+        "WHERE bank_ticker=? AND period=? AND kind=?", (bank_ticker, period, kind)))
+    cur.executemany(
+        "DELETE FROM bank_audit_loans_by_sector WHERE bank_ticker=? AND period=? "
+        "AND kind=? AND sector=? AND period_type=?",
+        [(bank_ticker, period, kind, *key) for key in existing - keys])
     rows = [(
         bank_ticker, period, kind, r.sector, r.period_type,
         r.page, r.stage2_amount, r.stage3_amount, r.ecl_amount,
@@ -788,11 +917,16 @@ def upsert(
     # from the caller because this function has no PDF to read.
     rows = unit.scale_rows("bank_audit_loans_by_sector", ["bank_ticker","period","kind","sector","period_type","source_page","stage2_amount","stage3_amount","ecl_amount","raw_label"], rows)
     if rows:
+        facts = ("source_page", "stage2_amount", "stage3_amount", "ecl_amount", "raw_label")
         cur.executemany(
             "INSERT INTO bank_audit_loans_by_sector "
             "(bank_ticker, period, kind, sector, period_type, source_page, "
             " stage2_amount, stage3_amount, ecl_amount, raw_label) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(bank_ticker,period,kind,sector,period_type) DO UPDATE SET "
+            + ",".join(f"{col}=excluded.{col}" for col in facts)
+            + ",extracted_at=CURRENT_TIMESTAMP WHERE "
+            + " OR ".join(f"{col} IS NOT excluded.{col}" for col in facts),
             rows,
         )
     if commit:

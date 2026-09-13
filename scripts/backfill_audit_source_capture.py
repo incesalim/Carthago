@@ -163,6 +163,17 @@ def main() -> int:
                         pass
 
                 scanned += 1
+                # Report the stored result, including unmapped rows, so a
+                # successful runner exit cannot conceal incomplete capture.
+                for lane in pending:
+                    manifest = load_manifest(conn, bank, period, kind, lane)
+                    if manifest is not None:
+                        print(f"  [CAPTURE] {bank} {period} {kind} {lane} "
+                              f"pages={manifest['source_pages_json']} "
+                              f"rows={manifest['source_data_row_count']} "
+                              f"mapped={manifest['mapped_data_row_count']} "
+                              f"unmapped={manifest['unmapped_data_row_count']} "
+                              f"normalized={manifest['normalized_row_count']}", flush=True)
                 part = (bank, period, kind)
                 if written.source_changed_lanes:
                     source_touched.add(part)

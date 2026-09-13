@@ -13,7 +13,7 @@ pytest.importorskip("fitz")  # reextract_statement imports the extractor (fitz-o
 
 from reextract_statement import (  # noqa: E402
     STATEMENT_CHOICES, STATEMENT_TABLE, _is_proven_pass,
-    _partition_content, _partition_snapshot, _restore_partition,
+    _candidate_changes, _partition_content, _partition_snapshot, _restore_partition,
     _satisfies_candidate_gate, _upsert, resolve_statement_route,
     should_pull_snapshot, parse_partitions,
 )
@@ -25,6 +25,28 @@ from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports.validator import ValidationResult  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[1]
+
+
+def test_candidate_review_distinguishes_insert_delete_null_and_timestamp_only():
+    conn = sqlite3.connect(':memory:')
+    conn.execute('CREATE TABLE candidate (bank_ticker,period,kind,item,amount,extracted_at, '
+                 'PRIMARY KEY(bank_ticker,period,kind,item))')
+    conn.executemany('INSERT INTO candidate VALUES (?,?,?,?,?,?)', [
+        ('X', '2022Q4', 'consolidated', 'keep', 10, 'old'),
+        ('X', '2022Q4', 'consolidated', 'fill', None, 'old'),
+        ('X', '2022Q4', 'consolidated', 'remove', 20, 'old')])
+    before = _partition_snapshot(conn, 'candidate', 'X', '2022Q4', 'consolidated')
+    conn.execute("UPDATE candidate SET extracted_at='new'")
+    conn.execute("UPDATE candidate SET amount=0 WHERE item='fill'")
+    conn.execute("DELETE FROM candidate WHERE item='remove'")
+    conn.execute("INSERT INTO candidate VALUES ('X','2022Q4','consolidated','new',30,'new')")
+    review = _candidate_changes(conn, 'candidate', 'X', '2022Q4', 'consolidated', before)
+    assert review['changed_rows'] == 3 and not review['truncated']
+    changes = {r['key']['item']: r for r in review['changes']}
+    assert 'keep' not in changes
+    assert changes['fill']['fields'] == {'amount': {'before': None, 'after': 0}}
+    assert changes['new']['operation'] == 'insert'
+    assert changes['remove']['operation'] == 'delete'
 
 
 def test_exact_targets_do_not_create_bank_period_cross_products():

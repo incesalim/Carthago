@@ -1,0 +1,974 @@
+{
+  "description": "Existing native-word evidence, regrouped into physical lines; no new PDF extraction. Source table row ranges independently inspected.",
+  "filings": [
+    {
+      "source": {
+        "bank_ticker": "GARAN",
+        "byte_count": 3386125,
+        "kind": "unconsolidated",
+        "object_key": "garan/GARAN_2022Q4_unconsolidated.pdf",
+        "pdf_sha256": "b2d89dc0ecb2b78a16487b6c32f28e3f4a168584643a99fbb5ea6e3d14f533f5",
+        "period": "2022Q4",
+        "source_url": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_December_2022_Unconsolidated_Financial_Report.pdf"
+      },
+      "pages": [
+        {
+          "number": 33,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ Convenience Translation of Financial Statements",
+            "Unconsolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "Stage 3: For the loans considered as impaired, the Bank accounts lifetime expected credit losses. The",
+            "methodology is similar to stage 2 and the probability of default is taken into account as 100%.",
+            "The Bank considers a debt as default on these two below conditions;",
+            "1. Objective Default Definition: It means debt having past due more than 90 days. Current definition of",
+            "default in the Bank is based on a more than 90 days past due definition. If a loan is exactly 90 days",
+            "past due, it will not be considered as default. Default status starts on the 91st day.",
+            "2. Subjective Default Definition: It means the Bank considers that a debt is unlikely to be paid. Whenever",
+            "the Bank considers that an obligor is unlikely to pay its credit obligations, it should be considered as",
+            "defaulted regardless of the existence of any past-due amount or of the number of days past due.",
+            "For the purpose of determining significant increases in credit risk and recognising a loss allowance on a",
+            "collective basis, the Bank Group’s financial instruments on the basis of shared credit risk characteristics. In",
+            "this context, the methodology developed for the estimation of expected credit losses should include the risk",
+            "features which meet the criteria for carrying the same credit risk characteristics. Examples of the Bank's",
+            "common credit risk characteristics include, but are not limited to, the following:",
+            "− Customer type (retail or commercial / corporate)",
+            "− Product type",
+            "− Credit risk rating notes /scores",
+            "− Sector / market segmentation",
+            "− Collateral type",
+            "− Loan to value ratio",
+            "− Duration since origination of a loan",
+            "− Remaining time to maturity",
+            "− Exposure at default",
+            "In addition, the Bank assesses a certain portion of commercial and corporate loans individually in",
+            "accordance with the internal policies in the calculation of the expected credit losses based on TFRS 9. The",
+            "Bank makes such calculation by discounting the expected cash deficits from the individual financial",
+            "instrument to its present value using the effective interest rate.",
+            "When measuring expected credit losses, the Bank shall consider the risk or probability that a credit loss",
+            "occurs by reflecting the possibility that a credit loss occurs and the possibility that no credit loss occurs,",
+            "even if the possibility of a credit loss occurring is very low. The Bank makes such assessment by reflecting",
+            "the estimate of expected credit loss which is unbiased and probability-weighted determined by evaluating",
+            "a range of possible outcomes.",
+            "In accordance with the Bank’s internal policies, TFRS 9 models are updated once a year. The related model",
+            "update was made in the 3th quarter of 2022 and the Bank has calculated expected credit losses based on the",
+            "updated model during 2022.",
+            "3.8.1.1 Loan commitments and non-cash loans",
+            "The expected credit losses on a loan commitment shall be discounted using the effective interest rate, or an",
+            "approximation thereof, that will be applied when recognising the financial asset resulting from the loan",
+            "commitment. This is because for the purpose of applying the impairment requirements, a financial asset",
+            "that is recognised following a draw down on a loan commitment shall be treated as a continuation of that",
+            "commitment instead of as a new financial instrument. The expected credit losses on the financial asset shall",
+            "therefore be measured considering the initial credit risk of the loan commitment from the date that the Bank",
+            "became a party to the irrevocable commitment.",
+            "Expected credit losses on financial guarantee contracts or on loan commitments for which the effective",
+            "interest rate cannot be determined shall be discounted by applying a discount rate that reflects the current",
+            "market assessment of the time value of money and the risks that are specific to the cash flows but only if,",
+            "and to the extent that, the risks are taken into account by adjusting the discount rate instead of adjusting the",
+            "cash shortfalls being discounted.",
+            "23"
+          ],
+          "xy_lines": [
+
+        ]
+        },
+        {
+          "number": 34,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ Convenience Translation of Financial Statements",
+            "Unconsolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "3.8.1.2 Debt instruments measured at fair value through other comprehensive income",
+            "The Bank shall apply the impairment requirements for the recognition and measurement of a loss allowance",
+            "for financial assets that are measured at fair value through other comprehensive income in accordance with",
+            "TFRS 9. However, the loss allowance shall be recognised in other comprehensive income and shall not",
+            "reduce the carrying amount of the financial asset in the statement of financial position. The expected credit",
+            "loss is reflected in other comprehensive income and the accumulated amount is recycled to statement of",
+            "profit/loss following the derecognition of related financial asset.",
+            "3.8.1.3 Credit cards and other revolving loans",
+            "The Bank offers credit card and overdraft products which give ability to corporate and commercial",
+            "customers demand repayment and cancel the undrawn commitment. Such products do not limit the period",
+            "that the Bank is exposed to credit losses with the contractual notice. For this reason, the Bank calculates",
+            "the expected credit losses for these products over a period of time reflecting the anticipation of customer",
+            "behavior, the likelihood of default, and future risk mitigation procedures such as the Bank's reduction or",
+            "removal of undrawn limits.",
+            "When determining the period over which the Bank is expected to be exposed to credit risk, but for which",
+            "expected credit losses would not be mitigated by the Bank’s normal credit risk management actions, the",
+            "Bank considers factors such as historical information and experience about the below items:",
+            "• the period over which the entity was exposed to credit risk on similar financial instruments;",
+            "• the length of time for related defaults to occur on similar financial instruments following a significant",
+            "increase in credit risk; and",
+            "• the credit risk management actions that the Bank expects to take once the credit risk on the financial",
+            "instrument has increased, such as the reduction or removal of undrawn limits.",
+            "The Bank calculates expected credit losses on the revolving products of retail and corporate customers by",
+            "considering 3-5 years.",
+            "The Bank makes assessment of significant increase in credit risk of revolving loans by considering",
+            "qualitative and quantitative criteria considered for other credit products as explained in Note 3.8.3.",
+            "3.8.2 Forward-looking macroeconomic information",
+            "The Bank incorporates forward-looking macroeconomic information into credit risk parameters during",
+            "assessment of significant increase in credit risk and expected credit loss calculation. The incorporation of",
+            "forward-looking information into the Bank's credit risk parameters consists of the following steps:",
+            "Step 1: The Bank makes specifications and estimates of econometric models that reveal past relationships",
+            "between credit risk parameters and macroeconomic variables in order to be able to generate estimates based",
+            "on macroeconomic information. Macroeconomic variable prevailing during these estimates is mainly the",
+            "Gross Domestic Product (GDP).",
+            "Step 2: Where macroeconomic scenarios do not include longer maturity, a process called “convergence to",
+            "the mean” is applied.",
+            "Step 3: In order to estimate the ultimate parameters to be used in the calculation of the expected credit",
+            "losses, the Bank applies the methods of credit risk parameters reflection and forward-looking impact",
+            "inclusion into the parameters.",
+            "The Bank updates its macroeconomic parameters incorporated into significant increase in credit risk and",
+            "expected credit loss assessments quarterly.",
+            "24"
+          ],
+          "xy_lines": [
+
+        ]
+        },
+        {
+          "number": 68,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ Convenience Translation of Financial Statements",
+            "Unconsolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "4.2.5 Exposures by risk weight",
+            "Current Period",
+            "(*) 10 Deductions",
+            "0% 2% 20% 25% 35% 50% 75% 100% 150% 250% Others",
+            "% from Equity",
+            "Risk Weights",
+            "Exposures before",
+            "Credit Risk 283,013,890 34,962,063 - 79,163,905 - 17,088,276 73,574,999 181,918,333 395,754,741 53,279,030 - 38,104,357 1,086,896",
+            "Mitigation",
+            "Exposures after",
+            "Credit Risk 287,781,007 242,585 - 59,821,312 - 17,078,286 64,563,526 175,169,046 377,693,383 53,218,581 - 38,104,357 1,086,896",
+            "Mitigation",
+            "(*) Excluding counterparty credit risk and securities positions",
+            "Prior Period (*)",
+            "10 Deductions",
+            "0% 2% 20% 25% 35% 50% 75% 100% 150% 250% Others",
+            "% from Equity",
+            "Risk Weights",
+            "Exposures before",
+            "Credit Risk 170,304,931 30,892,595 - 28,564,471 - 17,807,366 44,351,333 119,899,696 274,814,692 22,399,958 - - 845,931",
+            "Mitigation",
+            "Exposures after",
+            "Credit Risk 172,437,123 406,038 - 28,564,474 - 17,794,619 38,579,790 116,661,757 269,524,570 22,254,636 - - 845,931",
+            "Mitigation",
+            "(*) Excluding counterparty credit risk and securities positions",
+            "4.2.6 Information by major sectors and type of counterparties",
+            "The Bank assesses its financial assets in 3 stages based on TFRS 9 as explained in accounting policy note 3.8.1",
+            "“Calculation of expected credit losses”. In this respect, the Bank recognizes life time expected credit losses for",
+            "impaired loans (Stage 3) and considers the probability of default to be 100%.",
+            "When the loan is not under default yet, but there is a significant increase in the credit risk since origination date,",
+            "the Bank calculates life time expected credit losses for these loans (Stage 2).",
+            "Regarding the remaining financial assets within the scope of TFRS 9, the Bank calculates 12-month estimated",
+            "probability of default and measures the loss allowance for these loans (Stage 1) at an amount equal to 12-month",
+            "(after the reporting date) expected credit losses.",
+            "58"
+          ],
+          "xy_lines": [
+          [[39.96,62.04,"4.2.6"],[85.0805,142.6982,"Information"],[145.4406,156.9608,"by"],[159.7208,188.5021,"major"],[191.1638,223.6623,"sectors"],[226.324,244.1017,"and"],[246.8386,266.9799,"type"],[269.7587,278.8347,"of"],[281.6367,350.1496,"counterparties"]],
+          [[85.0805,102.3427,"The"],[105.0,128.2856,"Bank"],[130.9252,167.0106,"assesses"],[169.7926,180.2078,"its"],[182.8839,221.3539,"financial"],[224.1647,249.8194,"assets"],[252.4845,261.1244,"in"],[263.8844,269.4044,"3"],[272.1644,299.0192,"stages"],[301.8046,326.8841,"based"],[329.5249,340.5649,"on"],[343.2046,369.6222,"TFRS"],[372.3645,377.8845,"9"],[380.6445,389.8585,"as"],[392.5247,435.3643,"explained"],[438.004,446.6439,"in"],[449.2846,497.6442,"accounting"],[500.2839,527.8838,"policy"],[530.5246,549.5862,"note"],[552.3639,574.2044,"3.8.1"]],
+          [[85.0805,140.7607,"“Calculation"],[143.6411,152.8374,"of"],[155.6404,194.7684,"expected"],[197.6488,222.6853,"credit"],[225.6164,259.5799,"losses”."],[262.459,271.4599,"In"],[274.3391,290.3946,"this"],[293.2959,327.2604,"respect,"],[330.0204,343.562,"the"],[346.4644,369.7466,"Bank"],[372.5078,419.5292,"recognizes"],[422.4316,437.1733,"life"],[439.9554,459.3769,"time"],[462.2793,501.6545,"expected"],[504.5349,529.568,"credit"],[532.3799,558.7544,"losses"],[561.5365,574.2126,"for"]],
+          [[85.0805,124.32,"impaired"],[126.9607,150.2154,"loans"],[153.0008,181.0623,"(Stage"],[183.84,193.0363,"3)"],[195.7201,211.5603,"and"],[214.3203,255.9345,"considers"],[258.6006,272.1423,"the"],[274.9211,323.1603,"probability"],[325.8,334.9963,"of"],[337.8005,368.3493,"default"],[371.0409,379.6808,"to"],[382.4408,392.7422,"be"],[395.521,423.96,"100%."]],
+          [[85.0805,111.4805,"When"],[113.9976,127.4189,"the"],[129.9537,148.9138,"loan"],[151.4309,158.8454,"is"],[161.3879,175.3778,"not"],[177.9457,202.9811,"under"],[205.4254,236.0945,"default"],[238.6624,254.8757,"yet,"],[257.3928,271.3816,"but"],[273.9495,296.0151,"there"],[298.4373,305.8517,"is"],[308.391,313.2927,"a"],[315.8319,362.2253,"significant"],[364.7932,400.7857,"increase"],[403.3249,411.9648,"in"],[414.4699,427.8913,"the"],[430.4305,455.4636,"credit"],[458.0315,474.5882,"risk"],[476.985,499.6468,"since"],[502.1859,550.5487,"origination"],[553.0658,574.0693,"date,"]],
+          [[85.0695,98.6111,"the"],[101.3932,124.6766,"Bank"],[127.3162,170.7421,"calculates"],[173.4039,188.1456,"life"],[190.8073,210.3492,"time"],[213.1313,252.2593,"expected"],[255.0193,280.0536,"credit"],[282.744,309.1197,"losses"],[311.7825,324.6982,"for"],[327.382,350.0471,"these"],[352.8292,376.0871,"loans"],[378.7488,406.7696,"(Stage"],[409.5483,421.5477,"2)."]],
+          [[85.0695,131.0356,"Regarding"],[134.0407,147.4621,"the"],[150.4837,195.2531,"remaining"],[198.1323,236.7337,"financial"],[239.7896,265.4377,"assets"],[268.4671,296.6676,"within"],[299.6716,313.0929,"the"],[316.1145,341.1731,"scope"],[344.3195,353.3955,"of"],[356.4392,382.8579,"TFRS"],[385.8431,394.1231,"9,"],[397.1282,410.5495,"the"],[413.6959,436.9792,"Bank"],[439.8585,483.2853,"calculates"],[486.3159,528.9493,"12-month"],[532.0736,574.1932,"estimated"]],
+          [[85.0695,133.4291,"probability"],[135.7056,144.9019,"of"],[147.3406,178.0098,"default"],[180.4562,196.4168,"and"],[198.8257,239.7289,"measures"],[242.1467,255.5691,"the"],[257.9868,275.1165,"loss"],[277.5387,322.1711,"allowance"],[324.5932,337.3897,"for"],[339.8339,362.4913,"these"],[364.9135,388.1714,"loans"],[390.5936,418.6508,"(Stage"],[421.0686,430.2649,"1)"],[435.4647,443.4544,"at"],[445.9008,456.221,"an"],[458.6167,491.5667,"amount"],[494.0132,517.9622,"equal"],[520.4086,529.0485,"to"],[531.4442,574.1912,"12-month"]],
+          [[85.0695,108.906,"(after"],[111.709,125.1315,"the"],[127.9091,168.2295,"reporting"],[170.8691,192.9061,"date)"],[195.7091,234.8294,"expected"],[237.5894,262.6182,"credit"],[265.3098,294.4697,"losses."]],
+          [[325.08,334.143,"58"]]
+        ]
+        },
+        {
+          "number": 69,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ Convenience Translation of Financial Statements",
+            "Unconsolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "Loans",
+            "TFRS 9",
+            "Current Period Significant Increase in",
+            "Defaulted Expected Credit Losses",
+            "Credit Risk",
+            "(Stage 3)",
+            "(Stage 2)",
+            "Agriculture 90,553 45,430 41,674",
+            "Farming and Stockbreeding 66,035 27,048 25,017",
+            "Forestry 17,155 9,087 8,266",
+            "Fishery 7,363 9,295 8,391",
+            "Manufacturing 46,669,546 5,927,500 15,388,514",
+            "Mining and Quarrying 3,254,594 30,811 1,515,738",
+            "Production 22,309,589 1,341,211 3,684,914",
+            "Electricity, Gas and Water 21,105,363 4,555,478 10,187,862",
+            "Construction 5,480,727 2,317,183 3,317,717",
+            "Services 40,015,212 7,130,728 14,011,744",
+            "Wholesale and Retail Trade 8,938,374 1,985,241 2,476,907",
+            "Accommodation and Dining 5,257,798 539,285 1,193,314",
+            "Transportation and Telecommunication 14,891,929 1,902,877 3,049,152",
+            "Financial Institutions 1,409,053 15,489 313,032",
+            "Real Estate and Rental Services 8,799,487 2,586,060 6,826,480",
+            "Professional Services - - -",
+            "Educational Services 269,700 78,751 106,335",
+            "Health and Social Services 448,871 23,025 46,524",
+            "Others 37,472,494 4,697,825 4,807,800",
+            "Total 129,728,532 20,118,666 37,567,449",
+            "Loans",
+            "TFRS 9",
+            "Prior Period Significant Increase in",
+            "Defaulted Expected Credit Losses",
+            "Credit Risk",
+            "(Stage 3)",
+            "(Stage 2)",
+            "Agriculture 333,257 57,170 95,422",
+            "Farming and Stockbreeding 137,160 33,074 32,691",
+            "Forestry 19,410 14,096 12,636",
+            "Fishery 176,687 10,000 50,095",
+            "Manufacturing 36,961,582 5,735,556 10,885,673",
+            "Mining and Quarrying 3,710,488 26,991 1,247,431",
+            "Production 18,736,244 1,681,516 3,093,318",
+            "Electricity, Gas and Water 14,514,850 4,027,049 6,544,924",
+            "Construction 3,146,176 1,955,947 1,940,620",
+            "Services 32,538,416 6,870,900 10,530,599",
+            "Wholesale and Retail Trade 8,106,704 2,194,111 2,379,557",
+            "Accommodation and Dining 7,567,989 430,985 1,212,460",
+            "Transportation and Telecommunication 8,420,191 1,797,293 2,398,924",
+            "Financial Institutions 1,415,631 32,181 377,141",
+            "Real Estate and Rental Services 6,199,898 2,308,975 3,989,483",
+            "Professional Services - - -",
+            "Educational Services 341,486 80,994 114,078",
+            "Health and Social Services 486,517 26,361 58,956",
+            "Others 21,855,085 3,453,888 3,218,171",
+            "Total 94,834,516 18,073,461 26,670,485",
+            "59"
+          ],
+          "xy_lines": [
+          [[70.92,101.9232,"Türkiye"],[104.1678,134.5122,"Garanti"],[136.8099,167.8761,"Bankası"],[170.1738,181.6578,"AŞ"],[347.28,400.4217,"Convenience"],[402.9595,451.3341,"Translation"],[453.8361,462.1925,"of"],[464.7562,505.2038,"Financial"],[507.7137,552.7457,"Statements"]],
+          [[70.917,127.5082,"Unconsolidated"],[129.7312,163.1986,"Financial"],[165.4936,190.0816,"Report"],[192.139,199.6,"as"],[201.8563,209.4163,"of"],[211.5763,224.5993,"and"],[391.68,407.2206,"and"],[409.8003,440.8197,"Related"],[443.3994,491.0739,"Disclosures"],[493.5599,509.1006,"and"],[511.6802,552.7551,"Footnotes"]],
+          [[70.917,81.357,"for"],[83.6376,94.7166,"the"],[96.9576,114.3546,"Year"],[116.6343,139.7409,"Ended"],[141.9576,150.8973,"31"],[153.2374,190.0771,"December"],[192.3577,210.4243,"2022"],[435.24,477.3379,"Originally"],[479.8757,506.4559,"Issued"],[509.0356,517.3322,"in"],[519.8342,552.7311,"Turkish"]],
+          [[70.92,108.3703,"(Thousands"],[110.4028,117.0398,"of"],[119.0394,143.8163,"Turkish"],[145.9171,159.0834,"Lira"],[161.1537,178.8248,"(TL))"]],
+          [[358.677,382.1013,"Loans"]],
+          [[489.36,509.5557,"TFRS"],[511.4459,515.4659,"9"]],
+          [[86.76,116.2683,"Current"],[118.557,143.0973,"Period"],[291.6,332.7418,"Significant"],[335.0367,366.8726,"Increase"],[369.1136,376.6376,"in"]],
+          [[400.914,437.463,"Defaulted"],[459.36,493.3799,"Expected"],[495.7172,518.7393,"Credit"],[520.9136,545.4144,"Losses"]],
+          [[313.317,336.3391,"Credit"],[338.634,355.1373,"Risk"]],
+          [[404.622,428.6521,"(Stage"],[430.7761,438.354,"3)"]],
+          [[317.28,341.31,"(Stage"],[343.5537,351.117,"2)"]],
+          [[86.76,131.6763,"Agriculture"],[351.72,373.7431,"90,553"],[424.08,446.1031,"45,430"],[522.48,544.5032,"41,674"]],
+          [[86.76,117.1827,"Farming"],[119.3994,132.4224,"and"],[134.76,186.9123,"Stockbreeding"],[351.72,373.7431,"66,035"],[424.08,446.1031,"27,048"],[522.48,544.5032,"25,017"]],
+          [[86.76,116.8146,"Forestry"],[351.72,373.7431,"17,155"],[428.04,446.1003,"9,087"],[526.44,544.5002,"8,266"]],
+          [[86.76,113.8203,"Fishery"],[355.68,373.7402,"7,363"],[428.04,446.1003,"9,295"],[526.44,544.5002,"8,391"]],
+          [[86.76,145.1511,"Manufacturing"],[337.68,373.7433,"46,669,546"],[414.0,446.1005,"5,927,500"],[508.44,544.5036,"15,388,514"]],
+          [[86.76,113.3451,"Mining"],[115.5627,128.5857,"and"],[130.9257,167.7124,"Quarrying"],[341.64,373.7405,"3,254,594"],[424.08,446.1031,"30,811"],[512.4,544.5005,"1,515,738"]],
+          [[86.76,126.2943,"Production"],[337.68,373.7433,"22,309,589"],[414.0,446.1005,"1,341,211"],[512.4,544.5005,"3,684,914"]],
+          [[86.76,126.3294,"Electricity,"],[128.7594,142.7004,"Gas"],[144.9567,157.9771,"and"],[160.3144,182.1511,"Water"],[337.68,373.7433,"21,105,363"],[414.0,446.1005,"4,555,478"],[508.44,544.5036,"10,187,862"]],
+          [[86.76,137.2464,"Construction"],[341.64,373.7405,"5,480,727"],[414.0,446.1005,"2,317,183"],[512.4,544.5005,"3,317,717"]],
+          [[86.76,118.1007,"Services"],[337.68,373.7433,"40,015,212"],[414.0,446.1005,"7,130,728"],[508.44,544.5036,"14,011,744"]],
+          [[86.76,124.7157,"Wholesale"],[126.9567,139.977,"and"],[142.3143,163.7757,"Retail"],[166.0716,186.9876,"Trade"],[341.64,373.7405,"8,938,374"],[414.0,446.1005,"1,985,241"],[512.4,544.5005,"2,476,907"]],
+          [[86.76,146.829,"Accommodation"],[149.169,162.0714,"and"],[164.4115,189.4369,"Dining"],[341.64,373.7405,"5,257,798"],[420.0,446.1002,"539,285"],[512.4,544.5005,"1,193,314"]],
+          [[86.76,139.86,"Transportation"],[142.0767,155.097,"and"],[157.3137,229.2526,"Telecommunication"],[337.68,373.7433,"14,891,929"],[414.0,446.1005,"1,902,877"],[512.4,544.5005,"3,049,152"]],
+          [[86.76,120.3417,"Financial"],[122.6367,163.0971,"Institutions"],[341.64,373.7405,"1,409,053"],[424.08,446.1031,"15,489"],[518.4,544.5004,"313,032"]],
+          [[86.76,103.1823,"Real"],[105.4773,127.4733,"Estate"],[129.7143,142.7346,"and"],[145.071,168.5727,"Rental"],[170.8678,201.2482,"Services"],[341.64,373.7405,"8,799,487"],[414.0,446.1005,"2,586,060"],[512.4,544.5005,"6,826,480"]],
+          [[86.76,131.2623,"Professional"],[133.5564,163.9368,"Services"],[371.04,373.7173,"-"],[443.4,446.0773,"-"],[541.8,544.4773,"-"]],
+          [[86.76,129.8223,"Educational"],[132.1173,162.4977,"Services"],[347.64,373.7402,"269,700"],[424.08,446.1031,"78,751"],[518.4,544.5004,"106,335"]],
+          [[86.76,110.7,"Health"],[113.0373,126.0576,"and"],[128.277,150.8193,"Social"],[153.1143,183.4948,"Services"],[347.64,373.7402,"448,871"],[424.08,446.1031,"23,025"],[522.48,544.5032,"46,524"]],
+          [[86.76,113.1813,"Others"],[337.68,373.7433,"37,472,494"],[414.0,446.1005,"4,697,825"],[512.4,544.5005,"4,807,800"]],
+          [[86.76,107.136,"Total"],[333.72,373.7438,"129,728,532"],[410.04,446.1033,"20,118,666"],[508.44,544.5036,"37,567,449"]],
+          [[358.686,382.1103,"Loans"]],
+          [[489.36,509.5557,"TFRS"],[511.4459,515.4659,"9"]],
+          [[86.76,106.344,"Prior"],[108.603,133.02,"Period"],[291.6,332.7418,"Significant"],[335.0367,366.8726,"Increase"],[369.1136,376.6376,"in"]],
+          [[400.914,437.463,"Defaulted"],[459.36,493.3799,"Expected"],[495.7172,518.7393,"Credit"],[520.9136,545.4144,"Losses"]],
+          [[313.317,336.3391,"Credit"],[338.634,355.1373,"Risk"]],
+          [[404.622,428.6521,"(Stage"],[430.7761,438.354,"3)"]],
+          [[317.28,341.31,"(Stage"],[343.5537,351.117,"2)"]],
+          [[86.76,131.6763,"Agriculture"],[344.4,373.7489,"333,257"],[421.32,446.1086,"57,170"],[519.72,544.5086,"95,422"]],
+          [[86.76,117.1827,"Farming"],[119.3994,132.4224,"and"],[134.76,186.9123,"Stockbreeding"],[344.4,373.7489,"137,160"],[421.32,446.1086,"33,074"],[519.72,544.5086,"32,691"]],
+          [[86.76,116.8146,"Forestry"],[348.96,373.7486,"19,410"],[421.32,446.1086,"14,096"],[519.72,544.5086,"12,636"]],
+          [[86.76,113.8203,"Fishery"],[344.4,373.7489,"176,687"],[421.32,446.1086,"10,000"],[519.72,544.5086,"50,095"]],
+          [[86.76,145.1511,"Manufacturing"],[333.12,373.754,"36,961,582"],[410.04,446.111,"5,735,556"],[503.88,544.514,"10,885,673"]],
+          [[86.76,113.3451,"Mining"],[115.5627,128.5857,"and"],[130.92,167.694,"Quarrying"],[337.68,373.751,"3,710,488"],[421.32,446.1086,"26,991"],[508.44,544.511,"1,247,431"]],
+          [[86.76,126.2943,"Production"],[333.12,373.754,"18,736,244"],[410.04,446.111,"1,681,516"],[508.44,544.511,"3,093,318"]],
+          [[86.76,126.3294,"Electricity,"],[128.7594,142.7004,"Gas"],[144.9567,157.9771,"and"],[160.3144,182.1511,"Water"],[333.12,373.754,"14,514,850"],[410.04,446.111,"4,027,049"],[508.44,544.511,"6,544,924"]],
+          [[86.76,137.2464,"Construction"],[337.68,373.751,"3,146,176"],[410.04,446.111,"1,955,947"],[508.44,544.511,"1,940,620"]],
+          [[86.76,118.1007,"Services"],[333.12,373.754,"32,538,416"],[410.04,446.111,"6,870,900"],[503.88,544.514,"10,530,599"]],
+          [[86.76,124.7157,"Wholesale"],[126.9567,139.977,"and"],[142.3143,163.7757,"Retail"],[166.0716,186.9876,"Trade"],[337.68,373.751,"8,106,704"],[410.04,446.111,"2,194,111"],[508.44,544.511,"2,379,557"]],
+          [[86.76,146.829,"Accommodation"],[149.169,162.0714,"and"],[164.4115,189.4369,"Dining"],[337.68,373.751,"7,567,989"],[416.76,446.1089,"430,985"],[508.44,544.511,"1,212,460"]],
+          [[86.76,139.86,"Transportation"],[142.0767,155.097,"and"],[157.3137,229.2526,"Telecommunication"],[337.68,373.751,"8,420,191"],[410.04,446.111,"1,797,293"],[508.44,544.511,"2,398,924"]],
+          [[86.76,120.3417,"Financial"],[122.6367,163.0971,"Institutions"],[337.68,373.751,"1,415,631"],[421.32,446.1086,"32,181"],[515.16,544.5089,"377,141"]],
+          [[86.76,103.1823,"Real"],[105.4773,127.4733,"Estate"],[129.7143,142.7346,"and"],[145.071,168.5727,"Rental"],[170.8678,201.2482,"Services"],[337.68,373.751,"6,199,898"],[410.04,446.111,"2,308,975"],[508.44,544.511,"3,989,483"]],
+          [[86.76,131.2623,"Professional"],[133.5564,163.9368,"Services"],[370.68,373.677,"-"],[443.04,446.037,"-"],[541.44,544.437,"-"]],
+          [[86.76,129.8223,"Educational"],[132.1173,162.4977,"Services"],[344.4,373.7489,"341,486"],[421.32,446.1086,"80,994"],[515.16,544.5089,"114,078"]],
+          [[86.76,110.7,"Health"],[113.0373,126.0576,"and"],[128.277,150.8193,"Social"],[153.1143,183.4948,"Services"],[344.4,373.7489,"486,517"],[421.32,446.1086,"26,361"],[519.72,544.5086,"58,956"]],
+          [[86.76,113.1813,"Others"],[333.12,373.754,"21,855,085"],[410.04,446.111,"3,453,888"],[508.44,544.511,"3,218,171"]],
+          [[86.76,107.136,"Total"],[333.12,373.754,"94,834,516"],[405.48,446.114,"18,073,461"],[503.88,544.514,"26,670,485"]],
+          [[325.08,334.143,"59"]]
+        ]
+        },
+        {
+          "number": 70,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ Convenience Translation of Financial Statements",
+            "Unconsolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "4.2.7 Movements in value adjustments and provisions",
+            "Opening Provision for Provision Other",
+            "Current Period Closing Balance",
+            "Balance Period Reversals Adjustments",
+            "1 Stage 3 Provisions 11,941,132 19,383,529 8,463,153 8,367,909 14,493,599",
+            "Stage 1 and Stage 2",
+            "2 17,984,110 31,931,183 20,743,186 - 29,172,107",
+            "Provisions",
+            "Opening Provision for Provision Other",
+            "Prior Period Closing Balance",
+            "Balance Period Reversals Adjustments",
+            "1 Stage 3 Provisions 9,929,201 7,667,500 1,756,577 3,898,992 11,941,132",
+            "Stage 1 and Stage 2",
+            "2 12,114,805 19,961,225 14,091,920 - 17,984,110",
+            "Provisions",
+            "4.2.8 Exposures subject to countercyclical capital buffer",
+            "RWAs of",
+            "Current Period RWAs of",
+            "Banking Book for Private Total",
+            "Country Trading Book",
+            "Sector Lending",
+            "Turkey 652,955,685 2,634,393 655,590,078",
+            "Cayman Islands 2,026,674 - 2,026,674",
+            "Turkish Republic of Northern Cyprus 2,211,094 980 2,212,074",
+            "Malta 519,704 - 519,704",
+            "Switzerland 14,128 58 14,186",
+            "The Netherlands 304,788 1,347 306,135",
+            "United Kingdom 615,280 25,873 641,153",
+            "Macedonia 566 - 566",
+            "Romania 170,697 1 170,698",
+            "Others 1,803,711 4,667 1,808,378",
+            "Prior Period RWAs of Banking Book for RWAs of",
+            "Total",
+            "Country Private Sector Lending Trading Book",
+            "Turkey 370,439,658 3,519,102 373,958,760",
+            "Cayman Islands 1,340,313 - 1,340,313",
+            "Turkish Republic of Northern Cyprus 1,319,169 - 1,319,169",
+            "Malta 307,525 163 307,688",
+            "Switzerland 11,121 - 11,121",
+            "The Netherlands 27,731 1,901 29,632",
+            "United Kingdom 1,384,536 137,160 1,521,696",
+            "Macedonia 176 - 176",
+            "Romania 207,996 - 207,996",
+            "Others 1,565,105 6,196 1,571,301",
+            "60"
+          ],
+          "xy_lines": [
+          [[70.92,101.9232,"Türkiye"],[104.1678,134.5122,"Garanti"],[136.8099,167.8761,"Bankası"],[170.1738,181.6578,"AŞ"],[347.28,400.4217,"Convenience"],[402.9595,451.3341,"Translation"],[453.8361,462.1925,"of"],[464.7562,505.2038,"Financial"],[507.7137,552.7457,"Statements"]],
+          [[70.917,127.5082,"Unconsolidated"],[129.7312,163.1986,"Financial"],[165.4936,190.0816,"Report"],[192.139,199.6,"as"],[201.8563,209.4163,"of"],[211.5763,224.5993,"and"],[391.68,407.2206,"and"],[409.8003,440.8197,"Related"],[443.3994,491.0739,"Disclosures"],[493.5599,509.1006,"and"],[511.6802,552.7551,"Footnotes"]],
+          [[70.917,81.357,"for"],[83.6376,94.7166,"the"],[96.9576,114.3546,"Year"],[116.6343,139.7409,"Ended"],[141.9576,150.8973,"31"],[153.2374,190.0771,"December"],[192.3577,210.4243,"2022"],[435.24,477.3379,"Originally"],[479.8757,506.4559,"Issued"],[509.0356,517.3322,"in"],[519.8342,552.7311,"Turkish"]],
+          [[70.92,108.3703,"(Thousands"],[110.4028,117.0398,"of"],[119.0394,143.8163,"Turkish"],[145.9171,159.0834,"Lira"],[161.1537,178.8248,"(TL))"]],
+          [[39.96,62.04,"4.2.7"],[85.0805,139.5353,"Movements"],[142.3206,151.5788,"in"],[154.2008,179.2616,"value"],[182.0404,239.4947,"adjustments"],[242.2801,259.9386,"and"],[262.6809,311.0151,"provisions"]]
+        ]
+        },
+        {
+          "number": 71,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ Convenience Translation of Financial Statements",
+            "Unconsolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "4.3 Currency risk",
+            "Foreign currency position limit is set in compliance with the legal standard ratio of net foreign currency",
+            "position. As of 31 December 2022, the Bank’s net ‘on balance sheet’ foreign currency short position amounts",
+            "to TL 35,886,244 (31 December 2021: TL 73,355,612), net ‘off-balance sheet’ foreign currency long position",
+            "amounts to TL 43,841,050 (31 December 2021: TL 89,098,603), while net foreign currency close position",
+            "amounts to TL 7,954,806 (31 December 2021: TL 15,742,991).",
+            "The foreign currency position risk of the Bank is measured by “standard method” and “value-at-risk (VaR)",
+            "model”. Measurements by standard method are carried out monthly, whereas measurements by VaR are done",
+            "daily. The foreign currency exchange risk is managed through transaction, dealer, desk and stop-loss limits",
+            "approved by the Board of Directors for the trading portfolio beside the foreign currency net position standard",
+            "ratio and the VaR limit.",
+            "The Bank’s effective exchange rates at the date of balance sheet and for the last five working days of the",
+            "period announced by the Bank in TL are as follows:",
+            "EUR USD",
+            "Foreign currency purchase rates at balance sheet date 19.8710 18.5920",
+            "Exchange rates for the days before balance sheet date;",
+            "Day 1 19.8710 18.5920",
+            "Day 2 19.8470 18.6450",
+            "Day 3 19.8250 18.6050",
+            "Day 4 19.7700 18.6070",
+            "Day 5 19.7230 18.5610",
+            "EUR USD",
+            "Last 30-days arithmetical average rates 19.6501 18.5508",
+            "61"
+          ],
+          "xy_lines": [
+
+        ]
+        }
+      ],
+      "stored_labels": [
+        {
+          "sector": "agri_farming",
+          "raw_label": "Farming and Stockbreeding 137,160 33,074 32,691"
+        },
+        {
+          "sector": "agri_farming",
+          "raw_label": "Farming and Stockbreeding 66,035 27,048 25,017"
+        },
+        {
+          "sector": "agri_fishery",
+          "raw_label": "Fishery 176,687 10,000 50,095"
+        },
+        {
+          "sector": "agri_fishery",
+          "raw_label": "Fishery 7,363 9,295 8,391"
+        },
+        {
+          "sector": "agri_forestry",
+          "raw_label": "Forestry 17,155 9,087 8,266"
+        },
+        {
+          "sector": "agri_forestry",
+          "raw_label": "Forestry 19,410 14,096 12,636"
+        },
+        {
+          "sector": "agri_total",
+          "raw_label": "Agriculture 333,257 57,170 95,422"
+        },
+        {
+          "sector": "agri_total",
+          "raw_label": "Agriculture 90,553 45,430 41,674"
+        },
+        {
+          "sector": "construction",
+          "raw_label": "Construction 3,146,176 1,955,947 1,940,620"
+        },
+        {
+          "sector": "construction",
+          "raw_label": "Construction 5,480,727 2,317,183 3,317,717"
+        },
+        {
+          "sector": "mfg_mining",
+          "raw_label": "Mining and Quarrying 3,254,594 30,811 1,515,738"
+        },
+        {
+          "sector": "mfg_mining",
+          "raw_label": "Mining and Quarrying 3,710,488 26,991 1,247,431"
+        },
+        {
+          "sector": "mfg_production",
+          "raw_label": "Production 18,736,244 1,681,516 3,093,318"
+        },
+        {
+          "sector": "mfg_production",
+          "raw_label": "Production 22,309,589 1,341,211 3,684,914"
+        },
+        {
+          "sector": "mfg_total",
+          "raw_label": "Manufacturing 36,961,582 5,735,556 10,885,673"
+        },
+        {
+          "sector": "mfg_total",
+          "raw_label": "Manufacturing 46,669,546 5,927,500 15,388,514"
+        },
+        {
+          "sector": "mfg_utilities",
+          "raw_label": "Electricity, Gas and Water 14,514,850 4,027,049 6,544,924"
+        },
+        {
+          "sector": "mfg_utilities",
+          "raw_label": "Electricity, Gas and Water 21,105,363 4,555,478 10,187,862"
+        },
+        {
+          "sector": "other",
+          "raw_label": "Others 21,855,085 3,453,888 3,218,171"
+        },
+        {
+          "sector": "other",
+          "raw_label": "Others 37,472,494 4,697,825 4,807,800"
+        },
+        {
+          "sector": "svc_education",
+          "raw_label": "Educational Services 269,700 78,751 106,335"
+        },
+        {
+          "sector": "svc_education",
+          "raw_label": "Educational Services 341,486 80,994 114,078"
+        },
+        {
+          "sector": "svc_financial",
+          "raw_label": "Financial Institutions 1,409,053 15,489 313,032"
+        },
+        {
+          "sector": "svc_financial",
+          "raw_label": "Financial Institutions 1,415,631 32,181 377,141"
+        },
+        {
+          "sector": "svc_health",
+          "raw_label": "Health and Social Services 448,871 23,025 46,524"
+        },
+        {
+          "sector": "svc_health",
+          "raw_label": "Health and Social Services 486,517 26,361 58,956"
+        },
+        {
+          "sector": "svc_hospitality",
+          "raw_label": "Accommodation and Dining 5,257,798 539,285 1,193,314"
+        },
+        {
+          "sector": "svc_hospitality",
+          "raw_label": "Accommodation and Dining 7,567,989 430,985 1,212,460"
+        },
+        {
+          "sector": "svc_professional",
+          "raw_label": "Professional Services - - -"
+        },
+        {
+          "sector": "svc_realestate",
+          "raw_label": "Real Estate and Rental Services 6,199,898 2,308,975 3,989,48"
+        },
+        {
+          "sector": "svc_realestate",
+          "raw_label": "Real Estate and Rental Services 8,799,487 2,586,060 6,826,48"
+        },
+        {
+          "sector": "svc_total",
+          "raw_label": "Services 32,538,416 6,870,900 10,530,599"
+        },
+        {
+          "sector": "svc_total",
+          "raw_label": "Services 40,015,212 7,130,728 14,011,744"
+        },
+        {
+          "sector": "svc_trade",
+          "raw_label": "Wholesale and Retail Trade 8,106,704 2,194,111 2,379,557"
+        },
+        {
+          "sector": "svc_trade",
+          "raw_label": "Wholesale and Retail Trade 8,938,374 1,985,241 2,476,907"
+        },
+        {
+          "sector": "svc_transport",
+          "raw_label": "Transportation and Telecommunication 14,891,929 1,902,877 3,"
+        },
+        {
+          "sector": "svc_transport",
+          "raw_label": "Transportation and Telecommunication 8,420,191 1,797,293 2,3"
+        },
+        {
+          "sector": "total",
+          "raw_label": "Total 129,728,532 20,118,666 37,567,449"
+        },
+        {
+          "sector": "total",
+          "raw_label": "Total 94,834,516 18,073,461 26,670,485"
+        }
+      ],
+      "sector_row_ranges": [
+        [
+          69,
+          12,
+          31
+        ],
+        [
+          69,
+          39,
+          58
+        ]
+      ]
+    },
+    {
+      "source": {
+        "bank_ticker": "GARAN",
+        "byte_count": 3260586,
+        "kind": "consolidated",
+        "object_key": "garan/GARAN_2022Q4_consolidated.pdf",
+        "pdf_sha256": "e8dd9818e92c4613c321714f1a5d21817d40535be0c240055c935e759491c723",
+        "period": "2022Q4",
+        "source_url": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_December_2022_Consolidated_Financial_Report.pdf"
+      },
+      "pages": [
+        {
+          "number": 34,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ and Its Financial Subsidiaries Convenience Translation of Financial Statements",
+            "Consolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "With the exception of credit cards and other revolving facilities, the maximum period for which the",
+            "credit losses are determined is the contractual life of a financial instrument unless there is the legal right",
+            "to call it earlier.",
+            "Stage 1: 12-month expected credit loss represents the expected credit losses that result from default",
+            "events on a financial instrument that are possible within the 12 months after the reporting date and",
+            "calculated as the portion of lifetime expected credit losses. It is calculated 12-month expected credit loss",
+            "based on a probability of default realized within 12 months after the reporting date. Such expected 12-",
+            "month probability of default is applied on an expected exposure at default, multiplied with loss given",
+            "default rate and discounted with the original effective interest rate. Such calculation is performed for",
+            "each of three scenarios explained above.",
+            "Stage 2: When a loan has shown a significant increase in credit risk since origination, it is calculated an",
+            "allowance for the lifetime expected credit losses. Including multiple scenario usage, it is similar to",
+            "descriptions above, but probability of default and loss given default rates are estimated through the life",
+            "of the instrument. Estimated cash shortfalls are discounted by using the original effective interest rate.",
+            "Stage 3: For the loans considered as impaired, it is accounted lifetime expected credit losses. The",
+            "methodology is similar to stage 2 and the probability of default is taken into account as 100%.",
+            "It is considered a debt as default on these two below conditions;",
+            "1. Objective Default Definition: It means debt having past due more than 90 days. Current definition of",
+            "default is based on a more than 90 days past due definition. If a loan is exactly 90 days past due, it",
+            "will not be considered as default.",
+            "2. Subjective Default Definition: It means it is considered that a debt is unlikely to be paid. Whenever",
+            "it is considered that an obligor is unlikely to pay its credit obligations, it should be considered as",
+            "defaulted regardless of the existence of any past-due amount or of the number of days past due.",
+            "For the purpose of determining significant increases in credit risk and recognising a loss allowance on a",
+            "collective basis, financial instruments are grouped on the basis of shared credit risk characteristics. In",
+            "this context, the methodology developed for the estimation of expected credit losses should include the",
+            "risk features which meet the criteria for carrying the same credit risk characteristics. Examples of the",
+            "common credit risk characteristics include, but are not limited to, the following:",
+            "- Customer type (retail or corporate / commercial)",
+            "- Product type",
+            "- Credit risk rating notes /scores",
+            "- Sector / market segmentation",
+            "- Collateral type",
+            "- Loan to value ratio",
+            "- Duration since origination of a loan",
+            "- Remaining time to maturity",
+            "- Exposure at default",
+            "In addition, a certain portion of commercial and corporate loans is assessed individually in accordance",
+            "with the internal policies in the calculation of the expected credit losses based on TFRS 9. Such",
+            "calculations are made by discounting the expected cash deficits from the individual financial instrument",
+            "to its present value using the effective interest rate.",
+            "When measuring expected credit losses, it shall be considered the risk or probability that a credit loss",
+            "occurs by reflecting the possibility that a credit loss occurs and the possibility that no credit loss occurs,",
+            "even if the possibility of a credit loss occurring is very low. Such assessment is made by reflecting the",
+            "estimate of expected credit loss which is unbiased and probability-weighted determined by evaluating a",
+            "range of possible outcomes.",
+            "In accordance with the internal policies, TFRS 9 models are updated once a year. The related model",
+            "update was made in the 3th quarter of 2022 and has calculated credit losses provision is continued to",
+            "calculated based on the updated model during 2022.",
+            "23"
+          ],
+          "xy_lines": [
+
+        ]
+        },
+        {
+          "number": 35,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ and Its Financial Subsidiaries Convenience Translation of Financial Statements",
+            "Consolidated Financial Report as of and and Related Disclosures and Footnotes",
+            "for the Year Ended 31 December 2022 Originally Issued in Turkish",
+            "(Thousands of Turkish Lira (TL))",
+            "3.8.1.1 Loan commitments and non-cash loans",
+            "The expected credit losses on a loan commitment shall be discounted using the effective interest rate, or",
+            "an approximation thereof, that will be applied when recognising the financial asset resulting from the",
+            "loan commitment. This is because for the purpose of applying the impairment requirements, a financial",
+            "asset that is recognised following a draw down on a loan commitment shall be treated as a continuation",
+            "of that commitment instead of as a new financial instrument.",
+            "The expected credit losses on the financial asset shall therefore be measured considering the initial",
+            "credit risk of the loan commitment from the date when becoming a party to the irrevocable commitment.",
+            "Expected credit losses on financial guarantee contracts or on loan commitments for which the effective",
+            "interest rate cannot be determined shall be discounted by applying a discount rate that reflects the",
+            "current market assessment of the time value of money and the risks that are specific to the cash flows",
+            "but only if, and to the extent that, the risks are taken into account by adjusting the discount rate instead",
+            "of adjusting the cash shortfalls being discounted.",
+            "3.8.1.2 Debt instruments measured at fair value through other comprehensive income",
+            "In accordance with TFRS 9, the impairment requirements for the recognition and measurement of a loss",
+            "allowance for financial assets that are measured at fair value through other comprehensive income shall",
+            "be applied. However, the loss allowance shall be recognised in other comprehensive income and shall",
+            "not reduce the carrying amount of the financial asset in the statement of financial position. The expected",
+            "credit loss is reflected in other comprehensive income and the accumulated amount is recycled to",
+            "statement of profit/loss following the derecognition of related financial asset.",
+            "3.8.1.3 Credit cards and other revolving loans",
+            "The Bank and its financial subsidiaries subject to consolidation offer credit card and overdraft products",
+            "which give ability to corporate and commercial customers demand repayment and cancel the undrawn",
+            "commitment. Such products do not limit the period that entities are exposed to credit losses with the",
+            "contractual notice. For this reason, it is calculated the expected credit losses for these products over a",
+            "period of time reflecting the anticipation of customer behavior, the likelihood of default, and future risk",
+            "mitigation procedures such as the reduction or removal of undrawn limits.",
+            "When determining the period over which it is expected to be exposed to credit risk, but for which",
+            "expected credit losses would not be mitigated by normal credit risk management actions, it is considered",
+            "factors such as historical information and experience about the below items:",
+            "- the period over which the entity was exposed to credit risk on similar financial instruments;",
+            "- the length of time for related defaults to occur on similar financial instruments following a",
+            "significant increase in credit risk; and",
+            "- the credit risk management actions that it is expected to be taken once the credit risk on the financial",
+            "instrument has increased, such as the reduction or removal of undrawn limits.",
+            "It is calculated expected credit losses on the revolving products of retail and corporate customers by",
+            "considering 3 to 5 years.",
+            "It is made assessment of significant increase in credit risk of revolving loans by considering qualitative",
+            "and quantitative criteria considered for other credit products as explained in disclosure 3.8.3.",
+            "3.8.2 Forward-looking macroeconomic information",
+            "Forward-looking macroeconomic information is incorporated into credit risk parameters during",
+            "assessment of significant increase in credit risk and expected credit loss calculation. The incorporation",
+            "of forward-looking information into the credit risk parameters consists of the following steps:",
+            "Step 1: It is made specifications and estimates of econometric models that reveal past relationships",
+            "between credit risk parameters and macroeconomic variables in order to be able to generate estimates",
+            "based on macroeconomic information. Macroeconomic variable prevailing during these estimates is",
+            "mainly the Gross Domestic Product (GDP).",
+            "24"
+          ],
+          "xy_lines": [
+
+        ]
+        },
+        {
+          "number": 71,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ and Its Financial Subsidiari Convenience Translation of Financial Statements",
+            "Consolidated Financial Report as of and",
+            "for the Year Ended 31 December 2022",
+            "(Thousands of Turkish Lira (TL))",
+            "4.2.6 Information by major sectors and type of counterparties",
+            "Financial assets are assessed in 3 stages based on TFRS 9 as explained in accounting policy note",
+            "3.8.1 “Calculation of expected credit losses”. In this respect, the life time expected credit losses are",
+            "recognized for impaired loans (Stage 3) and the probability of default is considered to be 100%.",
+            "When the loan is not under default yet, but there is a significant increase in the credit risk since",
+            "origination date, the life time expected credit losses are calculated for these loans (stage 2).",
+            "Regarding the remaining financial assets within the scope of TFRS 9, the 12-month estimated",
+            "probability of default is calculated and the loss allowance for these loans (stage 1) is measured at",
+            "an amount equal to 12-month (after the reporting date) expected credit losses.",
+            "Loans",
+            "TFRS 9",
+            "Current Period",
+            "Significant Increase in Credit Risk Defaulted Expected Credit Losses",
+            "(Stage 2) (Stage 3)",
+            "Agriculture 166,030 216,888 169,737",
+            "Farming and Stockbreeding 71,512 188,969 135,672",
+            "Forestry 87,155 18,624 25,674",
+            "Fishery 7,363 9,295 8,391",
+            "Manufacturing 48,156,565 6,219,904 15,905,345",
+            "Mining and Quarrying 3,257,152 39,877 1,526,075",
+            "Production 23,780,776 1,624,252 4,189,554",
+            "Electricity, Gas and Water 21,118,637 4,555,775 10,189,716",
+            "Construction 5,943,295 2,448,759 3,481,015",
+            "Services 41,775,056 8,631,589 15,234,129",
+            "Wholesale and Retail Trade 9,417,099 2,452,563 2,882,931",
+            "Accommodation and Dining 5,451,845 690,196 1,357,758",
+            "Transportation and Telecommunication 15,483,446 2,580,453 3,472,786",
+            "Financial Institutions 1,462,540 76,164 357,380",
+            "Real Estate and Rental Services 9,089,973 2,684,374 6,944,852",
+            "Professional Services 55,616 33,972 37,381",
+            "Educational Services 321,064 81,352 113,453",
+            "Health and Social Services 493,473 32,515 67,588",
+            "Others 40,080,164 5,278,818 5,508,564",
+            "Total 136,121,110 22,795,958 40,298,790",
+            "60"
+          ],
+          "xy_lines": [
+          [[42.48,64.56,"4.2.6"],[85.0834,142.7011,"Information"],[145.4434,156.9637,"by"],[159.7237,188.505,"major"],[191.1634,223.6575,"sectors"],[226.3236,244.1013,"and"],[246.8437,266.985,"type"],[269.7638,278.8398,"of"],[281.6429,350.1384,"counterparties"]],
+          [[85.08,126.0704,"Financial"],[129.7202,155.3805,"assets"],[158.8802,172.306,"are"],[175.9271,213.1142,"assessed"],[216.7132,225.3531,"in"],[228.8329,234.353,"3"],[237.952,264.8068,"stages"],[268.4312,293.5108,"based"],[296.9895,308.0295,"on"],[311.5093,337.8077,"TFRS"],[341.3891,346.9091,"9"],[350.5082,359.7233,"as"],[363.2274,406.067,"explained"],[409.5479,418.1878,"in"],[421.6676,470.0272,"accounting"],[473.506,501.1059,"policy"],[504.5858,523.5281,"note"]],
+          [[85.08,107.16,"3.8.1"],[110.0403,165.7206,"“Calculation"],[168.4806,177.677,"of"],[180.48,219.7195,"expected"],[222.5999,247.6287,"credit"],[250.4406,284.3996,"losses”."],[287.2799,296.2798,"In"],[299.1601,315.2144,"this"],[317.9998,351.96,"respect,"],[354.8424,368.2626,"the"],[371.1595,385.7809,"life"],[388.6844,408.1059,"time"],[411.0094,450.1373,"expected"],[453.0187,478.0563,"credit"],[480.9885,507.2361,"losses"],[510.1396,523.5609,"are"]],
+          [[85.08,133.4396,"recognized"],[136.1996,148.9961,"for"],[151.6799,190.9205,"impaired"],[193.5602,216.8148,"loans"],[219.6002,247.6617,"(Stage"],[250.4405,259.6368,"3)"],[262.4399,278.2801,"and"],[281.0401,294.4614,"the"],[297.2402,345.5998,"probability"],[348.2405,357.4369,"of"],[360.2399,390.6695,"default"],[393.4824,400.8969,"is"],[403.563,451.2083,"considered"],[453.9595,462.5994,"to"],[465.3594,475.7812,"be"],[478.4396,506.8798,"100%."]],
+          [[85.08,111.4799,"When"],[115.3197,128.7421,"the"],[132.6006,151.5596,"loan"],[155.4004,162.8148,"is"],[166.6799,180.6687,"not"],[184.5603,209.4765,"under"],[213.3604,243.9092,"default"],[247.7997,264.0053,"yet,"],[267.8472,281.9563,"but"],[285.8468,307.7932,"there"],[311.6549,319.0694,"is"],[322.9312,327.8329,"a"],[331.5722,378.0847,"significant"],[381.9763,418.0815,"increase"],[421.824,430.4639,"in"],[434.3036,447.8452,"the"],[451.5845,476.7424,"credit"],[480.6329,497.1895,"risk"],[500.9089,523.5673,"since"]],
+          [[85.08,133.4396,"origination"],[136.1996,157.3202,"date,"],[159.9643,173.506,"the"],[176.16,190.9017,"life"],[193.5623,212.9839,"time"],[215.766,255.1413,"expected"],[257.7798,282.8174,"credit"],[285.6282,311.8757,"losses"],[314.6347,328.056,"are"],[330.838,375.4892,"calculated"],[378.1147,390.9112,"for"],[393.7142,416.3771,"these"],[419.0388,442.2968,"loans"],[444.9629,471.226,"(stage"],[474.008,486.0085,"2)."]],
+          [[85.08,131.0461,"Regarding"],[135.7271,149.1484,"the"],[153.8515,198.6187,"remaining"],[203.2997,241.773,"financial"],[246.5047,272.2555,"assets"],[276.9607,305.0399,"within"],[309.7208,323.2625,"the"],[327.8419,353.023,"scope"],[357.7216,366.918,"of"],[371.5228,397.9415,"TFRS"],[402.7229,411.0029,"9,"],[415.5636,429.1052,"the"],[433.8005,476.5197,"12-month"],[481.3221,523.571,"estimated"]],
+          [[85.08,133.4396,"probability"],[136.9194,146.1157,"of"],[149.7589,180.1885,"default"],[183.7224,191.1369,"is"],[194.6366,239.2812,"calculated"],[242.761,258.7249,"and"],[262.2047,275.6271,"the"],[279.1289,296.2641,"loss"],[299.766,344.3951,"allowance"],[347.897,360.8138,"for"],[364.3366,386.9995,"these"],[390.4969,413.756,"loans"],[417.2612,443.405,"(stage"],[446.9069,456.1032,"1)"],[459.601,467.0154,"is"],[470.6366,512.7652,"measured"],[515.3972,523.3901,"at"]],
+          [[85.08,95.5194,"an"],[98.2794,131.2294,"amount"],[134.0402,157.869,"equal"],[160.5605,169.2004,"to"],[171.9604,214.6841,"12-month"],[217.4441,241.2806,"(after"],[243.9633,257.5061,"the"],[260.1645,300.604,"reporting"],[303.2437,325.2807,"date)"],[327.9634,367.204,"expected"],[369.8437,394.8736,"credit"],[397.6844,426.724,"losses."]],
+          [[321.357,344.7813,"Loans"]],
+          [[469.44,489.6357,"TFRS"],[491.5259,495.5459,"9"]],
+          [[85.08,114.5883,"Current"],[116.877,141.4173,"Period"]],
+          [[233.76,274.9018,"Significant"],[277.1967,309.0326,"Increase"],[311.2736,318.7976,"in"],[321.1106,344.1326,"Credit"],[346.44,362.8236,"Risk"],[384.828,421.377,"Defaulted"],[439.44,473.46,"Expected"],[475.7972,498.8192,"Credit"],[500.9936,525.4944,"Losses"]],
+          [[283.866,307.896,"(Stage"],[310.1406,317.6331,"2)"],[388.536,412.5661,"(Stage"],[414.6901,422.2681,"3)"]],
+          [[85.08,129.9963,"Agriculture"],[332.28,361.6289,"166,030"],[401.64,430.989,"216,888"],[495.6,524.949,"169,737"]],
+          [[85.08,115.5027,"Farming"],[117.7194,130.7424,"and"],[133.08,185.2323,"Stockbreeding"],[336.84,361.6286,"71,512"],[401.64,430.989,"188,969"],[495.6,524.949,"135,672"]],
+          [[85.08,115.1346,"Forestry"],[336.84,361.6286,"87,155"],[406.2,430.9886,"18,624"],[500.16,524.9487,"25,674"]],
+          [[85.08,112.1403,"Fishery"],[341.28,361.6254,"7,363"],[410.64,430.9854,"9,295"],[504.6,524.9454,"8,391"]],
+          [[85.08,143.4711,"Manufacturing"],[321.0,361.634,"48,156,565"],[394.92,430.991,"6,219,904"],[484.32,524.954,"15,905,345"]],
+          [[85.08,111.6651,"Mining"],[113.8827,126.9057,"and"],[129.2457,166.0323,"Quarrying"],[325.56,361.631,"3,257,152"],[406.2,430.9886,"39,877"],[488.88,524.951,"1,526,075"]],
+          [[85.08,124.6143,"Production"],[321.0,361.634,"23,780,776"],[394.92,430.991,"1,624,252"],[488.88,524.951,"4,189,554"]],
+          [[85.08,124.6494,"Electricity,"],[127.0794,141.0204,"Gas"],[143.2794,156.2997,"and"],[158.6398,180.4765,"Water"],[321.0,361.634,"21,118,637"],[394.92,430.991,"4,555,775"],[484.32,524.954,"10,189,716"]],
+          [[85.08,135.5664,"Construction"],[325.56,361.631,"5,943,295"],[394.92,430.991,"2,448,759"],[488.88,524.951,"3,481,015"]],
+          [[85.08,116.4207,"Services"],[321.0,361.634,"41,775,056"],[394.92,430.991,"8,631,589"],[484.32,524.954,"15,234,129"]],
+          [[85.08,123.0357,"Wholesale"],[125.2794,138.2997,"and"],[140.6397,162.102,"Retail"],[164.3997,185.3157,"Trade"],[325.56,361.631,"9,417,099"],[394.92,430.991,"2,452,563"],[488.88,524.951,"2,882,931"]],
+          [[85.08,145.149,"Accommodation"],[147.489,160.3914,"and"],[162.7314,187.7569,"Dining"],[325.56,361.631,"5,451,845"],[401.64,430.989,"690,196"],[488.88,524.951,"1,357,758"]],
+          [[85.08,138.18,"Transportation"],[140.3967,153.417,"and"],[155.6337,227.5726,"Telecommunication"],[321.0,361.634,"15,483,446"],[394.92,430.991,"2,580,453"],[488.88,524.951,"3,472,786"]],
+          [[85.08,118.6617,"Financial"],[120.96,161.4214,"Institutions"],[325.56,361.631,"1,462,540"],[406.2,430.9886,"76,164"],[495.6,524.949,"357,380"]],
+          [[85.08,101.5023,"Real"],[103.7973,125.7933,"Estate"],[128.0343,141.0546,"and"],[143.391,166.8927,"Rental"],[169.1878,199.5682,"Services"],[325.56,361.631,"9,089,973"],[394.92,430.991,"2,684,374"],[488.88,524.951,"6,944,852"]],
+          [[85.08,129.5823,"Professional"],[131.8764,162.2568,"Services"],[336.84,361.6286,"55,616"],[406.2,430.9886,"33,972"],[500.16,524.9487,"37,381"]],
+          [[85.08,128.1423,"Educational"],[130.4373,160.8177,"Services"],[332.28,361.6289,"321,064"],[406.2,430.9886,"81,352"],[495.6,524.949,"113,453"]],
+          [[85.08,109.02,"Health"],[111.36,124.3803,"and"],[126.5997,149.142,"Social"],[151.4397,181.821,"Services"],[332.28,361.6289,"493,473"],[406.2,430.9886,"32,515"],[500.16,524.9487,"67,588"]],
+          [[85.08,111.5013,"Others"],[321.0,361.634,"40,080,164"],[394.92,430.991,"5,278,818"],[488.88,524.951,"5,508,564"]],
+          [[85.08,105.456,"Total"],[316.56,361.6346,"136,121,110"],[390.36,430.994,"22,795,958"],[484.32,524.954,"40,298,790"]],
+          [[299.76,308.823,"60"]]
+        ]
+        },
+        {
+          "number": 72,
+          "lines": [
+            "Türkiye Garanti Bankası AŞ and Its Financial Subsidiari Convenience Translation of Financial Statements",
+            "Consolidated Financial Report as of and",
+            "for the Year Ended 31 December 2022",
+            "(Thousands of Turkish Lira (TL))",
+            "Loans",
+            "TFRS 9",
+            "Prior Period",
+            "Significant Increase in Credit Risk Defaulted Expected Credit Losses",
+            "(Stage 2) (Stage 3)",
+            "Agriculture 398,147 183,400 192,565",
+            "Farming and Stockbreeding 140,652 154,795 116,054",
+            "Forestry 80,808 18,605 26,416",
+            "Fishery 176,687 10,000 50,095",
+            "Manufacturing 38,094,585 6,034,961 11,322,670",
+            "Mining and Quarrying 3,713,457 34,889 1,256,448",
+            "Production 19,571,790 1,960,386 3,478,389",
+            "Electricity, Gas and Water 14,809,338 4,039,686 6,587,833",
+            "Construction 3,481,729 2,078,141 2,077,052",
+            "Services 34,283,462 7,984,382 11,529,308",
+            "Wholesale and Retail Trade 8,495,111 2,393,771 2,622,687",
+            "Accommodation and Dining 7,710,887 571,771 1,339,252",
+            "Transportation and Telecommunication 9,221,260 2,386,384 2,835,020",
+            "Financial Institutions 1,420,155 114,255 432,447",
+            "Real Estate and Rental Services 6,534,813 2,382,916 4,091,074",
+            "Professional Services 23,285 18,938 17,495",
+            "Educational Services 345,032 82,907 115,532",
+            "Health and Social Services 532,919 33,440 75,801",
+            "Others 23,339,480 4,065,868 3,784,419",
+            "Total 99,597,403 20,346,752 28,906,014",
+            "4.2.7 Movements in value adjustments and provisions",
+            "Opening Provision for Provision Other",
+            "Current Period Closing Balance",
+            "Balance Period Reversals Adjustments(*)",
+            "1 Stage 3. Provisions 13,605,117 19,917,350 (8,897,408) (8,040,203) 16,584,856",
+            "Stage 1 and Stage 2",
+            "2 19,158,509 33,550,436 (21,599,112) (289,295) 30,820,538",
+            "Provisions",
+            "Opening Provision for Provision Other",
+            "Prior Period Closing Balance",
+            "Balance Period Reversals Adjustments(*)",
+            "1 Stage 3. Provisions 11,085,810 8,141,483 1,933,583 3,688,593 13,605,117",
+            "Stage 1 and Stage 2",
+            "2 12,702,385 20,787,514 14,490,883 (159,493) 19,158,509",
+            "Provisions",
+            "(*) Includes also foreign exchange losses and transfers.",
+            "61"
+          ],
+          "xy_lines": [
+          [[56.76,87.7632,"Türkiye"],[90.0078,120.3522,"Garanti"],[122.6499,153.7161,"Bankası"],[156.0138,167.4978,"AŞ"],[169.8145,184.2982,"and"],[186.4969,196.4779,"Its"],[198.717,234.7062,"Financial"],[237.0012,276.4617,"Subsidiari"],[347.28,400.4217,"Convenience"],[402.9595,451.3341,"Translation"],[453.8361,462.1925,"of"],[464.7562,505.2038,"Financial"],[507.7137,552.7457,"Statements"]],
+          [[56.76,104.3521,"Consolidated"],[106.5751,140.0434,"Financial"],[142.3375,166.9246,"Report"],[169.0999,176.5609,"as"],[178.8163,186.3763,"of"],[188.5363,201.5594,"and"]],
+          [[56.76,67.2,"for"],[69.4797,80.5587,"the"],[82.7997,100.1967,"Year"],[102.4764,125.583,"Ended"],[127.7997,136.7394,"31"],[139.0794,175.9191,"December"],[178.1989,196.2655,"2022"]],
+          [[56.76,94.2095,"(Thousands"],[96.2436,102.8807,"of"],[106.928,131.7089,"Turkish"],[133.8105,146.9809,"Lira"],[149.0552,166.6073,"(TL))"]],
+          [[321.36,344.7843,"Loans"]],
+          [[469.44,489.6357,"TFRS"],[491.5259,495.5459,"9"]],
+          [[85.083,104.667,"Prior"],[106.926,131.3493,"Period"]],
+          [[233.76,274.9018,"Significant"],[277.1967,309.0326,"Increase"],[311.2736,318.7976,"in"],[321.1106,344.1326,"Credit"],[346.44,362.8236,"Risk"],[384.828,421.377,"Defaulted"],[439.44,473.46,"Expected"],[475.7972,498.8192,"Credit"],[500.9936,525.4944,"Losses"]],
+          [[283.866,307.896,"(Stage"],[310.1406,317.634,"2)"],[388.5361,412.5661,"(Stage"],[414.6901,422.2681,"3)"]],
+          [[85.08,129.9963,"Agriculture"],[332.28,361.6289,"398,147"],[401.64,430.989,"183,400"],[495.6,524.949,"192,565"]],
+          [[85.08,115.5027,"Farming"],[117.7194,130.7424,"and"],[133.08,185.2323,"Stockbreeding"],[332.28,361.6289,"140,652"],[401.64,430.989,"154,795"],[495.6,524.949,"116,054"]],
+          [[85.08,115.1346,"Forestry"],[336.84,361.6286,"80,808"],[406.2,430.9886,"18,605"],[500.16,524.9487,"26,416"]],
+          [[85.08,112.1403,"Fishery"],[332.28,361.6289,"176,687"],[406.2,430.9886,"10,000"],[500.16,524.9487,"50,095"]],
+          [[85.08,143.4711,"Manufacturing"],[321.0,361.634,"38,094,585"],[394.92,430.991,"6,034,961"],[484.32,524.954,"11,322,670"]],
+          [[85.08,111.6651,"Mining"],[113.8827,126.9057,"and"],[129.2457,166.0323,"Quarrying"],[325.56,361.631,"3,713,457"],[406.2,430.9886,"34,889"],[488.88,524.951,"1,256,448"]],
+          [[85.08,124.6143,"Production"],[321.0,361.634,"19,571,790"],[394.92,430.991,"1,960,386"],[488.88,524.951,"3,478,389"]],
+          [[85.08,124.6494,"Electricity,"],[127.0794,141.0204,"Gas"],[143.2794,156.2997,"and"],[158.6398,180.4765,"Water"],[321.0,361.634,"14,809,338"],[394.92,430.991,"4,039,686"],[488.88,524.951,"6,587,833"]],
+          [[85.08,135.5664,"Construction"],[325.56,361.631,"3,481,729"],[394.92,430.991,"2,078,141"],[488.88,524.951,"2,077,052"]],
+          [[85.08,116.4207,"Services"],[321.0,361.634,"34,283,462"],[394.92,430.991,"7,984,382"],[484.32,524.954,"11,529,308"]],
+          [[85.08,123.0357,"Wholesale"],[125.2794,138.2997,"and"],[140.6397,162.102,"Retail"],[164.3997,185.3157,"Trade"],[325.56,361.631,"8,495,111"],[394.92,430.991,"2,393,771"],[488.88,524.951,"2,622,687"]],
+          [[85.08,145.149,"Accommodation"],[147.489,160.3914,"and"],[162.7314,187.7569,"Dining"],[325.56,361.631,"7,710,887"],[401.64,430.989,"571,771"],[488.88,524.951,"1,339,252"]],
+          [[85.08,138.18,"Transportation"],[140.3967,153.417,"and"],[155.6337,227.5726,"Telecommunication"],[325.56,361.631,"9,221,260"],[394.92,430.991,"2,386,384"],[488.88,524.951,"2,835,020"]],
+          [[85.08,118.6617,"Financial"],[120.9567,161.4171,"Institutions"],[325.56,361.631,"1,420,155"],[401.64,430.989,"114,255"],[495.6,524.949,"432,447"]],
+          [[85.08,101.5023,"Real"],[103.7973,125.7933,"Estate"],[128.0343,141.0546,"and"],[143.391,166.8927,"Rental"],[169.1878,199.5682,"Services"],[325.56,361.631,"6,534,813"],[394.92,430.991,"2,382,916"],[488.88,524.951,"4,091,074"]],
+          [[85.08,129.5823,"Professional"],[131.8764,162.2568,"Services"],[336.84,361.6286,"23,285"],[406.2,430.9886,"18,938"],[500.16,524.9487,"17,495"]],
+          [[85.08,128.1423,"Educational"],[130.4373,160.8177,"Services"],[332.28,361.6289,"345,032"],[406.2,430.9886,"82,907"],[495.6,524.949,"115,532"]],
+          [[85.08,109.02,"Health"],[111.36,124.3803,"and"],[126.5997,149.142,"Social"],[151.4397,181.821,"Services"],[332.28,361.6289,"532,919"],[406.2,430.9886,"33,440"],[500.16,524.9487,"75,801"]],
+          [[85.08,111.5013,"Others"],[321.0,361.634,"23,339,480"],[394.92,430.991,"4,065,868"],[488.88,524.951,"3,784,419"]],
+          [[85.08,105.456,"Total"],[321.0,361.634,"99,597,403"],[390.36,430.994,"20,346,752"],[484.32,524.954,"28,906,014"]],
+          [[42.48,64.56,"4.2.7"],[85.0834,139.5415,"Movements"],[142.3268,151.585,"in"],[154.207,179.2689,"value"],[182.0466,239.502,"adjustments"],[242.2874,259.9459,"and"],[262.6872,311.0214,"provisions"]]
+        ]
+        }
+      ],
+      "stored_labels": [
+        {
+          "sector": "agri_farming",
+          "raw_label": "Farming and Stockbreeding"
+        },
+        {
+          "sector": "agri_fishery",
+          "raw_label": "Fishery"
+        },
+        {
+          "sector": "agri_forestry",
+          "raw_label": "Forestry"
+        },
+        {
+          "sector": "agri_total",
+          "raw_label": "Agriculture"
+        },
+        {
+          "sector": "construction",
+          "raw_label": "Construction"
+        },
+        {
+          "sector": "mfg_mining",
+          "raw_label": "Mining and Quarrying"
+        },
+        {
+          "sector": "mfg_production",
+          "raw_label": "Production"
+        },
+        {
+          "sector": "mfg_total",
+          "raw_label": "Manufacturing"
+        },
+        {
+          "sector": "mfg_utilities",
+          "raw_label": "Electricity, Gas and Water"
+        },
+        {
+          "sector": "other",
+          "raw_label": "Others"
+        },
+        {
+          "sector": "svc_education",
+          "raw_label": "Educational Services"
+        },
+        {
+          "sector": "svc_financial",
+          "raw_label": "Financial Institutions"
+        },
+        {
+          "sector": "svc_health",
+          "raw_label": "Health and Social Services"
+        },
+        {
+          "sector": "svc_hospitality",
+          "raw_label": "Accommodation and Dining"
+        },
+        {
+          "sector": "svc_professional",
+          "raw_label": "Professional Services"
+        },
+        {
+          "sector": "svc_realestate",
+          "raw_label": "Real Estate and Rental Services"
+        },
+        {
+          "sector": "svc_total",
+          "raw_label": "Services"
+        },
+        {
+          "sector": "svc_trade",
+          "raw_label": "Wholesale and Retail Trade"
+        },
+        {
+          "sector": "svc_transport",
+          "raw_label": "Transportation and Telecommunication"
+        },
+        {
+          "sector": "total",
+          "raw_label": "Total"
+        }
+      ],
+      "sector_row_ranges": [
+        [
+          71,
+          19,
+          38
+        ],
+        [
+          72,
+          10,
+          29
+        ]
+      ]
+    }
+  ]
+}

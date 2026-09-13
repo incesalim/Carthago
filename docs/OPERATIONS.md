@@ -1,5 +1,22 @@
 # Operations
 
+## Reviewing sector-table repairs (2026-09-13)
+
+Use `reextract-statement.yml` for normalized sector-table repairs, with exact
+`partitions` and `require_passing=true`. Preview first with `dry_run=true`.
+The script prints `[CANDIDATE_CHANGES]`: primary keys, inserted/deleted/updated
+rows and each changed field's before/after value, excluding timestamps. Each
+table is capped at 200 changed rows with an explicit truncation flag; a
+truncated review needs further evidence before publication. Scoped overrides
+of an already-passing statement must preserve unchanged figures and unrelated
+partitions. The source-cell validator catches missing comparatives, Stage 3
+and ECL cells that aggregate footing alone can miss in supported layouts.
+
+For source-only repairs, `backfill-audit-source-capture.yml` keeps analytical
+facts unchanged. Its `[CAPTURE]` line reports source pages, data rows,
+mapped/unmapped rows and normalized rows per lane. Inspect those counters;
+a successful process exit alone does not establish complete mapping.
+
 ## Refresh preview follow-up boundary (2026-09-13)
 
 `refresh-audit.yml` assigns its run title from `inputs.dry_run`: `(preview)` or

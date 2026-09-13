@@ -207,6 +207,82 @@ def check_source_capture(
     return res
 
 
+def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
+                              scale: int | None) -> ValidationResult:
+    """Compare printed three-column sector cells with both stored periods.
+
+    This is independent of the extractor's coordinate alignment and aggregate
+    footing. Missing ECL cells or an entire comparative cannot remove their own
+    constraint. Wider/unbounded source layouts retain the existing checks.
+    """
+    from .extractor import parse_amount
+    from .loans_by_sector import (
+        _LABEL_TO_KEY, _THREE_NUMS_TAIL, _sector_disclosure_lines,
+    )
+
+    res = ValidationResult()
+    pages: dict[int, list[str]] = {}
+    for line in source_lines:
+        pages.setdefault(line["source_page"], []).append(line["line_text"])
+    selected = _sector_disclosure_lines(pages)
+    if selected is None:
+        res.add_skip()
+        return res
+    stored = {(row["period_type"], row["sector"]): row for row in rows}
+    period_type = None
+    headers: list[str] = []
+    expected_rows = []
+    for page, lines in sorted(pages.items()):
+        for order, text in enumerate(lines, 1):
+            if (page, order) not in selected:
+                continue
+            caption = re.match(r"^(current|prior|cari|önceki)\s+(?:period|dönem)\b", text, re.I)
+            if caption:
+                period_type = "prior" if caption[1].lower() in {"prior", "önceki"} else "current"
+                headers = []
+                continue
+            if period_type is None:
+                continue
+            tail = _THREE_NUMS_TAIL.search(text)
+            label = text[:tail.start()] if tail else text
+            label = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", label)
+            label = re.sub(r"\(\*+\)\s*$", "", label).strip().lower()
+            key = _LABEL_TO_KEY.get(label)
+            if key is None or tail is None:
+                headers.append(text)
+                continue
+            header = " ".join(headers).lower()
+            if not (re.search(r"stage\s*2\b|ikinci\s+aşama", header)
+                    and re.search(r"stage\s*3\b|üçüncü\s+aşama", header)
+                    and re.search(r"expected credit losses|beklenen (?:kredi zararları|zarar karşılıkları)", header)):
+                continue
+            expected_rows.append((period_type, key, page, [
+                parse_amount(tail[f"n{i}"]) for i in (1, 2, 3)]))
+    if not expected_rows:
+        res.add_skip()
+        return res
+    if scale is None:
+        res.add_fail("sector_source_unit", "unknown source denomination", 1, 0)
+        return res
+    for period_type, key, page, amounts in expected_rows:
+        node = f"{period_type}/{key} p.{page}"
+        row = stored.get((period_type, key))
+        if row is None:
+            res.add_fail("sector_source_row_missing", node, 1, 0)
+            continue
+        for col, amount in zip(("stage2_amount", "stage3_amount", "ecl_amount"), amounts):
+            actual = row.get(col)
+            if amount is None:
+                res.add_skip()
+            elif actual is None:
+                res.add_fail("sector_source_cell_missing", f"{node}/{col}", 1, 0)
+            elif abs(actual - amount * scale) > 0.000001:
+                res.add_fail("sector_source_cell", f"{node}/{col}", amount * scale, actual)
+            else:
+                res.add_pass()
+    return res
+
+
 def _tol(expected: float, base: float, rel: float) -> float:
     return max(base, abs(expected) * rel)
 

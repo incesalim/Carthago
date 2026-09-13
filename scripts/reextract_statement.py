@@ -140,6 +140,38 @@ def _partition_snapshot(conn: sqlite3.Connection, table: str,
     return columns, rows
 
 
+def _candidate_changes(conn: sqlite3.Connection, table: str, bank: str, period: str,
+                       kind: str, before: tuple[list[str], tuple[tuple, ...]]) -> dict:
+    """Reviewable factual differences; timestamps never masquerade as repairs."""
+    columns, old_rows = before
+    current_columns, new_rows = _partition_snapshot(conn, table, bank, period, kind)
+    if columns != current_columns:
+        raise ValueError(f"schema changed while extracting {table}")
+    primary = [r[1] for r in sorted(conn.execute(f'PRAGMA table_info("{table}")'),
+                                  key=lambda r: r[5]) if r[5]]
+    if not primary:
+        raise ValueError(f"no primary key for candidate review: {table}")
+    facts = [c for c in columns if c not in {"extracted_at", "derived_at"}]
+
+    def keyed(values):
+        records = [dict(zip(columns, row)) for row in values]
+        return {tuple(row[c] for c in primary): row for row in records}
+
+    old, new = keyed(old_rows), keyed(new_rows)
+    changes = []
+    for key in sorted(old.keys() | new.keys()):
+        fields = {column: {"before": old[key][column] if key in old else None,
+                           "after": new[key][column] if key in new else None}
+                  for column in facts if column not in primary
+                  and (key not in old or key not in new or old[key][column] != new[key][column])}
+        if key not in old or key not in new or fields:
+            changes.append({"key": dict(zip(primary, key)),
+                            "operation": "insert" if key not in old else "delete" if key not in new else "update",
+                            "fields": fields})
+    return {"table": table, "changed_rows": len(changes), "changes": changes[:200],
+            "truncated": len(changes) > 200}
+
+
 def _restore_partition(conn: sqlite3.Connection, table: str,
                        bank: str, period: str, kind: str,
                        snapshot: tuple[list[str], tuple[tuple, ...]]) -> None:
@@ -558,6 +590,10 @@ def main() -> int:
                     candidate_table for candidate_table in candidate_tables
                     if before[candidate_table] != after[candidate_table]
                 }
+                for changed_table in sorted(changed_tables):
+                    print("  [CANDIDATE_CHANGES] " + json.dumps(_candidate_changes(
+                        conn, changed_table, t, p, k, snapshots[changed_table]),
+                        ensure_ascii=False), flush=True)
                 # A dependent table can change while the re-read source table is
                 # factually identical. Restore that source exactly (including its
                 # old timestamp) so it is neither re-stamped nor pushed to D1.

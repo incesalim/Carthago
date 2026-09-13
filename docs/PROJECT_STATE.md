@@ -1,5 +1,30 @@
 # Project State
 
+## Sector-loan cells, comparatives and source validation (2026-09-13)
+
+The existing sector extractor now reads explicitly bounded three-column
+Stage 2 / Stage 3 / ECL disclosures across adjacent pages. It requires the
+printed period captions and column headers, preserves value-page citations,
+and retains the established fallback for wider or unsupported source layouts.
+The retained GARAN 2022Q4 fixtures contain 40 rows per filing and 240 printed
+cells across both kinds. The pre-repair production snapshot omitted 20
+consolidated comparative rows, all 40 solo Stage 3 cells and all 40 solo ECL
+cells. The source-backed regression restores them without changing an existing
+non-null amount; production execution remains a scoped Actions operation.
+
+Source capture uses explicit numbered disclosure boundaries when both ends
+are retained. Neighboring provisions and risk tables remain raw evidence;
+missing boundaries keep conservative classification. Parent labels cannot
+inherit a child key. The existing revalidation path independently compares
+supported three-column source rows with both stored periods, including ECL,
+using the source denomination. Missing rows, missing cells and conflicting
+values fail the same lane gate that protects publication.
+
+This is a bounded sector-table repair, not corpus-wide completeness. NPL
+write-offs/reclassifications, other native table layouts, dipnote integration
+and structured prose remain in the execution plan and Actions evidence:
+`docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
+
 ## Standalone sector signals (2026-09-13)
 
 The admin-only `/admin/signals` workspace collects the 33 existing monitoring conditions from the sector

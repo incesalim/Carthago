@@ -328,7 +328,9 @@ def _dynamic_mappings(report: object | None, lane: str) -> list[tuple[str, str]]
                 out.append((key, label))
     elif lane == "loans_by_sector":
         for row in getattr(report, "loans_by_sector", []) or []:
-            label = _fold(getattr(row, "raw_label", "") or "")
+            # Coordinate extraction retains the whole row (sometimes truncated)
+            # in raw_label. Amounts are not part of a sector's identity.
+            label = _fold(_VALUE_RX.sub(" ", getattr(row, "raw_label", "") or ""))
             if len(label.replace(" ", "")) >= 4:
                 out.append((str(getattr(row, "sector", "")), label))
     return out
@@ -367,6 +369,12 @@ def _mapped_key(
         if any(_compact(phrase) in compact for phrase in phrases):
             return key
     candidates = [*_dynamic_mappings(report, lane), *dynamic_mappings]
+    if lane == "loans_by_sector":
+        # A short parent label such as Services must never inherit the key of
+        # Educational Services. Unknown or ambiguous labels stay unclassified.
+        matches = {key for key, candidate in candidates
+                   if compact == candidate.replace(" ", "")}
+        return next(iter(matches)) if len(matches) == 1 else None
     for key, candidate in candidates:
         candidate_compact = candidate.replace(" ", "")
         if (candidate_compact in compact
@@ -551,10 +559,15 @@ def _capture_lane(
     report: object | None,
     dynamic_mappings: Iterable[tuple[str, str]] = (),
 ) -> LaneCapture:
+    from .loans_by_sector import _sector_disclosure_lines
+
     cfg = _CONFIG[lane]
     captured: list[CapturedLine] = []
+    retained_lines = {page: _word_lines(doc[page - 1]) for page in pages}
+    sector_lines = (_sector_disclosure_lines(retained_lines)
+                    if lane == "loans_by_sector" else None)
     for page_number in pages:
-        page_lines = _word_lines(doc[page_number - 1])
+        page_lines = retained_lines[page_number]
         context_mappings = (_credit_quality_context_mappings(page_lines)
                             if lane == "credit_quality" else {})
         npl_rows: set[int] = set()
@@ -569,7 +582,8 @@ def _capture_lane(
             label = _fold(_VALUE_RX.sub(" ", clean))
             has_letters = any(c.isalpha() for c in clean)
             is_data = bool(
-                has_numeric_token
+                (has_numeric_token or (lane == "loans_by_sector"
+                                       and len(_numeric_tail(clean)) >= cfg.min_value_tokens))
                 and len(value_tokens) >= cfg.min_value_tokens
                 and ((has_letters and len(label.replace(" ", "")) >= 3)
                      or (lane == "npl_movement" and order in context_mappings))
@@ -581,6 +595,8 @@ def _capture_lane(
                            and equity_page
                            and (lane != "npl_movement" or order in npl_rows))
             if lane == "loans_by_sector":
+                if sector_lines is not None and (page_number, order) not in sector_lines:
+                    is_data = False
                 tail = _numeric_tail(clean)
                 # A policy-page depreciation range (ING: %13 - %33) is two
                 # percentages joined by a dash, not three loan amount cells.
@@ -740,7 +756,7 @@ def stored_mapping_labels(
             "WHERE bank_ticker=? AND period=? AND kind=?",
             (bank_ticker, period, kind),
         ):
-            label = _fold(raw_label or "")
+            label = _fold(_VALUE_RX.sub(" ", raw_label or ""))
             if len(label.replace(" ", "")) >= 4:
                 out["loans_by_sector"].append((str(sector or ""), label))
     return out
