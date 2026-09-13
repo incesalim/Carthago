@@ -410,6 +410,43 @@ describe("storyGates — the deterministic editorial layer", () => {
 });
 
 describe("prompt rendering", () => {
+  it("carries every NPL amount and source page from the database into analyst evidence", async () => {
+    const { renderDataBlock } = await import("./prompt");
+    const { buildAnalystSections } = await import("./sections");
+    const db: Queryable = { all: async <T>(sql: string): Promise<T[]> => {
+      if (!sql.includes("FROM bank_audit_npl_movement")) return [];
+      for (const field of ["fx_diff", "accrual_movement", "other_movement", "provision", "net_balance", "source_page"]) {
+        expect(sql).toContain(field);
+      }
+      return ["III", "IV", "V"].map(group_code => ({
+        period: "2022Q4", group_code, opening_balance: 1_000_000, additions: 50_000,
+        transfers_in: 0, transfers_out: 0, collections: 10_000, write_offs: 20_000,
+        sold: 30_000, fx_diff: group_code === "IV" ? null : 10_000,
+        accrual_movement: null, other_movement: group_code === "V" ? -254_928 : 0,
+        closing_balance: 745_072, provision: 500_000, net_balance: 245_072, source_page: 135,
+      })) as T[];
+    } };
+    const sections = await buildAnalystSections(db, "GARAN", "2022Q4", "consolidated");
+    expect(sections.asset_quality.npl_movement[2]).toMatchObject({
+      fx_diff_ytd: 10_000, accrual_movement_ytd: null, other_movement_ytd: -254_928,
+      provision: 500_000, net_balance: 245_072, source_page: 135,
+    });
+    const input = { sections, peers: { licence_class: "deposit", peer_count: 0,
+      medians: { car: null, cet1: null, car_minus_cet1_pp: null, npl_ratio_pct: null,
+        stage2_ratio_pct: null, stage3_coverage_pct: null, ldr_pct: null, roe_ttm_pct: null }, rows: [] },
+      comparatives: [] };
+    const block = renderDataBlock(input);
+    const npl = block.slice(block.indexOf("## NPL movement"));
+    const fields = (label: string) => npl.split("\n").find(l => l.startsWith(`  ${label} |`))!.split(" | ");
+    expect(fields("V").slice(8)).toEqual(["10000", "n/a", "-254928", "745072", "500000", "245072", "135"]);
+    expect(fields("TOTAL")[8]).toBe("n/a"); // one group's FX is missing
+    expect(fields("TOTAL")[9]).toBe("n/a"); // accrual was not disclosed
+    expect(fields("TOTAL")[10]).toBe("-254928");
+    sections.asset_quality.npl_movement.pop();
+    const incomplete = renderDataBlock(input).split("\n").find(l => l.startsWith("  TOTAL |"))!;
+    expect(incomplete.split(" | ").slice(1, -1).every(v => v === "n/a")).toBe(true);
+  });
+
   it("prints gaps as NOT AVAILABLE and signals with severity", async () => {
     const { renderDataBlock } = await import("./prompt");
     const { buildAnalystSections } = await import("./sections");

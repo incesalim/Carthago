@@ -435,29 +435,28 @@ export function renderDataBlock(input: AnalystInput): string {
   }
 
   if (s.asset_quality.npl_movement.length) {
-    out.push("## NPL movement, YTD (group | opening | additions | transfers_in | transfers_out | collections | write_offs | sold | closing) — transfers are BETWEEN groups, so the table foots per group");
+    out.push("## NPL movement, YTD (group | opening | additions | transfers_in | transfers_out | collections | write_offs | sold | fx_diff | accrual_movement | other_movement | closing | provision | net_balance | PDF page). Transfers are between groups. FX, accrual and Other movements retain their signs. Missing cells remain n/a (not available); the supplied table alone does not certify reconciliation.");
     for (const m of s.asset_quality.npl_movement) {
       out.push(
-        `  ${m.group} | ${fmt(m.opening)} | ${fmt(m.additions_ytd)} | ${fmt(m.transfers_in_ytd)} | ${fmt(m.transfers_out_ytd)} | ${fmt(m.collections_ytd)} | ${fmt(m.write_offs_ytd)} | ${fmt(m.sold_ytd)} | ${fmt(m.closing)}`,
+        `  ${m.group} | ${fmt(m.opening)} | ${fmt(m.additions_ytd)} | ${fmt(m.transfers_in_ytd)} | ${fmt(m.transfers_out_ytd)} | ${fmt(m.collections_ytd)} | ${fmt(m.write_offs_ytd)} | ${fmt(m.sold_ytd)} | ${fmt(m.fx_diff_ytd)} | ${fmt(m.accrual_movement_ytd)} | ${fmt(m.other_movement_ytd)} | ${fmt(m.closing)} | ${fmt(m.provision)} | ${fmt(m.net_balance)} | ${fmt(m.source_page)}`,
       );
     }
     // The TOTAL row is precomputed so the model never sums rows itself —
     // an across-groups collections total it derived by hand was the one real
     // invention of the AKBNK run.
     const tot = (f: (m: (typeof s.asset_quality.npl_movement)[number]) => number | null) => {
+      const groups = s.asset_quality.npl_movement.map(m => m.group).sort().join(",");
+      if (groups !== "III,IV,V") return null;
       let sum = 0;
-      let any = false;
       for (const m of s.asset_quality.npl_movement) {
         const v = f(m);
-        if (v != null) {
-          sum += v;
-          any = true;
-        }
+        if (v == null) return null;
+        sum += v;
       }
-      return any ? sum : null;
+      return sum;
     };
     out.push(
-      `  TOTAL | ${fmt(tot((m) => m.opening))} | ${fmt(tot((m) => m.additions_ytd))} | ${fmt(tot((m) => m.transfers_in_ytd))} | ${fmt(tot((m) => m.transfers_out_ytd))} | ${fmt(tot((m) => m.collections_ytd))} | ${fmt(tot((m) => m.write_offs_ytd))} | ${fmt(tot((m) => m.sold_ytd))} | ${fmt(tot((m) => m.closing))}`,
+      `  TOTAL | ${fmt(tot((m) => m.opening))} | ${fmt(tot((m) => m.additions_ytd))} | ${fmt(tot((m) => m.transfers_in_ytd))} | ${fmt(tot((m) => m.transfers_out_ytd))} | ${fmt(tot((m) => m.collections_ytd))} | ${fmt(tot((m) => m.write_offs_ytd))} | ${fmt(tot((m) => m.sold_ytd))} | ${fmt(tot((m) => m.fx_diff_ytd))} | ${fmt(tot((m) => m.accrual_movement_ytd))} | ${fmt(tot((m) => m.other_movement_ytd))} | ${fmt(tot((m) => m.closing))} | ${fmt(tot((m) => m.provision))} | ${fmt(tot((m) => m.net_balance))} | —`,
     );
     const adds = s.asset_quality.additions_quarterly.filter((a) => a.amount != null);
     if (adds.length) {

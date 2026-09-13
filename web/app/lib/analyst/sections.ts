@@ -162,7 +162,13 @@ export interface AnalystSections {
       collections_ytd: number | null;
       write_offs_ytd: number | null;
       sold_ytd: number | null;
+      fx_diff_ytd: number | null;
+      accrual_movement_ytd: number | null;
+      other_movement_ytd: number | null;
       closing: number | null;
+      provision: number | null;
+      net_balance: number | null;
+      source_page: number | null;
     }[];
     additions_quarterly: { period: string; group: string; amount: number | null }[];
     zero_write_offs_all_periods: boolean | null;
@@ -440,9 +446,9 @@ export async function buildAnalystSections(
         "WHERE bank_ticker = ? AND kind = ? AND period = ? AND period_type = 'current'",
       [bank, kind, period],
     ),
-    db.all<{ period: string; group_code: string; opening_balance: number | null; additions: number | null; transfers_in: number | null; transfers_out: number | null; collections: number | null; write_offs: number | null; sold: number | null; closing_balance: number | null }>(
+    db.all<{ period: string; group_code: string; opening_balance: number | null; additions: number | null; transfers_in: number | null; transfers_out: number | null; collections: number | null; write_offs: number | null; sold: number | null; fx_diff: number | null; accrual_movement: number | null; other_movement: number | null; closing_balance: number | null; provision: number | null; net_balance: number | null; source_page: number | null }>(
       "SELECT period, group_code, opening_balance, additions, transfers_in, transfers_out, " +
-        "collections, write_offs, sold, closing_balance " +
+        "collections, write_offs, sold, fx_diff, accrual_movement, other_movement, closing_balance, provision, net_balance, source_page " +
         "FROM bank_audit_npl_movement WHERE bank_ticker = ? AND kind = ? AND period_type = 'current'",
       [bank, kind],
     ),
@@ -1027,7 +1033,13 @@ export async function buildAnalystSections(
         collections_ytd: r.collections,
         write_offs_ytd: r.write_offs,
         sold_ytd: r.sold,
+        fx_diff_ytd: r.fx_diff,
+        accrual_movement_ytd: r.accrual_movement,
+        other_movement_ytd: r.other_movement,
         closing: r.closing_balance,
+        provision: r.provision,
+        net_balance: r.net_balance,
+        source_page: r.source_page,
       })),
       additions_quarterly: additionsQuarterly,
       zero_write_offs_all_periods: anyWoKnown ? !anyWo : null,

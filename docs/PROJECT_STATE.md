@@ -2,25 +2,43 @@
 
 ## NPL comparative cells and signed reclassifications (2026-09-14)
 
-The existing NPL extractor now reads a bounded movement disclosure across pages,
-including the comparative table. A separate signed `other_movement` field keeps
-reclassifications distinct from debt sales, FX and accruals. Migration 0051 adds
-the nullable D1 column. Upserts compare facts and retain unchanged timestamps.
+The existing NPL extractor reads bounded movement disclosures across pages,
+including comparative tables. Signed `other_movement` keeps reclassifications
+separate from debt sales, FX and accruals. Migration 0051 is deployed. Upserts
+compare facts and retain unchanged timestamps.
 
-Source capture retains native III/IV/V cells, debt-sale category detail and
-literal star-note references in the existing R2 snapshot ledger. Displaced dash
-glyphs keep their original line/token addresses; absent cells are not invented.
-GARAN's conflicting current/prior star markers remain ambiguous, with separately
-labelled candidates supported by the note's wording and amounts. These retained
-links are pipeline evidence; exposing them in the admin reader is still pending.
+Actions preview 34783477236 and publication 34783722932 at commit 42e8868 passed
+for the two exact GARAN 2022Q4 filings. Independent readback matched all twelve
+normalized group rows in D1 and the published R2 snapshot: three comparative rows
+added and 15 NULL cells filled, preserving all 93 existing non-null numeric cells.
+Each filing has six normalized rows, 30 mapped physical data rows (including
+debt-sale categories), zero unmapped rows, and 110 passed checks with zero failed
+or skipped. All 180 native source cells, their line/token references and linked
+dipnote wording match the retained source. Only bounding-box coordinates are
+compared at the native-word artifact's declared four-decimal precision.
+Unrelated NPL partitions and timestamps, and the other twelve statement tables
+for these filings, are unchanged. CI 34783464869 and deployment 34783582388 passed.
 
-The revalidation path compares every retained current/prior main cell, checks
-category sums and movement identities at source precision, and rejects missing
-native evidence or broken references for bounded disclosures. Retained-source
-regressions cover GARAN 2022Q4 both kinds: 30 physical data rows and 90 cells per
-filing, including category detail. The fresh production baseline has nine group
-rows rather than twelve. Production preview/publication and independent readback
-remain pending; passing regressions are not a publication claim. Evidence:
+The existing R2 snapshot ledger retains native dash/zero states, displaced dash
+glyphs and literal star-note references. GARAN's conflicting current/prior star
+markers remain ambiguous, with separate candidates supported by the note's
+wording and amounts. These links are retained pipeline evidence; their admin
+reader integration remains pending. The revalidation path checks main cells,
+category sums and both periods' movement identities at source precision.
+
+The workflow's coverage follow-up revalidates the whole snapshot. The stronger
+NPL gate now exposes 84 previously-green filings without changing their figures:
+49 lack the new native-cell evidence, while 35 have comparative movement
+mismatches (GARAN 6, HALKB 21, VAKBN 8). These are unresolved evidence/validation
+failures, not a claim that all 84 contain wrong amounts. Source-only backfill
+selection must recognize `npl_source_cells_missing` before refreshing those
+49 filings; the existing `only_failing` filter currently matches only `capture_*`.
+Comparative repairs require individual source review and scoped Actions previews.
+
+Both analyst paths carry the signed Other field. The report assembler also
+retains FX, accruals, provision, net balance and PDF pages; a column total stays
+unavailable when any BRSA group or contributing cell is missing. This repair
+verifies these disclosures, not other bank layouts or complete reports. Evidence:
 `docs/knowledge/2026-09-13-npl-completeness/`.
 
 ## Wrapped sector headers and independent completeness checks (2026-09-13)
