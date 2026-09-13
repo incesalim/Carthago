@@ -1,4 +1,8 @@
 name: Refresh audit reports
+run-name: ${{ inputs.dry_run && 'Refresh audit reports (preview)' || 'Refresh audit reports (publish)' }}
+
+# workflow_run does not carry dispatch inputs. The corpus follow-up requires
+# this explicit publication title, so previews and older ambiguous runs stop here.
 
 # Bank audit-report acquisition + extraction. During quarterly earnings windows
 # this checks every day and immediately carries each valid new filing through to

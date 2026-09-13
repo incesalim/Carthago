@@ -1,5 +1,15 @@
 # Project State
 
+## Refresh previews do not trigger corpus publication (2026-09-13)
+
+Automatic document capture now requires a successful upstream run from this
+repository and, for refreshes, the explicit `Refresh audit reports (publish)`
+run title. Preview and older ambiguous refresh runs cannot start R2 capture
+workers. Manual corpus dispatch and successful acquisition follow-ups remain
+available. This closes a downstream escape from the refresh's `dry_run` flag.
+Evidence and the cancelled pre-fix follow-ups:
+`docs/knowledge/2026-09-13-audit-followup-containment/RESULTS.md`.
+
 ## Audit loads abort on validation crashes (2026-09-13)
 
 The production audit loader now writes a filing's facts, P&L roles, source

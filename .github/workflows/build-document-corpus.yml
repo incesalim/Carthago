@@ -132,7 +132,16 @@ jobs:
     # All acquisition groups finish before any capture group snapshots inventory.
     # Successful sources still get preserved when another acquisition needs review.
     needs: acquire
-    if: always() && !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository)
+    # Refresh previews must not turn into automatic publishing capture jobs.
+    # Require the upstream publication signal before allocating any R2 workers.
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.conclusion == 'success' &&
+        (github.event.workflow_run.name == 'Acquire audit reports' ||
+         (github.event.workflow_run.name == 'Refresh audit reports' &&
+          github.event.workflow_run.display_title == 'Refresh audit reports (publish)'))))
     strategy:
       fail-fast: false
       max-parallel: 4
