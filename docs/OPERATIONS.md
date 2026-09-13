@@ -3,8 +3,10 @@
 ## Refresh preview follow-up boundary (2026-09-13)
 
 `refresh-audit.yml` assigns its run title from `inputs.dry_run`: `(preview)` or
-`(publish)`. `build-document-corpus.yml` checks that publication signal and a
-successful upstream conclusion before automatic capture. GitHub's
+`(publish)`. `build-document-corpus.yml` checks the stable upstream workflow
+path, that publication signal and a successful conclusion before automatic
+capture. Run metadata uses the dynamic title as `name`, so it is not a stable
+workflow identifier. GitHub's
 `workflow_run` event does not expose the parent's dispatch inputs. Keep these
 two workflow conditions in sync when changing preview behavior; an absent or
 unknown refresh title deliberately does not authorize a publishing follow-up.
