@@ -31,7 +31,7 @@ describe("table dipnotes", () => {
   });
   it("links all six visually checked assets dipnotes to their actual section 5-I intervals", () => {
     const { passages, targets } = sourceNotes();
-    const wanted = targets.filter(n => n.address.group === "I");
+    const wanted = targets.filter(n => n.address.group === "I" && n.address.item);
     expect(wanted.map(n => n.address.item)).toEqual(fixture.expected.note_items);
     expect(wanted.every(n => n.boundary !== "open")).toBe(true);
     const links = linkDipnotes(fixture.expected.note_items.map((id: string) => cell(`(${id})`)), targets);
@@ -84,8 +84,8 @@ describe("table dipnotes", () => {
     });
     const rows = [p("group", "I. Assets"), p("one", "1. Banks"), p("body", "First page", "paragraph"),
       p("continued", "I. Assets (Continued)", "heading", 39), p("more", "Second page", "paragraph", 39), p("two", "2. Investments", "heading", 39)];
-    const first = indexDipnotes(rows)[0];
-    expect(first.passage_ids).toEqual(["one", "body", "more"]);
+    const first = indexDipnotes(rows).find(n => n.address.item === "1")!;
+    expect(first.passage_ids).toEqual(["one", "body", "continued", "more"]);
     expect(first.page_end).toBe(39);
     expect(first.boundary).toBe("next_heading");
   });

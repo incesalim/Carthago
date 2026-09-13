@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { SourceTable, SourceTables } from "../lib/document-source-tables";
 import type { DipnoteLink, NoteTarget } from "../lib/document-dipnotes";
+import { noteIntervalClosed } from "../lib/document-dipnotes";
 
 const control = "border-b border-border bg-transparent px-1 py-1.5 text-xs text-foreground focus:outline-primary";
 const labels: Record<string, string> = {
@@ -38,40 +39,60 @@ export function SourceGrid({ table, onNote }: { table: SourceTable; onNote?: (li
   </div>;
 }
 
-export function DipnoteReadingView({ note, report, citation }: { note: NoteTarget; report: SourceTables; citation: string }) {
+function SourceFragment({ table, report, citation }: { table: SourceTable; report: SourceTables; citation: string }) {
+  const context = report.passages.filter(p => table.page_context_passage_ids?.includes(p.id));
+  const units = report.passages.filter(p => table.page_unit_passage_ids.includes(p.id));
+  return <div className="mt-3">
+    <div className="flex flex-wrap justify-between gap-2 text-faint">
+      <p>Page {table.page} · {table.verification.row_assignments === "named_source_review" ? "Source-reviewed rows" : "Physical rows; logical grouping unverified"}</p>
+      <a className="text-primary hover:underline" href={`${citation}&artifact=original#page=${table.page}`} target="_blank" rel="noreferrer">Compare original page {table.page}</a>
+    </div>
+    {units.map(p => <p key={p.id} className="mt-2 whitespace-pre-wrap text-faint">Printed page units: {p.raw_text}</p>)}
+    {!!context.length && <details className="mt-2"><summary className="cursor-pointer text-faint">Printed page context</summary>
+      {context.map(p => <p key={p.id} className="mt-1 whitespace-pre-wrap text-xs">{p.raw_text}</p>)}
+    </details>}
+    <SourceGrid table={table} />
+  </div>;
+}
+
+export function DipnoteReadingView({ note, report, citation, disclosure = false }: { note: NoteTarget; report: SourceTables; citation: string; disclosure?: boolean }) {
   const passages = report.passages.filter(p => note.passage_ids.includes(p.id));
   const tables = report.tables.filter(t => note.table_ids.includes(t.id) && t.rows.length && t.verification.native_cells === "checked");
   const shownTables = new Set<string>();
   const address = [note.address.section, note.address.group, note.address.item].filter(v => v !== "");
-  return <section className="mt-4 border-t-2 border-foreground pt-3" aria-label={`Dipnote ${address.join(".")}`}>
+  return <section className="mt-4 border-t-2 border-foreground pt-3" aria-label={`${disclosure ? "Disclosure" : "Dipnote"} ${address.join(".")}`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <h5 className="font-semibold">§{address.join("-")} · {note.heading}</h5>
       <a className="shrink-0 text-primary hover:underline" href={`${citation}&artifact=original#page=${note.page_start}`} target="_blank" rel="noreferrer">PDF pp. {note.page_start}–{note.page_end}</a>
     </div>
-    <p className="mt-2 text-faint">Matched by the printed note address. The full source interval follows, including table text and qualifications; interpretation remains unreviewed.</p>
+    <p className="mt-2 text-faint">{disclosure ? "Grouped by the printed disclosure address. Each page keeps its own table grid and qualifications." : "Matched by the printed note address. The source interval follows, including table text and qualifications."} Interpretation remains unreviewed.</p>
+    {!noteIntervalClosed(note) && <p className="mt-2 text-warning">Incomplete source interval: {note.boundary === "source_gap" ? "one or more intervening pages have no available source passages" : "its closing boundary has not been read"}. This is not the complete disclosure.</p>}
     {passages.map(p => {
       const containing = tables.filter(t => t.page === p.page && p.bbox[0] >= t.bbox[0] - 1 && p.bbox[1] >= t.bbox[1] - 1 && p.bbox[2] <= t.bbox[2] + 1 && p.bbox[3] <= t.bbox[3] + 1);
       if (containing.length === 1) {
         const table = containing[0]; if (shownTables.has(table.id)) return null;
         shownTables.add(table.id);
-        return <div key={table.id} className="mt-3"><p className="text-faint">Page {table.page} · {table.verification.row_assignments === "named_source_review" ? "Source-reviewed rows" : "Physical rows; logical grouping unverified"}</p><SourceGrid table={table} /></div>;
+        return <SourceFragment key={table.id} table={table} report={report} citation={citation} />;
       }
       return <p key={p.id} className={`mt-2 whitespace-pre-wrap ${p.kind === "table_text" ? "font-mono text-[11px]" : "text-xs"}`}>{p.raw_text}</p>;
     })}
     <details className="mt-3"><summary className="cursor-pointer font-medium">Original note text and {tables.length} table grids</summary>
       <pre className="mt-2 whitespace-pre-wrap text-[11px]">{passages.map(p => p.raw_text).join("\n\n")}</pre>
-      {tables.filter(t => !shownTables.has(t.id)).map(t => <SourceGrid key={t.id} table={t} />)}
+      {tables.filter(t => !shownTables.has(t.id)).map(t => <SourceFragment key={t.id} table={t} report={report} citation={citation} />)}
     </details>
   </section>;
 }
 
 function TableReadingView({ table, report, citation }: { table: SourceTable; report: SourceTables; citation: string }) {
   const [link, setLink] = useState<DipnoteLink | null>(null);
+  const [disclosureId, setDisclosureId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(table.verification.row_assignments === "named_source_review");
   const notePanel = useRef<HTMLDivElement | null>(null);
-  useEffect(() => { if (link) notePanel.current?.focus(); }, [link]);
+  useEffect(() => { if (link || disclosureId) notePanel.current?.focus(); }, [link, disclosureId]);
   const context = report.passages.filter(p => table.context_passage_ids.includes(p.id));
   const units = report.passages.filter(p => table.page_unit_passage_ids.includes(p.id));
+  const disclosures = report.notes.filter(n => table.disclosure_ids?.includes(n.id));
+  const selectedDisclosure = disclosures.find(n => n.id === disclosureId);
   return <details className="mt-4 border-t border-border pt-3" open={expanded} onToggle={e => setExpanded(e.currentTarget.open)}>
     <summary className="cursor-pointer font-semibold">Page {table.page} · {table.rows.length ? `${table.rows.length} rows · ${table.column_count} columns` : "Unassigned table candidate"}
       {table.candidate_lanes.length ? ` · ${table.candidate_lanes.map(l => labels[l] ?? l).join(" / ")}` : ""}
@@ -82,14 +103,24 @@ function TableReadingView({ table, report, citation }: { table: SourceTable; rep
     </div>
     {context.map(p => <p className="mt-2 whitespace-pre-wrap text-muted-foreground" key={p.id}>{p.raw_text}</p>)}
     {units.map(p => <p className="mt-2 whitespace-pre-wrap text-faint" key={p.id}>Printed page units: {p.raw_text}</p>)}
+    {!!disclosures.length && <div className="mt-3 flex flex-wrap gap-3">{disclosures.map(n => {
+      const address = [n.address.section, n.address.group, n.address.item].filter(v => v !== "").join(".");
+      return <button key={n.id} className="text-primary hover:underline" onClick={() => { setLink(null); setDisclosureId(n.id); }}>
+        Read disclosure and qualifications §{address} · pp. {n.page_start}–{n.page_end}{!noteIntervalClosed(n) ? " · Incomplete interval" : ""}
+      </button>;
+    })}</div>}
     {!!table.verification.issues.length && <p className="mt-2 text-warning">Needs review: {table.verification.issues.map(i => i.replaceAll("_", " ")).join("; ")}.</p>}
-    {table.rows.length > 0 && <SourceGrid table={table} onNote={setLink} />}
+    {table.rows.length > 0 && <SourceGrid table={table} onNote={value => { setDisclosureId(null); setLink(value); }} />}
     {table.unresolved_source !== undefined && <details className="mt-3"><summary className="cursor-pointer">Inspect retained evidence with unresolved columns</summary><pre className="mt-2 max-h-72 overflow-auto text-[10px]">{JSON.stringify(table.unresolved_source, null, 2)}</pre></details>}
     {link && <div className="mt-3" ref={notePanel} tabIndex={-1}>
       <button className="text-primary hover:underline" onClick={() => setLink(null)}>Close dipnote {link.marker}</button>
       {link.status !== "resolved" && <p className="mt-2 text-warning">{link.address ? `Printed address: §${[link.address.section, link.address.group, link.address.item].filter(v => v !== "").join("-")}. ` : ""}{link.status === "ambiguous" ? "More than one source interval has this printed address. No interval was selected automatically." : "This reference could not be tied to one closed source interval. Check the original PDF."}</p>}
       {link.target_ids.map(id => report.notes.find(n => n.id === id)).filter((n): n is NoteTarget => !!n).map(note => <DipnoteReadingView key={note.id} note={note} report={report} citation={citation} />)}
     </div>}</>}
+    {expanded && selectedDisclosure && <div className="mt-3" ref={notePanel} tabIndex={-1}>
+      <button className="text-primary hover:underline" onClick={() => setDisclosureId(null)}>Close disclosure</button>
+      <DipnoteReadingView note={selectedDisclosure} report={report} citation={citation} disclosure />
+    </div>}
   </details>;
 }
 
@@ -103,7 +134,7 @@ export function SourceTablesReadingView({ report, filing, initialPage, initialLa
   const shown = matching.filter(t => alternatives || t.unresolved_source === undefined);
   const pages = [...new Set(report.tables.map(t => t.page))];
   return <div className="mt-3 text-xs">
-    <p className="text-muted-foreground">Printed columns, amounts and cell states are retained. Notes open from their table references. A checked cell is not proof that every table in the report has been captured.</p>
+    <p className="text-muted-foreground">Printed columns, amounts and cell states are retained. Notes open from their table references. Disclosure links bring together related pages and qualifications under their printed heading. A checked cell is not proof that every table in the report has been captured.</p>
     {initialLane === "stages" && <p className="mt-2 text-muted-foreground">IFRS-9 stages are derived from credit-quality disclosures; inspect those source tables here.</p>}
     <div className="my-3 flex flex-wrap items-center gap-3">
       <label>Table family <select className={control} value={lane} onChange={e => { setLane(e.target.value); setPage(0); }}>
@@ -114,7 +145,7 @@ export function SourceTablesReadingView({ report, filing, initialPage, initialLa
       <label className="flex items-center gap-1"><input type="checkbox" checked={alternatives} onChange={e => setAlternatives(e.target.checked)} />Show candidates with unassigned columns</label>
       <a className="text-primary hover:underline" href={`${citation}&artifact=tables&download=1`}>Download tables with dipnotes JSON</a>
     </div>
-    <p className="text-faint">{shown.length} of {matching.length} matching candidates shown · {report.notes.length} indexed note intervals. Table families are suggested by source headings; choose all candidates to inspect other tables.</p>
+    <p className="text-faint">{shown.length} of {matching.length} matching candidates shown · {report.notes.length} indexed disclosure intervals. Table families are suggested by source headings; choose all candidates to inspect other tables.</p>
     {!shown.length && <p className="mt-3 text-warning">No aligned candidate matches this selection. This does not establish that the source contains no table.</p>}
     {shown.map(table => <TableReadingView key={table.id} table={table} report={report} citation={citation} />)}
   </div>;

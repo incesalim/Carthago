@@ -9,7 +9,7 @@ const notes = JSON.parse(readFileSync(new URL("../../../tests/fixtures/document_
 function build() {
   const builder = new SourceTablesBuilder(notes.revision, notes.sections);
   builder.addPage(equity.structure, equity.source, []);
-  for (const p of [...equity.related, ...notes.pages]) builder.addPage(p.structure, p.source, []);
+  for (const p of [...equity.related, ...notes.pages].sort((a, b) => a.source.page - b.source.page)) builder.addPage(p.structure, p.source, []);
   return builder.finish();
 }
 

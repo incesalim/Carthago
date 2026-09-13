@@ -1,5 +1,14 @@
 # Admin control center
 
+## Capital tables with their qualifications (2026-09-13)
+
+“Read disclosure and qualifications” opens the enclosing printed disclosure
+from a source-table fragment, including its continuation pages, original grids
+and surrounding explanations. Each grid links to its PDF page and preserves
+printed units and page context. The reader supports qualified numeric addresses
+and Roman-numbered groups, and labels incomplete intervals explicitly. Grouping
+does not change cell values or grant table-boundary or financial approval.
+
 ## Wide equity tables and note links (2026-09-13)
 
 After a scoped source refresh, supported equity grids retain all amount columns,

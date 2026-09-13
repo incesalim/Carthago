@@ -1,7 +1,7 @@
 /** Complete physical table evidence and source-addressed dipnotes, without changing series. */
 import { CORPUS_PREFIX, readVerifiedPages, type CorpusBucket, type CorpusRevision } from "./document-corpus";
 import { ProseBuilder, type ProsePassage, type ProseSection } from "./document-prose";
-import { indexDipnotes, linkDipnotes, printedNoteHeadings, type DipnoteLink, type NoteCell, type NoteTarget } from "./document-dipnotes";
+import { indexDipnotes, isDisclosureSectionBanner, linkDipnotes, printedNoteHeadings, type DipnoteLink, type NoteCell, type NoteTarget } from "./document-dipnotes";
 import { checkedReviewedTable, tableReviewRecords, validateGrid, type Box, type Part, type PhysicalTable, type ReviewedTable, type Span } from "./document-table-review";
 
 export type SourceCell = { column: number; text: string | null;
@@ -10,10 +10,11 @@ export type SourceTable = {
   id: string; page: number; bbox: Box; method: string; section: ProseSection | null;
   rows: { row: number; cells: SourceCell[] }[]; column_count: number;
   merged_spans: Span[]; absent_slots: { row: number; column: number }[];
-  context_passage_ids: string[]; page_unit_passage_ids: string[]; candidate_lanes: string[];
+  context_passage_ids: string[]; page_unit_passage_ids: string[]; page_context_passage_ids: string[]; candidate_lanes: string[];
   verification: { native_cells: "checked" | "rejected"; row_assignments: "named_source_review" | "physical_only";
     table_boundaries: "named_source_review" | "not_verified"; issues: string[]; review: string | null };
   dipnote_links: DipnoteLink[];
+  disclosure_ids: string[];
   unresolved_source?: unknown;
 };
 export type SourceTables = {
@@ -94,7 +95,7 @@ export function tableLaneCandidates(section: ProseSection | null, heading: strin
     ["off_balance", /bilanco disi|nazim hesap|off.balance/u], ["profit_loss", /gelir tablosu|kar veya zarar tablosu|income statement|profit or loss/u],
     ["other_comprehensive_income", /diger kapsamli|other comprehensive/u], ["equity_change", /ozkaynak.*degisim|changes in (?:shareholders['’]? )?equity/u], ["cash_flow", /nakit akis|statement of cash flows?|cash flow statement/u],
   ] : [
-    ["capital", /sermaye yeterliligi|capital adequacy/u], ["liquidity", /likidite|liquidity/u],
+    ["capital", /sermaye yeterliligi|capital adequacy|(?:consolidated |regulatory |total )capital|ozkaynaklar/u], ["liquidity", /likidite|liquidity/u],
     ["fx_position", /kur riski|doviz pozisyon|currency risk|foreign exchange/u],
     ["repricing", /faiz orani riski|kar payi orani riski|interest rate risk/u], ["credit_quality", /kredi kalitesi|credit quality|kredi riski|credit risk/u],
     ["loans_by_sector", /sektor.*dagilim|sector.*distribution/u], ["npl_movement", /takipteki.*alacak|non.performing/u],
@@ -144,6 +145,8 @@ export class SourceTablesBuilder {
       const context = passages.filter(p => p.bbox[3] <= physical.bbox[1] && physical.bbox[1] - p.bbox[3] < 160 && p.kind !== "furniture" && !p.table_ids.length);
       const units = passages.filter(p => (p.kind === "furniture" || p.bbox[3] <= physical.bbox[1])
         && /bin\s+(?:Türk\s+Lirası|TL)|thousands?\s+(?:of\s+)?(?:Turkish\s+Lira|TL)/iu.test(p.text));
+      const pageContext = passages.filter(p => (p.kind === "furniture" || isDisclosureSectionBanner(p))
+        && p.bbox[3] <= physical.bbox[1] + .1 && !p.table_ids.length);
       // Titles may be merged cells. Only the first rows and source text ABOVE the
       // table nominate lanes; incidental words in its body cannot do so.
       const heading = [...context.map(p => p.text), ...rows.slice(0, 3).flatMap(r => r.cells.map(c => c.text ?? "").filter(s => s.length < 300 && s.split("\n").length <= 5))].join("\n");
@@ -151,17 +154,30 @@ export class SourceTablesBuilder {
       if (this.cellChars > 8_000_000 || this.tables.length >= 5000) fail("Report exceeds table reading limit");
       this.tables.push({ id: physical.id, page: page.page, bbox: physical.bbox, method: physical.method, section,
         rows, column_count: rows[0]?.cells.length ?? physical.n_cols, merged_spans: reviewed?.merged_spans ?? view!.spans,
-        absent_slots: reviewed?.absent_slots ?? view!.absent, context_passage_ids: context.map(p => p.id), page_unit_passage_ids: units.map(p => p.id), candidate_lanes: tableLaneCandidates(section, heading),
+        absent_slots: reviewed?.absent_slots ?? view!.absent, context_passage_ids: context.map(p => p.id), page_unit_passage_ids: units.map(p => p.id),
+        page_context_passage_ids: pageContext.map(p => p.id), candidate_lanes: tableLaneCandidates(section, heading),
         verification: { native_cells: reviewed || !view!.issues.length ? "checked" : "rejected",
           row_assignments: reviewed ? "named_source_review" : "physical_only", table_boundaries: reviewed ? "named_source_review" : "not_verified",
-          issues: view?.issues ?? [], review: reviewed?.source_review ?? null }, dipnote_links: [],
+          issues: view?.issues ?? [], review: reviewed?.source_review ?? null }, dipnote_links: [], disclosure_ids: [],
         ...(unresolved ? { unresolved_source: physical } : {}) });
     }
   }
   finish(): SourceTables {
     const full = this.pages.size === this.revision.page_count && Array.from({ length: this.revision.page_count }, (_, i) => i + 1).every(p => this.pages.has(p));
     const notes = indexDipnotes(this.prose.report.passages, this.headings, full);
-    for (const table of this.tables) table.dipnote_links = table.verification.native_cells === "checked" ? linkDipnotes(noteCells(table), notes) : [];
+    for (const table of this.tables) {
+      table.dipnote_links = table.verification.native_cells === "checked" ? linkDipnotes(noteCells(table), notes) : [];
+      const containing = notes.filter(n => n.table_ids.includes(table.id));
+      // Choose the most specific printed interval for each fragment. Parent
+      // headings still nominate its family, but cannot glue child tables into
+      // a single grid or imply a financial interpretation.
+      table.disclosure_ids = containing.filter(n => !containing.some(child => child !== n
+        && child.address.section === n.address.section && child.address.group === n.address.group
+        && (n.address.item === "" ? child.address.item !== "" : child.address.item.startsWith(`${n.address.item}.`))
+        && child.passage_ids.every(id => n.passage_ids.includes(id)))).map(n => n.id);
+      table.candidate_lanes = [...new Set([...table.candidate_lanes,
+        ...tableLaneCandidates(table.section, containing.map(n => n.heading).join("\n"))])];
+    }
     return { schema_version: "audit-source-tables-1", source: this.revision.source, structure_sha256: this.prose.report.structure_sha256,
       page_count: this.revision.page_count, sections: this.prose.report.sections, tables: this.tables, notes, passages: this.prose.report.passages,
       verification: { report_complete: false, financial_interpretation: "not_performed", pages_read: this.pages.size,

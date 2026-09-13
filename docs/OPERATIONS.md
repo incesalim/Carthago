@@ -1,5 +1,18 @@
 # Operations
 
+## Read complete disclosure intervals (2026-09-13)
+
+The admin source-table reader and `artifact=tables` export derive disclosure
+links from existing source-addressed risk and note headings. A source-table
+fragment exposes its most specific enclosing disclosure; that interval includes
+its other page grids and qualifications. Repeated continuation headings preserve
+one address, while repeated independent addresses remain ambiguous. Source gaps
+and unread closing boundaries remain unresolved rather than being marked closed.
+
+No capture workflow or analytical re-extraction is needed for this reader change.
+The retained source revision remains pinned in each PDF and export link. A closed
+printed interval is not evidence of complete table detection or financial review.
+
 ## Capture grouped equity tables (2026-09-13)
 
 `build-document-corpus.yml` also captures framed equity tables when native leaf

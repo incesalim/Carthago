@@ -1,5 +1,27 @@
 # Project State
 
+## Capital disclosure intervals and qualifications (2026-09-13)
+
+The source-table reader now links table fragments to their enclosing printed
+disclosure in risk and notes sections. Qualified numeric headings and Turkish
+Roman groups both retain continuation pages, qualifications and embedded grids.
+Each physical grid keeps its original columns, periods, units and cell states;
+the reader does not concatenate unlike grids or approve financial interpretation.
+Repeated report-section banners stay in their own page context. A missing
+intervening page or unread closing boundary leaves the interval incomplete.
+
+Source-backed tests cover GARAN 2022Q4 consolidated capital disclosure 4.1.1
+(PDF pages 55–58, four grids) and TOMK 2023Q3 unconsolidated capital group IV-I
+(pages 26–29, four grids). The GARAN interval includes the starred insurance
+qualification and the regulatory-adjustment explanation with the printed
+16.78% alternative ratio, alongside the table's 18.60% ratio. These are separate
+source assertions, not a correction of one figure to the other.
+
+This reader improvement uses existing retained structures and needs no corpus
+re-extraction or analytical D1 write. Registered-corpus completeness, publication
+validator repair and section-based prose coverage remain unfinished. Source
+inspection and release evidence: `docs/knowledge/2026-09-13-capital-disclosures/RESULTS.md`.
+
 ## Wide equity source-table capture (2026-09-13)
 
 The source capture now supports framed equity statements with explicit period

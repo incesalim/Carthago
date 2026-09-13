@@ -5,7 +5,7 @@ import type { ProsePassage } from "./document-prose";
 export type NoteAddress = { section: number; group: string; item: string };
 export type NoteTarget = { id: string; address: NoteAddress; heading: string;
   page_start: number; page_end: number; passage_ids: string[]; table_ids: string[];
-  boundary: "open" | "next_heading" | "section_end" | "report_end" };
+  boundary: "open" | "source_gap" | "next_heading" | "section_end" | "report_end" };
 export type NoteCell = { table_id: string; row: number; column: number; text: string;
   source_word_ids: number[]; is_note_column: boolean; note_prefix: string | null };
 export type DipnoteLink = Omit<NoteCell, "text" | "is_note_column" | "note_prefix"> & {
@@ -17,6 +17,15 @@ const roman: Record<string, number> = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6,
 const compact = (s: string) => s.normalize("NFKC").replace(/[–—]/gu, "-").replace(/\s+/gu, "").toUpperCase();
 const addressKey = (a: NoteAddress) => `${a.section}.${a.group}.${a.item}`;
 const sectionNumber = (s: string) => /^[1-8]$/.test(s) ? Number(s) : roman[s];
+const disclosureRoles = new Set(["notes", "risk"]);
+export const noteIntervalClosed = (note: NoteTarget) => ["next_heading", "section_end", "report_end"].includes(note.boundary);
+
+/** A report-section banner is page context, not part of the preceding note. */
+export function isDisclosureSectionBanner(passage: ProsePassage): boolean {
+  const title = (s: string) => compact(s.replace(/\s*\((?:continued|devam[ıi])\)\s*$/iu, ""));
+  return passage.kind === "heading" && !passage.table_ids.length && !!passage.section
+    && title(passage.text) === title(passage.section.title);
+}
 
 /** A bare number gets its address ONLY from the table's printed note header. */
 export function parseNoteAddress(marker: string, prefix: string | null): NoteAddress | null {
@@ -24,8 +33,8 @@ export function parseNoteAddress(marker: string, prefix: string | null): NoteAdd
   const context = prefix && /([1-8]|VIII|VII|VI|IV|V|III|II|I)[.-]([IVX]+|[1-9]\d?)\)?$/u.exec(compact(prefix));
   const qualified = /^([1-8])\.([1-9]\d?)(?:\.(\d+(?:\.\d+)*[A-Z]?))?$/u.exec(text);
   if (qualified && !context) return { section: Number(qualified[1]), group: qualified[2], item: qualified[3] ?? "" };
-  const full = /^([1-8]|VIII|VII|VI|IV|V|III|II|I)[.-]([IVX]+)[.-](\d+(?:\.\d+)*[A-Z]?)$/u.exec(text);
-  if (full && sectionNumber(full[1])) return { section: sectionNumber(full[1]), group: full[2], item: full[3] };
+  const full = /^([1-8]|VIII|VII|VI|IV|V|III|II|I)[.-]([IVX]+)(?:[.-](\d+(?:\.\d+)*[A-Z]?))?$/u.exec(text);
+  if (full && sectionNumber(full[1])) return { section: sectionNumber(full[1]), group: full[2], item: full[3] ?? "" };
   if (!context || !sectionNumber(context[1])) return null;
   if (/^\d+(?:\.\d+)*[A-Z]?$/u.test(text)) return { section: sectionNumber(context[1]), group: context[2], item: text };
   const grouped = /^([IVX]+)[.-](\d+(?:\.\d+)*[A-Z]?)$/u.exec(text);
@@ -51,31 +60,40 @@ export function indexDipnotes(passages: ProsePassage[], printedHeadings = new Se
   const close = (boundary: NoteTarget["boundary"], minimumDepth = 0) => {
     while (active.length && active.at(-1)!.depth >= minimumDepth) active.pop()!.target.boundary = boundary;
   };
+  let previousPage: number | null = null;
   for (const passage of passages) {
-    if (passage.section?.number !== section || passage.section?.role !== "notes") {
+    if (previousPage !== null && (passage.page > previousPage + 1 || passage.page < previousPage)) close("source_gap");
+    previousPage = passage.page;
+    if (passage.section?.number !== section || !disclosureRoles.has(passage.section?.role ?? "")) {
       close("section_end");
       group = null;
       numbering = null;
       section = passage.section?.number ?? null;
     }
-    if (passage.section?.role !== "notes" || section === null) continue;
-    if (prefixes.has(passage.id)) continue;
+    if (!disclosureRoles.has(passage.section?.role ?? "") || section === null) continue;
+    if (prefixes.has(passage.id) || isDisclosureSectionBanner(passage)) continue;
     const marker = headingMarker(passage, printedHeadings);
+    let address: NoteAddress | null = null;
     if (marker && /^[IVX]+$/u.test(marker)) {
-      if (marker === group && /devam[ıi]|continued/iu.test(passage.text)) continue;
-      close("next_heading");
-      group = marker;
-      numbering = "roman";
+      if (!(marker === group && /devam[ıi]|continued/iu.test(passage.text))) {
+        close("next_heading");
+        group = marker;
+        numbering = "roman";
+        address = { section, group, item: "" };
+      }
     } else if (marker && /^\d/u.test(marker)) {
       const qualified = numbering !== "roman" && marker.startsWith(`${section}.`) ? parseNoteAddress(marker, null) : null;
-      if (qualified) {
-        if (qualified.group === group && !qualified.item && /continued|devam[ıi]/iu.test(passage.text)) continue;
+      const repeated = qualified && /continued|devam[ıi]/iu.test(passage.text)
+        && active.some(a => addressKey(a.target.address) === addressKey(qualified));
+      if (qualified && !repeated) {
         if (group !== qualified.group) close("next_heading");
         group = qualified.group;
         numbering = "qualified";
       }
       if (!group || numbering === "qualified" && !qualified) continue;
-      const address = qualified ?? { section, group, item: marker };
+      if (!repeated) address = qualified ?? { section, group, item: marker };
+    }
+    if (address) {
       const depth = address.item ? address.item.split(".").length : 0;
       close("next_heading", depth);
       const prefix = passage.heading_marker && byId.get(passage.heading_marker.element_id);
@@ -139,7 +157,7 @@ export function linkDipnotes(cells: NoteCell[], targets: NoteTarget[]): DipnoteL
       const target_ids = found.map(t => t.id);
       links.push({ table_id: cell.table_id, row: cell.row, column: cell.column,
         source_word_ids: cell.source_word_ids, marker, address, target_ids,
-        status: found.length > 1 ? "ambiguous" : found.length === 1 && found[0].boundary !== "open" ? "resolved" : "unresolved",
+        status: found.length > 1 ? "ambiguous" : found.length === 1 && noteIntervalClosed(found[0]) ? "resolved" : "unresolved",
         method: "printed_section_group_and_note_address" });
     }
   }
