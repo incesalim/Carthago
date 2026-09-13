@@ -1,5 +1,20 @@
 # Operations
 
+## Audit validation crashes stop publication (2026-09-13)
+
+`src/audit_reports/loader.py::upsert_report` rolls back the current report when
+statement persistence, source capture, validation computation/result writing,
+or extraction logging raises. The original exception reaches the normal refresh
+or partition-load caller with a note identifying the rolled-back filing.
+Preceding caller work is preserved by the report savepoint; catching an error
+and later committing cannot publish the failed report's partial writes.
+
+`refresh-audit.yml` already stops on a crashed sync (nonzero exit other than its
+specific systemic-discovery alarm), before D1 push or R2 snapshot publication.
+Use its existing `bank`, `period`, `skip_scrape=true`, `dry_run=true` inputs for
+a scoped pipeline verification. This runs normal extraction and loading in
+Actions without publishing candidate figures or sending notifications.
+
 ## Read complete disclosure intervals (2026-09-13)
 
 The admin source-table reader and `artifact=tables` export derive disclosure

@@ -72,7 +72,43 @@ def upsert_report(
     statements but can never overwrite correct data with worse data. Pass
     `force=True` to overwrite everything regardless of validation.
 
+    Facts, source evidence, validation and the extraction log are one atomic
+    write. An exception rolls back this report and propagates to the caller,
+    preventing a failed validation run from being published as a successful load.
+
     Returns row counts."""
+    conn.execute("SAVEPOINT audit_report_load")
+    try:
+        counts = _store_report(
+            conn, bank_ticker, period, kind, rep, pdf_path, force,
+            unit=unit, with_prose=with_prose, source_pdf_path=source_pdf_path)
+    except BaseException as error:
+        # A caller may already have pending work on this connection. Roll back
+        # only this report, so catching the error and later committing cannot
+        # leak half of a failed load or erase the caller's preceding changes.
+        conn.execute("ROLLBACK TO audit_report_load")
+        conn.execute("RELEASE audit_report_load")
+        error.add_note(f"Audit load rolled back: {bank_ticker} {period} {kind}")
+        raise
+    conn.execute("RELEASE audit_report_load")
+    conn.commit()
+    return counts
+
+
+def _store_report(
+    conn: sqlite3.Connection,
+    bank_ticker: str,
+    period: str,
+    kind: str,
+    rep: BankReport,
+    pdf_path: str,
+    force: bool,
+    *,
+    unit: UnitContext,
+    with_prose: bool,
+    source_pdf_path: str | Path | None,
+) -> dict[str, int]:
+    """Write one report inside the public loader's transaction boundary."""
     cur = conn.cursor()
 
     from .validator import statement_passes
@@ -196,8 +232,8 @@ def upsert_report(
     # the map here, from the rows actually retained/stored above, rather than
     # waiting for a separate fleet revalidation. Otherwise standalone loads can
     # publish a complete P&L with no period-net role and blank every TTM return.
-    # This is persistence, so an unrelated best-effort validator failure below
-    # must not prevent it. Unchanged maps keep their original derived_at.
+    # The map and its source rows share the report's transaction. Unchanged
+    # maps keep their original derived_at.
     from .validator import upsert_pl_roles
     upsert_pl_roles(conn, bank_ticker, period, kind)
 
@@ -309,21 +345,19 @@ def upsert_report(
 
     # Structural validation — recompute the WHOLE partition from its STORED rows
     # (not the in-memory report) so the recorded result always matches what's in
-    # the DB, including any statements left untouched above. This also covers all
-    # every registered statement type (validate_report covers only the core set). Isolated: a
-    # validator bug must never sink the extraction itself.
-    try:
-        import sys as _sys
-        _repo = str(Path(__file__).resolve().parents[2])
-        if _repo not in _sys.path:
-            _sys.path.insert(0, _repo)
-        from scripts.revalidate_audit_db import revalidate_partition
+    # the DB, including any statements left untouched above. This covers every
+    # registered statement type (validate_report covers only the core set).
+    # A computation/persistence exception must abort the report; ordinary failed
+    # check results remain recorded for the existing per-lane publication gates.
+    import sys as _sys
+    _repo = str(Path(__file__).resolve().parents[2])
+    if _repo not in _sys.path:
+        _sys.path.insert(0, _repo)
+    from scripts.revalidate_audit_db import revalidate_partition
 
-        from .validator import upsert_validation
-        upsert_validation(conn, bank_ticker, period, kind,
-                          revalidate_partition(conn, bank_ticker, period, kind))
-    except Exception:
-        pass
+    from .validator import upsert_validation
+    upsert_validation(conn, bank_ticker, period, kind,
+                      revalidate_partition(conn, bank_ticker, period, kind))
 
     # Extractions log row (idempotent via REPLACE)
     cur.execute(
@@ -345,7 +379,6 @@ def upsert_report(
             1 if registry.success_from_counts(counts) else 0,
         ),
     )
-    conn.commit()
     return counts
 
 

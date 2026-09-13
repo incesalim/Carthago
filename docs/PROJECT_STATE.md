@@ -1,5 +1,21 @@
 # Project State
 
+## Audit loads abort on validation crashes (2026-09-13)
+
+The production audit loader now writes a filing's facts, P&L roles, source
+evidence, validation results and extraction status within one savepoint. A
+validator or persistence exception rolls back that filing and propagates to
+the caller. It can no longer leave a successful extraction record over an
+unchecked candidate or leak partial writes into a later caller commit.
+
+The existing guards for settled statements, units and unchanged role/validation
+timestamps remain in place. Ordinary failed financial checks remain recorded
+for the existing publication gates; this change handles execution failure and
+does not redefine a numerical pass. Regression checks cover six failure points,
+with and without preceding caller work, including exact persisted-row recovery.
+The existing Actions refresh workflow verifies scoped real filings after release.
+Evidence: `docs/knowledge/2026-09-13-audit-load-atomicity/RESULTS.md`.
+
 ## Capital disclosure intervals and qualifications (2026-09-13)
 
 The source-table reader now links table fragments to their enclosing printed

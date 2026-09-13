@@ -173,19 +173,13 @@ def test_a_first_extraction_is_not_treated_as_a_unit_change():
         (B,)).fetchone()[0] == 2
 
 
-def test_roles_follow_retained_pl_even_when_an_unrelated_validator_crashes(monkeypatch):
+def test_roles_follow_retained_pl_without_restamping_unchanged_maps():
     """A standalone partition load must not erase the map used by TTM ROE.
 
     The incoming report is empty, but the protected stored P&L remains. Roles
-    must come from that P&L, independently of best-effort validation, and a
+    must come from that P&L, and a
     repeated refresh must not create a new D1 write timestamp.
     """
-    from scripts import revalidate_audit_db
-
-    def broken_validator(*args, **kwargs):
-        raise RuntimeError("unrelated lane failed")
-
-    monkeypatch.setattr(revalidate_audit_db, "revalidate_partition", broken_validator)
     c = _conn()
     c.execute(
         "INSERT INTO bank_audit_profit_loss "
@@ -203,7 +197,10 @@ def test_roles_follow_retained_pl_even_when_an_unrelated_validator_crashes(monke
         "AND r.hierarchy=p.hierarchy WHERE r.role='period_net'").fetchone() == (42,)
 
     c.execute("UPDATE bank_audit_pl_roles SET derived_at='2026-01-01 00:00:00'")
-    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
+    same_pl = BankReport(pdf_path="x.pdf", profit_loss=[StatementRow(
+        order=1, hierarchy="XXV.", name="DÖNEM NET KARI", footnote=None,
+        cur_amount=42)])
+    upsert_report(c, B, P, K, same_pl, "x.pdf", unit=UnitContext.canonical())
     assert c.execute("SELECT derived_at FROM bank_audit_pl_roles").fetchone() == (
         "2026-01-01 00:00:00",)
 
