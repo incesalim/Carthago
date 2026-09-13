@@ -1,3 +1,4 @@
+import { SectorPage, SectorNav, SectorLead, LeadChartLink } from "@/app/components/sector-page";
 /**
  * Home / Overview — "The Desk" two-layer page.
  *
@@ -519,7 +520,7 @@ export default async function OverviewPage({
   ];
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+    <SectorPage>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...datasetJsonLd, name: tx(datasetJsonLd.name), description: tx(datasetJsonLd.description), inLanguage: tx.locale }) }}
@@ -548,8 +549,42 @@ export default async function OverviewPage({
           },
         ]}
       />
+      <SectorNav sections={[{ "id": "overview", "label": "Overview" }, { "id": "snapshot", "label": "The vitals" }, { "id": "drivers", "label": "Drivers" }, { "id": "by-type", "label": "Snapshot scorecard" }, { "id": "evidence-2", "label": "Sector dynamics" }]} />
 
-      <LayerHead
+      <SectorLead
+        question="How much capital supports the system?"
+        observation={monthLabel(sCar.at(-1)?.period)}
+        controls={<GlobalRangeSelector />}
+        metric={<Vital
+          label={tx("Capital adequacy")}
+          value={carNow != null ? carNow.toFixed(1) : "—"}
+          unit="%"
+          series={spark(sCar)}
+          decimals={1}
+          note={
+            <>{tx("buffer ")}<b className="font-semibold text-positive">{tx(buffer != null ? `+${buffer.toFixed(1)}pp` : "—")}</b>{" "}
+              <Go href="/capital">{tx("/capital")}</Go>
+            </>
+          }
+        />}
+        chart={<TrendChart
+          plain
+          data={carGroups}
+          seriesLabels={BANK_TYPE_LABELS}
+          title={
+            tx(seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }, tx.locale) ??
+              "Capital adequacy (%) — by group")
+          }
+          description={tx("capital adequacy, %, monthly · target ratio 12% · BDDK")}
+          source={<ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
+          yFormat="pct"
+          decimals={1}
+          height={280}
+        />}
+      />
+
+
+      <LayerHead id="snapshot"
         index="01"
         title="Now"
         description="Current position, primary clock and the first answer."
@@ -562,19 +597,8 @@ export default async function OverviewPage({
         meta={tx("equal weight · trailing 13 months")}
         className="mb-2.5 mt-6"
       />
-      <Vitals>
-        <Vital
-          label={tx("Capital adequacy")}
-          value={carNow != null ? carNow.toFixed(1) : "—"}
-          unit="%"
-          series={spark(sCar)}
-          decimals={1}
-          note={
-            <>{tx("buffer ")}<b className="font-semibold text-positive">{tx(buffer != null ? `+${buffer.toFixed(1)}pp` : "—")}</b>{" "}
-              <Go href="/capital">{tx("/capital")}</Go>
-            </>
-          }
-        />
+      <Vitals cols={5}>
+
         <Vital
           label={tx("NPL ratio")}
           value={nplNow != null ? nplNow.toFixed(2) : "—"}
@@ -601,7 +625,7 @@ export default async function OverviewPage({
           note={
             <>
               {tx(nimLow != null && nimNow != null && nimNow - nimLow > 0.5
-                ? tx("rebuilt from {0}%", {0: nimLow.toFixed(1)})
+                ? tx("rebuilt from {0}%", { 0: nimLow.toFixed(1) })
                 : "cycle margin")}{" "}
               <Go href="/profitability">{tx("/profitability")}</Go>
             </>
@@ -616,8 +640,8 @@ export default async function OverviewPage({
           note={
             <>
               {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
-                ? tx("below the {0}% line", {0: LDR_PUBLISHED.line})
-                : tx("above the {0}% line", {0: LDR_PUBLISHED.line}))}{" "}{tx("— published, monthly ")}<Go href="/deposits">{tx("/deposits")}</Go>
+                ? tx("below the {0}% line", { 0: LDR_PUBLISHED.line })
+                : tx("above the {0}% line", { 0: LDR_PUBLISHED.line }))}{" "}{tx("— published, monthly ")}<Go href="/deposits">{tx("/deposits")}</Go>
             </>
           }
         />
@@ -650,7 +674,7 @@ export default async function OverviewPage({
         />
       </Vitals>
 
-      <LayerHead
+      <LayerHead id="drivers"
         index="02"
         title="Drivers"
         description="The mechanisms and comparisons behind the current reading."
@@ -680,7 +704,7 @@ export default async function OverviewPage({
       {/* ── Flags | Standings ──────────────────────────────────────────── */}
       <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-2">
         <div>
-          <SecHead title={tx("Flags")} meta={tx("rule-based — {0}", {0: activeFlags})} className="mb-2.5" />
+          <SecHead title={tx("Flags")} meta={tx("rule-based — {0}", { 0: activeFlags })} className="mb-2.5" />
           <Flags
             flags={flags}
             quietNote="NPL streak, capital drift, funding stretch and real returns are all below threshold."
@@ -689,7 +713,7 @@ export default async function OverviewPage({
         <div>
           <SecHead
             title={tx("Standings")}
-            meta={tx("car · {0}", {0: quarterLabel(league.period)})}
+            meta={tx("car · {0}", { 0: quarterLabel(league.period) })}
             href="/capital"
             hrefLabel={tx("full league →")}
             className="mb-2.5"
@@ -699,15 +723,14 @@ export default async function OverviewPage({
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth id="evidence" >
         <Takeaway data={read} variant="desk" />
 
-        {/* The scorecard IS the vitals band — one group at a time. */}
         <div id="by-type" className="scroll-mt-24">
           <SecHead
             title={tx("Snapshot scorecard")}
             action={<BankTypeFilter active={bankType} />}
-            meta={tx("table-15 vitals · {0} · live d1", {0: groupLabel.toLowerCase()})}
+            meta={tx("table-15 vitals · {0} · live d1", { 0: groupLabel.toLowerCase() })}
             className="mb-2.5"
           />
           <Levels
@@ -754,8 +777,7 @@ export default async function OverviewPage({
           </p>
         </div>
 
-        {/* Two charts per row — each spans three cells of the band above. */}
-        <div>
+        <div id="evidence-2">
           <SecHead
             title={tx("Sector dynamics")}
             meta={tx("by ownership group · sector = the navy hero line")}
@@ -768,7 +790,7 @@ export default async function OverviewPage({
               seriesLabels={BANK_TYPE_LABELS}
               title={
                 tx(seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
-                "Loan growth YoY (%) — by group")
+                  "Loan growth YoY (%) — by group")
               }
               description={tx("loan growth y/y, %, monthly · BDDK monthly bulletin")}
               source={<ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
@@ -780,54 +802,41 @@ export default async function OverviewPage({
               columns={3}
               zeroLine
             />
-            <TrendChart
+            <SmallMultiplesTrend
               plain
               data={nplAllGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
                 tx(seriesFinding(sNpl, { noun: "NPL ratio", decimals: 2 }, tx.locale) ??
-                "NPL ratio (%) — by group")
+                  "NPL ratio (%) — by group")
               }
               description={tx("npl ratio, %, monthly · BDDK monthly bulletin")}
               source={<ChartFoot data={nplAllGroups} labels={BANK_TYPE_LABELS} decimals={2} />}
               yFormat="pct"
               decimals={2}
-              height={280}
-            />
-            <TrendChart
-              plain
-              data={carGroups}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }, tx.locale) ??
-                "Capital adequacy (%) — by group")
-              }
-              description={tx("capital adequacy, %, monthly · target ratio 12% · BDDK")}
-              source={<ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
-              yFormat="pct"
-              decimals={1}
-              height={280}
-            />
-            <TrendChart
+              height={142}
+              columns={3} />
+            <LeadChartLink />
+            <SmallMultiplesTrend
               plain
               data={roeGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
                 tx(seriesFinding(sRoe, { noun: "ROE", decimals: 1 }, tx.locale) ??
-                "ROE — annualized (%) — by group")
+                  "ROE — annualized (%) — by group")
               }
               description={tx("roe annualized, %, monthly · BDDK monthly bulletin")}
               source={<ChartFoot data={roeGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}
-              height={280}
+              height={142}
               zeroLine
-            />
+              columns={3} />
           </div>
         </div>
       </Depth>
 
       <Colophon />
-    </main>
+    </SectorPage>
   );
 }

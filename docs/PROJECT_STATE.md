@@ -14,6 +14,18 @@ coverage or known issues change.
 
 ---
 
+## Sector layout redesign (2026-09-13)
+
+Overview, Credit, Deposits, Liquidity, Asset Quality, Capital, Profitability and
+Market Risk now share a question, principal measure and existing chart above
+topic navigation's linked analysis. All original metrics, tables, source notes,
+scenarios, filters and chart exports remain available. Twelve overlapping trend
+charts now use shared-scale small multiples; missing observations remain gaps
+and blank CSV cells. The global date selector sits beside the opening chart.
+The implementation follows `web/DESIGN.md`; local verification and preservation
+receipts are in `docs/knowledge/2026-09-13-sector-suite/`. This layout change does not
+change database coverage or ingestion.
+
 ## Liquidity component expansion (2026-09-13)
 
 The active direction is incremental expansion of the existing production lanes;

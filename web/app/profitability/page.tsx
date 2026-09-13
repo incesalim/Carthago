@@ -1,3 +1,4 @@
+import { SectorPage, SectorNav, SectorLead, LeadChartLink } from "@/app/components/sector-page";
 /**
  * Profitability tab — "The Desk" two-layer page.
  *
@@ -416,7 +417,7 @@ export default async function ProfitabilityPage() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+    <SectorPage>
       <DeskHeader
         title={tx("Profitability")}
         record={
@@ -441,22 +442,13 @@ export default async function ProfitabilityPage() {
           },
         ]}
       />
+      <SectorNav sections={[{ "id": "overview", "label": "Overview" }, { "id": "snapshot", "label": "The vitals" }, { "id": "drivers", "label": "Drivers" }, { "id": "evidence-2", "label": "The month’s P&L" }, ...(E ? [{ "id": "evidence-1", "label": "The engine" }] : []), { "id": "evidence-4", "label": "Margins & costs" }, { "id": "evidence-3", "label": "Returns" }]} />
 
-      <LayerHead
-        index="01"
-        title="Now"
-        description="Current position, primary clock and the first answer."
-        className="mt-6"
-      />
-
-      {/* ── The vitals ─────────────────────────────────────────────────── */}
-      <SecHead
-        title={tx("The vitals")}
-        meta={tx("sector aggregate · annualized · trailing 13 months")}
-        className="mb-2.5 mt-6"
-      />
-      <Vitals>
-        <Vital
+      <SectorLead
+        question="What is producing the return?"
+        observation={monthLabel(sectorRows.roe.at(-1)?.period)}
+        controls={<GlobalRangeSelector />}
+        metric={<Vital
           label={tx("ROE, ann.")}
           value={roeNow != null ? roeNow.toFixed(1) : "—"}
           unit="%"
@@ -474,7 +466,45 @@ export default async function ProfitabilityPage() {
                 {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}{tx(" real")}</em>
             </>
           }
-        />
+        />}
+        chart={<SmallMultiplesTrend
+          plain
+          data={roe}
+          seriesLabels={BANK_TYPE_LABELS}
+          title={
+            tx(seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), {
+              noun: "ROE",
+              decimals: 1,
+            }, tx.locale) ?? "ROE — annualized, by group")
+          }
+          description={tx("return on equity, %, annualized (ytd × 12/month) · by ownership group")}
+          source={<ChartFoot data={roe} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
+          yFormat="pct"
+          decimals={1}
+          deltaPeriods={12}
+          deltaLabel="12m"
+          height={104}
+          columns={3}
+          zeroLine
+        />}
+      />
+
+
+      <LayerHead id="snapshot"
+        index="01"
+        title="Now"
+        description="Current position, primary clock and the first answer."
+        className="mt-6"
+      />
+
+      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      <SecHead
+        title={tx("The vitals")}
+        meta={tx("sector aggregate · annualized · trailing 13 months")}
+        className="mb-2.5 mt-6"
+      />
+      <Vitals cols={5}>
+
         <Vital
           label={tx("ROA, ann.")}
           value={roaNow != null ? roaNow.toFixed(2) : "—"}
@@ -496,7 +526,7 @@ export default async function ProfitabilityPage() {
           note={
             nimExt != null && nimNow != null && nimNow - nimExt.min > 0.5 ? (
               <>{tx("Recovered from the {0}% low recorded in {1}.",
-                {0: nimExt.min.toFixed(1), 1: monthLabel(nimExt.minPeriod, false)})}</>
+                { 0: nimExt.min.toFixed(1), 1: monthLabel(nimExt.minPeriod, false) })}</>
             ) : (
               <>{tx("within its 24m range")}</>
             )
@@ -537,7 +567,7 @@ export default async function ProfitabilityPage() {
           note={
             cpiFallStreak >= 3 ? (
               <>
-                <b className="font-semibold text-positive">{tx("CPI has declined for {0} consecutive months.", {0: cpiFallStreak})}</b>{" "}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
+                <b className="font-semibold text-positive">{tx("CPI has declined for {0} consecutive months.", { 0: cpiFallStreak })}</b>{" "}<Go href="/economy/inflation">{tx("/economy/inflation")}</Go>
               </>
             ) : (
               <>
@@ -560,8 +590,8 @@ export default async function ProfitabilityPage() {
             prior={brPrior}
             title={
               tx(brPrior && br.nii > brPrior.nii && br.net < brPrior.net
-                ? tx("{0} — net interest income rose, and the profit still fell", {0: monthLabel(br.period)})
-                : tx("{0} — the month in one line each", {0: monthLabel(br.period)}))
+                ? tx("{0} — net interest income rose, and the profit still fell", { 0: monthLabel(br.period) })
+                : tx("{0} — the month in one line each", { 0: monthLabel(br.period) }))
             }
             description={tx("₺ trn, the month alone · not the year to date")}
             source={tx("Source: BDDK monthly income statement · bridge reconciles to reported net profit")}
@@ -570,7 +600,7 @@ export default async function ProfitabilityPage() {
         </div>
       )}
 
-      <LayerHead
+      <LayerHead id="drivers"
         index="02"
         title="Drivers"
         description="The mechanisms and comparisons behind the current reading."
@@ -582,7 +612,7 @@ export default async function ProfitabilityPage() {
         <div>
           <SecHead
             title={tx("Movers")}
-            meta={tx("{0} → {1} · monthly", {0: vsMonth, 1: monthLabel(sectorRows.roe.at(-1)?.period, false)})}
+            meta={tx("{0} → {1} · monthly", { 0: vsMonth, 1: monthLabel(sectorRows.roe.at(-1)?.period, false) })}
             className="mb-2.5"
           />
           <Movers
@@ -606,7 +636,7 @@ export default async function ProfitabilityPage() {
         <div>
           <SecHead
             title={tx("Flags")}
-            meta={tx("rule-based — {0} of {1}", {0: activeFlags, 1: flags.length})}
+            meta={tx("rule-based — {0} of {1}", { 0: activeFlags, 1: flags.length })}
             className="mb-2.5"
           />
           <Flags
@@ -618,7 +648,7 @@ export default async function ProfitabilityPage() {
         <div>
           <SecHead
             title={tx("Standings")}
-            meta={tx("roe, ann. · {0}", {0: recMonth})}
+            meta={tx("roe, ann. · {0}", { 0: recMonth })}
             href="/banks"
             hrefLabel={tx("by bank →")}
             className="mb-2.5"
@@ -628,111 +658,10 @@ export default async function ProfitabilityPage() {
       </div>
 
       {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth id="evidence" >
         <Takeaway data={await withLlmHeadline("profitability", read, tx.locale)} variant="desk" />
 
-        {/* The engine — where the return actually comes from. */}
-        {E && (
-          <div>
-            <SecHead
-              title={tx("The engine")}
-              meta={tx("what the free deposits are worth · BDDK income statement ÷ balance sheet")}
-              className="mb-2.5"
-            />
-            <Levels
-              items={[
-                { k: "Demand share", v: E.demandShare.toFixed(1), unit: "%" },
-                { k: "Paid on the rest", v: E.paidOnTime.toFixed(1), unit: "%" },
-                { k: "Blended cost", v: E.blended.toFixed(1), unit: "%" },
-                { k: "The free book, priced", v: `₺${E.worth.toFixed(2)}`, unit: "trn" },
-              ]}
-            />
-            <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-              <TrendChart
-                plain
-                data={[
-                  ...eng.map((e) => ({ period: e.period, bank_type_code: "PAID", value: e.paidOnTime })),
-                  ...eng.map((e) => ({ period: e.period, bank_type_code: "BLENDED", value: e.blended })),
-                  ...cpiAvg
-                    .filter((c) => eng.some((e) => e.period === c.period))
-                    .map((c) => ({ period: c.period, bank_type_code: "CPI", value: c.value })),
-                ]}
-                seriesLabels={{
-                  PAID: "Paid on time deposits",
-                  BLENDED: "Blended cost",
-                  CPI: "CPI 12m-avg",
-                }}
-                title={
-                  tx(firstClaim(
-                    [
-                      blendedGap != null && blendedGap < -5,
-                      tx("The sector pays nothing on {0}% of its deposit book — so the blended cost sits far below inflation", {0: E.demandShare.toFixed(0)}),
-                    ],
-                    [
-                      blendedGap != null && blendedGap < 0,
-                      tx("The sector pays nothing on {0}% of its deposit book — enough to hold the blended cost under inflation", {0: E.demandShare.toFixed(0)}),
-                    ],
-                    [
-                      blendedGap != null,
-                      tx("The sector pays nothing on {0}% of its deposit book — yet the blended cost is {1} against inflation", {0: E.demandShare.toFixed(0), 1: signedPp(blendedGap ?? 0, 1)}),
-                    ],
-                  ) ?? "Deposit cost against the CPI hurdle")
-                }
-                description={tx("deposit cost, %, monthly · paid on time deposits vs blended, against the CPI hurdle")}
-                source={
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <span>{tx("PAID ON TIME")}{" "}
-                      <b className="font-semibold text-foreground">{tx(fmtPct(E.paidOnTime))}</b>
-                    </span>
-                    <span>{tx("BLENDED ")}<b className="font-semibold text-foreground">{tx(fmtPct(E.blended))}</b>
-                    </span>
-                    <span>{tx("FREE FUNDING")}{" "}
-                      <b className="font-semibold text-foreground">{tx(E.free.toFixed(1))}{tx("pp")}</b>
-                    </span>
-                    <span>{tx("CPI ")}<b className="font-semibold text-foreground">{tx(fmtPct(cpiAvgNow))}</b>
-                    </span>
-                  </div>
-                }
-                yFormat="pct"
-                decimals={1}
-                height={280}
-                hero="PAID"
-              />
-              <EngineBars
-                data={eng.map((e) => ({ period: e.period, worth: e.worth, profit: e.profit }))}
-                title={
-                  tx(E.ratio > 1
-                    ? tx("The free money is worth {0}× the profit it produces", {0: E.ratio.toFixed(1)})
-                    : "The free deposits, priced — against the profit")
-                }
-                description={tx("₺ trn, annualized, monthly · the demand book priced at the paid rate, vs net profit")}
-                source={
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <span>{tx("THE FREE BOOK")}{" "}
-                      <b className="font-semibold text-foreground">{tx(fmtTrn(E.worth))}</b>
-                    </span>
-                    <span>{tx("SECTOR PROFIT")}{" "}
-                      <b className="font-semibold text-foreground">{tx(fmtTrn(E.profit))}</b>
-                    </span>
-                    <span>{tx("RATIO ")}<b className="font-semibold text-foreground">{tx(E.ratio.toFixed(1))}×</b>
-                    </span>
-                    <span>{tx("18M RANGE")}{" "}
-                      <b className="font-semibold text-foreground">
-                        {tx(Math.min(...engRatios).toFixed(1))}×–{tx(Math.max(...engRatios).toFixed(1))}×
-                      </b>
-                    </span>
-                  </div>
-                }
-                height={280}
-              />
-            </div>
-            <p className="mt-4 max-w-[100ch] text-[12px] leading-relaxed text-muted-foreground">
-              <b className="font-semibold text-foreground">{tx("A sizing device, not a forecast.")}</b>{" "}{tx("Demand deposits are not literally free — servicing them (branches, payments, cards) is part of the ")}{tx(fmtPct(ciNow))}{tx(" cost/income below — and if the sector paid market rates on them the balance sheet would not stay the same. The arithmetic only says what the free funding is ")}<i>{tx("worth")}</i>{tx(" at the sector’s own paid rate: ")}{tx(fmtTrn(E.worth))}{tx(" a year against ")}{tx(fmtTrn(E.profit))}{tx(" of profit. One ROE is used throughout — BDDK’s published ratio (")}{tx(fmtPct(roeNow))}{tx("); the counterfactual is a cost applied to it, not a second ROE computed a different way.")}</p>
-          </div>
-        )}
-
-        {/* The month's P&L — de-cumulated, and only drawn when it reconciles. */}
-        <div>
+        <div id="evidence-2">
           <SecHead
             title={tx("The month's P&L")}
             meta={tx("de-cumulated from the year-to-date statement · reconciles to the reported line")}
@@ -745,8 +674,8 @@ export default async function ProfitabilityPage() {
                 prior={brPrior}
                 title={
                   tx(brPrior && br.nii > brPrior.nii && br.net < brPrior.net
-                    ? tx("{0} — net interest income rose, and the profit still fell", {0: monthLabel(br.period)})
-                    : tx("{0} — the month in one line each", {0: monthLabel(br.period)}))
+                    ? tx("{0} — net interest income rose, and the profit still fell", { 0: monthLabel(br.period) })
+                    : tx("{0} — the month in one line each", { 0: monthLabel(br.period) }))
                 }
                 description={tx("₺ trn, the month alone · not the year to date")}
                 source={
@@ -798,9 +727,8 @@ export default async function ProfitabilityPage() {
                             {tx(v.toFixed(3))}
                           </td>
                           <td
-                            className={`w-16 border-b border-hair py-1.5 pl-2 text-right font-mono text-[10.5px] tabular-nums ${
-                              d == null ? "text-faint" : d >= 0 ? "text-positive" : "text-negative"
-                            }`}
+                            className={`w-16 border-b border-hair py-1.5 pl-2 text-right font-mono text-[10.5px] tabular-nums ${d == null ? "text-faint" : d >= 0 ? "text-positive" : "text-negative"
+                              }`}
                           >
                             {tx(d == null ? "—" : `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(3)}`)}
                           </td>
@@ -825,35 +753,221 @@ export default async function ProfitabilityPage() {
           )}
         </div>
 
-        {/* Returns */}
-        <div>
+        {E && (
+          <div id="evidence-1">
+            <SecHead
+              title={tx("The engine")}
+              meta={tx("what the free deposits are worth · BDDK income statement ÷ balance sheet")}
+              className="mb-2.5"
+            />
+            <Levels
+              items={[
+                { k: "Demand share", v: E.demandShare.toFixed(1), unit: "%" },
+                { k: "Paid on the rest", v: E.paidOnTime.toFixed(1), unit: "%" },
+                { k: "Blended cost", v: E.blended.toFixed(1), unit: "%" },
+                { k: "The free book, priced", v: `₺${E.worth.toFixed(2)}`, unit: "trn" },
+              ]}
+            />
+            <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+              <TrendChart
+                plain
+                data={[
+                  ...eng.map((e) => ({ period: e.period, bank_type_code: "PAID", value: e.paidOnTime })),
+                  ...eng.map((e) => ({ period: e.period, bank_type_code: "BLENDED", value: e.blended })),
+                  ...cpiAvg
+                    .filter((c) => eng.some((e) => e.period === c.period))
+                    .map((c) => ({ period: c.period, bank_type_code: "CPI", value: c.value })),
+                ]}
+                seriesLabels={{
+                  PAID: "Paid on time deposits",
+                  BLENDED: "Blended cost",
+                  CPI: "CPI 12m-avg",
+                }}
+                title={
+                  tx(firstClaim(
+                    [
+                      blendedGap != null && blendedGap < -5,
+                      tx("The sector pays nothing on {0}% of its deposit book — so the blended cost sits far below inflation", { 0: E.demandShare.toFixed(0) }),
+                    ],
+                    [
+                      blendedGap != null && blendedGap < 0,
+                      tx("The sector pays nothing on {0}% of its deposit book — enough to hold the blended cost under inflation", { 0: E.demandShare.toFixed(0) }),
+                    ],
+                    [
+                      blendedGap != null,
+                      tx("The sector pays nothing on {0}% of its deposit book — yet the blended cost is {1} against inflation", { 0: E.demandShare.toFixed(0), 1: signedPp(blendedGap ?? 0, 1) }),
+                    ],
+                  ) ?? "Deposit cost against the CPI hurdle")
+                }
+                description={tx("deposit cost, %, monthly · paid on time deposits vs blended, against the CPI hurdle")}
+                source={
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{tx("PAID ON TIME")}{" "}
+                      <b className="font-semibold text-foreground">{tx(fmtPct(E.paidOnTime))}</b>
+                    </span>
+                    <span>{tx("BLENDED ")}<b className="font-semibold text-foreground">{tx(fmtPct(E.blended))}</b>
+                    </span>
+                    <span>{tx("FREE FUNDING")}{" "}
+                      <b className="font-semibold text-foreground">{tx(E.free.toFixed(1))}{tx("pp")}</b>
+                    </span>
+                    <span>{tx("CPI ")}<b className="font-semibold text-foreground">{tx(fmtPct(cpiAvgNow))}</b>
+                    </span>
+                  </div>
+                }
+                yFormat="pct"
+                decimals={1}
+                height={280}
+                hero="PAID"
+              />
+              <EngineBars
+                data={eng.map((e) => ({ period: e.period, worth: e.worth, profit: e.profit }))}
+                title={
+                  tx(E.ratio > 1
+                    ? tx("The free money is worth {0}× the profit it produces", { 0: E.ratio.toFixed(1) })
+                    : "The free deposits, priced — against the profit")
+                }
+                description={tx("₺ trn, annualized, monthly · the demand book priced at the paid rate, vs net profit")}
+                source={
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{tx("THE FREE BOOK")}{" "}
+                      <b className="font-semibold text-foreground">{tx(fmtTrn(E.worth))}</b>
+                    </span>
+                    <span>{tx("SECTOR PROFIT")}{" "}
+                      <b className="font-semibold text-foreground">{tx(fmtTrn(E.profit))}</b>
+                    </span>
+                    <span>{tx("RATIO ")}<b className="font-semibold text-foreground">{tx(E.ratio.toFixed(1))}×</b>
+                    </span>
+                    <span>{tx("18M RANGE")}{" "}
+                      <b className="font-semibold text-foreground">
+                        {tx(Math.min(...engRatios).toFixed(1))}×–{tx(Math.max(...engRatios).toFixed(1))}×
+                      </b>
+                    </span>
+                  </div>
+                }
+                height={280}
+              />
+            </div>
+            <p className="mt-4 max-w-[100ch] text-[12px] leading-relaxed text-muted-foreground">
+              <b className="font-semibold text-foreground">{tx("A sizing device, not a forecast.")}</b>{" "}{tx("Demand deposits are not literally free — servicing them (branches, payments, cards) is part of the ")}{tx(fmtPct(ciNow))}{tx(" cost/income below — and if the sector paid market rates on them the balance sheet would not stay the same. The arithmetic only says what the free funding is ")}<i>{tx("worth")}</i>{tx(" at the sector’s own paid rate: ")}{tx(fmtTrn(E.worth))}{tx(" a year against ")}{tx(fmtTrn(E.profit))}{tx(" of profit. One ROE is used throughout — BDDK’s published ratio (")}{tx(fmtPct(roeNow))}{tx("); the counterfactual is a cost applied to it, not a second ROE computed a different way.")}</p>
+          </div>
+        )}
+
+        <div id="evidence-4">
+          <SecHead
+            title={tx("Margins & costs")}
+            meta={tx("what the engine leaves behind")}
+            className="mb-2.5"
+          />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            <SmallMultiplesTrend
+              plain
+              data={nim}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={
+                tx(firstClaim(
+                  [
+                    nimD != null && nimD > 0 && costD != null && costD < 0,
+                    "The margin rebuilt as deposits repriced down",
+                  ],
+                  [
+                    nimD != null && nimD < 0 && costD != null && costD > 0,
+                    "The margin compressed as deposits repriced up",
+                  ],
+                  [
+                    nimD != null,
+                    tx("Net interest margin {0} over 12 months", { 0: signedPp(nimD ?? 0, 2) }),
+                  ],
+                ) ?? "Net interest margin — by group")
+              }
+              description={tx("net interest margin, annualized %, monthly · by ownership group")}
+              source={<ChartFoot data={nim} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
+              yFormat="pct"
+              decimals={2}
+              height={142}
+              columns={3} />
+            <TrendChart
+              plain
+              data={ci.map((c) => ({ period: c.period, bank_type_code: "CI", value: c.value }))}
+              seriesLabels={{ CI: "Cost / income" }}
+              // The guard tested the DIRECTION; the sentence claims a LEVEL. Cost/
+              // income falling below 50% while still improving printed "Costs still
+              // eat more than half of income". Every rung now tests what it says.
+              title={
+                tx(firstClaim(
+                  [
+                    ciNow != null && ciNow > 50 && ci12 != null && ciNow < ci12,
+                    "Costs still eat more than half of income — but less than they did",
+                  ],
+                  [
+                    ciNow != null && ciNow > 50,
+                    tx("Costs eat {0} of income — more than half", { 0: fmtPct(ciNow) }),
+                  ],
+                  [
+                    ciNow != null && ci12 != null,
+                    tx("Costs take {0} of income — {1} over 12 months", { 0: fmtPct(ciNow), 1: signedPp((ciNow ?? 0) - (ci12 ?? 0), 1) }),
+                  ],
+                ) ?? "Cost / income")
+              }
+              description={tx("operating costs ÷ (nii + fees & other), %, monthly · sector")}
+              source={
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span>{tx("LATEST ")}<b className="font-semibold text-foreground">{tx(fmtPct(ciNow))}</b>
+                  </span>
+                  <span>{tx("A YEAR AGO ")}<b className="font-semibold text-foreground">{tx(fmtPct(ci12))}</b>
+                  </span>
+                  <span>
+                    Δ 12M{" "}
+                    <b className="font-semibold text-foreground">
+                      {tx(ciNow != null && ci12 != null ? signedPp(ciNow - ci12, 1) : "—")}
+                    </b>
+                  </span>
+                </div>
+              }
+              yFormat="pct"
+              decimals={1}
+              height={280}
+              hero="CI"
+            />
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            <SmallMultiplesTrend
+              plain
+              data={opex}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={tx("Cost intensity — OPEX over average assets")}
+              description={tx("opex ÷ avg assets, annualized %, monthly · by ownership group")}
+              source={<ChartFoot data={opex} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
+              yFormat="pct"
+              decimals={2}
+              height={142}
+              columns={3} />
+            <SmallMultiplesTrend
+              plain
+              data={fees}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={tx("The non-interest share of revenue")}
+              description={tx("fees & commissions ÷ total revenue, %, monthly · by ownership group")}
+              source={<ChartFoot data={fees} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
+              yFormat="pct"
+              decimals={1}
+              height={142}
+              columns={3} />
+          </div>
+          <div className="mt-8 space-y-1">
+            <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
+            <p className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint">{tx("NIM components of private banks: BDDK monthly income-statement interest items (income 1–14, expense 16–22) over 13-month average total assets. Private = domestic-private + foreign deposit banks.")}</p>
+          </div>
+        </div>
+
+        <div id="evidence-3">
           <SecHead
             title={tx("Returns")}
             meta={tx("by ownership group · the CPI hurdle on the same axis")}
             className="mb-2.5"
           />
           <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            <LeadChartLink />
             <SmallMultiplesTrend
-              plain
-              data={roe}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), {
-                  noun: "ROE",
-                  decimals: 1,
-                }, tx.locale) ?? "ROE — annualized, by group")
-              }
-              description={tx("return on equity, %, annualized (ytd × 12/month) · by ownership group")}
-              source={<ChartFoot data={roe} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
-              yFormat="pct"
-              decimals={1}
-              deltaPeriods={12}
-              deltaLabel="12m"
-              height={104}
-              columns={3}
-              zeroLine
-            />
-            <TrendChart
               plain
               data={roa}
               seriesLabels={BANK_TYPE_LABELS}
@@ -862,9 +976,9 @@ export default async function ProfitabilityPage() {
               source={<ChartFoot data={roa} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
               yFormat="pct"
               decimals={2}
-              height={280}
+              height={142}
               zeroLine
-            />
+              columns={3} />
           </div>
           {cpiAvg.length > 0 && (
             <div className="mt-6">
@@ -900,117 +1014,9 @@ export default async function ProfitabilityPage() {
             </div>
           )}
         </div>
-
-        {/* Margins & costs */}
-        <div>
-          <SecHead
-            title={tx("Margins & costs")}
-            meta={tx("what the engine leaves behind")}
-            className="mb-2.5"
-          />
-          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
-              plain
-              data={nim}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(firstClaim(
-                  [
-                    nimD != null && nimD > 0 && costD != null && costD < 0,
-                    "The margin rebuilt as deposits repriced down",
-                  ],
-                  [
-                    nimD != null && nimD < 0 && costD != null && costD > 0,
-                    "The margin compressed as deposits repriced up",
-                  ],
-                  [
-                    nimD != null,
-                    tx("Net interest margin {0} over 12 months", {0: signedPp(nimD ?? 0, 2)}),
-                  ],
-                ) ?? "Net interest margin — by group")
-              }
-              description={tx("net interest margin, annualized %, monthly · by ownership group")}
-              source={<ChartFoot data={nim} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
-              yFormat="pct"
-              decimals={2}
-              height={280}
-            />
-            <TrendChart
-              plain
-              data={ci.map((c) => ({ period: c.period, bank_type_code: "CI", value: c.value }))}
-              seriesLabels={{ CI: "Cost / income" }}
-              // The guard tested the DIRECTION; the sentence claims a LEVEL. Cost/
-              // income falling below 50% while still improving printed "Costs still
-              // eat more than half of income". Every rung now tests what it says.
-              title={
-                tx(firstClaim(
-                  [
-                    ciNow != null && ciNow > 50 && ci12 != null && ciNow < ci12,
-                    "Costs still eat more than half of income — but less than they did",
-                  ],
-                  [
-                    ciNow != null && ciNow > 50,
-                    tx("Costs eat {0} of income — more than half", {0: fmtPct(ciNow)}),
-                  ],
-                  [
-                    ciNow != null && ci12 != null,
-                    tx("Costs take {0} of income — {1} over 12 months", {0: fmtPct(ciNow), 1: signedPp((ciNow ?? 0) - (ci12 ?? 0), 1)}),
-                  ],
-                ) ?? "Cost / income")
-              }
-              description={tx("operating costs ÷ (nii + fees & other), %, monthly · sector")}
-              source={
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>{tx("LATEST ")}<b className="font-semibold text-foreground">{tx(fmtPct(ciNow))}</b>
-                  </span>
-                  <span>{tx("A YEAR AGO ")}<b className="font-semibold text-foreground">{tx(fmtPct(ci12))}</b>
-                  </span>
-                  <span>
-                    Δ 12M{" "}
-                    <b className="font-semibold text-foreground">
-                      {tx(ciNow != null && ci12 != null ? signedPp(ciNow - ci12, 1) : "—")}
-                    </b>
-                  </span>
-                </div>
-              }
-              yFormat="pct"
-              decimals={1}
-              height={280}
-              hero="CI"
-            />
-          </div>
-          <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
-              plain
-              data={opex}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={tx("Cost intensity — OPEX over average assets")}
-              description={tx("opex ÷ avg assets, annualized %, monthly · by ownership group")}
-              source={<ChartFoot data={opex} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
-              yFormat="pct"
-              decimals={2}
-              height={280}
-            />
-            <TrendChart
-              plain
-              data={fees}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={tx("The non-interest share of revenue")}
-              description={tx("fees & commissions ÷ total revenue, %, monthly · by ownership group")}
-              source={<ChartFoot data={fees} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />}
-              yFormat="pct"
-              decimals={1}
-              height={280}
-            />
-          </div>
-          <div className="mt-8 space-y-1">
-            <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
-            <p className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint">{tx("NIM components of private banks: BDDK monthly income-statement interest items (income 1–14, expense 16–22) over 13-month average total assets. Private = domestic-private + foreign deposit banks.")}</p>
-          </div>
-        </div>
       </Depth>
 
       <Colophon />
-    </main>
+    </SectorPage>
   );
 }

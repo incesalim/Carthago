@@ -1,3 +1,4 @@
+import { SectorPage, SectorNav, SectorLead, LeadChartLink } from "@/app/components/sector-page";
 /**
  * Asset Quality tab — the Desk brief above the carried-over evidence.
  *
@@ -330,7 +331,7 @@ export default async function AssetQualityPage() {
   }));
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+    <SectorPage>
       <DeskHeader
         title={tx("Asset Quality")}
         record={
@@ -365,8 +366,45 @@ export default async function AssetQualityPage() {
           },
         ]}
       />
+      <SectorNav sections={[{ "id": "overview", "label": "Overview" }, { "id": "snapshot", "label": "The vitals" }, { "id": "drivers", "label": "Drivers" }, { "id": "evidence-2", "label": "Is the stock or the ratio moving?" }, { "id": "evidence-1", "label": "What is coming?" }, { "id": "evidence-3", "label": "Where is it?" }, { "id": "evidence-4", "label": "Who holds it?" }]} />
 
-      <LayerHead
+      <SectorLead
+        question="How much risk sits beyond the NPL ratio?"
+        observation={ladder?.period}
+        controls={<GlobalRangeSelector />}
+        metric={<Vital
+          label={tx("Problem loans, S2+S3")}
+          value={ladder ? ladder.problemShare.toFixed(1) : "—"}
+          unit="%"
+          series={stage2.map((r, i) => ({
+            period: r.period,
+            value: (r.value ?? 0) + (stage3[i]?.value ?? 0),
+          }))}
+          decimals={1}
+          observation={{ cadence: "quarterly", role: "audited", asOf: ladder?.period, basis: "TFRS-9 Stage 2 + Stage 3" }}
+          note={
+            ladder ? (
+              <>
+                <em className="font-semibold not-italic text-negative">
+                  {tx(ladder.multipleOfPrinted.toFixed(1))}×
+                </em>{" "}{tx("the audited Stage-3 share — ")}{tx(fmtTrnFromBn(ladder.problemBn))}{tx(" of loans (")}{tx(ladder.period)})
+              </>
+            ) : undefined
+          }
+        />}
+        chart={<TrendChart
+          data={stageShares}
+          seriesLabels={STAGE_SHARE_LABELS}
+          title={tx("TFRS-9 staging — % of gross loans (audited quarterly)")}
+          description={tx("Stage 2 is the watchlist the NPL ratio never prints.")}
+          yFormat="pct"
+          decimals={1}
+          plain
+        />}
+      />
+
+
+      <LayerHead id="snapshot"
         index="01"
         title="Now"
         description="Current position, primary clock and the first answer."
@@ -392,21 +430,21 @@ export default async function AssetQualityPage() {
             <>
               <p className="text-[19px] leading-snug tracking-tight text-foreground">
                 {tx("Audited Stage 3 is {0} of loans. Including the Stage-2 watchlist, the problem book reaches {1} — {2}× the visible tip.",
-                {0: fmtPct(ladder.stage3Share), 1: fmtPct(ladder.problemShare), 2: ladder.multipleOfPrinted.toFixed(1)})}
+                  { 0: fmtPct(ladder.stage3Share), 1: fmtPct(ladder.problemShare), 2: ladder.multipleOfPrinted.toFixed(1) })}
               </p>
               <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
                 {tx("Stage 2 accounts for {0} of the problem book but never enters the published NPL ratio. Its coverage is {1}, versus {2} for Stage 3.",
-                {0: fmtPct((ladder.stage2Bn / ladder.problemBn) * 100), 1: fmtPct(ladder.cov2), 2: fmtPct(ladder.cov3)})}
+                  { 0: fmtPct((ladder.stage2Bn / ladder.problemBn) * 100), 1: fmtPct(ladder.cov2), 2: fmtPct(ladder.cov3) })}
               </p>
               {rollNow && formationMultiple && (
                 <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
                   {tx("Stage 2 is a watchlist, not an impaired-loan classification; lower coverage is therefore expected, not automatically a shortfall. The stronger warning is the flow: new NPL formation ran at {0}× last year's level and net formation was {1}.",
-                  {0: formationMultiple.toFixed(1), 1: signed(rollNow.net, fmtBn)})}
+                    { 0: formationMultiple.toFixed(1), 1: signed(rollNow.net, fmtBn) })}
                 </p>
               )}
               <p className="mt-3 border-t border-hair pt-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.06em] text-faint">
                 {tx("Problem loans = Stage 2 + Stage 3, both from the same audited TFRS-9 filings. The {0}× multiple is {1} ÷ {2}; it never mixes in the monthly published ratio.",
-                {0: ladder.multipleOfPrinted.toFixed(1), 1: fmtPct(ladder.problemShare), 2: fmtPct(ladder.stage3Share)})}
+                  { 0: ladder.multipleOfPrinted.toFixed(1), 1: fmtPct(ladder.problemShare), 2: fmtPct(ladder.stage3Share) })}
               </p>
             </>
           ) : (
@@ -417,27 +455,8 @@ export default async function AssetQualityPage() {
 
       {/* ── The vitals ──────────────────────────────────────────────────── */}
       <SecHead title={tx("The risk ladder and its signals")} meta={tx("each figure carries its own observation clock")} className="mb-2.5 mt-8" />
-      <Vitals>
-        <Vital
-          label={tx("Problem loans, S2+S3")}
-          value={ladder ? ladder.problemShare.toFixed(1) : "—"}
-          unit="%"
-          series={stage2.map((r, i) => ({
-            period: r.period,
-            value: (r.value ?? 0) + (stage3[i]?.value ?? 0),
-          }))}
-          decimals={1}
-          observation={{ cadence: "quarterly", role: "audited", asOf: ladder?.period, basis: "TFRS-9 Stage 2 + Stage 3" }}
-          note={
-            ladder ? (
-              <>
-                <em className="font-semibold not-italic text-negative">
-                  {tx(ladder.multipleOfPrinted.toFixed(1))}×
-                </em>{" "}{tx("the audited Stage-3 share — ")}{tx(fmtTrnFromBn(ladder.problemBn))}{tx(" of loans (")}{tx(ladder.period)})
-              </>
-            ) : undefined
-          }
-        />
+      <Vitals cols={5}>
+
         <Vital
           label={tx("Cover on the problem book")}
           value={ladder ? ladder.problemCov.toFixed(1) : "—"}
@@ -525,7 +544,7 @@ export default async function AssetQualityPage() {
         />
       </Vitals>
 
-      <LayerHead
+      <LayerHead id="drivers"
         index="02"
         title="Drivers"
         description="The mechanisms and comparisons behind the current reading."
@@ -537,85 +556,85 @@ export default async function AssetQualityPage() {
         meta={tx("annual audited flow · scenario sizing · 52w attribution")}
       >
         <div>
-      {/* ── The pipeline behind the tip ─────────────────────────────────── */}
-      <SecHead
-        title={tx("The pipeline behind the tip")}
-        meta={tx("audited NPL roll-forward · annual · ₺bn")}
-        className="mb-2.5"
-      />
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div>
-          <FormationBars data={roll} />
-          {rollNow && formationMultiple && rollPrev && (
-            <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">{tx("Formation is ")}<b className="font-semibold text-foreground">{tx(formationMultiple.toFixed(1))}×</b>{" "}{tx("last year (")}{tx(fmtBn(rollPrev.additions))} → {tx(fmtBn(rollNow.additions))}{tx("), net")}{" "}
-              <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
-                {tx(signed(rollNow.net, fmtBn))}
-              </b>{tx(". Exits are")}{" "}
-              <b className="font-semibold text-foreground">
-                {tx(rollNow.collectionShare.toFixed(0))}{tx("% collections")}</b>{" "}{tx("— not write-offs or sales.")}{" "}
-              <em>{tx("The ratio is not being managed down; the book is genuinely deteriorating.")}</em>
-            </p>
-          )}
-        </div>
-        <div>
+          {/* ── The pipeline behind the tip ─────────────────────────────────── */}
           <SecHead
-            title={tx("If the watchlist migrates")}
-            meta={tx("sizing device — not a forecast")}
-            className="mb-2.5 mt-0"
+            title={tx("The pipeline behind the tip")}
+            meta={tx("audited NPL roll-forward · annual · ₺bn")}
+            className="mb-2.5"
           />
-          {migrationItems.length > 0 ? (
-            <>
-              <Transmission items={migrationItems} />
-              <p className="mt-2.5 text-[9.5px] leading-relaxed text-faint">{tx("Migration provisioned at Stage 3's rate (")}{tx(migration.cov3 != null ? `${(migration.cov3 * 100).toFixed(0)}%` : "—")}{tx(") against Stage 2 today (")}{tx(migration.cov2 != null ? `${(migration.cov2 * 100).toFixed(0)}%` : "—")}{tx("), on a ₺")}{tx(migration.stage2Bn?.toFixed(0))}{tx("bn book · ")}{tx(migration.period)}{tx(". Stage 2 is")}{" "}
-                <b className="font-semibold text-muted-foreground">{tx("not")}</b>{tx(" impaired — this is what migration would cost, ")}<b className="font-semibold text-muted-foreground">{tx("not a gap the banks owe")}</b>.
-              </p>
-            </>
-          ) : (
-            <p className="text-[12px] text-faint">{tx("The migration sizing needs Stage-3 cover above Stage-2 cover in the latest filing.")}</p>
-          )}
-        </div>
-      </div>
-
-      {/* ── Where the new bad loans came from ───────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
-        <div>
-          <SecHead
-            title={tx("Where the new bad loans came from")}
-            meta={tx("share of the ₺{0}trn increase · 52w", {0: (attrib.totalDelta / 1_000_000).toFixed(2)})}
-            className="mb-2.5 mt-0"
-          />
-          <Attribution
-            rows={attrib.items.map((i) => {
-              const seg = segs.find((s) => s.key === i.key);
-              return {
-                key: i.key,
-                label: i.label,
-                value: i.share,
-                meta: seg ? tx("{0}% NPL · {1}", {0: seg.now.toFixed(2), 1: signedPp(seg.delta, 2)}) : undefined,
-              };
-            })}
-            sum={attrib.sumShare}
-            nested={
-              attrib.memo
-                ? { of: "commercial", label: "SME", value: attrib.memo.share }
-                : undefined
-            }
-            fmtValue={(v) => `${v.toFixed(1)}%`}
-            reconciliation={
-              smeShareOfCommNpl != null && smeShareOfCommLoans != null ? (
-                <>{tx("segments reconcile to the NPL stock — SME is a cut of commercial (")}{tx(smeShareOfCommNpl.toFixed(0))}{tx("% of its bad loans on ")}{tx(smeShareOfCommLoans.toFixed(0))}{tx("% of its lending), not an addition")}</>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <div>
+              <FormationBars data={roll} />
+              {rollNow && formationMultiple && rollPrev && (
+                <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">{tx("Formation is ")}<b className="font-semibold text-foreground">{tx(formationMultiple.toFixed(1))}×</b>{" "}{tx("last year (")}{tx(fmtBn(rollPrev.additions))} → {tx(fmtBn(rollNow.additions))}{tx("), net")}{" "}
+                  <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
+                    {tx(signed(rollNow.net, fmtBn))}
+                  </b>{tx(". Exits are")}{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(rollNow.collectionShare.toFixed(0))}{tx("% collections")}</b>{" "}{tx("— not write-offs or sales.")}{" "}
+                  <em>{tx("The ratio is not being managed down; the book is genuinely deteriorating.")}</em>
+                </p>
+              )}
+            </div>
+            <div>
+              <SecHead
+                title={tx("If the watchlist migrates")}
+                meta={tx("sizing device — not a forecast")}
+                className="mb-2.5 mt-0"
+              />
+              {migrationItems.length > 0 ? (
+                <>
+                  <Transmission items={migrationItems} />
+                  <p className="mt-2.5 text-[9.5px] leading-relaxed text-faint">{tx("Migration provisioned at Stage 3's rate (")}{tx(migration.cov3 != null ? `${(migration.cov3 * 100).toFixed(0)}%` : "—")}{tx(") against Stage 2 today (")}{tx(migration.cov2 != null ? `${(migration.cov2 * 100).toFixed(0)}%` : "—")}{tx("), on a ₺")}{tx(migration.stage2Bn?.toFixed(0))}{tx("bn book · ")}{tx(migration.period)}{tx(". Stage 2 is")}{" "}
+                    <b className="font-semibold text-muted-foreground">{tx("not")}</b>{tx(" impaired — this is what migration would cost, ")}<b className="font-semibold text-muted-foreground">{tx("not a gap the banks owe")}</b>.
+                  </p>
+                </>
               ) : (
-                <>{tx("segments reconcile to the NPL stock — SME is a cut of commercial, not an addition")}</>
-              )
-            }
-            totalMeta={tx("₺{0}trn added", {0: (attrib.totalDelta / 1_000_000).toFixed(2)})}
-          />
-        </div>
-        <div>
-          <SecHead title={tx("Movers")} meta={tx("NPL ratio · 52w")} className="mb-2.5 mt-0" />
-          <Movers from="52w ago" to="Now" rows={moverRows} />
-        </div>
-      </div>
+                <p className="text-[12px] text-faint">{tx("The migration sizing needs Stage-3 cover above Stage-2 cover in the latest filing.")}</p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Where the new bad loans came from ───────────────────────────── */}
+          <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
+            <div>
+              <SecHead
+                title={tx("Where the new bad loans came from")}
+                meta={tx("share of the ₺{0}trn increase · 52w", { 0: (attrib.totalDelta / 1_000_000).toFixed(2) })}
+                className="mb-2.5 mt-0"
+              />
+              <Attribution
+                rows={attrib.items.map((i) => {
+                  const seg = segs.find((s) => s.key === i.key);
+                  return {
+                    key: i.key,
+                    label: i.label,
+                    value: i.share,
+                    meta: seg ? tx("{0}% NPL · {1}", { 0: seg.now.toFixed(2), 1: signedPp(seg.delta, 2) }) : undefined,
+                  };
+                })}
+                sum={attrib.sumShare}
+                nested={
+                  attrib.memo
+                    ? { of: "commercial", label: "SME", value: attrib.memo.share }
+                    : undefined
+                }
+                fmtValue={(v) => `${v.toFixed(1)}%`}
+                reconciliation={
+                  smeShareOfCommNpl != null && smeShareOfCommLoans != null ? (
+                    <>{tx("segments reconcile to the NPL stock — SME is a cut of commercial (")}{tx(smeShareOfCommNpl.toFixed(0))}{tx("% of its bad loans on ")}{tx(smeShareOfCommLoans.toFixed(0))}{tx("% of its lending), not an addition")}</>
+                  ) : (
+                    <>{tx("segments reconcile to the NPL stock — SME is a cut of commercial, not an addition")}</>
+                  )
+                }
+                totalMeta={tx("₺{0}trn added", { 0: (attrib.totalDelta / 1_000_000).toFixed(2) })}
+              />
+            </div>
+            <div>
+              <SecHead title={tx("Movers")} meta={tx("NPL ratio · 52w")} className="mb-2.5 mt-0" />
+              <Movers from="52w ago" to="Now" rows={moverRows} />
+            </div>
+          </div>
         </div>
       </EvidenceSection>
 
@@ -628,50 +647,32 @@ export default async function AssetQualityPage() {
         title={tx("Basis and method notes")}
         meta={tx("why the dates and ratio definitions differ")}
       >
-      <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
-        <div>
-          <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("Why we do not claim that inflation flatters the ratio")}</h4>
-          <p className="text-[10px] leading-relaxed text-faint">{tx("An NPL ratio is ")}<b className="text-muted-foreground">{tx("NPL ÷ loans")}</b>{tx(". Deflate both legs by CPI and it is ")}<b className="text-muted-foreground">{tx("unchanged")}</b>{tx(" — a ratio is deflator-invariant. Only ")}<b className="text-muted-foreground">{tx("real")}</b>{tx(" book growth dilutes it, and that was ")}{tx(fmtPct(loanRealNow))}{tx(": worth about")}{" "}
-            <b className="text-muted-foreground">{tx("0.1pp")}</b>{tx(", not the ~1pp a nominally-frozen-book counterfactual would suggest. A real bias does exist — the numerator is stale (a loan that defaulted two years ago sits at its origination principal) while the denominator reprices — but sizing it needs origination-vintage data we do not have, so we put no number on it.")}</p>
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
+          <div>
+            <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("Why we do not claim that inflation flatters the ratio")}</h4>
+            <p className="text-[10px] leading-relaxed text-faint">{tx("An NPL ratio is ")}<b className="text-muted-foreground">{tx("NPL ÷ loans")}</b>{tx(". Deflate both legs by CPI and it is ")}<b className="text-muted-foreground">{tx("unchanged")}</b>{tx(" — a ratio is deflator-invariant. Only ")}<b className="text-muted-foreground">{tx("real")}</b>{tx(" book growth dilutes it, and that was ")}{tx(fmtPct(loanRealNow))}{tx(": worth about")}{" "}
+              <b className="text-muted-foreground">{tx("0.1pp")}</b>{tx(", not the ~1pp a nominally-frozen-book counterfactual would suggest. A real bias does exist — the numerator is stale (a loan that defaulted two years ago sits at its origination principal) while the denominator reprices — but sizing it needs origination-vintage data we do not have, so we put no number on it.")}</p>
+          </div>
+          <div>
+            <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("NPL measures and reporting dates")}</h4>
+            <p className="text-[10px] leading-relaxed text-faint">
+              {tx("The published monthly NPL ratio is {0} ({1}); the weekly stock-to-loan ratio is {2} (week ending {3}).", { 0: fmtPct(publishedNow, 2), 1: monthLabel(publishedPeriod), 2: fmtPct(impliedNow, 2), 3: weekLabel(impliedPeriod) })}{" "}
+              {tx("Different reporting dates and bases mean the latest gap cannot be attributed to definitions alone.")}{" "}
+              {ladder && tx("The audited staging comparison above uses only the same {0} reporting banks in {1}; its multiple is Stage 2 + 3 divided by Stage 3 on that same book.", { 0: ladder.n, 1: ladder.period })}
+            </p>
+          </div>
         </div>
-        <div>
-          <h4 className="mb-1 text-[10.5px] font-semibold text-foreground">{tx("NPL measures and reporting dates")}</h4>
-          <p className="text-[10px] leading-relaxed text-faint">
-            {tx("The published monthly NPL ratio is {0} ({1}); the weekly stock-to-loan ratio is {2} (week ending {3}).", {0: fmtPct(publishedNow, 2), 1: monthLabel(publishedPeriod), 2: fmtPct(impliedNow, 2), 3: weekLabel(impliedPeriod)})}{" "}
-            {tx("Different reporting dates and bases mean the latest gap cannot be attributed to definitions alone.")}{" "}
-            {ladder && tx("The audited staging comparison above uses only the same {0} reporting banks in {1}; its multiple is Stage 2 + 3 divided by Stage 3 on that same book.", {0: ladder.n, 1: ladder.period})}
-          </p>
-        </div>
-      </div>
       </EvidenceSection>
 
       {/* ── In depth — the evidence layer ───────────────────────────────── */}
-      <Depth
+      <Depth id="evidence"
         meta={tx("carried over, reordered by question — nothing removed")}
-        action={<GlobalRangeSelector />}
+
       >
         <Takeaway data={await withLlmHeadline("asset-quality", read, tx.locale)} variant="desk" />
 
-        <Section
+        <Section id="evidence-2"
           index="01"
-          title={tx("What is coming?")}
-          description={tx("How the watchlist has built up. The roll-forward and the migration sizing sit in the brief above.")}
-        >
-          {stageShares.length > 0 && (
-            <TrendChart
-              data={stageShares}
-              seriesLabels={STAGE_SHARE_LABELS}
-              title={tx("TFRS-9 staging — % of gross loans (audited quarterly)")}
-              description={tx("Stage 2 is the watchlist the NPL ratio never prints.")}
-              yFormat="pct"
-              decimals={1}
-              plain
-            />
-          )}
-        </Section>
-
-        <Section
-          index="02"
           title={tx("Is the stock or the ratio moving?")}
           description={tx("The stock is the fast-moving series; the ratio is a slow summary of it.")}
         >
@@ -686,7 +687,7 @@ export default async function AssetQualityPage() {
               title={tx("Gross NPL — Level (sector, TL bn · weekly)")}
               description={
                 tx(stockNominalNow != null && stockRealNow != null
-                  ? tx("The stock is growing {0} y/y — {1} in real terms. The ratio is a slow summary of it.", {0: fmtPct(stockNominalNow), 1: fmtPct(stockRealNow)})
+                  ? tx("The stock is growing {0} y/y — {1} in real terms. The ratio is a slow summary of it.", { 0: fmtPct(stockNominalNow), 1: fmtPct(stockRealNow) })
                   : "Reported NPL stock, BDDK weekly bulletin")
               }
               source={tx("Source: BDDK weekly bulletin")}
@@ -694,18 +695,28 @@ export default async function AssetQualityPage() {
               decimals={0}
               plain
             />
-            <TrendChart
+            <SmallMultiplesTrend
               data={coverageAll}
               seriesLabels={BANK_TYPE_LABELS}
               title={tx("Provisions / Gross NPL (%) — by group")}
               yFormat="pct"
               decimals={1}
               plain
-            />
+              columns={3} height={142} />
           </div>
         </Section>
 
-        <Section
+        <Section id="evidence-1"
+          index="02"
+          title={tx("What is coming?")}
+          description={tx("How the watchlist has built up. The roll-forward and the migration sizing sit in the brief above.")}
+        >
+          {stageShares.length > 0 && (
+            <LeadChartLink />
+          )}
+        </Section>
+
+        <Section id="evidence-3"
           index="03"
           title={tx("Where is it?")}
           description={tx("The composition behind the attribution bars — household credit and the commercial book.")}
@@ -730,7 +741,7 @@ export default async function AssetQualityPage() {
               decimals={0}
               plain
             />
-            <TrendChart
+            <SmallMultiplesTrend
               data={consumerTrend}
               seriesLabels={{
                 HOUSING: "Housing",
@@ -742,7 +753,7 @@ export default async function AssetQualityPage() {
               yFormat="pct"
               decimals={2}
               plain
-            />
+              columns={2} height={142} />
           </div>
           <ChartRow
             data={commercialTrend}
@@ -760,7 +771,7 @@ export default async function AssetQualityPage() {
               title={tx("Commercial NPL Ratio (%) — sector")}
               description={
                 tx(smeShareOfCommNpl != null && smeShareOfCommLoans != null
-                  ? tx("SME is a SUBSET of commercial — {0}% of its bad loans on {1}% of its lending. The lines are not additive.", {0: smeShareOfCommNpl.toFixed(0), 1: smeShareOfCommLoans.toFixed(0)})
+                  ? tx("SME is a SUBSET of commercial — {0}% of its bad loans on {1}% of its lending. The lines are not additive.", { 0: smeShareOfCommNpl.toFixed(0), 1: smeShareOfCommLoans.toFixed(0) })
                   : "SME is a subset of commercial — the lines are not additive.")
               }
               yFormat="pct"
@@ -771,7 +782,7 @@ export default async function AssetQualityPage() {
           </ChartRow>
         </Section>
 
-        <Section index="04" title={tx("Who holds it?")} description={tx("NPL by ownership group.")}>
+        <Section id="evidence-4" index="04" title={tx("Who holds it?")} description={tx("NPL by ownership group.")}>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <SmallMultiplesTrend
@@ -779,7 +790,7 @@ export default async function AssetQualityPage() {
                 seriesLabels={BANK_TYPE_LABELS}
                 title={
                   tx(seriesFinding(nplSector, { noun: "The NPL ratio", decimals: 2 }, tx.locale) ??
-                  "NPL Ratio (%) — by group")
+                    "NPL Ratio (%) — by group")
                 }
                 description={tx("Gross NPL / total loans, %, monthly · by ownership group")}
                 source={tx("Source: BDDK monthly bulletin")}
@@ -795,7 +806,7 @@ export default async function AssetQualityPage() {
             <BarByBank
               data={nplByBank}
               labels={BANK_TYPE_LABELS}
-              title={tx("NPL by group · {0}", {0: nplByBank[0]?.period ?? ""})}
+              title={tx("NPL by group · {0}", { 0: nplByBank[0]?.period ?? "" })}
               format="pct"
               decimals={2}
               plain
@@ -805,6 +816,6 @@ export default async function AssetQualityPage() {
       </Depth>
 
       <Colophon />
-    </main>
+    </SectorPage>
   );
 }

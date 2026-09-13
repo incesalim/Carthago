@@ -152,33 +152,46 @@ Worked example, on real rows, with the arithmetic:
   (the peer frame). Ranking a ₺11bn digital bank against a ₺8.7trn state bank
   without saying so is a lie of omission.
 
-## The three-layer page skeleton
+## Sector reading order
 
 Every sector tab is a **brief whose reading order is visible on the page**.
-Components live in
-`app/components/desk.tsx`; pure helpers (streaks, window extremes, CPI
-transforms) in `app/lib/desk.ts`. The reference implementation is `app/page.tsx`.
+The eight sector routes use `app/components/sector-page.tsx` for a shared
+opening and topic navigation; the existing analysis components remain in
+`app/components/desk.tsx`. Queries and calculations belong to each route.
 
 ```
-<main class="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
-  <DeskHeader title record="Record May 2026 · vs Apr" observations={[…]} />
-                                            ← observation rail: cadence + date + window + basis
-  <Tape items={…} />                      ← Overview only
-  <LayerHead index="01" title="Now" />
-  <SecHead title="The vitals" meta … />
-  <Vitals> <Vital … /> ×4–6 </Vitals>     ← the signature: type-only cells,
-                                            mono value + sparkline + computed note
+<SectorPage>
+  <DeskHeader title record observations={[…]} />
+  <SectorNav sections={[…]} />             ← sticky links to the visible topics
+  <SectorLead question observation
+    metric={<Vital … />}                  ← principal measure, with its own date
+    chart={<TrendChart … />}              ← existing explanatory chart + exports
+    controls={<GlobalRangeSelector />} />  ← applies to every chart, not the brief
+  <Tape items={…} />                       ← Overview only
+  <LayerHead id="snapshot" index="01" title="Now" />
+  <Vitals>…</Vitals>                       ← all remaining original metrics
   <CadenceBand observation={…}>…</CadenceBand>
-                                            ← a separate band when the clock changes
-  <LayerHead index="02" title="Drivers" />
-  [Movers | Transmission]                 ← grid lg:grid-cols-[5fr_7fr]
-  [Flags | Standings]                     ← grid lg:grid-cols-2 (what the page's data supports)
-  <Depth action={<GlobalRangeSelector/>}>  ← prints 03 Evidence; remains fully open
-    …the page's full pre-Desk chart/table library…
+  <LayerHead id="drivers" index="02" title="Drivers" />
+  [Movers | Transmission | Flags | Standings]
+  <Depth id="evidence">                    ← fully open; topics in analytical order
+    …all original charts, tables, definitions, scenarios and source notes…
   </Depth>
   <Colophon />
-</main>
+</SectorPage>
 ```
+
+The primary chart is moved, not copied. Its original section links back to it.
+Liquidity carries its complete daily cadence band into the opening. Monthly,
+weekly, daily and audited observations keep their separate bases. Conditional
+topic links appear only when the corresponding analysis is available.
+
+Keep all evidence in normal page flow. Reordering and choosing a different
+chart form must retain series, units, filters, missing values, source notes and
+export actions. Ownership and product trends use shared-scale small multiples;
+combined lines remain where their relative paths explain the question. Explicit
+null observations remain gaps and blank CSV cells. Weekly comparison labels
+must name weeks. Phone layouts stack the opening and scroll topic navigation
+horizontally without widening the document.
 
 **Sparkline geometry:** a `<Vital>` sparkline is a compact trend glyph, not a
 full-width time-series chart. Its plot is capped at `26rem` and uses a `3rem`

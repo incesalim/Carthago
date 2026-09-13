@@ -1,3 +1,4 @@
+import { SectorPage, SectorNav, SectorLead, LeadChartLink } from "@/app/components/sector-page";
 /**
  * Credit tab — the Desk brief above the carried-over evidence.
  *
@@ -414,11 +415,11 @@ export default async function CreditPage() {
   const headlinePct = bridge.nominal != null ? `${bridge.nominal.toFixed(1)}%` : "the headline";
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+    <SectorPage>
       <DeskHeader
         title={tx("Credit")}
         record={
-          <>{tx("Record ")}<b className="font-normal text-foreground">{tx("week ending {0}", {0: recWeek})}</b>{tx(" · vs ")}{tx(vsWeek)}
+          <>{tx("Record ")}<b className="font-normal text-foreground">{tx("week ending {0}", { 0: recWeek })}</b>{tx(" · vs ")}{tx(vsWeek)}
           </>
         }
         right="every figure computed from source series"
@@ -438,8 +439,38 @@ export default async function CreditPage() {
           },
         ]}
       />
+      <SectorNav sections={[{ "id": "overview", "label": "Overview" }, { "id": "snapshot", "label": "The vitals" }, { "id": "drivers", "label": "Drivers" }, { "id": "evidence-1", "label": "Is the growth real?" }, { "id": "evidence-3", "label": "Where is it going?" }, { "id": "evidence-4", "label": "SME — the engine inside commercial" }, { "id": "evidence-2", "label": "Who is lending?" }]} />
 
-      <LayerHead
+      <SectorLead
+        question="Is credit growth real?"
+        observation={weekLabel(bridge.asOfReal)}
+        controls={<GlobalRangeSelector />}
+        metric={<Vital label={tx("Real, constant-FX growth, 52w")} value={realFxNow != null ? realFxNow.toFixed(1) : "—"} unit="%" series={realFxAdjSeries.slice(-26)} decimals={1} note={tx("Currency and price effects removed; published CPI only.")} />}
+        chart={<TrendChart hero="REALFX"
+          data={threePrints}
+          seriesLabels={{
+            NOMINAL: "Nominal",
+            FXADJ: "FX-adjusted",
+            REALFX: "Real, constant FX",
+          }}
+          title={
+            tx(seriesFinding(realFxAdjSeries as TimeSeriesRow[], {
+              noun: "Real, constant-FX loan growth",
+              decimals: 1,
+              windowLabel: "12w",
+            }, tx.locale) ?? "Loan growth 52w — nominal vs FX-adjusted vs real, constant FX")
+          }
+          description={tx("Loan growth 52w, %, weekly · sector · the gap between the lines is the lira and the price level")}
+          source={tx("Source: BDDK weekly bulletin · TÜİK CPI · TCMB USD/TRY")}
+          yFormat="pct"
+          decimals={1}
+          zeroLine
+          plain
+        />}
+      />
+
+
+      <LayerHead id="snapshot"
         index="01"
         title="Now"
         description="Current position, primary clock and the first answer."
@@ -467,7 +498,7 @@ export default async function CreditPage() {
             {tx(realFxNow != null && realFxNow < 0
               ? "Nominal loan growth is {0}. After removing currency and price effects, the book contracts {1} in real terms."
               : "Nominal loan growth is {0}. After removing currency and price effects, the book expands {1} in real terms.",
-            {0: fmtPct(bridge.nominalAtReal), 1: fmtPct(Math.abs(realFxNow ?? 0))})}
+              { 0: fmtPct(bridge.nominalAtReal), 1: fmtPct(Math.abs(realFxNow ?? 0)) })}
           </p>
           <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
             {bridge.currencyPp != null && bridge.inflationPp != null ? (
@@ -475,7 +506,7 @@ export default async function CreditPage() {
                 {/* The run count was computed and the word "negative" was typed, so the
                     week real growth turned positive this read "negative for 0 weeks". */}
                 {tx(runPhrase(realNegRun, "negative", "w", tx.locale) ??
-                  (realFxNow != null ? tx("positive at {0}", {0: fmtPct(realFxNow)}) : "not yet negative"))}
+                  (realFxNow != null ? tx("positive at {0}", { 0: fmtPct(realFxNow) }) : "not yet negative"))}
                 .
               </>
             ) : (
@@ -488,7 +519,21 @@ export default async function CreditPage() {
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead title={tx("The vitals")} meta={tx("equal weight · trailing 26 weeks")} className="mb-2.5 mt-8" />
-      <Vitals>
+      <Vitals cols={6}>
+        <Vital
+          label={tx("Nominal growth, 52w")}
+          value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
+          unit="%"
+          series={yoySector.slice(-26)}
+          decimals={1}
+          note={
+            mom4Now != null && yoyNow != null ? (
+              <>{tx("4w momentum ")}{tx(fmtPct(mom4Now))}{tx(" ann. — ")}{tx(signedPp(mom4Now - yoyNow, 1))}{tx(" vs the 52w pace,")}{" "}
+                {tx(mom4Now > yoyNow ? "accelerating" : "cooling")}
+              </>
+            ) : undefined
+          }
+        />
         <Vital
           label={tx("FX-adjusted momentum, 13w ann.")}
           value={
@@ -505,27 +550,14 @@ export default async function CreditPage() {
                 <em className={`font-semibold not-italic ${toneClass(realFxNow, "up")}`}>
                   {tx(fmtPct(realFxNow))}
                 </em>
-                {bridge.lagged ? tx(" · real rate at W/E {0}", {0: realWeek}) : ""}
+                {bridge.lagged ? tx(" · real rate at W/E {0}", { 0: realWeek }) : ""}
               </>
             ) : (
               "awaits a 13-week comparison base"
             )
           }
         />
-        <Vital
-          label={tx("Nominal growth, 52w")}
-          value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
-          unit="%"
-          series={yoySector.slice(-26)}
-          decimals={1}
-          note={
-            mom4Now != null && yoyNow != null ? (
-              <>{tx("4w momentum ")}{tx(fmtPct(mom4Now))}{tx(" ann. — ")}{tx(signedPp(mom4Now - yoyNow, 1))}{tx(" vs the 52w pace,")}{" "}
-                {tx(mom4Now > yoyNow ? "accelerating" : "cooling")}
-              </>
-            ) : undefined
-          }
-        />
+
         <Vital
           label={tx("FX share of loans")}
           value={fxShareNow != null ? fxShareNow.toFixed(1) : "—"}
@@ -535,7 +567,7 @@ export default async function CreditPage() {
           note={
             <>
               {tx(fxShareDelta != null
-                ? tx("{0} over 52w", {0: signedPp(fxShareDelta, 1)})
+                ? tx("{0} over 52w", { 0: signedPp(fxShareDelta, 1) })
                 : "share of the total book")}{" "}
               <Link href="/deposits" className="font-semibold text-primary">{tx("/deposits")}</Link>
             </>
@@ -553,7 +585,7 @@ export default async function CreditPage() {
               <>{tx(gapNow >= 0
                 ? "State-bank growth is {0}, versus {1} for private banks; state banks lead the cycle."
                 : "State-bank growth is {0}, versus {1} for private banks; private banks lead the cycle.",
-              {0: fmtPct(stateNow), 1: fmtPct(privNow)})}</>
+                { 0: fmtPct(stateNow), 1: fmtPct(privNow) })}</>
             ) : undefined
           }
         />
@@ -566,7 +598,7 @@ export default async function CreditPage() {
           note={
             smeNow != null && commNow != null && smeContrib ? (
               <>{tx("SME contributes {0} to the sector's {1} growth; the commercial book including SME grows {2}.",
-                {0: signedPp(smeContrib.pp, 1), 1: headlinePct, 2: fmtPct(commNow)})}</>
+                { 0: signedPp(smeContrib.pp, 1), 1: headlinePct, 2: fmtPct(commNow) })}</>
             ) : undefined
           }
         />
@@ -579,13 +611,13 @@ export default async function CreditPage() {
           note={
             unsecLevel != null ? (
               <>{tx("Cards and general-purpose loans total ₺{0}trn and have jointly outgrown the sector for {1} weeks.",
-                {0: (unsecLevel / 1_000_000).toFixed(2), 1: unsecuredHotRun})}</>
+                { 0: (unsecLevel / 1_000_000).toFixed(2), 1: unsecuredHotRun })}</>
             ) : undefined
           }
         />
       </Vitals>
 
-      <LayerHead
+      <LayerHead id="drivers"
         index="02"
         title="Drivers"
         description="The mechanisms and comparisons behind the current reading."
@@ -596,7 +628,7 @@ export default async function CreditPage() {
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
         <div>
           <SecHead
-            title={tx("Where the {0} came from", {0: headlinePct})}
+            title={tx("Where the {0} came from", { 0: headlinePct })}
             meta={tx("contribution to sector growth · 52w · pp of the headline")}
             className="mb-2.5"
           />
@@ -605,7 +637,7 @@ export default async function CreditPage() {
               key: c.key,
               label: c.label,
               value: c.pp,
-              meta: tx("₺{0}trn · {1}%", {0: (c.level / 1_000_000).toFixed(2), 1: c.growth.toFixed(1)}),
+              meta: tx("₺{0}trn · {1}%", { 0: (c.level / 1_000_000).toFixed(2), 1: c.growth.toFixed(1) }),
             }))}
             sum={attrib.sumPp}
             nested={
@@ -615,7 +647,7 @@ export default async function CreditPage() {
             reconciliation="contributions reconcile to the headline — SME is a cut of commercial, not an addition"
             totalMeta={
               lastVal(loansSector) != null
-                ? tx("₺{0}trn book", {0: ((lastVal(loansSector) as number) / 1_000_000).toFixed(2)})
+                ? tx("₺{0}trn book", { 0: ((lastVal(loansSector) as number) / 1_000_000).toFixed(2) })
                 : undefined
             }
           />
@@ -639,40 +671,19 @@ export default async function CreditPage() {
       />
 
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
-      <Depth
+      <Depth id="evidence"
         meta={tx("carried over, reordered by question — nothing removed")}
-        action={<GlobalRangeSelector />}
+
       >
         <Takeaway data={readData} variant="desk" />
 
-        <Section
+        <Section id="evidence-1"
           index="01"
           title={tx("Is the growth real?")}
           description={tx("The three prints of the same book on one axis. Nominal is where the reader starts; the composed line is what the book actually did.")}
         >
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <TrendChart
-                data={threePrints}
-                seriesLabels={{
-                  NOMINAL: "Nominal",
-                  FXADJ: "FX-adjusted",
-                  REALFX: "Real, constant FX",
-                }}
-                title={
-                  tx(seriesFinding(realFxAdjSeries as TimeSeriesRow[], {
-                    noun: "Real, constant-FX loan growth",
-                    decimals: 1,
-                  }, tx.locale) ?? "Loan growth 52w — nominal vs FX-adjusted vs real, constant FX")
-                }
-                description={tx("Loan growth 52w, %, weekly · sector · the gap between the lines is the lira and the price level")}
-                source={tx("Source: BDDK weekly bulletin · TÜİK CPI · TCMB USD/TRY")}
-                yFormat="pct"
-                decimals={1}
-                zeroLine
-              plain
-            />
-            </div>
+            <LeadChartLink />
             <TrendChart
               data={mom4Sector}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
@@ -706,76 +717,13 @@ export default async function CreditPage() {
           </div>
         </Section>
 
-        <Section
+        <Section id="evidence-3"
           index="02"
-          title={tx("Who is lending?")}
-          description={tx("The clearest sector signal — who is driving the lending cycle, and in which currency.")}
-        >
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <SmallMultiplesTrend
-                data={yoyAll}
-                seriesLabels={WEEKLY_BANK_TYPE_LABELS}
-                title={
-                  tx(seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
-                  "Loan Growth YoY (%) by group")
-                }
-                description={tx("Loan growth YoY, %, weekly · by ownership group")}
-                source={tx("Source: BDDK weekly bulletin")}
-                yFormat="pct"
-                decimals={1}
-                deltaPeriods={13}
-                deltaLabel="13w"
-                height={108}
-                columns={3}
-                zeroLine
-                plain
-              />
-            </div>
-            <BarByBank
-              data={yoyByBank}
-              labels={WEEKLY_BANK_TYPE_LABELS}
-              title={tx("Loan YoY by group · {0}", {0: yoyByBank[0]?.period ?? ""})}
-              format="pct"
-              decimals={1}
-              plain
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <TrendChart
-              data={yoyPubPriv}
-              seriesLabels={{
-                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-                [WEEKLY_BANK_TYPES.STATE]: "State",
-              }}
-              title={tx("Total Credit YoY — Public vs Private")}
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-              plain
-            />
-            <TrendChart
-              data={tlYoyPubPriv}
-              seriesLabels={{
-                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-                [WEEKLY_BANK_TYPES.STATE]: "State",
-              }}
-              title={tx("TL Loans YoY — Public vs Private")}
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-              plain
-            />
-          </div>
-        </Section>
-
-        <Section
-          index="03"
           title={tx("Where is it going?")}
           description={
             tx(claim(
               consLead.length === 2,
-              tx("The composition behind the attribution bars — {0} & {1} lead the consumer book.", {0: consLead[0], 1: consLead[1]}),
+              tx("The composition behind the attribution bars — {0} & {1} lead the consumer book.", { 0: consLead[0], 1: consLead[1] }),
             ) ?? "The composition behind the attribution bars.")
           }
         >
@@ -797,8 +745,10 @@ export default async function CreditPage() {
             />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <TrendChart
+            <SmallMultiplesTrend
               data={consYoYLong}
+              deltaPeriods={13}
+              deltaLabel="13w"
               seriesLabels={{
                 HOUSING: "Housing",
                 AUTO: "Auto",
@@ -810,7 +760,7 @@ export default async function CreditPage() {
               decimals={1}
               zeroLine
               plain
-            />
+              columns={2} height={142} />
             <TrendChart
               data={cards.flatMap(
                 (r: { period: string; retail: number | null; corporate: number | null }) => {
@@ -829,12 +779,12 @@ export default async function CreditPage() {
           </div>
         </Section>
 
-        <Section
-          index="04"
+        <Section id="evidence-4"
+          index="03"
           title={tx("SME — the engine inside commercial")}
           description={
             tx(smeContrib
-              ? tx("{0} of the headline. SME is a SUBSET of the commercial book, not a peer — the two lines below are not additive.", {0: signedPp(smeContrib.pp, 1)})
+              ? tx("{0} of the headline. SME is a SUBSET of the commercial book, not a peer — the two lines below are not additive.", { 0: signedPp(smeContrib.pp, 1) })
               : "SME is a subset of the commercial book, not a peer — the two lines below are not additive.")
           }
         >
@@ -917,9 +867,72 @@ export default async function CreditPage() {
             />
           </ChartRow>
         </Section>
+
+        <Section id="evidence-2"
+          index="04"
+          title={tx("Who is lending?")}
+          description={tx("The clearest sector signal — who is driving the lending cycle, and in which currency.")}
+        >
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <SmallMultiplesTrend
+                data={yoyAll}
+                seriesLabels={WEEKLY_BANK_TYPE_LABELS}
+                title={
+                  tx(seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
+                    "Loan Growth YoY (%) by group")
+                }
+                description={tx("Loan growth YoY, %, weekly · by ownership group")}
+                source={tx("Source: BDDK weekly bulletin")}
+                yFormat="pct"
+                decimals={1}
+                deltaPeriods={13}
+                deltaLabel="13w"
+                height={108}
+                columns={3}
+                zeroLine
+                plain
+              />
+            </div>
+            <BarByBank
+              data={yoyByBank}
+              labels={WEEKLY_BANK_TYPE_LABELS}
+              title={tx("Loan YoY by group · {0}", { 0: yoyByBank[0]?.period ?? "" })}
+              format="pct"
+              decimals={1}
+              plain
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <TrendChart
+              data={yoyPubPriv}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title={tx("Total Credit YoY — Public vs Private")}
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+              plain
+            />
+            <TrendChart
+              data={tlYoyPubPriv}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title={tx("TL Loans YoY — Public vs Private")}
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+              plain
+            />
+          </div>
+        </Section>
       </Depth>
 
       <Colophon />
-    </main>
+    </SectorPage>
   );
 }

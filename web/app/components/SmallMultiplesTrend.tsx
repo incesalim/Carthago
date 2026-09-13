@@ -27,7 +27,10 @@ import {
   crosshairCursor,
   tooltipStyles,
   useChartTheme,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
 } from "@/app/lib/chart-theme";
+import { groupSmallMultipleRows } from "@/app/lib/small-multiples";
 import { type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 import { cn } from "@/app/lib/cn";
@@ -100,15 +103,9 @@ export default function SmallMultiplesTrend({
     return i === -1 ? Number.MAX_SAFE_INTEGER : i;
   };
   const codes = Object.keys(seriesLabels).sort((a, b) => rank(a) - rank(b));
-  const grouped = codes.map((code) => ({
-    code,
-    rows: filtered
-      .filter((row) => row.bank_type_code === code && row.value != null)
-      .map((row) => ({ period: row.period, value: row.value as number }))
-      .sort((a, b) => a.period.localeCompare(b.period)),
-  })).filter((group) => group.rows.length > 0);
+  const grouped = groupSmallMultipleRows(filtered, codes);
 
-  const values = grouped.flatMap((group) => group.rows.map((row) => row.value));
+  const values = grouped.flatMap((group) => group.rows.flatMap((row) => row.value == null ? [] : [row.value]));
   let min = values.length ? Math.min(...values) : 0;
   let max = values.length ? Math.max(...values) : 1;
   if (zeroLine) {
@@ -141,7 +138,7 @@ export default function SmallMultiplesTrend({
         {grouped.map((group) => {
           const current = group.rows.at(-1);
           const prior = group.rows.at(-1 - deltaPeriods);
-          const delta = current && prior ? current.value - prior.value : null;
+          const delta = current?.value != null && prior?.value != null ? current.value - prior.value : null;
           const isSector = seriesLabels[group.code] === "Sector";
           const color = isSector ? t.hero : t.contextActive;
           return (
@@ -155,7 +152,7 @@ export default function SmallMultiplesTrend({
                 </div>
                 <div className="text-right font-mono tabular-nums">
                   <div className="text-[13px] font-semibold text-foreground">
-                    {current ? tx(fmt(current.value, decimals)) : "—"}
+                    {current?.value != null ? tx(fmt(current.value, decimals)) : "—"}
                   </div>
                   <div className="text-[8px] uppercase tracking-[0.05em] text-faint">
                     {delta == null ? "—" : <>{tx(signed(delta, fmt(Math.abs(delta), decimals)))} · {tx(deltaLabel)}</>}
@@ -164,7 +161,7 @@ export default function SmallMultiplesTrend({
               </div>
               <div style={{ height }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={group.rows} margin={{ top: 7, right: 5, bottom: 4, left: -12 }}>
+                  <LineChart data={group.rows} margin={{ top: 7, right: 5, bottom: 4, left: PLOT_MARGIN_LEFT }}>
                     <CartesianGrid vertical={false} stroke={t.grid} />
                     <XAxis
                       dataKey="period"
@@ -178,7 +175,7 @@ export default function SmallMultiplesTrend({
                     />
                     <YAxis
                       domain={domain}
-                      width={43}
+                      width={Y_AXIS_WIDTH}
                       tickCount={3}
                       tickFormatter={(value) => fmt(Number(value), 0)}
                       tick={{ fontSize: 8.5, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
@@ -215,7 +212,7 @@ export default function SmallMultiplesTrend({
                       strokeLinejoin="round"
                       dot={false}
                       activeDot={{ r: 3, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
-                      connectNulls
+                      connectNulls={false}
                       isAnimationActive={false}
                     />
                   </LineChart>

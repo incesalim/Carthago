@@ -37,7 +37,7 @@ export function DeskHeader({
 }) {
   const tx = useText();
   return (
-    <header>
+    <header data-desk-header>
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 className="text-[24px] font-bold tracking-tight text-foreground">{tx(title)}</h1>
         {record && (
@@ -81,7 +81,7 @@ export function ObservationRail({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap border-y border-hair", className)}>
+    <div data-observation-rail className={cn("flex flex-wrap border-y border-hair", className)}>
       {items.map((item, index) => (
         <div
           key={`${item.cadence}-${item.role ?? ""}-${item.asOf ?? ""}-${index}`}
@@ -198,7 +198,7 @@ export function SecHead({
 }) {
   const tx = useText();
   return (
-    <div className={cn("flex flex-wrap items-baseline gap-x-3 gap-y-1", className)}>
+    <div data-section-head className={cn("flex flex-wrap items-baseline gap-x-3 gap-y-1", className)}>
       <h2 className="text-[13.5px] font-bold text-foreground">{tx(title)}</h2>
       {href && (
         <Link href={href} className="text-[11px] font-semibold text-primary">
@@ -217,12 +217,14 @@ export function SecHead({
 
 /** The three visible reading layers shared by every sector brief. */
 export function LayerHead({
+  id,
   index,
   title,
   description,
   meta,
   className,
 }: {
+  id?: string;
   index: "01" | "02" | "03";
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -231,7 +233,7 @@ export function LayerHead({
 }) {
   const tx = useText();
   return (
-    <div className={cn("grid gap-x-4 gap-y-1 border-t-2 border-foreground pt-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto] sm:items-start", className)}>
+    <div id={id} data-layer-head className={cn("grid gap-x-4 gap-y-1 border-t-2 border-foreground pt-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto] sm:items-start", className)}>
       <span className="font-mono text-[10px] font-semibold tracking-[0.12em] text-faint">{index}</span>
       <div className="min-w-0">
         <h2 className="text-[20px] font-bold tracking-tight text-foreground">{tx(title)}</h2>
@@ -319,9 +321,9 @@ export function Vital({
 }) {
   const tx = useText();
   return (
-    <div className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0">
+    <div data-vital className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0">
       <div className="text-[11px] font-medium text-muted-foreground">{tx(label)}</div>
-      <div className="mt-0.5 font-mono text-[24px] font-semibold tracking-tight text-foreground">
+      <div data-vital-value className="mt-0.5 font-mono text-[24px] font-semibold tracking-tight text-foreground">
         {tx(value)}
         {unit && <small className="ml-0.5 text-[11px] font-normal text-faint">{tx(unit)}</small>}
       </div>
@@ -338,7 +340,7 @@ export function Vital({
         </div>
       )}
       {tx(peer)}
-      {note && <div className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
+      {note && <div data-vital-note className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
       {observation && (
         <div className="mt-1.5 flex flex-wrap gap-x-1.5 border-t border-hair pt-1 font-mono text-[7.5px] uppercase tracking-[0.05em] text-faint">
           <ObservationText item={observation} />
@@ -821,7 +823,7 @@ export function ChartRow({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div data-chart-row className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <div className="lg:col-span-2">{children}</div>
       <div className="lg:pt-1">
         <h5 className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
@@ -918,17 +920,19 @@ export function ChartFoot({
 
 /** "In depth" — the evidence layer below the brief. */
 export function Depth({
+  id,
   meta = "carried over from the current page — restyled, not removed",
   action,
   children,
 }: {
+  id?: string;
   meta?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const tx = useText();
   return (
-    <section className="mt-12 border-t-2 border-foreground pt-3">
+    <section id={id} data-depth className="mt-12 border-t-2 border-foreground pt-3">
       <div className="grid gap-x-4 gap-y-2 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto] sm:items-start">
         <span className="font-mono text-[10px] font-semibold tracking-[0.12em] text-faint">03</span>
         <div className="min-w-0">

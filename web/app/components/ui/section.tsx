@@ -3,6 +3,7 @@ import * as React from "react";
 import { cn } from "@/app/lib/cn";
 
 export interface SectionProps {
+  id?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -19,6 +20,7 @@ export interface SectionProps {
  * `contentClassName=""` for blocks whose children carry their own margins.
  */
 export function Section({
+  id,
   title,
   description,
   actions,
@@ -29,7 +31,7 @@ export function Section({
 }: SectionProps) {
   const tx = useText();
   return (
-    <section className={cn("space-y-4", className)}>
+    <section id={id} className={cn("space-y-4", className)}>
       {(title || actions) && (
         <div className="flex items-end justify-between gap-3">
           <div className="space-y-0.5">
