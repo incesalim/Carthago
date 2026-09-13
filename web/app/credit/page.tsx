@@ -482,7 +482,7 @@ export default async function CreditPage() {
         /></SectorMetrics>
 <Takeaway data={readData} variant="report" />
 <SectorSection id="growth" title={tx("Loan growth")} description={tx("Nominal growth and the effects of exchange rates and inflation.")}>
-<div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+<div className="grid grid-cols-1 gap-8 2xl:grid-cols-2">
 <TrendChart height={320} readout hero="REALFX"
           data={threePrints}
           seriesLabels={{

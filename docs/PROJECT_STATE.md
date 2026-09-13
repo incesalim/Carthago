@@ -81,7 +81,9 @@ Visual repair (2026-09-13): aligned indicator rows, readable sans annotations,
 container-responsive bank-group facets, and complete HTML series/value readouts
 replace clipped SVG labels across the sector routes. Solitary indicators use
 horizontal summaries. Credit pairs growth with currency/inflation decomposition,
-retail growth with card volumes, and groups related supplementary charts. All
+retail growth with card volumes, and groups related supplementary charts. The
+growth/decomposition pair stacks below 1536px so the waterfall stays readable
+alongside the site navigation. All
 202 analytical component/data signatures from the prior release are retained;
 queries and calculations are unchanged. The local visual archive includes
 middle-section desktop views and mobile checks across all eight routes.
