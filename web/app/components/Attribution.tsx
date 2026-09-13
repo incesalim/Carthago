@@ -22,7 +22,9 @@ export interface AttributionRow {
   value: number;
   /** Optional right-hand context (level, own growth …). */
   meta?: React.ReactNode;
-}import { useText } from "@/i18n/use-text";
+}
+import { useText } from "@/i18n/use-text";
+import styles from "./attribution.module.css";
 
 
 export default function Attribution({
@@ -54,11 +56,9 @@ export default function Attribution({
 
   const sorted = [...rows].sort((a, b) => b.value - a.value);
   const max = Math.max(...sorted.map((r) => Math.abs(r.value)), 0.1);
-  const GRID =
-    "grid grid-cols-[76px_minmax(0,1fr)_56px] gap-3 sm:grid-cols-[96px_minmax(0,1fr)_58px_136px]";
 
   return (
-    <div className="border-t border-foreground">
+    <div data-attribution className={styles.attribution}>
       {sorted.map((r) => {
         const width = (Math.abs(r.value) / max) * 100;
         const negative = r.value < 0;
@@ -68,10 +68,10 @@ export default function Attribution({
         const nestWidth = nest ? Math.min(100, (nest.value / r.value) * 100) : 0;
 
         return (
-          <div key={r.key} className={`${GRID} items-center border-b border-hair py-2`}>
-            <span className="text-[12px] font-semibold text-foreground">{tx(r.label)}</span>
+          <div key={r.key} className={styles.row}>
+            <span className={styles.label}>{tx(r.label)}</span>
 
-            <span className="relative block h-[17px]">
+            <span className={styles.bar}>
               <span
                 className={`relative block h-full ${
                   negative ? "bg-negative" : nest ? "bg-data/35" : "bg-data"
@@ -83,23 +83,21 @@ export default function Attribution({
                     className="absolute inset-y-0 left-0 block border-r-2 border-card bg-data"
                     style={{ width: `${nestWidth}%` }}
                   >
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] font-semibold text-white dark:text-background">
-                      {tx(nest.label)} {tx(fmtValue(nest.value))}
-                    </span>
                   </span>
                 )}
               </span>
             </span>
 
             <span
-              className={`text-right font-mono text-[12.5px] font-semibold ${
+              className={`${styles.value} ${
                 negative ? "text-negative" : "text-foreground"
               }`}
             >
               {tx(fmtValue(r.value))}
             </span>
 
-            <span className="hidden text-right font-mono text-[9.5px] text-faint sm:block">
+            <span className={styles.meta}>
+              {nest && <span>{tx(nest.label)} {tx(fmtValue(nest.value))}{" · "}</span>}
               {tx(r.meta)}
             </span>
           </div>
@@ -107,15 +105,15 @@ export default function Attribution({
       })}
 
       {/* The reconciliation. Printed, because it is the argument. */}
-      <div className={`${GRID} pt-2.5`}>
-        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
+      <div className={styles.total}>
+        <span className={styles.label}>
           {tx(totalLabel)}
         </span>
-        <span className="text-[10px] leading-snug text-faint">{tx(reconciliation)}</span>
-        <span className="text-right font-mono text-[12.5px] font-semibold text-foreground">
+        <span className={styles.reconciliation}>{tx(reconciliation)}</span>
+        <span className={styles.value}>
           {tx(fmtValue(sum))}
         </span>
-        <span className="hidden text-right font-mono text-[9.5px] text-faint sm:block">
+        <span className={styles.meta}>
           {tx(totalMeta)}
         </span>
       </div>

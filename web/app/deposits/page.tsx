@@ -606,7 +606,7 @@ export default async function DepositsPage() {
         /></SectorMetrics>
 <Takeaway data={readData} variant="report" />
 <SectorSection id="growth" title={tx("Deposit growth")} description={tx("Deposit volumes and growth by bank group, including the effect of inflation.")}>
-<TrendChart
+<TrendChart readout
           plain
           data={realVsNominal}
           seriesLabels={REAL_TERMS_LABELS}
@@ -661,8 +661,8 @@ export default async function DepositsPage() {
               { k: "Demand", v: fmtTrn(share(dShareNow)), unit: "trn" },
             ]}
           />
-<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <StackedArea
+<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<StackedArea
               plain
               data={depByGroupWide}
               series={groupSeries}
@@ -690,7 +690,28 @@ export default async function DepositsPage() {
               height={280}
               colorKeys
             />
-            <SmallMultiplesTrend
+<TrendChart readout
+              plain
+              data={mom4Sector}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "4w ann." }}
+              title={tx("Deposit growth over four weeks, annualized")}
+              description={tx("deposit growth, 4 weeks annualized, %, weekly · sector")}
+              source={
+                <ChartFoot
+                  data={mom4Sector}
+                  labels={{ [WEEKLY_BANK_TYPES.SECTOR]: "4w ann." }}
+                  heroCode={WEEKLY_BANK_TYPES.SECTOR}
+                  decimals={1}
+                  deltaPeriods={52}
+                  deltaLabel="52w"
+                />
+              }
+              yFormat="pct"
+              decimals={1}
+              height={280}
+              zeroLine
+            />
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={yoyAll}
               seriesLabels={WEEKLY_BANK_TYPE_LABELS}
@@ -716,30 +737,8 @@ export default async function DepositsPage() {
               height={104}
               columns={3}
               zeroLine
-            />
-            
-            <TrendChart
-              plain
-              data={mom4Sector}
-              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "4w ann." }}
-              title={tx("Deposit growth over four weeks, annualized")}
-              description={tx("deposit growth, 4 weeks annualized, %, weekly · sector")}
-              source={
-                <ChartFoot
-                  data={mom4Sector}
-                  labels={{ [WEEKLY_BANK_TYPES.SECTOR]: "4w ann." }}
-                  heroCode={WEEKLY_BANK_TYPES.SECTOR}
-                  decimals={1}
-                  deltaPeriods={52}
-                  deltaLabel="52w"
-                />
-              }
-              yFormat="pct"
-              decimals={1}
-              height={280}
-              zeroLine
-            />
-          </div>
+            /></div>
+</div>
 </SectorSection>
 <SectorSection id="maturity" title={tx("Maturity structure")} description={tx("weekly demand share · monthly maturity ladder")}>
 <Vital
@@ -758,7 +757,7 @@ export default async function DepositsPage() {
           }
         />
 <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+            <TrendChart readout
               plain
               data={dShare}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand" }}
@@ -849,7 +848,7 @@ export default async function DepositsPage() {
           <Transmission items={transmission} />
         </div>
 <ChartRow data={fxShare} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(1)}%`}>
-            <TrendChart
+            <TrendChart readout
               plain
               data={fxShare}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
@@ -905,7 +904,7 @@ export default async function DepositsPage() {
         </Vitals>
       </CadenceBand>
 <ChartRow data={ldrDisplayed} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(0)}%`}>
-            <TrendChart
+            <TrendChart readout
               plain
               data={ldrDisplayed}
               seriesLabels={BANK_TYPE_LABELS}

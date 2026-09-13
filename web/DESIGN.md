@@ -20,8 +20,8 @@ do all the work; nothing is decorated.
 3. **Green/red state data direction only** (`--positive` #187A53 / `--negative`
    #C24847). Amber (`--warning` #B98514) marks thresholds and
    representative-data flags.
-4. **Every figure is mono** (`font-mono`, tabular). Labels that annotate data
-   (record lines, section metas, rules, colophons) are mono-caps 8–10px.
+4. **Every figure is mono** (`font-mono`, tabular). Reader-facing labels and notes use the sans face at 11–14px; reserve mono
+   for figures and compact numerical comparisons. Do not shrink prose to fit.
 5. **No serif anywhere.** Instrument Sans carries body and display; `--font-serif`
    deliberately resolves to the sans stack so legacy `font-serif` degrades.
 6. **Explain the data in the reader's language.** Sources, reporting dates,
@@ -160,6 +160,17 @@ The eight sector pages form one banking report within the existing site shell.
 queries and calculations. `sector-contents.tsx` is the small client boundary for
 reading position. Static page descriptions and related routes belong to
 `app/lib/sector-pages.ts`, separate from data access.
+
+Sector reports use a left-aligned content area, 13–14px explanatory text,
+16px chart titles and aligned 30px key figures. A solitary section indicator
+becomes a horizontal summary with its sparkline and explanation. Pair related
+charts; supplementary three-chart rows and full-width bank-group facets must
+not leave an unused half-row. Facet columns respond to the chart's container,
+not the browser width. Source notes and observation dates use readable sans
+text; mono is for numbers. `TrendChart` and `TimeSeriesChart` opt into `readout`
+on these routes: full series names and latest values sit outside the SVG,
+including the earlier date when a series lags. Click or keyboard activation
+pins a series; all data and export controls remain available.
 
 A page starts with its financial subject, a short description, reporting dates
 and key indicators. An assessment follows. Each financial topic then owns its

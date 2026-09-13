@@ -613,7 +613,7 @@ export default async function ProfitabilityPage() {
               ]}
             />
 <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-              <TrendChart
+              <TrendChart readout
                 plain
                 data={[
                   ...eng.map((e) => ({ period: e.period, bank_type_code: "PAID", value: e.paidOnTime })),
@@ -703,34 +703,8 @@ export default async function ProfitabilityPage() {
           decimals={1}
           note={<>{tx(feesDelta != null ? signedPp(feesDelta, 1) : "—")} {tx("y/y share of revenue")}</>}
         />
-<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <SmallMultiplesTrend
-              plain
-              data={nim}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(firstClaim(
-                  [
-                    nimD != null && nimD > 0 && costD != null && costD < 0,
-                    "The margin rebuilt as deposits repriced down",
-                  ],
-                  [
-                    nimD != null && nimD < 0 && costD != null && costD > 0,
-                    "The margin compressed as deposits repriced up",
-                  ],
-                  [
-                    nimD != null,
-                    tx("Net interest margin {0} over 12 months", { 0: signedPp(nimD ?? 0, 2) }),
-                  ],
-                ) ?? "Net interest margin — by group")
-              }
-              description={tx("net interest margin, annualized %, monthly · by ownership group")}
-              source={<ChartFoot data={nim} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
-              yFormat="pct"
-              decimals={2}
-              height={142}
-              columns={3} />
-            <TrendChart
+<div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+<TrendChart readout
               plain
               data={ci.map((c) => ({ period: c.period, bank_type_code: "CI", value: c.value }))}
               seriesLabels={{ CI: "Cost / income" }}
@@ -773,9 +747,39 @@ export default async function ProfitabilityPage() {
               height={280}
               hero="CI"
             />
+<div className="space-y-1">
+            <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
+            <p className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint">{tx("NIM components of private banks: BDDK monthly income-statement interest items (income 1–14, expense 16–22) over 13-month average total assets. Private = domestic-private + foreign deposit banks.")}</p>
           </div>
-<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <SmallMultiplesTrend
+</div>
+<SmallMultiplesTrend
+              plain
+              data={nim}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={
+                tx(firstClaim(
+                  [
+                    nimD != null && nimD > 0 && costD != null && costD < 0,
+                    "The margin rebuilt as deposits repriced down",
+                  ],
+                  [
+                    nimD != null && nimD < 0 && costD != null && costD > 0,
+                    "The margin compressed as deposits repriced up",
+                  ],
+                  [
+                    nimD != null,
+                    tx("Net interest margin {0} over 12 months", { 0: signedPp(nimD ?? 0, 2) }),
+                  ],
+                ) ?? "Net interest margin — by group")
+              }
+              description={tx("net interest margin, annualized %, monthly · by ownership group")}
+              source={<ChartFoot data={nim} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
+              yFormat="pct"
+              decimals={2}
+              height={142}
+              columns={3} />
+<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={opex}
               seriesLabels={BANK_TYPE_LABELS}
@@ -785,8 +789,8 @@ export default async function ProfitabilityPage() {
               yFormat="pct"
               decimals={2}
               height={142}
-              columns={3} />
-            <SmallMultiplesTrend
+              columns={3} /></div>
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={fees}
               seriesLabels={BANK_TYPE_LABELS}
@@ -796,12 +800,9 @@ export default async function ProfitabilityPage() {
               yFormat="pct"
               decimals={1}
               height={142}
-              columns={3} />
-          </div>
-<div className="mt-8 space-y-1">
-            <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
-            <p className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint">{tx("NIM components of private banks: BDDK monthly income-statement interest items (income 1–14, expense 16–22) over 13-month average total assets. Private = domestic-private + foreign deposit banks.")}</p>
-          </div>
+              columns={3} /></div>
+</div>
+
 </SectorSection>
 <SectorSection id="returns" title={tx("Returns")} description={tx("Return on equity, return on assets and comparison with inflation.")}>
 <SmallMultiplesTrend
@@ -881,7 +882,7 @@ export default async function ProfitabilityPage() {
                 deltaLabel="12m"
                 fmt={(v) => `${v.toFixed(1)}%`}
               >
-                <TrendChart
+                <TrendChart readout
                   plain
                   data={roePlusCpi}
                   seriesLabels={{

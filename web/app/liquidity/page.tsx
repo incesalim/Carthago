@@ -651,7 +651,7 @@ export default async function LiquidityPage() {
           </Vitals>
         </CadenceBand>
 <ChartRow data={netFunding} deltaPeriods={252} deltaLabel="52w" fmt={(v) => `₺${(v / 1000).toFixed(0)}bn`}>
-          <TrendChart
+          <TrendChart readout
             plain
             data={netFunding}
             seriesLabels={{ NETFUND: "Net funding" }}
@@ -669,23 +669,9 @@ export default async function LiquidityPage() {
         </ChartRow>
 </SectorSection>
 <SectorSection id="lira-funding" title={tx("Lira funding")} description={tx("Weekly TL loan-to-deposit ratios and deposit growth for public and private banks.")}>
-<div>
-          {/* Pair the week labels off a SINGLE-series array: tlLtd is long-form
-              (one row per ownership group per week), so its .at(-2) is the same
-              week's other group, not last week. */}
-          <SecHead
-            title={tx("Period changes")}
-            meta={tx("the weekly record · {0} → {1}", { 0: weekLabel(tlLdrPriv.at(-2)?.period), 1: weekLabel(tlLdrPriv.at(-1)?.period) })}
-            className="mb-2.5"
-          />
-          <Movers
-            from={weekLabel(tlLdrPriv.at(-2)?.period).toUpperCase()}
-            to={weekLabel(tlLdrPriv.at(-1)?.period).toUpperCase()}
-            rows={moverRows}
-          />
-        </div>
+<div data-sector-pair className="grid grid-cols-1 gap-8 xl:grid-cols-2">
 <ChartRow data={toTrend(tlLtd)} labels={LIQ_OWNERSHIP_LABELS} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(0)}%`}>
-            <TrendChart
+            <TrendChart readout
               plain
               data={toTrend(tlLtd)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
@@ -701,8 +687,24 @@ export default async function LiquidityPage() {
               hero="PRIVATE"
             />
           </ChartRow>
+<div>
+          {/* Pair the week labels off a SINGLE-series array: tlLtd is long-form
+              (one row per ownership group per week), so its .at(-2) is the same
+              week's other group, not last week. */}
+          <SecHead
+            title={tx("Period changes")}
+            meta={tx("the weekly record · {0} → {1}", { 0: weekLabel(tlLdrPriv.at(-2)?.period), 1: weekLabel(tlLdrPriv.at(-1)?.period) })}
+            className="mb-2.5"
+          />
+          <Movers
+            from={weekLabel(tlLdrPriv.at(-2)?.period).toUpperCase()}
+            to={weekLabel(tlLdrPriv.at(-1)?.period).toUpperCase()}
+            rows={moverRows}
+          />
+        </div>
+</div>
 <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+            <TrendChart readout
               plain
               data={tlDepGrowth}
               seriesLabels={{ YOY: "52w", W13: "13w ann." }}
@@ -776,7 +778,7 @@ export default async function LiquidityPage() {
 </SectorSection>
 <SectorSection id="fx-funding" title={tx("FX liquidity")} description={tx("Foreign-currency funding, deposits and household holdings.")}>
 <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+            <TrendChart readout
               plain
               data={toTrend(fcLtd)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
@@ -801,7 +803,7 @@ export default async function LiquidityPage() {
               height={280}
               hero="PUBLIC"
             />
-            <TrendChart
+            <TrendChart readout
               plain
               data={toTrend(dollarization)}
               seriesLabels={LIQ_DOLLARIZATION_LABELS}
@@ -825,7 +827,7 @@ export default async function LiquidityPage() {
               hero="SECTOR"
             />
           </div>
-<TimeSeriesChart
+<TimeSeriesChart readout
               plain
               series={reerSeries}
               title={
@@ -901,7 +903,7 @@ export default async function LiquidityPage() {
               }
               height={300}
             />
-            <TimeSeriesChart
+            <TimeSeriesChart readout
               plain
               series={{
                 "Residents FX + gold": hh.map((r) => ({
@@ -989,7 +991,7 @@ export default async function LiquidityPage() {
       </Vitals>
 
 <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+            <TrendChart readout
               plain
               data={liqRatios.filter(row => row.bank_type_code !== "LEV")}
               seriesLabels={AUDIT_LIQUIDITY_LABELS}
@@ -1016,7 +1018,7 @@ export default async function LiquidityPage() {
             />
             
           </div>
-<TrendChart plain data={liqRatios.filter(row => row.bank_type_code === "LEV")} seriesLabels={AUDIT_LIQUIDITY_LABELS} title={tx("Leverage ratio — sector")} description={tx("Audited leverage ratio, %, quarterly")} source={tx("Source: BRSA quarterly filings (§4)")} yFormat="pct" decimals={1} height={240} />
+<TrendChart readout plain data={liqRatios.filter(row => row.bank_type_code === "LEV")} seriesLabels={AUDIT_LIQUIDITY_LABELS} title={tx("Leverage ratio — sector")} description={tx("Audited leverage ratio, %, quarterly")} source={tx("Source: BRSA quarterly filings (§4)")} yFormat="pct" decimals={1} height={240} />
 </SectorSection>
 <SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
 <div>

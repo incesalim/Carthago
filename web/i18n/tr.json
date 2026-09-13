@@ -4096,5 +4096,12 @@
   "Blended cost": "Ortalama mevduat maliyeti",
   "CPI 12m-avg": "TÜFE, 12 aylık ortalama",
   "3–12 months": "3–12 ay",
-  "— Fisher-deflated by 12m-avg CPI: {0}{1}% real, so {2}": "— 12 aylık ortalama TÜFE ile Fisher yöntemiyle arındırıldığında reel %{0}{1}; sonuç {2}"
+  "— Fisher-deflated by 12m-avg CPI: {0}{1}% real, so {2}": "— 12 aylık ortalama TÜFE ile Fisher yöntemiyle arındırıldığında reel %{0}{1}; sonuç {2}",
+  "Latest values": "Son değerler",
+  "Real growth = (1 + FX-adjusted growth) ÷ (1 + annual CPI) − 1. Foreign-currency loans are valued at the base week’s USD/TRY rate and assumed to be denominated in US dollars.": "Reel büyüme = (1 + kurdan arındırılmış büyüme) ÷ (1 + yıllık TÜFE) − 1. Yabancı para krediler baz haftanın USD/TL kuru ile değerlenir ve tamamının ABD doları cinsinden olduğu varsayılır.",
+  "No published observations in the selected period.": "Seçili dönemde yayımlanmış veri bulunmuyor.",
+  "CET1 ratio": "Çekirdek sermaye oranı",
+  "Tier-1 ratio": "Ana sermaye oranı",
+  "Total capital (CAR)": "Sermaye yeterlilik oranı",
+  "Equity y/y": "Özkaynak yıllık büyümesi"
 }

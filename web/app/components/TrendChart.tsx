@@ -27,6 +27,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartReadout } from "./chart-readout";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
 import { NearestActiveDot, NearestSeriesTooltip } from "@/app/components/nearest-hover";
@@ -74,6 +75,8 @@ interface Props {
   /** Show a horizontal line at y=0 (useful for growth rates). */
   zeroLine?: boolean;
   height?: number;
+  /** Full series names and latest values in HTML, outside the plotting area. */
+  readout?: boolean;
   /**
    * Series code to emphasise as the hero line (navy) with the rest as grey
    * context. Defaults to the series labelled "Sector" when one exists.
@@ -133,6 +136,7 @@ export default function TrendChart({
   decimals = 2,
   zeroLine = false,
   height = 320,
+  readout = false,
   hero,
   annotations,
 }: Props) {
@@ -180,12 +184,15 @@ export default function TrendChart({
   // labels would leave the mobile legend with five identical swatches).
   const heroKey =
     hero ?? codes.find((c) => seriesLabels[c] === "Sector") ?? null;
-  const heroMode = labelsOn && heroKey != null && codes.length > 1;
+  const directLabels = labelsOn && !readout;
+  const heroMode = (directLabels || readout) && heroKey != null && codes.length > 1;
 
   const lineColor = (code: string, i: number): string =>
     heroMode
       ? code === heroKey
         ? t.hero
+        : readout
+          ? seriesColor(t, code, codes.filter(c => c !== heroKey).indexOf(code) + 1)
         : active === code
           ? t.contextActive
           : t.context
@@ -223,6 +230,10 @@ export default function TrendChart({
           codes.map((c) => ({ key: c, label: seriesLabels[c] })),
         )}
       />
+      {readout && <ChartReadout entries={codes.map((code, i) => {
+        const latest = lastPoint(wide, "period", code);
+        return { key: code, name: tx(seriesLabels[code]), value: latest ? fmt(latest.value, decimals) : "—", color: lineColor(code, i), asOf: latest?.period, lagged: latest != null && latest.index < lastIdx };
+      })} active={active} pinned={pinned} onHover={setHovered} onPin={code => setPinned(p => p === code ? null : code)} />}
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
       <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%" onResize={handleResize}>
@@ -230,9 +241,9 @@ export default function TrendChart({
             data={wide}
             margin={{
               top: 10,
-              right: labelsOn ? labelWidth : 20,
+              right: directLabels ? labelWidth : 16,
               left: PLOT_MARGIN_LEFT,
-              bottom: labelsOn ? 8 : 30,
+              bottom: directLabels || readout ? 8 : 30,
             }}
           >
             {/* Horizontal hairlines only — drop the vertical grid + axis lines. */}
@@ -240,9 +251,9 @@ export default function TrendChart({
             <XAxis
               dataKey="period"
               tickFormatter={(value) => tx(String(value))}
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
+              tick={{ fontSize: 11, fill: t.axis, fontFamily: readout ? "var(--font-geist-sans), sans-serif" : "var(--font-geist-mono), monospace" }}
               tickMargin={6}
-              minTickGap={30}
+              minTickGap={readout ? 65 : 30}
               axisLine={false}
               tickLine={false}
             />
@@ -269,7 +280,7 @@ export default function TrendChart({
                 />
               )}
             />
-            {!labelsOn && (
+            {!labelsOn && !readout && (
               <Legend
                 verticalAlign="bottom"
                 align="center"
@@ -394,7 +405,7 @@ export default function TrendChart({
                     />
                   );
                 })}
-            {labelsOn && (
+            {directLabels && (
               <EndLabelLayer
                 rows={wide}
                 periodKey="period"

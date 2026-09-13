@@ -641,7 +641,7 @@ export default async function OverviewPage({
             className="mb-2.5"
           />
           <Transmission items={transmission} />
-        </div></div><TrendChart
+        </div></div><TrendChart readout
           plain
           data={carGroups}
           seriesLabels={BANK_TYPE_LABELS}
@@ -654,8 +654,8 @@ export default async function OverviewPage({
           yFormat="pct"
           decimals={1}
           height={280}
-        /><div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <SmallMultiplesTrend
+        /><div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={loansYoYGroups}
               seriesLabels={BANK_TYPE_LABELS}
@@ -672,8 +672,8 @@ export default async function OverviewPage({
               height={104}
               columns={3}
               zeroLine
-            />
-            <SmallMultiplesTrend
+            /></div>
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={nplAllGroups}
               seriesLabels={BANK_TYPE_LABELS}
@@ -686,9 +686,8 @@ export default async function OverviewPage({
               yFormat="pct"
               decimals={2}
               height={142}
-              columns={3} />
-            
-            <SmallMultiplesTrend
+              columns={3} /></div>
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={roeGroups}
               seriesLabels={BANK_TYPE_LABELS}
@@ -702,8 +701,8 @@ export default async function OverviewPage({
               decimals={1}
               height={142}
               zeroLine
-              columns={3} />
-          </div>
+              columns={3} /></div>
+</div>
 </SectorSection>
 <SectorSection id="by-type" title={tx("Bank groups")}>
 <SecHead

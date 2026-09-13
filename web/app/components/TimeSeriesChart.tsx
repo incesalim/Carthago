@@ -24,6 +24,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartReadout } from "./chart-readout";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
 import { NearestActiveDot, NearestSeriesTooltip } from "@/app/components/nearest-hover";
@@ -64,6 +65,8 @@ interface Props {
   xFormat?: "date" | "quarter";
   decimals?: number;
   height?: number;
+  /** Readable series names and values outside the plot. */
+  readout?: boolean;
   /** Series label to emphasise as the navy hero over grey context (opt-in —
    *  economy series have no natural aggregate, unlike bank groups). */
   hero?: string;
@@ -85,6 +88,7 @@ export default function TimeSeriesChart({
   xFormat = "date",
   decimals = 2,
   height = 320,
+  readout = false,
   hero,
   annotations,
   bare = false,
@@ -150,12 +154,15 @@ export default function TimeSeriesChart({
 
   // Hero-vs-context is opt-in here (no auto "Sector" — see header comment) and
   // only with end-labels on, so the mobile legend keeps distinct colours.
-  const heroMode = labelsOn && hero != null && labels.length > 1;
+  const directLabels = labelsOn && !readout;
+  const heroMode = (directLabels || readout) && hero != null && labels.length > 1;
 
   const lineColor = (label: string, i: number): string =>
     heroMode
       ? label === hero
         ? t.hero
+        : readout
+          ? seriesColor(t, label, labels.filter(l => l !== hero).indexOf(label) + 1)
         : active === label
           ? t.contextActive
           : t.context
@@ -190,6 +197,10 @@ export default function TimeSeriesChart({
           labels.map((l) => ({ key: l, label: l })),
         )}
       />
+      {readout && <ChartReadout entries={labels.map((label, i) => {
+        const latest = lastPoint(data, "period_date", label);
+        return { key: label, name: tx(label), value: latest ? fmt(latest.value, decimals) : "—", color: lineColor(label, i), asOf: latest?.period, lagged: latest != null && latest.index < data.length - 1 };
+      })} active={active} pinned={pinned} onHover={setHovered} onPin={label => setPinned(p => p === label ? null : label)} />}
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
       <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%" onResize={handleResize}>
@@ -197,9 +208,9 @@ export default function TimeSeriesChart({
             data={data}
             margin={{
               top: 10,
-              right: labelsOn ? labelWidth : 20,
+              right: directLabels ? labelWidth : 20,
               left: PLOT_MARGIN_LEFT,
-              bottom: labelsOn ? 8 : 30,
+              bottom: directLabels || readout ? 8 : 30,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
@@ -234,7 +245,7 @@ export default function TimeSeriesChart({
                 />
               )}
             />
-            {!labelsOn && (
+            {!labelsOn && !readout && (
               <Legend
                 wrapperStyle={{ fontSize: 11 }}
                 content={({ payload }) => (
@@ -310,7 +321,7 @@ export default function TimeSeriesChart({
                 isAnimationActive={false}
               />
             ))}
-            {labelsOn && (
+            {directLabels && (
               <EndLabelLayer
                 rows={data}
                 periodKey="period_date"

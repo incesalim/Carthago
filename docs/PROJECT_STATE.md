@@ -77,6 +77,15 @@ and existing chart interactions run in the browser. This changes presentation,
 not database coverage or ingestion. Research and preservation receipts are in
 `docs/knowledge/2026-09-13-sector-report-redesign/`.
 
+Visual repair (2026-09-13): aligned indicator rows, readable sans annotations,
+container-responsive bank-group facets, and complete HTML series/value readouts
+replace clipped SVG labels across the sector routes. Solitary indicators use
+horizontal summaries. Credit pairs growth with currency/inflation decomposition,
+retail growth with card volumes, and groups related supplementary charts. All
+202 analytical component/data signatures from the prior release are retained;
+queries and calculations are unchanged. The local visual archive includes
+middle-section desktop views and mobile checks across all eight routes.
+
 ## Liquidity component expansion (2026-09-13)
 
 The active direction is incremental expansion of the existing production lanes;

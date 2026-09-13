@@ -688,7 +688,7 @@ export default async function CapitalPage() {
               height={280}
             />
             <ChartRow data={capRatios} labels={AUDIT_CAPITAL_LABELS} deltaPeriods={4} deltaLabel="4q" fmt={(v) => `${v.toFixed(1)}%`}>
-              <TrendChart
+              <TrendChart readout
                 plain
                 data={capRatios}
                 seriesLabels={AUDIT_CAPITAL_LABELS}
@@ -703,8 +703,8 @@ export default async function CapitalPage() {
           </div>
 </SectorSection>
 <SectorSection id="leverage" title={tx("Equity and leverage")} description={tx("Equity levels, annual growth and leverage")}>
-<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart
+<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<TrendChart readout
               plain
               data={equityYoYSec}
               seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity y/y" }}
@@ -729,7 +729,19 @@ export default async function CapitalPage() {
               height={280}
               zeroLine
             />
-            <SmallMultiplesTrend
+<TrendChart readout
+              plain
+              data={equity}
+              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
+              title={tx("Total sector equity")}
+              description={tx("sector equity, ₺ trn, monthly")}
+              source={tx("Source: BDDK monthly bulletin")}
+              yFormat="trn"
+              decimals={2}
+              height={260}
+            />
+</div>
+<SmallMultiplesTrend
               plain
               data={lev}
               seriesLabels={BANK_TYPE_LABELS}
@@ -755,24 +767,10 @@ export default async function CapitalPage() {
               decimals={0}
               height={142}
               columns={3} />
-          </div>
-<div className="mt-6">
-            <TrendChart
-              plain
-              data={equity}
-              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
-              title={tx("Total sector equity")}
-              description={tx("sector equity, ₺ trn, monthly")}
-              source={tx("Source: BDDK monthly bulletin")}
-              yFormat="trn"
-              decimals={2}
-              height={260}
-            />
-          </div>
 </SectorSection>
 <SectorSection id="risk-weights" title={tx("Risk-weighted assets")} description={tx("Risk-weighted assets and off-balance-sheet exposures")}>
-<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <SmallMultiplesTrend
+<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={rwa}
               seriesLabels={BANK_TYPE_LABELS}
@@ -795,8 +793,8 @@ export default async function CapitalPage() {
               yFormat="pct"
               decimals={1}
               height={142}
-              columns={3} />
-            <SmallMultiplesTrend
+              columns={3} /></div>
+<div className="lg:col-span-2"><SmallMultiplesTrend
               plain
               data={offBsDeriv}
               seriesLabels={BANK_TYPE_LABELS}
@@ -820,8 +818,8 @@ export default async function CapitalPage() {
               yFormat="pct"
               decimals={1}
               height={142}
-              columns={3} />
-          </div>
+              columns={3} /></div>
+</div>
 </SectorSection>
 <SectorSection id="banks" title={tx("Capital by bank")} description={tx("Bank-level capital ratios from quarterly financial statements.")}>
 <div>

@@ -99,9 +99,10 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
   });
 
   return (
+    <div className="max-w-full overflow-x-auto" role="region" aria-label={tx("Exchange-rate and inflation effects")} tabIndex={0}>
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
+      className="w-full min-w-[600px]"
       role="img"
       aria-label={tx("Nominal loan growth of {0} bridges down to {1} once lira depreciation ({2}) and inflation ({3}) are removed.", {0: fmtPct(nominalAtReal), 1: fmtPct(
         realFxAdj,
@@ -197,5 +198,6 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
         );
       })}
     </svg>
+    </div>
   );
 }

@@ -37,7 +37,7 @@ export function ChartCard({
   if (plain) {
     return (
       <div data-chart-card="" className={cn("group min-w-0 border-t border-hair pt-3", className)}>
-        <div className="mb-3 flex min-h-11 flex-wrap items-start gap-3">
+        <div data-chart-header className="mb-3 flex min-h-11 flex-wrap items-start gap-3">
           <div className="min-w-0 flex-[1_1_14rem]">
             {title && (
               <div
@@ -60,7 +60,7 @@ export function ChartCard({
         </div>
         <div data-chart-body="" className={bodyClassName ?? "max-w-[52rem]"}>{children}</div>
         {source && (
-          <div className="mt-2 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
+          <div data-chart-source className="mt-2 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
             {tx(source)}
           </div>
         )}

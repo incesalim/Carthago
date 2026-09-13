@@ -42,13 +42,13 @@ export default function Takeaway({
   if (!data.items.length) return null;
 
   if (variant === "report") {
-    return <aside data-sector-assessment className="my-7 border-y border-hair py-5" aria-label={tx("Period assessment")}>
-      <div className="mb-2 flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
+    return <aside data-sector-assessment className="mt-4 border-t border-border pt-5" aria-label={tx("Period assessment")}>
+      <div className="mb-2 flex flex-wrap justify-between gap-2 text-[13px] text-muted-foreground">
         <span className="font-semibold">{tx("Period assessment")}</span>
         {data.asOf && <span>{tx(data.asOf)}</span>}
       </div>
-      <p className="max-w-[82ch] text-[18px] font-medium leading-relaxed tracking-tight">{tx(data.headline)}</p>
-      <ul className="mt-4 grid gap-x-8 gap-y-3 text-[12px] leading-[1.7] text-muted-foreground md:grid-cols-2">
+      <p className="max-w-[100ch] text-[20px] font-medium leading-[1.5] tracking-tight">{tx(data.headline)}</p>
+      <ul className="mt-4 grid gap-x-8 gap-y-3 text-[14px] leading-[1.65] text-muted-foreground md:grid-cols-2">
         {data.items.map((it, i) => <li key={i} className="border-t border-hair pt-3">
           {tx(it.text)}
           {it.href && <Link href={it.href} className="ml-1 text-primary underline underline-offset-4">{tx("Related analysis")}</Link>}

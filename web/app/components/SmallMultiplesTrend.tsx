@@ -131,8 +131,10 @@ export default function SmallMultiplesTrend({
           ),
         }}
       />
+      {values.length === 0 && <p className="py-6 text-[13px] text-muted-foreground">{tx("No published observations in the selected period.")}</p>}
       <div
         data-small-multiples
+        data-columns={columns}
         className={cn("grid grid-cols-1 border-l border-t border-hair", COLS[columns])}
       >
         {grouped.map((group) => {
@@ -170,7 +172,7 @@ export default function SmallMultiplesTrend({
                       interval="preserveStartEnd"
                       minTickGap={55}
                       tickFormatter={(value) => tx(String(value).slice(0, 7))}
-                      tick={{ fontSize: 8.5, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
+                      tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-sans), sans-serif" }}
                       tickMargin={5}
                       axisLine={false}
                       tickLine={false}
@@ -180,7 +182,7 @@ export default function SmallMultiplesTrend({
                       width={Y_AXIS_WIDTH}
                       tickCount={3}
                       tickFormatter={(value) => fmt(Number(value), 0)}
-                      tick={{ fontSize: 8.5, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
+                      tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-sans), sans-serif" }}
                       axisLine={false}
                       tickLine={false}
                     />

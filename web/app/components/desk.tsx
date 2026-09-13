@@ -108,7 +108,7 @@ export function CadenceBand({
 }) {
   const tx = useText();
   return (
-    <section className={cn("mt-8 border-t border-hair pt-2.5", className)}>
+    <section data-cadence-band className={cn("mt-8 border-t border-hair pt-2.5", className)}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 className="text-[13.5px] font-bold text-foreground">{tx(title)}</h2>
         <span className="flex flex-wrap items-baseline gap-x-1.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-faint">
@@ -322,7 +322,7 @@ export function Vital({
   const tx = useText();
   return (
     <div data-vital className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0">
-      <div className="text-[11px] font-medium text-muted-foreground">{tx(label)}</div>
+      <div data-vital-label className="text-[11px] font-medium text-muted-foreground">{tx(label)}</div>
       <div data-vital-value className="mt-0.5 font-mono text-[24px] font-semibold tracking-tight text-foreground">
         {tx(value)}
         {unit && <small className="ml-0.5 text-[11px] font-normal text-faint">{tx(unit)}</small>}
@@ -331,7 +331,7 @@ export function Vital({
         // A sparkline is a compact trend glyph, not a full-width chart. Capping
         // the plot keeps one- and two-cell bands from stretching it into a
         // 20–35:1 strip on wide desktop screens.
-        <div className="mt-2 h-12 w-full max-w-[26rem]">
+        <div data-vital-spark className="mt-2 h-12 w-full max-w-[26rem]">
           <Sparkline
             data={series.filter((r) => r.value != null).map((r) => ({ period: r.period, value: r.value as number }))}
             format={format}
@@ -342,7 +342,7 @@ export function Vital({
       {tx(peer)}
       {note && <div data-vital-note className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
       {observation && (
-        <div className="mt-1.5 flex flex-wrap gap-x-1.5 border-t border-hair pt-1 font-mono text-[7.5px] uppercase tracking-[0.05em] text-faint">
+        <div data-vital-observation className="mt-1.5 flex flex-wrap gap-x-1.5 border-t border-hair pt-1 font-mono text-[7.5px] uppercase tracking-[0.05em] text-faint">
           <ObservationText item={observation} />
         </div>
       )}
@@ -442,7 +442,7 @@ export function Movers({ from, to, rows }: { from: string; to: string; rows: Mov
   const tx = useText();
   const fmtDefault = (v: number) => `${v.toFixed(2)}%`;
   return (
-    <table className="w-full border-collapse">
+    <table data-movers className="w-full border-collapse">
       <thead>
         <tr>
           {["Metric", from, to, "Δ"].map((h, i) => (

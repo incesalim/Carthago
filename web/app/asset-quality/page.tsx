@@ -460,12 +460,8 @@ export default async function AssetQualityPage() {
         /></SectorMetrics>
 <Takeaway data={await withLlmHeadline("asset-quality", read, tx.locale)} variant="report" />
 <SectorSection id="npl" title={tx("Non-performing loans")} description={tx("Non-performing loan stock, ratios and provision coverage.")}>
-<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {/* NOT a seriesFinding title. That helper renders values as a PERCENT
-                with pp deltas over a 12-POINT window (≈ a year of MONTHLY data).
-                This is a weekly ₺ level, so it printed "776,287%" and "+87,655pp"
-                in production. The finding belongs in the description, computed. */}
-            <TrendChart
+<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<div className="lg:col-span-2"><TrendChart height={260} readout
               data={gross}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Gross NPL" }}
               title={tx("Gross NPL — Level (sector, TL bn · weekly)")}
@@ -478,16 +474,16 @@ export default async function AssetQualityPage() {
               yFormat="bn"
               decimals={0}
               plain
-            />
-            <SmallMultiplesTrend
+            /></div>
+<div className="lg:col-span-2"><SmallMultiplesTrend
               data={coverageAll}
               seriesLabels={BANK_TYPE_LABELS}
               title={tx("Provisions / Gross NPL (%) — by group")}
               yFormat="pct"
               decimals={1}
               plain
-              columns={3} height={142} />
-          </div>
+              columns={3} height={142} /></div>
+</div>
 </SectorSection>
 <SectorSection id="stages" title={tx("Credit stages")} description={tx("TFRS 9 credit stages and provisions, based on quarterly financial statements.")}>
 <SecHead
@@ -530,7 +526,7 @@ export default async function AssetQualityPage() {
           )}
         </div>
       </div>
-<TrendChart
+<TrendChart height={260} readout
           data={stageShares}
           seriesLabels={STAGE_SHARE_LABELS}
           title={tx("TFRS-9 staging — % of gross loans (audited quarterly)")}
@@ -666,7 +662,7 @@ export default async function AssetQualityPage() {
             deltaPeriods={52}
             deltaLabel="52w"
           >
-            <TrendChart
+            <TrendChart readout
               data={commercialTrend}
               seriesLabels={{
                 SME: "SME",
@@ -687,9 +683,16 @@ export default async function AssetQualityPage() {
           </ChartRow>
 </SectorSection>
 <SectorSection id="bank-groups" title={tx("Bank groups")} description={tx("NPL by ownership group.")}>
-<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <SmallMultiplesTrend
+<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+<div className="lg:col-span-2"><BarByBank
+              data={nplByBank}
+              labels={BANK_TYPE_LABELS}
+              title={tx("NPL by group · {0}", { 0: nplByBank[0]?.period ?? "" })}
+              format="pct"
+              decimals={2}
+              plain
+            /></div>
+<div className="lg:col-span-2"><SmallMultiplesTrend
                 data={nplAll}
                 seriesLabels={BANK_TYPE_LABELS}
                 title={
@@ -705,17 +708,8 @@ export default async function AssetQualityPage() {
                 height={108}
                 columns={3}
                 plain
-              />
-            </div>
-            <BarByBank
-              data={nplByBank}
-              labels={BANK_TYPE_LABELS}
-              title={tx("NPL by group · {0}", { 0: nplByBank[0]?.period ?? "" })}
-              format="pct"
-              decimals={2}
-              plain
-            />
-          </div>
+              /></div>
+</div>
 </SectorSection>
 <SectorSection id="method" title={tx("Definitions and methodology")}>
 

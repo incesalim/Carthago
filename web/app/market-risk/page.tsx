@@ -189,7 +189,7 @@ export default async function MarketRiskPage() {
             ) : undefined
           }
         />
-<TrendChart plain
+<TrendChart height={260} readout plain
           data={nop}
           seriesLabels={SECTOR}
           title={
@@ -214,7 +214,7 @@ export default async function MarketRiskPage() {
             <ChartCard plain title={tx("Repricing gap by bucket (₺bn){0}", { 0: ladder.period ? ` · ${ladder.period}` : "" })}>
               <BopFlowChart data={ladder.data} bars={[{ key: "gap", label: "Net repricing gap" }]} unit=" ₺bn" decimals={0} />
             </ChartCard>
-            <TrendChart plain
+            <TrendChart height={260} readout plain
               data={gap1y}
               seriesLabels={SECTOR}
               title={tx("Cumulative ≤1y repricing gap / total assets (%)")}
