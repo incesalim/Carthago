@@ -12,7 +12,9 @@ pages for each metric's data row (the `(%)` + trailing numbers distinguish a
 real table row from the policy prose that also names these ratios), and parse
 the trailing values. LCR rows retain their printed current/prior heading and
 literal/page evidence; NSFR's first/second occurrences are current/prior; the leverage row carries
-current+prior in two columns. All values are percentages.
+current+prior in two columns. These four fields are percentages. A separate
+geometry reader retains eight selected LCR totals in source units; the writer
+normalizes them to thousand TRY and retains literal/column/unit evidence.
 """
 from __future__ import annotations
 
@@ -24,6 +26,7 @@ from pathlib import Path
 
 from .capital_adequacy import _parse_ratio, _repair_split_digits, _trailing_two_tokens
 from .liquidity_coverage import resolve_lcr, scan_lcr
+from .liquidity_components import FIELDS, extract_lcr_components, with_component_units
 from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text
 from .units import UnitContext
 
@@ -76,6 +79,15 @@ class LiquidityRow:
     lcr_fc: float | None = None
     nsfr: float | None = None
     lcr_source_json: str | None = None
+    lcr_hqla_total: float | None = None
+    lcr_hqla_fc: float | None = None
+    lcr_cash_outflows_total: float | None = None
+    lcr_cash_outflows_fc: float | None = None
+    lcr_cash_inflows_total: float | None = None
+    lcr_cash_inflows_fc: float | None = None
+    lcr_net_cash_outflows_total: float | None = None
+    lcr_net_cash_outflows_fc: float | None = None
+    lcr_components_source_json: str | None = None
 
 
 @dataclass
@@ -209,9 +221,14 @@ def extract_from_pdf(pdf_path: str = "") -> LiquidityReport:
         if len(lev[0]) > 1:
             pri.leverage_ratio = _parse_ratio(lev[0][1])
 
-    if cur.lcr_source_json or any(v is not None for v in (cur.lcr_total, cur.nsfr, cur.leverage_ratio)):
+    for period_type, values in extract_lcr_components(pdf_path, scan_start, scan_end).items():
+        target = cur if period_type == "current" else pri
+        for field_name, value in values.items():
+            setattr(target, field_name, value)
+
+    if cur.lcr_source_json or cur.lcr_components_source_json or any(v is not None for v in (cur.lcr_total, cur.nsfr, cur.leverage_ratio)):
         rep.rows.append(cur)
-    if pri.lcr_source_json or any(v is not None for v in (pri.lcr_total, pri.nsfr, pri.leverage_ratio)):
+    if pri.lcr_source_json or pri.lcr_components_source_json or any(v is not None for v in (pri.lcr_total, pri.nsfr, pri.leverage_ratio)):
         rep.rows.append(pri)
     return rep
 
@@ -223,7 +240,7 @@ def extract(pdf_path: str | Path) -> LiquidityReport:
 # ---------------------------------------------------------------------------
 # DB loader
 # ---------------------------------------------------------------------------
-_VALUE_COLS = ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "lcr_source_json"]
+_VALUE_COLS = ["leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "lcr_source_json", *FIELDS, "lcr_components_source_json"]
 
 
 def upsert(
@@ -241,7 +258,8 @@ def upsert(
     ph = ", ".join("?" for _ in cols)
     rows = [(
         bank_ticker, period, kind, r.period_type,
-        *[getattr(r, c, None) for c in _VALUE_COLS],
+        *[with_component_units(getattr(r, c, None), unit.source_unit, unit.factor)
+          if c == "lcr_components_source_json" else getattr(r, c, None) for c in _VALUE_COLS],
         rep.source_page,
     ) for r in rep.rows]
     # Normalise to canonical `bin` BEFORE the insert; the factor comes
@@ -251,13 +269,15 @@ def upsert(
         f"SELECT {', '.join(cols)} FROM bank_audit_liquidity "
         "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY period_type",
         (bank_ticker, period, kind))]
-    if previous == sorted(rows, key=lambda r: r[3]):
-        return len(rows)
-    cur.execute("DELETE FROM bank_audit_liquidity WHERE bank_ticker=? AND period=? AND kind=?",
-                (bank_ticker, period, kind))
-    if rows:
+    previous_by_period = {r[3]: r for r in previous}
+    current_by_period = {r[3]: r for r in rows}
+    for period_type in previous_by_period.keys() - current_by_period.keys():
+        cur.execute("DELETE FROM bank_audit_liquidity WHERE bank_ticker=? AND period=? AND kind=? AND period_type=?",
+                    (bank_ticker, period, kind, period_type))
+    changed = [r for r in rows if previous_by_period.get(r[3]) != r]
+    if changed:
         cur.executemany(
-            f"INSERT INTO bank_audit_liquidity ({', '.join(cols)}) VALUES ({ph})", rows
+            f"INSERT OR REPLACE INTO bank_audit_liquidity ({', '.join(cols)}) VALUES ({ph})", changed
         )
     if commit:
         conn.commit()

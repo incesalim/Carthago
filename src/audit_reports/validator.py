@@ -1476,7 +1476,86 @@ def check_liquidity(rows: list[dict]) -> ValidationResult:
         suffix = " [prior]" if row.get("period_type") == "prior" else ""
         _check_liquidity_row(res, row, label_suffix=suffix)
         _check_lcr_source(res, row, suffix)
+        _check_lcr_components(res, row, suffix)
     return res
+
+
+def _check_lcr_components(res: ValidationResult, row: dict, suffix: str) -> None:
+    """Check literal, period, currency, weighting and unit; then cash-flow bounds.
+
+    These are averaged disclosures. A ratio of averages need not equal an
+    average of daily ratios, nor does capping commute with averaging. Do not
+    impose either false equality. Net outflows must still lie between the
+    uncapped net (and 25% of outflows) and gross outflows, allowing rounding.
+    """
+    from .liquidity_components import FIELDS, amount_value, component_role
+    from .liquidity_coverage import heading_period
+    from .units import UNIT_SCALE
+
+    raw = row.get("lcr_components_source_json")
+    if raw is None and all(row.get(field) is None for field in FIELDS):
+        return  # historical or unsupported layout, not a source completeness pass
+    try:
+        evidence = json.loads(raw)
+        if set(evidence) != set(FIELDS):
+            raise ValueError("missing component evidence")
+        scales = set()
+        for field in FIELDS:
+            item = evidence[field]
+            if item.get("status") != "read" or not item.get("sources"):
+                raise ValueError(f"{field}: missing, ambiguous or conflicting source")
+            role, currency = field.removeprefix("lcr_").rsplit("_", 1)
+            for source in item["sources"]:
+                scale = source.get("unit_scale")
+                page = source.get("source_page")
+                column = 2 if currency == "total" else 3
+                if (type(page) is not int or page < 1
+                        or source.get("period_heading_page") != page
+                        or source.get("period_type") != row.get("period_type")
+                        or heading_period(source.get("period_heading", "")) != row.get("period_type")
+                        or component_role(source.get("raw_label", "")) != role
+                        or source.get("column_index") != column
+                        or source.get("basis") != ("capped" if role in ("hqla", "net_cash_outflows") else "weighted")
+                        or not source.get("column_heading") or not source.get("raw_snippet")
+                        or type(scale) is not int or UNIT_SCALE.get(source.get("source_unit")) != scale
+                        or source.get("stored_unit") != "bin"):
+                    raise ValueError(f"{field}: invalid source assignment or units")
+                scales.add(scale)
+                literal, bbox = source.get("raw_value"), source.get("bbox")
+                if literal is not None:
+                    edges, tolerance = source["column_right_edges"], source["column_tolerance"]
+                    if (literal not in source["raw_snippet"].split() or len(bbox) != 4
+                            or len(edges) != 4 or not 0 < tolerance < min(b - a for a, b in zip(edges, edges[1:])) / 2
+                            or abs(bbox[2] - edges[column]) > tolerance):
+                        raise ValueError(f"{field}: literal outside assigned column")
+                elif bbox is not None:
+                    raise ValueError(f"{field}: blank cell has a numeric box")
+                expected = amount_value(literal)
+                expected = None if expected is None else expected * scale
+                actual = row.get(field)
+                if actual != expected or (actual is not None and actual < 0):
+                    res.add_fail("liq_component_value", f"{field}: stored amount differs from source or is negative" + suffix,
+                                 expected=0, actual=1)
+                else:
+                    res.add_pass()
+        if len(scales) != 1:
+            raise ValueError("mixed units within LCR table")
+        tolerance = 2 * next(iter(scales))
+        for currency in ("total", "fc"):
+            outflow, inflow, net = (row.get(f"lcr_{role}_{currency}") for role in
+                                    ("cash_outflows", "cash_inflows", "net_cash_outflows"))
+            if outflow is None or net is None:
+                res.add_skip()
+                continue
+            minimum = max(0.25 * outflow, outflow - inflow) if inflow is not None else 0.25 * outflow
+            if minimum - tolerance <= net <= outflow + tolerance:
+                res.add_pass()
+            else:
+                res.add_fail("liq_component_net_bounds", f"{currency}: disclosed net outflows outside cash-flow bounds" + suffix,
+                             expected=outflow if net > outflow else minimum, actual=net)
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError):
+        res.add_fail("liq_component_evidence", "invalid, missing or conflicting LCR component evidence" + suffix,
+                     expected=0, actual=1)
 
 
 def _check_lcr_source(res: ValidationResult, row: dict, suffix: str) -> None:

@@ -285,8 +285,8 @@ def upsert_report(
         # Only the writers that touch money take a context. `profile` (branch and
         # personnel counts), `audit_opinion` (a verdict + flag) and `prose` (sentences)
         # carry no figures, so handing them one would be noise — and a signature
-        # they do not have. `liquidity` DOES take one despite being all ratios:
-        # it proves, per run, that nothing there is scaled.
+        # they do not have. `liquidity` scales its selected LCR amounts while
+        # preserving all four ratio fields.
         kwargs = {}
         if key in _UNIT_AWARE_PERSISTERS:
             kwargs['unit'] = unit

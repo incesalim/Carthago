@@ -157,7 +157,7 @@ function collectPages(rows: Record<string, unknown>[]): number[] {
   for (const r of rows) {
     add(r["source_page"]);
     // Selected disclosures may continue beyond the table locator page.
-    for (const sourceField of ["buffer_source_json", "lcr_source_json"]) {
+    for (const sourceField of ["buffer_source_json", "lcr_source_json", "lcr_components_source_json"]) {
       if (typeof r[sourceField] !== "string") continue;
       try {
         const evidence = JSON.parse(r[sourceField] as string);
@@ -319,7 +319,7 @@ export const TOOLS: ToolSpec[] = [
       const idCols = spec.rowIdentity.length ? spec.rowIdentity.join(", ") + ", " : "";
       const sourceColumns = spec.hasSourcePage ? ["source_page"] : [];
       if (a.statement === "capital" && cols.some((column) => column.includes("buffer"))) sourceColumns.push("buffer_source_json");
-      if (a.statement === "liquidity" && cols.some((column) => column.startsWith("lcr_"))) sourceColumns.push("lcr_source_json");
+      if (a.statement === "liquidity" && cols.some((column) => column.startsWith("lcr_"))) sourceColumns.push("lcr_source_json", "lcr_components_source_json");
       const sourceEvidence = sourceColumns.length ? `, ${sourceColumns.join(", ")}` : "";
       const rows = await ctx.db.all<Record<string, unknown>>(
         `SELECT period, ${idCols}${cols.join(", ")}${sourceEvidence} FROM ${spec.table} WHERE ${where} ORDER BY period`,

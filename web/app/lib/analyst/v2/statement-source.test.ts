@@ -17,6 +17,21 @@ function setup(statement: string, row: Record<string, unknown>) {
 }
 
 describe("source evidence across existing statements", () => {
+  it("serves normalized LCR component amounts and their source page in history", async () => {
+    const { ctx, queries } = setup("liquidity", { period: "2026Q2", lcr_hqla_total: 819744000,
+      lcr_hqla_fc: null, source_page: 46, lcr_components_source_json: JSON.stringify({ lcr_hqla_total: {
+        status: "read", sources: [{ source_page: 47, raw_value: "819.744", source_unit: "milyon", unit_scale: 1000 }],
+      } }),
+    });
+    const rows = await runTool(ctx, "get_statement_rows", { statement: "liquidity" });
+    expect(rows.provenance.source_pages).toEqual([46, 47]);
+    expect((rows.data as { rows: Record<string, unknown>[] }).rows[0].lcr_hqla_fc).toBeNull();
+    const history = await runTool(ctx, "get_row_history", { statement: "liquidity", column: "lcr_hqla_total" });
+    expect(history.provenance.source_pages).toEqual([46, 47]);
+    expect(queries.find((q) => q.includes("ORDER BY period"))).toContain("lcr_components_source_json");
+    expect((history.data as Record<string, unknown>[])[0].lcr_hqla_total).toBe(819744000);
+  });
+
   it("carries comparative LCR's actual page into statement rows and history", async () => {
     const { ctx, queries } = setup("liquidity", { period: "2024Q1", lcr_total: 3768,
       lcr_fc: null, source_page: 34, lcr_source_json: JSON.stringify({ lcr_total: {

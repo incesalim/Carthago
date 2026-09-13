@@ -249,14 +249,24 @@ MONEY_COLUMNS: dict[str, frozenset[str]] = {
     "bank_audit_repricing": frozenset({
         "rate_sensitive_assets", "rate_sensitive_liab", "gap", "cumulative_gap"}),
     "bank_audit_free_provision": frozenset({"free_provision", "free_provision_prior"}),
+    "bank_audit_liquidity": frozenset({
+        "lcr_hqla_total",
+        "lcr_hqla_fc",
+        "lcr_cash_outflows_total",
+        "lcr_cash_outflows_fc",
+        "lcr_cash_inflows_total",
+        "lcr_cash_inflows_fc",
+        "lcr_net_cash_outflows_total",
+        "lcr_net_cash_outflows_fc",
+    }),
 }
 
 #: Numeric but NOT money. Ratios, percentages, counts, page numbers, ordinals.
 #: Verified against 4.5 years of stored values rather than assumed: the capital
 #: ratios run 4.85-138 while the capital amounts in the same table average
 #: 64,314,574; the stage coverages are fractions 0-0.54; and 925 of 933
-#: `lcr_total` values sit below 1000. Nothing in bank_audit_liquidity is money —
-#: LCR, NSFR and leverage are all ratios.
+#: `lcr_total` values sit below 1000. LCR, NSFR and leverage remain ratios;
+#: selected LCR component amounts are separately classified as money above.
 NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
     "bank_audit_balance_sheet": frozenset({"item_order"}),
     "bank_audit_profit_loss": frozenset({"item_order"}),
@@ -274,7 +284,7 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
         "countercyclical_buffer_ratio", "systemic_buffer_ratio", "cet1_available_buffer_ratio",
         "buffer_source_json"}),
     "bank_audit_liquidity": frozenset({
-        "leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page", "lcr_source_json"}),
+        "leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page", "lcr_source_json", "lcr_components_source_json"}),
     "bank_audit_fx_position": frozenset({"source_page"}),
     "bank_audit_repricing": frozenset({"source_page"}),
     "bank_audit_free_provision": frozenset({"source_page"}),

@@ -17,6 +17,7 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/liquidity_source_periods
 
 def source_report(monkeypatch, case):
     pages = {int(k) - 1: v for k, v in case["pages"].items()}
+    monkeypatch.setattr(liquidity, "extract_lcr_components", lambda *args: {})
     monkeypatch.setattr(liquidity, "_HAS_FITZ", True)
     monkeypatch.setattr(liquidity, "_fitz_page_count", lambda _: case["page_count"])
     monkeypatch.setattr(liquidity, "_fitz_page_text", lambda _, i: "\n".join(pages.get(i, [])))

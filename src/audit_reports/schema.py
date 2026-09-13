@@ -463,7 +463,7 @@ CREATE INDEX IF NOT EXISTS idx_bank_capital_bank_period
 
 
 -- Liquidity & leverage (BRSA §4.6 LCR / NSFR, §4.7 leverage ratio).
--- All values are percentages.
+-- Ratios are percentages; selected LCR component amounts are thousand TRY.
 CREATE TABLE IF NOT EXISTS bank_audit_liquidity (
     bank_ticker     TEXT NOT NULL,
     period          TEXT NOT NULL,
@@ -474,6 +474,15 @@ CREATE TABLE IF NOT EXISTS bank_audit_liquidity (
     lcr_fc          REAL,                 -- LCR, foreign currency, percent
     nsfr            REAL,                 -- Net Stable Funding Ratio, percent
     lcr_source_json TEXT,                 -- literal cells, period headings and source pages
+    lcr_hqla_total REAL,
+    lcr_hqla_fc REAL,
+    lcr_cash_outflows_total REAL,
+    lcr_cash_outflows_fc REAL,
+    lcr_cash_inflows_total REAL,
+    lcr_cash_inflows_fc REAL,
+    lcr_net_cash_outflows_total REAL,
+    lcr_net_cash_outflows_fc REAL,
+    lcr_components_source_json TEXT,      -- geometry, literal cells and source-to-bin scale
     source_page     INTEGER,
     extracted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (bank_ticker, period, kind, period_type)
@@ -798,6 +807,15 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("bank_audit_capital", "cet1_available_buffer_ratio", "REAL"),
     ("bank_audit_capital", "buffer_source_json", "TEXT"),
     ("bank_audit_liquidity", "lcr_source_json", "TEXT"),
+    ("bank_audit_liquidity", "lcr_hqla_total", "REAL"),
+    ("bank_audit_liquidity", "lcr_hqla_fc", "REAL"),
+    ("bank_audit_liquidity", "lcr_cash_outflows_total", "REAL"),
+    ("bank_audit_liquidity", "lcr_cash_outflows_fc", "REAL"),
+    ("bank_audit_liquidity", "lcr_cash_inflows_total", "REAL"),
+    ("bank_audit_liquidity", "lcr_cash_inflows_fc", "REAL"),
+    ("bank_audit_liquidity", "lcr_net_cash_outflows_total", "REAL"),
+    ("bank_audit_liquidity", "lcr_net_cash_outflows_fc", "REAL"),
+    ("bank_audit_liquidity", "lcr_components_source_json", "TEXT"),
 ]
 
 

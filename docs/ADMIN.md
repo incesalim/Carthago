@@ -17,6 +17,18 @@ exact bank/period/basis row. The source comparison labels these links explicitly
 and offers the retained listing as a checked download. Earlier bank-site
 observations stay in the origin history, and acquisitions are unchanged.
 
+## Selected LCR totals (2026-09-13)
+
+The liquidity registry label now describes ratios and selected LCR totals.
+The existing analyst statement/history tools expose total/FC HQLA, weighted
+cash inflows/outflows and capped net cash outflows with literal/page/column/unit
+evidence. Amounts are thousand TL; ratios remain percent. Historical NULL fields
+have not been backfilled. These eight fields are not complete liquidity-table
+coverage. Source contradictions or ambiguous columns fail the existing lane's
+publication check; TOMK 2024Q1's comparative FC table is one source contradiction.
+The current production trial covers only GARAN 2022Q4 and AKBNK 2026Q2,
+both consolidated. See PROJECT_STATE.md for publication receipts.
+
 ## Structured prose reader (2026-09-08)
 
 In **Complete audit documents**, choose a filing and open **Read and search

@@ -103,10 +103,17 @@ bank_audit_capital(bank_ticker, period, kind, period_type, cet1_ratio,
     literal cells and their PDF pages, including dashes and conflicting readings.
 
 bank_audit_liquidity(bank_ticker, period, kind, period_type,
-    leverage_ratio, lcr_total, lcr_fc, nsfr, source_page, lcr_source_json)   -- ratios in percent
-  • Selected liquidity ratios, not the complete LCR/NSFR/leverage tables.
+    leverage_ratio, lcr_total, lcr_fc, nsfr, source_page, lcr_source_json,
+    lcr_hqla_total, lcr_hqla_fc, lcr_cash_outflows_total, lcr_cash_outflows_fc,
+    lcr_cash_inflows_total, lcr_cash_inflows_fc, lcr_net_cash_outflows_total,
+    lcr_net_cash_outflows_fc, lcr_components_source_json)
+  • Four ratios in percent and eight selected LCR component amounts in thousand TL.
+    Total includes FC. Cash inflows/outflows are weighted; HQLA/net outflows capped.
+    These are reported averages; a ratio of averages can differ from the printed LCR.
+    This is not complete LCR/NSFR/leverage table coverage.
     lcr_source_json retains literal LCR cells, period headings and source pages.
-    NULL means unknown or undisclosed; historical NULL evidence is unreviewed.
+    lcr_components_source_json retains component literals, positions, units and pages.
+    NULL means unknown or undisclosed; historical NULL components are not backfilled.
 
 bank_audit_stages(bank_ticker, period, kind, period_type,
     stage1_amount, stage2_amount, stage3_amount, total_amount,

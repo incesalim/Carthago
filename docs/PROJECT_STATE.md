@@ -14,6 +14,30 @@ coverage or known issues change.
 
 ---
 
+## Liquidity component expansion (2026-09-13)
+
+The active direction is incremental expansion of the existing production lanes;
+whole-corpus completeness is a longer-term aspiration, not the release gate.
+The liquidity extractor now retains eight additional amounts: total/FC HQLA,
+weighted cash outflows, weighted cash inflows and capped net cash outflows.
+Four explicit TR/EN currency columns and current/prior headings determine the
+assignment. Blank cells keep their positions; dashes remain NULL. The existing
+unit context normalizes amounts to thousand TRY and leaves ratios untouched.
+`lcr_components_source_json` carries literals, geometry, period and scale.
+Missing/ambiguous rows in a recognized table fail validation. Unsupported table
+layouts remain absent, not certified complete. Repeated or unchanged period
+rows are not restamped. Analyst v2 statement/history tools and the SQL assistant
+expose the added fields and their source evidence.
+
+Six original tables across TOMK 2024Q1 solo, GARAN 2022Q4 consolidated and AKBNK
+2026Q2 consolidated were visually checked: 48 selected monetary cells. The latter
+filing is in millions. TOMK's prior FC net outflows are 33,346 against weighted
+outflows of 25,188 in its own PDF; the new cash-flow bound flags this discrepancy.
+The two Garanti and Akbank filings are the intended scoped Actions trial;
+TOMK is excluded. Migration 0050 and production publication are pending.
+This does not add full LCR rows, NSFR/leverage components or a historical backfill.
+Evidence: `docs/knowledge/2026-09-13-liquidity-components/`.
+
 ## Structured audit prose (2026-09-08)
 
 The existing private document corpus now has a report-wide prose contract and

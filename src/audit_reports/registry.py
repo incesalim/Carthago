@@ -103,7 +103,7 @@ REGISTRY: list[StatementType] = [
                   "bank_audit_capital", None, "capital", section="4",
                   is_core=False, present_min_rows=1, has_validator=True,
                   validation_statement="capital", sort_order=90),
-    StatementType("liquidity", "Liquidity — selected ratios (§4)",
+    StatementType("liquidity", "Liquidity — ratios and selected LCR totals (§4)",
                   "bank_audit_liquidity", None, "liquidity", section="4",
                   is_core=False, present_min_rows=1, has_validator=True,
                   validation_statement="liquidity", sort_order=100),

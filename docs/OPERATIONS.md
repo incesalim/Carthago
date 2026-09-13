@@ -31,6 +31,28 @@ success. Older JSONL captures without paragraph structure return unclassified
 native lines; older non-JSONL structure needs the existing capture update path.
 The legacy local prose database is not merged into the audit snapshot.
 
+## Selected LCR component repairs (2026-09-13)
+
+Migration `0050_liquidity_components.sql` adds eight nullable monetary columns
+and their source JSON to the existing liquidity table. The migration does not
+rewrite historical rows. The normal extraction and `reextract-statement.yml`
+paths populate these fields with the filing's existing unit context. Run a
+read-only trial first, then publish the same exact partitions with
+`require_passing=true`; never force the whole liquidity lane. The initial trial
+is `GARAN:2022Q4:consolidated,AKBNK:2026Q2:consolidated` (statement `liquidity`,
+banks `GARAN,AKBNK`, periods `2022Q4,2026Q2`, kind `consolidated`,
+`only_failing=false`, `force=true`, `dry_run=true` first).
+
+Recognized tables with missing/conflicting/ambiguous totals are rejected.
+Source literal, period, column and unit checks precede net-outflow bounds; a
+ratio of averaged amounts is deliberately not equated to an averaged ratio.
+TOMK 2024Q1 solo is excluded because its own comparative FC totals contradict
+one another. Keep that evidence; do not weaken the publication guard or fill
+dashes with zero. After any write trial, read the exact D1 rows back and compare
+against the independent PDF totals. Repeating an identical extraction performs
+no liquidity row writes, and changing one period leaves the other stamp intact.
+No new workflow, secret or environment key is introduced.
+
 ## Schedules
 
 ### Primary-statement date-header repair (2026-09-08)

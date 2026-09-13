@@ -4,6 +4,23 @@ Status: source preservation and reviewed examples retained; further standalone
 corpus expansion paused by user direction on 2026-09-07. Active work now improves
 the existing analytical extraction lanes using those examples as source tests.
 
+## Incremental pipeline priority (2026-09-13)
+
+The user reaffirmed expansion of the existing pipeline as the active objective.
+Keep the retained full-document experiments as source evidence; whole-corpus
+perfection is an aspiration rather than a prerequisite for a useful release.
+Continue widening serving lanes one independently checked increment at a time,
+including structured prose and unserved content. Equity/capital remain examples.
+
+The next increment widens liquidity from four ratios to eight additional
+monetary fields: total/FC HQLA, weighted cash outflows/inflows and capped net
+outflows. It uses explicit source columns, period headings and unit conversion,
+with source disagreement and omission checks. Six source tables were reviewed;
+TOMK 2024Q1's prior FC net outflows contradict its weighted gross outflows and
+are excluded from publication. The exact trial is GARAN 2022Q4 consolidated
+and AKBNK 2026Q2 consolidated. This does not certify the rest of their reports
+or populate all historical component fields. See PROJECT_STATE.md for rollout.
+
 ## Prose delivery priority (2026-09-08)
 
 The user has moved the current work to structured prose. The existing R2 corpus

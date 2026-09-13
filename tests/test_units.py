@@ -105,8 +105,7 @@ def test_ratios_and_counts_are_never_money():
     assert "capital_adequacy_ratio" not in U.money_columns("bank_audit_capital")
     for c in ("stage1_coverage", "stage2_coverage", "stage3_coverage"):
         assert c not in U.MONEY_COLUMNS["bank_audit_stages"]
-    assert U.money_columns("bank_audit_liquidity") == frozenset(), \
-        "LCR, NSFR and leverage are all ratios — nothing in liquidity is money"
+    assert not {"lcr_total", "lcr_fc", "nsfr", "leverage_ratio"} & U.money_columns("bank_audit_liquidity")
     assert U.money_columns("bank_audit_profile") == frozenset(), \
         "branch and personnel counts are not money"
 
@@ -140,9 +139,9 @@ def test_stage_amounts_are_money_but_are_never_scaled_at_write():
         U.money_columns("bank_audit_stages")
 
 
-def test_exactly_twelve_raw_writers_need_scaling():
-    """12 raw monetary tables + 1 derived = the 13 that carry money."""
-    assert len(U.RAW_MONEY_TABLES) == 12
+def test_exactly_thirteen_raw_writers_need_scaling():
+    """13 raw monetary tables + 1 derived = the 14 that carry money."""
+    assert len(U.RAW_MONEY_TABLES) == 13
     assert len(U.DERIVED_MONEY_TABLES) == 1
     assert U.RAW_MONEY_TABLES | U.DERIVED_MONEY_TABLES == set(U.MONEY_COLUMNS)
 
@@ -188,16 +187,16 @@ def test_factor_one_takes_the_same_path_as_factor_one_thousand():
         {"amount_tl": 3.0, "item_order": 1}
 
 
-def test_thirteen_tables_carry_money_and_nine_carry_none():
-    """13 + 9 = the 22 D1 audit tables. Pinned so adding a table forces
+def test_fourteen_tables_carry_money_and_eight_carry_none():
+    """14 + 8 = the 22 D1 audit tables. Pinned so adding a table forces
     a deliberate classification rather than a silent default to not-money."""
     money = set(U.MONEY_COLUMNS)
-    none = {"bank_audit_liquidity", "bank_audit_profile", "bank_audit_opinion",
+    none = {"bank_audit_profile", "bank_audit_opinion",
             "bank_audit_validation", "bank_audit_extractions",
             "bank_audit_pl_roles", "bank_audit_prose",
             "bank_audit_capture_manifest", "bank_audit_document_manifest"}
-    assert len(money) == 13
-    assert len(none) == 9
+    assert len(money) == 14
+    assert len(none) == 8
     assert money | none == set(AUDIT_TABLES)
     for t in none:
         assert U.money_columns(t) == frozenset()
@@ -612,7 +611,7 @@ def test_credit_quality_writer_scales(tmp_path):
     assert got == (1_000.0, 6_000.0, 5), "the page number must not be scaled"
 
 
-def test_liquidity_writer_scales_nothing(tmp_path):
+def test_liquidity_writer_preserves_ratios(tmp_path):
     from src.audit_reports.liquidity import LiquidityReport, upsert
     conn = _db(tmp_path)
     rep = LiquidityReport(pdf_path="x.pdf")
@@ -941,18 +940,19 @@ def test_writer_capital_scales_amounts_and_leaves_ratios(tmp_path):
         "a scaled ratio would print a 15% CAR as 15,000%"
 
 
-def test_writer_liquidity_scales_nothing_at_all(tmp_path):
-    """The negative control: every column here is a ratio, so the writer takes a
+def test_writer_liquidity_preserves_all_four_ratios(tmp_path):
+    """The negative control: these four columns are ratios, so the writer takes a
     context and must leave all four values exactly as extracted."""
     from src.audit_reports.liquidity import LiquidityReport, LiquidityRow, upsert
     conn = _wdb(tmp_path, "liq")
     rep = LiquidityReport(pdf_path="x.pdf", source_page=9, rows=[
         LiquidityRow(period_type="current", leverage_ratio=8.0, lcr_total=150.0,
-                     lcr_fc=200.0, nsfr=130.0)])
+                     lcr_fc=200.0, nsfr=130.0, lcr_hqla_total=2.0)])
     upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
     assert conn.execute(
         "SELECT leverage_ratio, lcr_total, lcr_fc, nsfr "
         "FROM bank_audit_liquidity").fetchone() == (8.0, 150.0, 200.0, 130.0)
+    assert conn.execute("SELECT lcr_hqla_total FROM bank_audit_liquidity").fetchone() == (2000.0,)
 
 
 def test_writer_fx_position_reads_back_scaled(tmp_path):
@@ -1026,12 +1026,12 @@ _READ_BACK_COVERED = frozenset({
     "bank_audit_oci", "bank_audit_credit_quality", "bank_audit_loans_by_sector",
     "bank_audit_npl_movement", "bank_audit_capital", "bank_audit_fx_position",
     "bank_audit_repricing", "bank_audit_equity_change",
-    "bank_audit_free_provision",
+    "bank_audit_free_provision", "bank_audit_liquidity",
 })
 
 
 def test_every_raw_money_table_has_a_read_back_test():
-    """Guards the guard. A thirteenth monetary table added to the registry with
+    """Guards the guard. A new monetary table added to the registry with
     no behavioural test fails here rather than shipping unscaled."""
     missing = U.RAW_MONEY_TABLES - _READ_BACK_COVERED
     assert not missing, f"no read-back test for {sorted(missing)}"
