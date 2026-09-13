@@ -1,5 +1,13 @@
 # Admin control center
 
+## Framed-table source columns (2026-09-13)
+
+After a scoped capture refresh, the source-table reader also displays grids
+derived from a printed frame, currency headings and native word alignment. All
+amount columns, prior-period headings and note references remain present. The
+view keeps baseline bands (including wrapped labels) and remains unreviewed;
+checked native cells do not upgrade financial coverage or certify logical rows.
+
 ## Source tables and dipnotes (2026-09-13)
 
 Open an audit coverage cell and choose **Read source tables and dipnotes**. The

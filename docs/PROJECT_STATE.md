@@ -1,5 +1,27 @@
 # Project State
 
+## Framed source-table columns (2026-09-13)
+
+The existing capture engine now has a guarded path for tables whose outer frame
+is retained but inner rulings are unavailable to the table detector. Printed
+currency triplets establish every amount column; source-word alignment supplies
+the cells. Unit, period, date and currency headers retain their merged spans,
+and the dipnote column stays separate. No value is parsed or fitted to a sum.
+
+Exact GARAN 2022Q4 consolidated native pages 15–17 exercise assets, liabilities
+and off-balance sheet: 47, 49 and 86 body baseline bands, respectively, with all
+eight columns. Wrapped labels remain separate baseline bands pending logical-row
+review. Tests retain every source word and reject removal/alteration of complete
+tables, rows, columns, notes, dates, units and word/geometry evidence. A third
+disclosed period is also retained. The existing reader checks the resulting
+grids and follows the assets 5.1.1 link to pp. 121–123.
+
+This changes capture capability, not analytical D1 values or coverage approval.
+Earlier preserved revisions need a scoped Actions capture to gain this view.
+Equity, other unsupported formats, source completeness across the registered
+corpus, publication validators and structured prose coverage remain unfinished.
+Evidence and publication receipts: `docs/knowledge/2026-09-13-framed-tables/RESULTS.md`.
+
 ## Source tables and dipnotes (2026-09-13)
 
 The existing admin coverage drawer and document browser now share a private

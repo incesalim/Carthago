@@ -1,5 +1,20 @@
 # Operations
 
+## Capture framed currency tables (2026-09-13)
+
+`build-document-corpus.yml` uses the capture engine's framed-currency fallback
+when printed currency headers, note column, outer frame and aligned native words
+agree. The new engine identity invalidates only the requested capture receipts;
+select bank, period, kind and limit for the repair. Preserve `publish=false` for
+a read-only Actions probe, then publish the same scoped filing after review.
+The existing R2 corpus path carries the extra candidates; no D1 migration or
+analytical re-extraction is required. Do not force a settled analytical lane.
+
+`framed-currency-tables-1` marks the view so its structural validator can detect
+even complete candidate deletion. Unknown/ambiguous geometry or headers abstain;
+legacy alternatives remain available. Source accounting is not a financial or
+full-table review certificate. Wrapped baseline bands still need row review.
+
 ## Read source tables with dipnotes (2026-09-13)
 
 The authenticated `document-corpus` endpoint accepts `artifact=tables` for a

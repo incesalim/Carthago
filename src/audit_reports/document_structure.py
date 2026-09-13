@@ -31,6 +31,7 @@ from .document_navigation import NAVIGATION_VERSION, document_navigation, verify
 from .document_cell_fragments import link_cell_fragments, verify_cell_fragments, word_character_geometry
 from .document_table_regions import refine_ruled_regions, verify_region_refinement
 from .document_table_headers import add_period_headers, verify_period_headers
+from .document_framed_tables import SCHEMA as FRAMED_SCHEMA, framed_table_candidates, verify_framed_tables
 
 STRUCTURE_VERSION = "document-structure-1"
 
@@ -52,6 +53,7 @@ def structure_engine() -> dict:
                  "document_cell_fragments.py",
                  "document_table_regions.py",
                  "document_table_headers.py",
+                 "document_framed_tables.py", "document_reviewed_grid.py",
                  "prose.py", "extractor.py", "units.py"):
         path = Path(__file__).parent / name
         digest.update(path.name.encode())
@@ -357,6 +359,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
             extra = underline_candidates(observed, numeric + ruled)
             tables = numeric + ruled + extra
             tables.extend(segmented_table_candidates(observed, tables))
+            tables.extend(framed_table_candidates(observed))
             positioned = None
             if observed.get('actualtext_changes_word_view'):
                 positioned, alternatives, position_issues = _positioned_candidates(pdf[observed['page'] - 1], observed, captured)
@@ -391,6 +394,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
             span_blocks = _physical_blocks(observed)
             pages.append({"page": observed["page"], "text_blocks": span_blocks,
                           "segmented_tables_schema": "segmented-table-candidates-1",
+                          "framed_tables_schema": FRAMED_SCHEMA,
                           "candidate_lines": lines, "tables": tables,
                           "notes": [{**asdict(note), "review_status": "unreviewed"}
                                     for note in captured.notes],
@@ -412,6 +416,7 @@ def build_document_structure(pdf_path: Path, evidence: list[dict]) -> dict:
               "source": source, "evidence_artifact_sha256": artifact_digest(evidence),
               "sections": sections, "contents_items": items, "pages": pages,
               "navigation_schema": NAVIGATION_VERSION, "navigation": navigation,
+              "framed_tables_schema": FRAMED_SCHEMA,
               "status": "structured_candidates", "semantic_verification": "not_performed"}
     add_period_headers(result, evidence)
     # Dataclass tuples (markers, columns, note links) must have the same shape
@@ -429,6 +434,9 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
     errors.extend(verify_document_navigation(structure, evidence))
     errors.extend(verify_table_context(structure['pages']))
     errors.extend(verify_period_headers(structure, evidence))
+    framed = 'framed_tables_schema' in structure or any('framed_tables_schema' in p for p in structure['pages'])
+    if framed and structure.get('framed_tables_schema') != FRAMED_SCHEMA:
+        errors.append('framed_tables_schema_mismatch')
     if structure.get("source") != evidence[0]["source"]:
         errors.append("source_identity_mismatch")
     if structure.get("evidence_artifact_sha256") != artifact_digest(evidence):
@@ -437,6 +445,8 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
         errors.append("page_inventory_mismatch")
     for page, source in zip(structure["pages"], evidence[1:]):
         prefix = f"page_{source['page']}:"
+        if framed and page.get('framed_tables_schema') != FRAMED_SCHEMA:
+            errors.append(prefix + 'missing_framed_tables_schema')
         if any('table_source_rows' in p for p in structure['pages']) and 'table_source_rows' not in page:
             errors.append(prefix + 'missing_table_source_rows')
         if any('reading_layout' in p for p in structure['pages']) and 'reading_layout' not in page:
@@ -447,6 +457,7 @@ def verify_document_structure(structure: dict, evidence: list[dict]) -> dict:
         errors.extend(prefix + error for error in verify_reading_layout(page, source))
         errors.extend(prefix + error for error in verify_table_source_rows(page, source))
         errors.extend(prefix + error for error in verify_segmented_tables(page, source))
+        errors.extend(prefix + error for error in verify_framed_tables(page, source))
         errors.extend(prefix + error for error in verify_table_note_links(page, source))
         spans = {s["id"]: s for s in source["spans"]}
         used = Counter()
