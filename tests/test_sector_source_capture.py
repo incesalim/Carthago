@@ -13,6 +13,8 @@ from test_audit_source_capture import _FakePage
 
 FILINGS = json.loads((Path(__file__).parent / 'fixtures' /
                       'garan_sector_source_capture.json').read_text(encoding='utf-8'))['filings']
+WRAPPED_FILINGS = json.loads((Path(__file__).parent / 'fixtures' /
+                              'garan_sector_wrapped_headers.json').read_text(encoding='utf-8'))['filings']
 
 
 def capture(filing, *, stored=False):
@@ -123,7 +125,8 @@ def test_split_sector_extractor_cites_the_page_containing_the_values(monkeypatch
         (2, 10, 20, 30)]
 
 
-@pytest.mark.parametrize('filing', FILINGS, ids=lambda row: row['source']['kind'])
+@pytest.mark.parametrize('filing', FILINGS + WRAPPED_FILINGS,
+                         ids=lambda row: row['source']['period'] + '-' + row['source']['kind'])
 def test_existing_extractor_reads_every_printed_sector_cell_and_period(monkeypatch, filing):
     from src.audit_reports import loans_by_sector as extractor
 
@@ -152,6 +155,51 @@ def test_existing_extractor_reads_every_printed_sector_cell_and_period(monkeypat
     assert {(row.period_type, row.sector): (row.page, row.stage2_amount,
                                           row.stage3_amount, row.ecl_amount)
             for row in report.rows} == expected
+
+
+@pytest.mark.parametrize('filing', WRAPPED_FILINGS,
+                         ids=lambda row: row['source']['period'] + '-' + row['source']['kind'])
+def test_wrapped_headers_keep_independent_source_constraints_and_capture(filing):
+    from dataclasses import asdict
+    from src.audit_reports.loans_by_sector import _extract_three_column_disclosure
+    from src.audit_reports.source_capture import _selected_pages
+    from src.audit_reports.validator import check_sector_source_cells
+
+    rows = [asdict(row) for row in _extract_three_column_disclosure(
+        {p['number']: p['xy_lines'] for p in filing['pages']})]
+    source = [{'source_page': p['number'], 'line_text': line}
+              for p in filing['pages'] for line in p['lines']]
+    good = check_sector_source_cells(rows, source, 1)
+    assert good.failed == 0 and good.passed == 120
+    # In 2025 consolidated the caption shares the ECL header. Previously the
+    # validator silently skipped the entire current-period table.
+    for row in rows:
+        if row['period_type'] == 'current':
+            row['stage3_amount'] = row['ecl_amount'] = None
+    assert check_sector_source_cells(rows, source, 1).failed == 40
+    assert check_sector_source_cells([], source, 1).failed == 40
+    texts = [''] * max(p['number'] for p in filing['pages'])
+    for p in filing['pages']:
+        texts[p['number'] - 1] = '\n'.join(p['lines'])
+    # Heading and closing boundary must be found even when extraction produced
+    # no row hints. A value-page hint alone misses the Turkish heading page.
+    selected = _selected_pages('loans_by_sector', texts, set())
+    assert all(p['number'] in selected for p in filing['pages'])
+    captured = capture(filing)
+    assert len(captured.data_rows) == 40
+    assert all(row.mapped_key for row in captured.data_rows)
+
+
+def test_turkish_wrapped_ecl_header_is_required_not_inferred_from_three_numbers():
+    from src.audit_reports.loans_by_sector import _extract_three_column_disclosure
+
+    filing = copy.deepcopy(WRAPPED_FILINGS[0])
+    for p in filing['pages']:
+        for line in p['xy_lines']:
+            for token in line:
+                if token[2] == 'Karşılıkları':
+                    token[2] = 'Tanımsız'
+    assert _extract_three_column_disclosure({p['number']: p['xy_lines'] for p in filing['pages']}) is None
 
 
 @pytest.mark.parametrize('defect', ['missing_prior', 'missing_ecl', 'wrong_ecl',

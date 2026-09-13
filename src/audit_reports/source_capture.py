@@ -268,7 +268,13 @@ def _selected_pages(
     cfg = _CONFIG[lane]
     n = len(texts)
     anchors = {i + 1 for i, text in enumerate(texts) if _anchor_matches(text, cfg)}
-    origins = {p for p in hints | anchors if 1 <= p <= n}
+    sector_headings: set[int] = set()
+    if lane == "loans_by_sector":
+        from .loans_by_sector import _page_has_sector_heading
+
+        sector_headings = {page for page, text in enumerate(texts, 1)
+                           if _page_has_sector_heading(text)}
+    origins = {p for p in hints | anchors | sector_headings if 1 <= p <= n}
     if not origins:
         return ()
 
@@ -281,6 +287,12 @@ def _selected_pages(
     else:
         for page in origins:
             pages.update(range(page, min(n, page + cfg.pages_after) + 1))
+    if lane == "loans_by_sector":
+        # A heading-only page may precede all cells and both table periods.
+        # Retain the same bounded window as the extractor independently of its
+        # row hints, including the next numbered disclosure needed for scoping.
+        for page in sector_headings:
+            pages.update(range(page, min(n, page + 3) + 1))
     return tuple(sorted(pages))
 
 

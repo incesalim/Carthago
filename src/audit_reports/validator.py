@@ -236,12 +236,19 @@ def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
         for order, text in enumerate(lines, 1):
             if (page, order) not in selected:
                 continue
+            if text.lower() in {"loans", "krediler"}:
+                headers, period_type = [text], None
+                continue
             caption = re.match(r"^(current|prior|cari|önceki)\s+(?:period|dönem)\b", text, re.I)
             if caption:
+                if period_type is not None:
+                    headers = []
                 period_type = "prior" if caption[1].lower() in {"prior", "önceki"} else "current"
-                headers = []
+                headers.append(text)
                 continue
             if period_type is None:
+                if headers:
+                    headers.append(text)
                 continue
             tail = _THREE_NUMS_TAIL.search(text)
             label = text[:tail.start()] if tail else text
@@ -251,13 +258,18 @@ def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
             if key is None or tail is None:
                 headers.append(text)
                 continue
-            header = " ".join(headers).lower()
+            header = " ".join(headers).lower().replace("i̇", "i")
+            ecl_header = (re.search(r"expected credit losses|beklenen (?:kredi zararları|zarar karşılıkları)", header)
+                          or (re.search(r"beklenen kredi\b", header)
+                              and re.search(r"zararı karşılıkları\b", header)))
             if not (re.search(r"stage\s*2\b|ikinci\s+aşama", header)
                     and re.search(r"stage\s*3\b|üçüncü\s+aşama", header)
-                    and re.search(r"expected credit losses|beklenen (?:kredi zararları|zarar karşılıkları)", header)):
+                    and ecl_header):
                 continue
             expected_rows.append((period_type, key, page, [
                 parse_amount(tail[f"n{i}"]) for i in (1, 2, 3)]))
+            if key == "total":
+                headers, period_type = [], None
     if not expected_rows:
         res.add_skip()
         return res

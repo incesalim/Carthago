@@ -1,5 +1,26 @@
 # Project State
 
+## Wrapped sector headers and independent completeness checks (2026-09-13)
+
+The existing sector extractor retains column headers above and beside period
+captions, including Turkish wrapped ECL headings. Explicit table starts keep
+Stage references in preceding prose out of the column anchors. Both reporting
+periods retain all three printed cells, including all-dash rows; the observed
+Turkish real-estate abbreviation has an exact taxonomy entry. Source discovery
+also retains heading-only pages and the closing disclosure independently of
+extraction results. The source-cell validator checks these layouts independently
+of the coordinate parser and rejects missing current cells or entire periods.
+
+Actions preview 34780144337 at d52e1d0 rejected GARAN 2023Q4 solo and 2025Q4
+consolidated candidates, protecting production from incorrect parsing. It also
+exposed an existing 2025Q4 solo professional-services row containing education
+figures and a missing separate education row. Source-backed regressions cover
+these layouts; repair publication requires a new scoped preview. Earlier GARAN
+2022Q4 publication was verified against D1 and R2 (all 240 printed cells).
+Evidence and current publication status:
+`docs/knowledge/2026-09-13-sector-registered-garan/` and
+`docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
+
 ## Unified sector assessments (2026-09-13)
 
 All eight sector pages now present the dated assessment as a single panel after

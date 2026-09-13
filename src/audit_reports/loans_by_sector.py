@@ -97,6 +97,7 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("real estate and rental", "svc_realestate"),
     ("real estate and renting", "svc_realestate"),  # YKBNK wording ("renting")
     ("gayrimenkul ve kira", "svc_realestate"),
+    ("gayrimenkul ve kira. hizm.", "svc_realestate"),
     ("professional services", "svc_professional"),
     ("independent business services", "svc_professional"),  # QNBFB wording
     ("serbest meslek hizmetleri", "svc_professional"),
@@ -681,12 +682,23 @@ def _extract_three_column_disclosure(page_lines: dict[int, list[list[tuple[float
             if (page, order) not in selected:
                 continue
             text = texts[page][order - 1].strip()
+            if text.lower() in {"loans", "krediler"}:
+                # The table's first header may precede its period caption.
+                # Start here so Stage references in the preceding prose cannot
+                # become column anchors (GARAN's Turkish disclosure spans pages).
+                headers, anchors, period_type = [line], None, None
+                continue
             caption = re.match(r"^(current|prior|cari|önceki)\s+(?:period|dönem)\b", text, re.I)
             if caption:
                 period_type = "prior" if caption[1].lower() in {"prior", "önceki"} else "current"
-                headers, anchors = [], None
+                if anchors is not None:
+                    headers = []
+                anchors = None
+                headers.append(line)  # Caption and ECL header may share a baseline.
                 continue
             if period_type is None:
+                if headers:
+                    headers.append(line)
                 continue
             tail = _THREE_NUMS_TAIL.search(text)
             label = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", text[:tail.start()] if tail else text)
@@ -702,11 +714,20 @@ def _extract_three_column_disclosure(page_lines: dict[int, list[list[tuple[float
             if anchors is None:
                 s2, s3 = _stage_col_x(headers)
                 ecl = []
-                for header in headers:
+                # Read the ECL column vertically as well as across one line.
+                # Turkish prints "Beklenen Kredi / Zararı Karşılıkları" with
+                # the period and Stage 2 text interleaved on the second line.
+                ecl_headers = [[token for header in headers for token in header
+                                if s3 is not None and token[0] > s3]]
+                for header in [*headers, *ecl_headers]:
                     for i in range(len(header) - 2):
                         phrase = " ".join(t.lower().strip("():") for _, _, t in header[i:i + 3])
                         if phrase in {"expected credit losses", "beklenen kredi zararları", "beklenen zarar karşılıkları"}:
                             ecl.append(header[i + 2][1])
+                        if i + 3 < len(header):
+                            phrase = " ".join(t.lower().strip("():") for _, _, t in header[i:i + 4])
+                            if phrase == "beklenen kredi zararı karşılıkları":
+                                ecl.append(header[i + 3][1])
                 if s2 is None or s3 is None or len(set(ecl)) != 1 or not s2 < s3 < ecl[0]:
                     return None
                 anchors = (s2, s3, ecl[0])
@@ -722,6 +743,8 @@ def _extract_three_column_disclosure(page_lines: dict[int, list[list[tuple[float
                 if distances[index] != min(distances) or distances[index] > gap / 2:
                     return None
             rows.append(SectorRow(key, *(v for v, _ in nums), period_type, page, label))
+            if key == "total":
+                headers, anchors, period_type = [], None, None
     identities = {(row.period_type, row.sector) for row in rows}
     if (not rows or ("current", "total") not in identities or len(identities) != len(rows)
             or any((period, "total") not in identities for period, _ in identities)):

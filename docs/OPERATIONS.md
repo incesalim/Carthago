@@ -1,5 +1,18 @@
 # Operations
 
+## Sector header-layout repair checks (2026-09-13)
+
+For the GARAN 2023Q4–2025Q4 sector repair, preview exact bank/period/kind
+partitions through `reextract-statement.yml`, with `require_passing=true`.
+Inspect rejected candidates even if the workflow exits successfully. Verify
+all current and comparative source cells, native dash rows and any changed
+existing value before publishing. The 2025Q4 solo professional/education
+assignment requires a source-backed correction, not preservation of the old
+wrong values. Confirm 40 source rows, 40 mapped rows, zero unmapped rows and
+40 normalized rows for these specific two-period, three-column disclosures;
+these counts do not generalize to other layouts. Read back both D1 and the
+published snapshot after the bounded Actions repair.
+
 ## Reviewing sector-table repairs (2026-09-13)
 
 Use `reextract-statement.yml` for normalized sector-table repairs, with exact
