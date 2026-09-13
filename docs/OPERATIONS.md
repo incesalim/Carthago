@@ -51,7 +51,9 @@ one another. Keep that evidence; do not weaken the publication guard or fill
 dashes with zero. After any write trial, read the exact D1 rows back and compare
 against the independent PDF totals. Repeating an identical extraction performs
 no liquidity row writes, and changing one period leaves the other stamp intact.
-No new workflow, secret or environment key is introduced.
+No new workflow, secret or environment key is introduced. The initial
+read-only trial `34758685354` and publication `34758921549` passed; live
+readback matched all 32 new amounts and preserved the other 2,160 liquidity rows.
 
 ## Schedules
 

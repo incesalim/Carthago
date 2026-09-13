@@ -33,8 +33,18 @@ Six original tables across TOMK 2024Q1 solo, GARAN 2022Q4 consolidated and AKBNK
 2026Q2 consolidated were visually checked: 48 selected monetary cells. The latter
 filing is in millions. TOMK's prior FC net outflows are 33,346 against weighted
 outflows of 25,188 in its own PDF; the new cash-flow bound flags this discrepancy.
-The two Garanti and Akbank filings are the intended scoped Actions trial;
-TOMK is excluded. Migration 0050 and production publication are pending.
+TOMK is excluded from publication. Code `23b6d1c` passed CI `34758671451`;
+deployment `34758762977` applied migration 0050. Read-only Actions trial
+`34758685354` and publication `34758921549` both passed for exactly GARAN
+2022Q4 consolidated and AKBNK 2026Q2 consolidated. Independent live D1 readback
+matched all 32 new component amounts and their complete source evidence across
+four period rows. AKBNK's missing prior LCR values are now 151.64% total and
+250.24% FC. All other 2,160 liquidity rows, including their timestamps, were
+unchanged; all previously populated ratios in the target rows were preserved.
+Validation: 2,979 Python tests passed (2 skipped), 905 website tests passed,
+all web/mobile checks and nine standalone gates passed. The live liquidity page
+loads; the new registry label was confirmed in D1. The admin session has expired,
+so this release does not claim a fresh authenticated admin UI check.
 This does not add full LCR rows, NSFR/leverage components or a historical backfill.
 Evidence: `docs/knowledge/2026-09-13-liquidity-components/`.
 

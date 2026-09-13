@@ -26,8 +26,10 @@ evidence. Amounts are thousand TL; ratios remain percent. Historical NULL fields
 have not been backfilled. These eight fields are not complete liquidity-table
 coverage. Source contradictions or ambiguous columns fail the existing lane's
 publication check; TOMK 2024Q1's comparative FC table is one source contradiction.
-The current production trial covers only GARAN 2022Q4 and AKBNK 2026Q2,
-both consolidated. See PROJECT_STATE.md for publication receipts.
+The published pilot covers only GARAN 2022Q4 and AKBNK 2026Q2, both
+consolidated: 32 additional amounts across four period rows, plus two restored
+AKBNK comparative LCR values. The label was confirmed in live D1; the current
+in-app admin session requires sign-in. See PROJECT_STATE.md for receipts.
 
 ## Structured prose reader (2026-09-08)
 

@@ -12,14 +12,16 @@ perfection is an aspiration rather than a prerequisite for a useful release.
 Continue widening serving lanes one independently checked increment at a time,
 including structured prose and unserved content. Equity/capital remain examples.
 
-The next increment widens liquidity from four ratios to eight additional
+The deployed increment widens liquidity from four ratios to eight additional
 monetary fields: total/FC HQLA, weighted cash outflows/inflows and capped net
 outflows. It uses explicit source columns, period headings and unit conversion,
 with source disagreement and omission checks. Six source tables were reviewed;
 TOMK 2024Q1's prior FC net outflows contradict its weighted gross outflows and
-are excluded from publication. The exact trial is GARAN 2022Q4 consolidated
-and AKBNK 2026Q2 consolidated. This does not certify the rest of their reports
-or populate all historical component fields. See PROJECT_STATE.md for rollout.
+are excluded from publication. The exact trial and publication covered GARAN 2022Q4 consolidated and AKBNK
+2026Q2 consolidated. All 32 new monetary amounts and two restored comparative
+ratios match the sources in production; the other 2,160 liquidity rows are
+unchanged. This does not certify the rest of the reports or populate all
+historical component fields. See PROJECT_STATE.md for release receipts.
 
 ## Prose delivery priority (2026-09-08)
 
@@ -76,7 +78,7 @@ from an extractor's row minimum or successful accounting checks.
 | loans_by_sector | Stage 2, Stage 3 and ECL by normalized sector | Gross loan exposure and other source columns are outside the existing schema; taxonomy must not hide rows |
 | npl_movement | Named movement fields by BRSA group | Compare every printed movement and period, including labels outside the fixed taxonomy |
 | capital | Selected own-funds figures and five buffer percentages | Full deductions, thresholds, detailed template rows and notes remain outside the serving table |
-| liquidity | Four headline ratios | LCR comparative omission repaired in this increment; complete LCR/NSFR/leverage, maturity, monthly and high/low tables still absent |
+| liquidity | Four headline ratios and eight selected LCR monetary totals (added 2026-09-13) | Current/prior and source-column evidence in supported layouts; complete LCR/NSFR/leverage, maturity, monthly and high/low tables still absent |
 | fx_position | Selected currency summary rows and derived net position | Detailed asset/liability rows, rates and notes are absent; restore stored source-page access in analyst tools |
 | repricing | Three summary rows and a derived cumulative gap | Detailed asset/liability rows and nonstandard bucket layouts; enable bucket-specific history and retain source pages |
 | profile | Branch/personnel counts | Ownership, management, organization and other profile text/tables require structured access |
@@ -121,7 +123,7 @@ missing comparative cells are added, with existing current LCR, leverage and
 NSFR unchanged. No other filing has LCR evidence. Authenticated admin visual
 confirmation remains outstanding because the browser session expired on reload.
 
-## Objective and scope
+## Long-term objective and scope
 
 Preserve every table and every text passage in the registered bank audit-report
 corpus, across banks, periods and reporting bases. Preserve source structure,
