@@ -34,6 +34,7 @@ import {
 } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf } from "@/app/lib/chart-format";
+import { useRangeFilter } from "@/app/lib/use-date-range";
 
 export interface BarSeries {
   key: string;
@@ -64,6 +65,10 @@ interface Props {
   /** Suffix appended to tooltip values (e.g. " bn"). */
   unit?: string;
   height?: number;
+  /** Sector pages use the shared data palette and larger chart typography. */
+  appearance?: "report" | "sector";
+  /** Only time-series callers opt in; bucket/scenario categories stay intact. */
+  respectRange?: boolean;
 }
 
 // Warm/cool palette tuned to the source report (orange / maroon / grey / amber).
@@ -83,17 +88,23 @@ export default function BopFlowChart({
   decimals = 1,
   unit = "",
   height = 320,
+  appearance = "report",
+  respectRange = false,
 }: Props) {
   const tx = useText();
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const isLight = t.mode === "light";
   const variant = isLight ? "light" : "dark";
+  const sector = appearance === "sector";
+  const { filtered } = useRangeFilter(data, (row) => String(row.x ?? ""));
+  const chartData = respectRange ? filtered : data;
+  const numberLocale = sector && tx.locale === "tr" ? "tr-TR" : "en-US";
 
   const fillOf = (s: BarSeries, i: number) =>
-    (s.fill ?? FALLBACK_FILLS[i % FALLBACK_FILLS.length])[variant];
+    s.fill?.[variant] ?? (sector ? t.palette[i % t.palette.length] : FALLBACK_FILLS[i % FALLBACK_FILLS.length][variant]);
   const lineColor =
-    (line?.color ?? { light: "#171717", dark: "#ededed" })[variant];
+    line?.color?.[variant] ?? (sector ? t.hero : { light: "#171717", dark: "#ededed" }[variant]);
 
   // Grouped tooltip: each bar segment + the overlay line, in stack order.
   const renderTooltip = ({
@@ -128,16 +139,16 @@ export default function BopFlowChart({
               flex: "none",
             }}
           />
-          <span style={{ color: t.axis }}>{tx(name)}</span>
+          <span style={{ color: sector ? t.inkMuted : t.axis }}>{tx(name)}</span>
           <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
-            {tx(nf(v, decimals))}
+            {tx(nf(v, decimals, numberLocale))}
             {tx(unit)}
           </span>
         </div>
       );
     };
     return (
-      <div style={{ ...tt.contentStyle, minWidth: 200, lineHeight: 1.7 }}>
+      <div style={{ ...tt.contentStyle, minWidth: 200, lineHeight: 1.7, ...(sector ? { fontSize: 14, padding: "12px 14px", fontFamily: "var(--font-sans)" } : {}) }}>
         <div style={tt.labelStyle}>{tx(String(label))}</div>
         {tx(bars.map((s, i) => item(s.key, s.label, fillOf(s, i))))}
         {tx(line && item(line.key, line.label, lineColor, true))}
@@ -151,7 +162,7 @@ export default function BopFlowChart({
     <>
       <ChartData
         table={wideToTable(
-          data,
+          chartData,
           { key: "x", label: "Period" },
           csvSeries.map((s) => ({ key: s.key, label: s.label })),
         )}
@@ -159,54 +170,55 @@ export default function BopFlowChart({
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={data}
+            data={chartData}
             stackOffset={grouped ? undefined : "sign"}
             margin={{
               top: 10,
               right: line?.rightAxis ? 12 : 20,
               left: PLOT_MARGIN_LEFT,
-              bottom: 28,
+              bottom: sector ? 20 : 28,
             }}
             barCategoryGap={grouped ? "16%" : "18%"}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+            <CartesianGrid vertical={!sector} strokeDasharray={sector ? undefined : "3 3"} stroke={t.grid} />
             <XAxis
               dataKey="x"
-              tick={{ fontSize: 10, fill: t.axis }}
-              tickMargin={6}
-              minTickGap={18}
-              axisLine={{ stroke: t.grid }}
-              tickLine={{ stroke: t.grid }}
+              tick={{ fontSize: sector ? 14 : 10, fill: sector ? t.inkMuted : t.axis, ...(sector ? { fontFamily: "var(--font-sans)" } : {}) }}
+              tickFormatter={sector ? (value) => tx(String(value)) : undefined}
+              tickMargin={sector ? 10 : 6}
+              minTickGap={sector ? 42 : 18}
+              axisLine={sector ? false : { stroke: t.grid }}
+              tickLine={sector ? false : { stroke: t.grid }}
             />
             <YAxis
               yAxisId="left"
               width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 11, fill: t.axis }}
-              tickFormatter={(v) => nf(Number(v), 0)}
-              axisLine={{ stroke: t.grid }}
-              tickLine={{ stroke: t.grid }}
+              tick={{ fontSize: sector ? 14 : 11, fill: sector ? t.inkMuted : t.axis, ...(sector ? { fontFamily: "var(--font-sans)" } : {}) }}
+              tickFormatter={(v) => nf(Number(v), 0, numberLocale)}
+              axisLine={sector ? false : { stroke: t.grid }}
+              tickLine={sector ? false : { stroke: t.grid }}
             />
             {line?.rightAxis && (
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 11, fill: t.axis }}
-                tickFormatter={(v) => nf(Number(v), 0)}
-                axisLine={{ stroke: t.grid }}
-                tickLine={{ stroke: t.grid }}
+                tick={{ fontSize: sector ? 14 : 11, fill: sector ? t.inkMuted : t.axis, ...(sector ? { fontFamily: "var(--font-sans)" } : {}) }}
+                tickFormatter={(v) => nf(Number(v), 0, numberLocale)}
+                axisLine={sector ? false : { stroke: t.grid }}
+                tickLine={sector ? false : { stroke: t.grid }}
               />
             )}
             <ReferenceLine y={0} yAxisId="left" stroke={t.reference} />
             <Tooltip cursor={crosshairCursor(t)} content={renderTooltip} />
             <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+              wrapperStyle={{ fontSize: sector ? 14 : 11, paddingTop: sector ? 10 : 4, ...(sector ? { fontFamily: "var(--font-sans)" } : {}) }}
               content={() => (
                 <ul
                   style={{
                     display: "flex",
                     flexWrap: "wrap",
                     justifyContent: "center",
-                    gap: "2px 14px",
+                    gap: sector ? "6px 18px" : "2px 14px",
                     listStyle: "none",
                     margin: 0,
                     padding: 0,
@@ -215,7 +227,7 @@ export default function BopFlowChart({
                   {bars.map((s, i) => (
                     <li
                       key={s.key}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, color: t.axis }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: sector ? 7 : 5, color: sector ? t.inkMuted : t.axis }}
                     >
                       <span
                         style={{
@@ -230,7 +242,7 @@ export default function BopFlowChart({
                     </li>
                   ))}
                   {line && (
-                    <li style={{ display: "inline-flex", alignItems: "center", gap: 5, color: t.axis }}>
+                    <li style={{ display: "inline-flex", alignItems: "center", gap: sector ? 7 : 5, color: sector ? t.inkMuted : t.axis }}>
                       <span
                         style={{
                           display: "inline-block",
@@ -265,7 +277,7 @@ export default function BopFlowChart({
                 strokeDasharray={line.dotted ? "2 3" : undefined}
                 dot={false}
                 isAnimationActive={false}
-                connectNulls
+                connectNulls={!sector}
               />
             )}
           </ComposedChart>

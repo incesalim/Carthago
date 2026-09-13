@@ -54,6 +54,34 @@ export function SectorMetrics({ children }: { children: ReactNode }) {
   </section>;
 }
 
+/** The opening pairs the current figures with their economic context. */
+export function SectorOpening({ children }: { children: ReactNode }) {
+  return <div className={styles.opening}>{children}</div>;
+}
+
+export function SectorGrid({ children, columns = 2, ratio = "balanced" }: {
+  children: ReactNode;
+  columns?: 2 | 3;
+  ratio?: "balanced" | "wide-left" | "wide-right";
+}) {
+  return <div className={styles.grid} data-columns={columns} data-ratio={ratio}>{children}</div>;
+}
+
+export function SectorPanel({ children, title, description }: {
+  children: ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+}) {
+  const tx = useText();
+  return <div data-sector-panel className={styles.panel}>
+    {(title || description) && <header className={styles.panelHeader}>
+      {title && <h3>{tx(title)}</h3>}
+      {description && <p>{tx(description)}</p>}
+    </header>}
+    {children}
+  </div>;
+}
+
 export function SectorSection({ id, title, description, children }: {
   id: string;
   title: ReactNode;

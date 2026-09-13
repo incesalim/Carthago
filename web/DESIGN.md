@@ -1,7 +1,9 @@
-# Carthago design constitution — "The Desk"
+# Carthago design system
 
-Status: **ACTIVE** (shipped 2026-07-11). Every design/UI change starts from this
-file. The previous "Editorial" (cream + serif + terracotta) system is retired.
+Status: **ACTIVE**. Shared identity and tokens date from 2026-07-11. The sector
+workspace was redesigned on 2026-09-13; its contract below takes precedence over
+the legacy document-sheet rules for all eight sector routes. The previous
+"Editorial" (cream + serif + terracotta) system is retired.
 
 ## Identity in one sentence
 
@@ -9,9 +11,10 @@ A **document sheet on a desk**: one white sheet of analysis floating on a cool
 paper workspace, read top-to-bottom like a briefing — typography and hairlines
 do all the work; nothing is decorated.
 
-## Ground rules (the anti-defaults)
+## Shared identity and legacy document rules
 
-1. **No boxes inside the sheet.** Hierarchy comes from hairlines (`border-hair`),
+1. **Legacy document routes use an open sheet.** Sector routes instead use the
+   analytical panels defined below. On legacy routes, Hierarchy comes from hairlines (`border-hair`),
    two-pixel ink rules (`border-t-2 border-foreground`) and type weight — not
    from nested cards. (Legacy `Card`/`Stat` surfaces are tolerated in evidence
    layers until converted.)
@@ -20,7 +23,8 @@ do all the work; nothing is decorated.
 3. **Green/red state data direction only** (`--positive` #187A53 / `--negative`
    #C24847). Amber (`--warning` #B98514) marks thresholds and
    representative-data flags.
-4. **Every figure is mono** (`font-mono`, tabular). Reader-facing labels and notes use the sans face at 11–14px; reserve mono
+4. **Figures use tabular numerals.** Legacy document tables use `font-mono`;
+   sector headline figures use the sans face for a consistent reading rhythm. Reader-facing labels and notes use the sans face at 11–14px; reserve mono
    for figures and compact numerical comparisons. Do not shrink prose to fit.
 5. **No serif anywhere.** Instrument Sans carries body and display; `--font-serif`
    deliberately resolves to the sans stack so legacy `font-serif` degrades.
@@ -41,8 +45,9 @@ do all the work; nothing is decorated.
    builder sign-inverted fixtures and fails if a falling word survives a rising
    series) and `scripts/check_prose_claims.py` (CI). See
    [docs/knowledge/prose-claims-audit.md](../docs/knowledge/prose-claims-audit.md).
-8. **Boldness lives in one signature element per page** — the vitals band. Keep
-   everything else quiet.
+8. **Visual emphasis follows analytical importance.** The main measure, primary
+   chart and supporting comparisons must be distinguishable. Do not force every
+   chart into the same dimensions or make every heading a long computed claim.
 
 ## Tokens (globals.css is the source of truth)
 
@@ -153,113 +158,76 @@ Worked example, on real rows, with the arithmetic:
   (the peer frame). Ranking a ₺11bn digital bank against a ₺8.7trn state bank
   without saying so is a lie of omission.
 
-## Sector reading order
+## Sector workspace (2026-09-13)
 
-The eight sector pages form one banking report within the existing site shell.
-`app/components/sector-report.tsx` owns presentation; route modules retain all
-queries and calculations. `sector-contents.tsx` is the small client boundary for
-reading position. Static page descriptions and related routes belong to
-`app/lib/sector-pages.ts`, separate from data access.
+The eight routes (`/`, `/credit`, `/deposits`, `/liquidity`, `/asset-quality`,
+`/capital`, `/profitability`, `/market-risk`) share a financial analytics workspace
+inside the existing navigation shell. This replaces the old no-boxes sector
+brief. Use cool neutral ground, white analytical panels, fine full borders and
+8–10px corners. Panels identify related analysis; avoid boxes inside boxes.
 
-Sector reports use a left-aligned content area, 13–14px explanatory text,
-16px chart titles and aligned 30px key figures. A solitary section indicator
-becomes a horizontal summary with its sparkline and explanation. Pair related
-charts; supplementary three-chart rows and full-width bank-group facets must
-not leave an unused half-row. Facet columns respond to the chart's container,
-not the browser width. Source notes and observation dates use readable sans
-text; mono is for numbers. `TrendChart` and `TimeSeriesChart` opt into `readout`
-on these routes: full series names and latest values sit outside the SVG,
-including the earlier date when a series lags. Click or keyboard activation
-pins a series; all data and export controls remain available.
+`sector-report.tsx` owns the report shell, `SectorOpening`, `SectorMetrics`,
+`SectorGrid` and `SectorPanel`. Route server components retain the queries and
+calculations. `sector-contents.tsx` owns reading position; `SectorTrend` owns chart
+interaction. Static topic names and related routes live in `sector-pages.ts`.
+Database concepts and implementation plans never become visitor-facing headings.
 
-A page starts with its financial subject, a short description, reporting dates
-and key indicators. An assessment follows. Each financial topic then owns its
-related metrics, charts, comparisons and explanation in one continuous section.
-Use conventional financial terms: loan growth, deposit maturities, credit
-stages, capital composition, income statement and repricing gaps. Never expose
-an internal Now/Drivers/Evidence hierarchy or carry-over commentary to visitors.
+The opening combines a compact title/date header, topic navigation with one
+labelled period selector, current indicators and a short dated assessment
+headline. All supporting assessment notes remain visible immediately after the
+first main chart or chart grid in the first chapter. The history selector changes
+charts, not the latest-period indicators. Four indicators use
+four columns when there is room, six use six only on wide desktop; use two
+columns on phones. Align metric labels and figures. Preserve essential dates
+and basis notes, but consolidate text that repeats the adjacent indicator.
 
-The overview covers the whole sector and links to all seven specialist pages.
-Each specialist page ends with relevant sibling analysis. These links supplement
-rather than duplicate the global sidebar. Local topic navigation uses stable
-subject names, visible focus and an active section indicator. It scrolls
-horizontally on narrow screens; the page itself never widens. The chart-period
-control affects historical charts, not the dated current-indicator band.
+Each chapter answers a financial question. Loans pair nominal/real growth with
+the currency-and-inflation waterfall; deposits separate currency and maturity;
+liquidity separates regulatory ratios from funding; asset quality connects
+stages, flows and coverage; capital connects adequacy, components and leverage;
+profitability starts with returns and margins; market risk separates currency
+positions, repricing and scenarios. Use the financial terms themselves, never
+internal Now/Drivers/Evidence labels. Cross-links belong after the analysis.
 
-Keep all analytical content visible. A redesign may consolidate an exact
-repetition, but must retain every distinct measure, series, breakdown, table,
-scenario, date basis, source note, filter and export. Definitions and literal
-monitoring criteria may use labelled disclosures; substantive analysis does not.
-Daily, weekly, monthly and audited quarterly figures keep their separate bases.
-Conditional section links appear only when the corresponding section exists.
+Use 32–36px page titles, 22–24px chapter headings, 17–18px chart titles, 13–15px
+explanatory copy and 12px source notes. Instrument Sans carries prose and headline
+figures; reserve mono for compact data comparisons. Normal chart axes use 14px,
+constrained facets 12px. Full series names and exact values belong in HTML outside
+the plot. Do not shrink or truncate them to make a chart fit. Use 20–24px panel
+padding and a regular 16–20px gap; choose panel proportions from the actual content.
 
-Choose charts by task, not a uniform template. Lines show history; paired lines
-support a direct comparison; shared-scale small multiples separate crowded group
-trends; composition uses shares with amounts still available; signed bars or
-waterfalls explain contributions and scenarios. Different regulatory ratios
-with materially different scales (for example LCR versus leverage) need separate
-plots. State percentage-point changes as percentage points, not percentages.
+`SectorTrend` supports combined histories for crossings/comparison and shared-scale
+facets for individual bank-group histories. It pairs histories with full-name
+current comparisons, using a right rail only when the container has room. All
+groups remain available, with keyboard/pointer highlighting, clear null gaps,
+lagging disclosure dates, exact values, data tables and CSV/image exports.
+Ranges use rounded data-driven ticks. A line axis may crop with readable labels;
+bars/areas preserve a zero baseline. Explicit regulatory/analytical references
+must appear as labelled drawn lines and be included in the domain. Distinguish
+BDDK's 12% capital target from the 8% statutory minimum. Regulatory constants come
+from the existing domain definitions; do not invent new thresholds for design.
 
-Use the Desk palette, whitespace and hairlines. Topic headings are 22-24px;
-chart titles 15px; explanatory copy 12-14px. Avoid tiny all-caps prose. Key
-indicators use two columns on phones/tablets and three or four on wide screens.
+Signed bars/waterfalls explain contributions and rate scenarios; product
+composition uses shares plus an amount view. Credit SME contributions remain a
+subset of commercial lending, never an additional summand. Distinct LCR, NSFR
+and leverage scales use separate plots. Retain group deltas explicitly when
+replacing a chart whose old component supplied them by default.
 
-**Sparkline geometry:** a `<Vital>` sparkline is a compact trend glyph, not a
-full-width time-series chart. Its plot is capped at `26rem` and uses a `3rem`
-height so sparse one- and two-cell bands do not flatten the series into a very
-wide strip. The metric cell may remain wider; the plot stays left-aligned with
-its label and value.
+Preserve every distinct measure, series, breakdown, table, scenario, reporting
+basis, source, filter and export. Exact repetitions may be consolidated. Duplicate
+historical/high-low tables may use a labelled disclosure while their histories,
+latest levels and original comparisons remain available. Substantive analysis
+stays in the normal reading flow. Keep daily, weekly, monthly and audited
+quarterly bases distinct; `null` never becomes zero. Threshold methodology may
+use a disclosure, while active/cleared monitoring results stay visible.
 
-**Vital-band geometry:** five- and six-metric bands do not become a row of
-skinny cells on wide screens. They use at most three columns (`3 × 2` for six),
-inside a `72rem` measure. This leaves enough width for the metric, cadence note
-and sparkline to be read together.
-
-**Group-comparison geometry:** when the question is how every ownership group
-moved, use shared-scale small multiples rather than six overlaid lines. Every
-panel carries one line, the latest value and a stated-period delta; all panels
-share the same y-domain so level differences remain honest. Keep a combined
-line chart only when crossings or covariance between groups are the analytical
-question. Plain evidence plots are capped at `52rem`; a small-multiple grid may
-use `64rem`.
-
-**No release calendars on analysis pages:** operational schedules and
-"Ahead" blocks displace the evidence readers came to analyse. Keep release
-calendar data in the pipeline for products that need it, but do not render it
-inside sector or economy briefs.
-
-**Carry-over contract:** converting a page to the Desk preserves both analytical
-content and default visibility. Existing charts, tables and sections may move into financial-topic sections,
-but they remain in the normal reading flow. They keep
-their data wiring (range selector, bank-type filters, finding titles) and only
-lose chrome. Do not put analytical evidence behind a disclosure merely to reduce
-page density. Vitals notes and flags must be **computed from series the page
-already fetches** — no hand-written claims, no forecasts.
-
-**The evidence layer speaks the brief's language** (shipped 2026-07-12 on
-Overview; the pattern the other tabs follow). Within financial-topic sections a page must not invent a second grid or
-re-introduce surfaces:
-
-- **No `Stat`/`Card` boxes.** A row of KPI cards becomes the page's own
-  `<Vitals rule="hair">` band — the *same cells* as the brief, re-rendered for
-  whatever the filter selects, with `<Levels>` carrying the level figures above
-  it and `<PeerBar>` marking where the sector sits in the league of groups.
-- **`<Takeaway variant="report">`** — dated assessment and readable supporting points.
-  The boxed variant survives only on tabs not yet converted.
-- **Charts sit on the sheet** (`<TrendChart plain …>`): finding title, mono-caps
-  sub-line, and `<ChartFoot>` under the mark (hero latest, Δ 12m, leading and
-  trailing group — computed from the rows the chart draws, so the finding
-  survives a screenshot). Two per row, so each spans three cells of the band.
-- **Controls are mono-caps with an ink underline** (`BankTypeFilter`), never
-  pills and never blue — blue is a verb, and switching a band navigates nowhere.
-- **Monitoring includes the current result.** `<Flags variant="report" showCleared>`
-  shows active and cleared results in plain language. A labelled method
-  disclosure keeps the calculation criterion inspectable. Give each `Flag` a
-  `clear` line saying what was measured.
-- **A split that IS the page's frame gets a table.** `<Compare a b rows>`
-  (`/liquidity`: public vs private) — where the whole analysis rests on two
-  populations, print them side by side with the gap, instead of making the reader
-  infer it from four charts.
+Validate actual desktop and phone rendering: no page-wide horizontal overflow,
+clipped labels, orphan half-rows, narrow value columns or gratuitous empty panels.
+Verify real source-backed data, charts, range controls, group filters, tooltips,
+exports and keyboard focus. Content preservation and passing tests are necessary;
+neither replaces visual inspection. Research rationale and before/after inventory
+are private in `docs/knowledge/2026-09-13-dashboard-research/` and
+`docs/knowledge/2026-09-13-sector-redesign/`.
 
 **The mark has to fit the data, not the idea.** A decomposition that sums to a
 total is a stacked area — *unless a component can go negative*, in which case a

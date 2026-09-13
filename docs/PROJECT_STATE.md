@@ -154,36 +154,24 @@ coverage or known issues change.
 
 ## Sector layout redesign (2026-09-13)
 
-Overview, Credit, Deposits, Liquidity, Asset Quality, Capital, Profitability and
-Market Risk use `sector-report.tsx`: descriptive page headers, dated indicators,
-an assessment, and financial-topic sections that bring each subject's metrics,
-charts and comparisons together. Active section navigation and the shared chart
-period control remain available while scrolling. The overview links to all
-seven specialist pages; each specialist page links to related sector analysis.
-Generic Now/Drivers/Evidence layers and implementation commentary no longer
-appear in these pages. Monitoring results remain visible; calculation criteria
-and dataset definitions have their own accessible disclosures.
+The eight sector routes now share a redesigned analytics workspace: compact
+report/date headers, a labelled history selector, aligned current indicators,
+a dated assessment and financial-topic panels. Neutral ground and white panels
+replace the old continuous sheet. Each route groups related histories, breakdowns
+and exact comparisons; all distinct analytical content remains available.
 
-All original analytical data remain available. The duplicate monthly profit
-bridge is consolidated with its detailed table. Liquidity's leverage ratio has
-its own plot, separate from LCR/NSFR; market-risk scenarios also have a signed
-bar chart. Small-multiple percentage changes are labelled in percentage points.
-Sources, reporting bases, null observations, scenarios, filters and chart exports
-are retained. Queries and calculations stay on the server; only navigation state
-and existing chart interactions run in the browser. This changes presentation,
-not database coverage or ingestion. Research and preservation receipts are in
-`docs/knowledge/2026-09-13-sector-report-redesign/`.
+`SectorTrend` adds readable combined or faceted histories, full-name current
+comparisons, rounded data-driven axes, explicit reference lines, null gaps,
+lag dates and keyboard highlighting. The original range/data/export contracts
+remain. Credit uses a responsive horizontal growth waterfall and contribution
+bars; asset-quality stages/coverage and flows have readable external labels;
+profitability uses a horizontal income waterfall; capital differentiates the
+12% BDDK target from the 8% statutory minimum and preserves missing components.
 
-Visual repair (2026-09-13): aligned indicator rows, readable sans annotations,
-container-responsive bank-group facets, and complete HTML series/value readouts
-replace clipped SVG labels across the sector routes. Solitary indicators use
-horizontal summaries. Credit pairs growth with currency/inflation decomposition,
-retail growth with card volumes, and groups related supplementary charts. The
-growth/decomposition pair stacks below 1536px so the waterfall stays readable
-alongside the site navigation. All
-202 analytical component/data signatures from the prior release are retained;
-queries and calculations are unchanged. The local visual archive includes
-middle-section desktop views and mobile checks across all eight routes.
+The server queries/calculations and client presentation boundaries are retained.
+Daily, weekly, monthly and audited sources keep their distinct bases. The new
+sector design contract lives in `web/DESIGN.md`; private research and content
+verification are in `docs/knowledge/2026-09-13-sector-redesign/`.
 
 ## Liquidity component expansion (2026-09-13)
 

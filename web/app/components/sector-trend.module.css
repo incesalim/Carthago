@@ -1,0 +1,75 @@
+.card { min-width: 0; }
+.body { width: 100%; max-width: none; container-type: inline-size; }
+.layout { display: grid; gap: 24px; min-width: 0; }
+.histories { min-width: 0; }
+.plot { height: var(--sector-plot-height, 340px); min-width: 0; }
+.rail { min-width: 0; border-top: 1px solid var(--border); padding-top: 18px; }
+.railHeading { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; align-items: baseline; margin-bottom: 9px; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
+.railHeading > :first-child { font-weight: 600; color: var(--foreground); }
+.entries { display: grid; grid-template-columns: 1fr; }
+.entry { min-width: 0; width: 100%; padding: 13px 0 11px; border-bottom: 1px solid var(--hair); text-align: left; cursor: pointer; transition: opacity 120ms; }
+.entry[data-muted] { opacity: .55; }
+.entry[aria-pressed="true"] .entryName { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.entry:focus-visible, .facetTitle:focus-visible, .reset:focus-visible { outline: 2px solid var(--foreground); outline-offset: 4px; border-radius: 2px; }
+.entryHeading { display: flex; gap: 9px; align-items: baseline; }
+.keyMark { display: inline-block; flex: 0 0 12px; width: 12px; height: 3px; align-self: center; border-radius: 1px; }
+.entryName { flex: 1; font-size: 14px; line-height: 1.4; color: var(--foreground); overflow-wrap: anywhere; }
+.entryValue { flex-shrink: 0; font-size: 17px; line-height: 1.4; font-weight: 600; font-family: var(--font-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--foreground); white-space: nowrap; }
+.entry[data-hero] .entryName, .entry[data-hero] .entryValue { font-weight: 700; }
+.dotTrack { display: block; position: relative; height: 1px; margin: 13px 5px 7px 21px; background: var(--border); }
+.dot { position: absolute; top: -4px; width: 9px; height: 9px; border-radius: 50%; transform: translateX(-50%); }
+.referenceTick { position: absolute; top: -4px; height: 9px; border-left: 1px dashed; }
+.entryNote { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin: 9px 0 0 21px; font-size: 12px; line-height: 1.45; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.railScale { display: flex; justify-content: space-between; margin: 12px 0 0 21px; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.reset { margin: 14px 0 0 21px; font-size: 13px; color: var(--foreground); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.references { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 12px; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
+.references > span { display: inline-flex; align-items: baseline; gap: 7px; }
+.references i { display: inline-block; align-self: center; width: 20px; border-top: 2px dashed; }
+.references strong { color: var(--foreground); font-weight: 600; font-variant-numeric: tabular-nums; }
+.comparisonNote { display: flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+.comparisonNote i { display: inline-block; width: 18px; border-top: 1.5px dashed var(--muted-foreground); }
+.facets { display: grid; gap: 24px 20px; }
+.facet { min-width: 0; }
+.facetTitle { display: flex; gap: 9px; align-items: center; font-size: 14px; line-height: 1.5; font-weight: 600; color: var(--foreground); text-align: left; cursor: pointer; }
+.facetTitle[aria-pressed="true"] { text-decoration: underline; text-underline-offset: 4px; }
+.facetPlot { height: 192px; margin-top: 4px; }
+.tooltip { max-width: min(360px, 85vw); padding: 12px 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 20px #00000012; font-size: 14px; line-height: 1.5; color: var(--foreground); }
+.tooltipDate { margin-bottom: 7px; font-weight: 600; }
+.tooltipRow { display: flex; gap: 8px; align-items: baseline; }
+.tooltipRow > span:nth-child(2) { flex: 1; }
+.tooltipRow strong { margin-left: 12px; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+.empty { padding: 56px 12px; text-align: center; font-size: 14px; color: var(--muted-foreground); }
+.layout[data-compact] { gap: 14px; }
+.layout[data-compact] .rail { grid-row: 1; border-top: 0; padding-top: 0; }
+.layout[data-compact] .railHeading { justify-content: flex-start; font-size: 12px; }
+.layout[data-compact] .entries { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.layout[data-compact] .entry { width: auto; min-width: 140px; padding: 0; border-bottom: 0; }
+.layout[data-compact] .entryHeading { display: grid; grid-template-columns: 12px 1fr; gap: 2px 8px; }
+.layout[data-compact] .entryValue { grid-column: 2; font-size: 24px; }
+.layout[data-compact] .entryNote { margin-top: 2px; }
+
+@container (min-width: 540px) {
+  .facets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 900px) {
+  .layout:not([data-compact]) { grid-template-columns: minmax(0, 1fr) minmax(270px, .38fr); gap: 28px; }
+  .layout:not([data-compact]) .rail { border-top: 0; border-left: 1px solid var(--border); padding-top: 3px; padding-left: 24px; }
+  .plot { height: var(--sector-plot-height, 360px); }
+}
+@container (min-width: 1250px) {
+  .layout[data-sector-trend-mode="groups"] { grid-template-columns: minmax(0, 1fr) 300px; }
+  .layout[data-sector-trend-mode="groups"] .facets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (max-width: 420px) {
+  .plot { height: 300px; }
+  .facetPlot { height: 200px; }
+  .entryValue { font-size: 16px; }
+  .references { font-size: 12px; }
+}
+
+@container (min-width:480px) and (max-width:899px) {
+  .layout:not([data-compact]) .entries { grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; }
+  .layout:not([data-compact]) .entryHeading { flex-wrap:wrap; }
+  .layout:not([data-compact]) .entryName { flex-basis:calc(100% - 24px); }
+  .layout:not([data-compact]) .entryValue { margin-left:21px; }
+}

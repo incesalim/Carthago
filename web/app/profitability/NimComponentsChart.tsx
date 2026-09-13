@@ -12,7 +12,6 @@ import {
   CartesianGrid,
   ComposedChart,
   LabelList,
-  Legend,
   Line,
   ReferenceLine,
   ResponsiveContainer,
@@ -98,7 +97,7 @@ function segmentLabel(fill: string) {
     const width = Number(props.width);
     const height = Number(props.height);
     const value = Number(props.value);
-    if (!Number.isFinite(value) || Math.abs(height) < 13 || width < 30) {
+    if (!Number.isFinite(value) || Math.abs(height) < 18 || width < 44) {
       return null;
     }
     return (
@@ -107,7 +106,7 @@ function segmentLabel(fill: string) {
         y={y + height / 2}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={10}
+        fontSize={12}
         fill={labelColor(fill)}
       >
         {nf(value, 1)}%
@@ -133,7 +132,7 @@ function netTotalLabel(color: string) {
         x={x + width / 2}
         y={y - 7}
         textAnchor="middle"
-        fontSize={11}
+        fontSize={13}
         fontWeight={600}
         fill={color}
       >
@@ -250,6 +249,7 @@ export default function NimComponentsChart({
   };
 
   return (
+    <>
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
@@ -259,14 +259,14 @@ export default function NimComponentsChart({
             top: mode === "annual" ? 22 : 10,
             right: 20,
             left: PLOT_MARGIN_LEFT,
-            bottom: 30,
+            bottom: 4,
           }}
           barCategoryGap={mode === "annual" ? "28%" : "12%"}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
           <XAxis
             dataKey="x"
-            tick={{ fontSize: 11, fill: t.axis }}
+            tick={{ fontSize: 14, fill: t.axis }}
             tickMargin={6}
             minTickGap={30}
             axisLine={{ stroke: t.grid }}
@@ -274,19 +274,60 @@ export default function NimComponentsChart({
           />
           <YAxis
             width={Y_AXIS_WIDTH}
-            tick={{ fontSize: 11, fill: t.axis }}
+            tick={{ fontSize: 14, fill: t.axis }}
             tickFormatter={(v) => `${nf(Number(v), 0)}%`}
             axisLine={{ stroke: t.grid }}
             tickLine={{ stroke: t.grid }}
           />
           <ReferenceLine y={0} stroke={t.reference} />
           <Tooltip cursor={crosshairCursor(t)} content={renderTooltip} />
-          <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-            content={() => (
-              // Render straight from `series` so the legend order matches the
-              // stack; Recharts 3 otherwise reorders it.
-              <ul
+
+          {series.map((s) => (
+            <Bar
+              key={s.key}
+              dataKey={s.key}
+              name={tx(s.label)}
+              stackId="nim"
+              fill={fills[s.key]}
+              isAnimationActive={false}
+            >
+              {mode === "annual" && (
+                <LabelList dataKey={s.key} content={segmentLabel(fills[s.key])} />
+              )}
+              {mode === "annual" && s.key === TOP_INCOME_KEY && (
+                <LabelList dataKey="net" content={netTotalLabel(netColor)} />
+              )}
+            </Bar>
+          ))}
+          {/* Halo under the net line: card-background casing keeps the line
+              legible over the dark loans band and the yellow deposits band. */}
+          <Line
+            dataKey="net"
+            stroke={t.tooltipBg}
+            strokeWidth={5}
+            strokeOpacity={0.9}
+            dot={false}
+            activeDot={false}
+            legendType="none"
+            tooltipType="none"
+            isAnimationActive={false}
+          />
+          <Line
+            dataKey="net"
+            name={tx("Net NIM")}
+            stroke={netColor}
+            strokeWidth={2.25}
+            dot={
+              mode === "annual"
+                ? { r: 3.5, fill: netColor, stroke: t.tooltipBg, strokeWidth: 1.5 }
+                : false
+            }
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+    <div className="mt-4 text-[14px]"><ul
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
@@ -334,53 +375,7 @@ export default function NimComponentsChart({
                       borderTop: `2px solid ${netColor}`,
                     }}
                   />{tx("Net NIM")}</li>
-              </ul>
-            )}
-          />
-          {series.map((s) => (
-            <Bar
-              key={s.key}
-              dataKey={s.key}
-              name={tx(s.label)}
-              stackId="nim"
-              fill={fills[s.key]}
-              isAnimationActive={false}
-            >
-              {mode === "annual" && (
-                <LabelList dataKey={s.key} content={segmentLabel(fills[s.key])} />
-              )}
-              {mode === "annual" && s.key === TOP_INCOME_KEY && (
-                <LabelList dataKey="net" content={netTotalLabel(netColor)} />
-              )}
-            </Bar>
-          ))}
-          {/* Halo under the net line: card-background casing keeps the line
-              legible over the dark loans band and the yellow deposits band. */}
-          <Line
-            dataKey="net"
-            stroke={t.tooltipBg}
-            strokeWidth={5}
-            strokeOpacity={0.9}
-            dot={false}
-            activeDot={false}
-            legendType="none"
-            tooltipType="none"
-            isAnimationActive={false}
-          />
-          <Line
-            dataKey="net"
-            name={tx("Net NIM")}
-            stroke={netColor}
-            strokeWidth={2.25}
-            dot={
-              mode === "annual"
-                ? { r: 3.5, fill: netColor, stroke: t.tooltipBg, strokeWidth: 1.5 }
-                : false
-            }
-            isAnimationActive={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+              </ul></div>
+    </>
   );
 }

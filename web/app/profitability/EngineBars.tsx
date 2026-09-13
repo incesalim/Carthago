@@ -14,7 +14,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -66,6 +65,10 @@ export default function EngineBars({
           { key: "profit", label: "Net profit" },
         ])}
       />
+      <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[14px] text-muted-foreground">
+        <span className="flex items-center gap-2"><i aria-hidden className="h-2.5 w-2.5" style={{ background: t.hero }} />{tx("The free deposits, priced at the paid rate")}</span>
+        <span className="flex items-center gap-2"><i aria-hidden className="h-2.5 w-2.5" style={{ background: t.palette[3] }} />{tx("Sector net profit")}</span>
+      </div>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -75,14 +78,14 @@ export default function EngineBars({
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
-              minTickGap={28}
+              tick={{ fontSize: 14, fill: t.axis }}
+              minTickGap={52}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
+              tick={{ fontSize: 14, fill: t.axis }}
               tickFormatter={(v: number) => `₺${v.toFixed(1)}`}
               axisLine={false}
               tickLine={false}
@@ -92,14 +95,6 @@ export default function EngineBars({
               contentStyle={tt.contentStyle}
               labelStyle={tt.labelStyle}
               formatter={(v) => fmt(Number(v))}
-            />
-            <Legend
-              verticalAlign="top"
-              align="left"
-              height={22}
-              wrapperStyle={{ fontSize: 11, color: t.axis }}
-              iconType="square"
-              iconSize={9}
             />
             <Bar
               dataKey="worth"

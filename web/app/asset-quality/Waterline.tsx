@@ -1,23 +1,4 @@
-/**
- * The waterline — /asset-quality's signature.
- *
- * The NPL ratio everyone quotes is Stage 3: the tip. Loans the banks themselves
- * classify as deteriorated are ~4x that, and three-quarters of the problem book
- * is the Stage-2 watchlist the ratio never shows.
- *
- * Two bars, because one cannot carry both facts:
- *   1. the whole book TO SCALE — so the reader sees how small the printed ratio is;
- *   2. the problem book MAGNIFIED — so Stage 2 vs Stage 3, and the coverage held
- *      against each, are legible at all.
- *
- * Coverage is drawn INSIDE each stage (the provisioned share of that stage's
- * carrying amount) rather than as a separate chart, because the asymmetry —
- * ~10% on the watchlist against ~62% on the NPL — is the point.
- *
- * Deliberately NOT shown: "₺Xtrn unprovisioned". It is arithmetically true and
- * rhetorically dishonest — Stage 2 is not impaired, so lower cover is expected,
- * not a shortfall the banks owe. The migration sizing beside this does that job.
- */
+/** Credit-stage balances and provision coverage from one audited bank sample. */
 import { useText } from "@/i18n/use-text";
 import type { StageLadder } from "@/app/lib/credit-risk";
 
@@ -27,79 +8,146 @@ const bnf = (v: number) => `₺${Math.round(v).toLocaleString("en-US")}bn`;
 
 export default function Waterline({ ladder }: { ladder: StageLadder | null }) {
   const tx = useText();
-  if (!ladder) {
+  if (!ladder)
     return (
-      <p className="py-6 text-[12px] text-faint">{tx("The staging ladder awaits an audited quarter with at least five reporting banks.")}</p>
+      <p className="py-6 text-[14px] leading-relaxed text-muted-foreground">
+        {tx(
+          "The staging ladder awaits an audited quarter with at least five reporting banks.",
+        )}
+      </p>
     );
-  }
   const l = ladder;
   const s2OfProblem = (l.stage2Bn / l.problemBn) * 100;
   const s3OfProblem = (l.stage3Bn / l.problemBn) * 100;
+  const stages = [
+    {
+      label: "Stage 2 — the watchlist",
+      amount: l.stage2Bn,
+      coverage: l.cov2,
+      color: "bg-warning",
+    },
+    {
+      label: "Stage 3",
+      amount: l.stage3Bn,
+      coverage: l.cov3,
+      color: "bg-negative",
+    },
+  ];
 
   return (
-    <div>
-      {/* ── the whole book, to scale ─────────────────────────────────── */}
-      <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx("The loan book · ")}{tx(l.period)}{tx(" audited · n=")}{tx(l.n)}
-      </div>
-      <div className="flex h-[30px] overflow-hidden">
+    <div className="space-y-6" data-credit-stages>
+      <div>
+        <div className="mb-3 text-[13px] text-muted-foreground">
+          {tx("The loan book · ")}
+          {tx(l.period)}
+          {tx(" audited · n=")}
+          {tx(l.n)}
+        </div>
         <div
-          className="relative h-full border-r-2 border-card bg-context"
-          style={{ width: `${l.stage1Share}%` }}
+          className="flex h-5 overflow-hidden rounded-sm"
+          aria-label={tx("TFRS-9 staging · % of gross loans")}
         >
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9.5px] font-semibold text-foreground">{tx("Stage 1 · performing · ")}{tx(pct(l.stage1Share))}
+          <div
+            className="h-full border-r-2 border-card bg-context"
+            style={{ width: `${l.stage1Share}%` }}
+          />
+          <div
+            className="h-full border-r-2 border-card bg-warning"
+            style={{ width: `${l.stage2Share}%` }}
+          />
+          <div
+            className="h-full bg-negative"
+            style={{ width: `${l.stage3Share}%` }}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[13px]">
+          <span>
+            <i className="mr-2 inline-block size-2.5 rounded-sm bg-context" />
+            {tx("Stage 1 · performing · ")}
+            <b className="font-semibold tabular-nums">
+              {tx(pct(l.stage1Share))}
+            </b>
+          </span>
+          <span>
+            <i className="mr-2 inline-block size-2.5 rounded-sm bg-warning" />
+            {tx("Stage 2")}{" "}
+            <b className="font-semibold tabular-nums">
+              {tx(pct(l.stage2Share))}
+            </b>
+          </span>
+          <span>
+            <i className="mr-2 inline-block size-2.5 rounded-sm bg-negative" />
+            {tx("Stage 3")}{" "}
+            <b className="font-semibold tabular-nums">
+              {tx(pct(l.stage3Share))}
+            </b>
           </span>
         </div>
-        <div className="h-full border-r-2 border-card bg-warning" style={{ width: `${l.stage2Share}%` }} />
-        <div className="h-full bg-negative" style={{ width: `${l.stage3Share}%` }} />
+        <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+          {tx("The published NPL ratio includes Stage 3 only.")}
+        </p>
       </div>
-
-      {/* the tick marks STAGE 3 ALONE — that, and only that, is what the ratio prints */}
-      <div className="relative h-4">
+      <div className="border-t border-hair pt-5">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h4 className="text-[15px] font-semibold">
+            {tx("Stage 2 + Stage 3 loans")}
+          </h4>
+          <span className="text-[17px] font-semibold tabular-nums">
+            {tx(trn(l.problemBn))}{" "}
+            <span className="text-[13px] font-normal text-muted-foreground">
+              · {tx(pct(l.problemShare))}
+              {tx(" of loans")}
+            </span>
+          </span>
+        </div>
         <div
-          className="absolute top-0 h-3.5 border-l border-negative"
-          style={{ left: `${l.stage1Share + l.stage2Share}%` }}
+          className="mb-5 flex h-7 overflow-hidden rounded-sm"
+          aria-label={tx("Stage 2 + Stage 3 loans")}
         >
-          <span className="absolute right-1.5 top-0 hidden w-40 whitespace-nowrap text-right font-mono text-[8.5px] font-semibold uppercase tracking-[0.05em] text-negative sm:block">{tx("the ratio prints only this →")}</span>
-        </div>
-      </div>
-      <div className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.05em] text-negative sm:hidden">{tx("the ratio prints only the ")}{tx(pct(l.stage3Share))}{tx(" tip")}</div>
-
-      {/* ── the problem book, magnified ──────────────────────────────── */}
-      <div className="mt-6 border-t border-hair pt-3.5">
-        <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{tx("The problem book, magnified · ")}{tx(trn(l.problemBn))} · {tx(pct(l.problemShare))}{tx(" of loans")}</div>
-        <div className="flex h-[46px] overflow-hidden">
           <div
-            className="relative h-full border-r-2 border-card bg-warning"
+            className="h-full border-r-2 border-card bg-warning"
             style={{ width: `${s2OfProblem}%` }}
-          >
-            {/* provisions held against this stage */}
-            <div
-              className="absolute inset-y-0 left-0 bg-foreground/40"
-              style={{ width: `${l.cov2}%` }}
-            />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[10px] font-semibold text-white">{tx("Stage 2 — the watchlist")}</span>
-          </div>
-          <div className="relative h-full bg-negative" style={{ width: `${s3OfProblem}%` }}>
-            <div
-              className="absolute inset-y-0 left-0 bg-foreground/40"
-              style={{ width: `${l.cov3}%` }}
-            />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[10px] font-semibold text-white">{tx("Stage 3")}</span>
-          </div>
+          />
+          <div
+            className="h-full bg-negative"
+            style={{ width: `${s3OfProblem}%` }}
+          />
         </div>
-
-        <div className="mt-2 flex text-[10.5px] text-muted-foreground">
-          <span>
-            <b className="font-mono font-semibold text-foreground">{tx(trn(l.stage2Bn))}</b>{tx(" Stage 2 ·")}{" "}
-            <b className="font-mono font-semibold text-foreground">{tx(pct(l.cov2))}</b>{tx(" covered")}</span>
-          <span className="ml-auto">
-            <b className="font-mono font-semibold text-foreground">{tx(trn(l.stage3Bn))}</b>{tx(" Stage 3 ·")}{" "}
-            <b className="font-mono font-semibold text-foreground">{tx(pct(l.cov3))}</b>{tx(" covered")}</span>
+        <div className="grid gap-5 sm:grid-cols-2">
+          {stages.map((stage) => (
+            <div key={stage.label}>
+              <div className="flex items-start justify-between gap-3 text-[13px]">
+                <span className="font-medium">
+                  <i
+                    className={`mr-2 inline-block size-2.5 rounded-sm ${stage.color}`}
+                  />
+                  {tx(stage.label)}
+                </span>
+                <b className="whitespace-nowrap font-semibold tabular-nums">
+                  {tx(trn(stage.amount))}
+                </b>
+              </div>
+              <div className="mt-3 flex justify-between gap-3 text-[13px] text-muted-foreground">
+                <span>{tx("Provision coverage")}</span>
+                <b className="font-semibold tabular-nums text-foreground">
+                  {tx(pct(stage.coverage))}
+                </b>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-foreground/10">
+                <div
+                  className={`h-full ${stage.color}`}
+                  style={{ width: `${Math.min(stage.coverage, 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
-
-        <div className="mt-2.5 font-mono text-[9px] leading-relaxed text-faint">
-          <span className="mr-1 inline-block h-2 w-2.5 align-[-1px] bg-foreground/40" />{tx("Provisions held: {0}, covering {1} of the problem book", {0: bnf(l.provisionsBn), 1: pct(l.problemCov)})}<span className="mx-1.5">·</span>
-          <span className="mr-1 inline-block h-2 w-2.5 align-[-1px] bg-warning" />{tx(" carrying amount")}</div>
+        <p className="mt-5 border-t border-hair pt-4 text-[13px] leading-relaxed text-muted-foreground">
+          {tx("Provisions held: {0}, covering {1} of the problem book", {
+            0: bnf(l.provisionsBn),
+            1: pct(l.problemCov),
+          })}
+        </p>
       </div>
     </div>
   );

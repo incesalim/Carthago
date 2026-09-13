@@ -21,11 +21,14 @@ import {
   LabelList,
   ReferenceLine,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import { useChartTheme, PLOT_MARGIN_LEFT, Y_AXIS_WIDTH } from "@/app/lib/chart-theme";
+import { ChartData } from "@/app/components/ui/chart-csv";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { nf } from "@/app/lib/chart-format";
 import type { Bridge } from "@/app/lib/profitability";
 
 export default function ProfitBridge({
@@ -46,6 +49,7 @@ export default function ProfitBridge({
 }) {
   const tx = useText();
   const t = useChartTheme();
+  const tt = tooltipStyles(t);
 
   const steps: { key: keyof Bridge; name: string }[] = [
     { key: "nii", name: "Net interest income" },
@@ -83,45 +87,52 @@ export default function ProfitBridge({
 
   return (
     <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
-      <div style={{ height }}>
+      <ChartData table={{ columns: ["Income statement item", "Amount (TL trn)", "Annual change (TL trn)"], rows: data.map(point => [point.name, point.value, point.yoy]) }} />
+      <div style={{ height: Math.max(height, 380) }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            margin={{ top: 24, right: 10, left: PLOT_MARGIN_LEFT, bottom: 30 }}
+            layout="vertical"
+            margin={{ top: 8, right: 70, left: 0, bottom: 8 }}
+            barSize={24}
           >
-            <CartesianGrid vertical={false} stroke={t.grid} />
+            <CartesianGrid horizontal={false} stroke={t.grid} />
             <XAxis
-              dataKey="name"
-              tick={{ fontSize: 10, fill: t.axis }}
-              interval={0}
+              type="number"
+              tick={{ fontSize: 14, fill: t.axis }}
+              tickFormatter={(value: number) => nf(value, 2)}
               axisLine={false}
               tickLine={false}
-              height={44}
+              tickCount={4}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
-              tickFormatter={(v: number) => v.toFixed(2)}
+              type="category"
+              dataKey="name"
+              tick={{ fontSize: 14, fill: t.axis }}
               axisLine={false}
               tickLine={false}
-              width={Y_AXIS_WIDTH}
+              width={130}
+              interval={0}
             />
-            <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />
+            <ReferenceLine x={0} stroke={t.reference} strokeDasharray="3 3" />
+            <Tooltip cursor={{ fill: t.cursor }} contentStyle={tt.contentStyle} labelStyle={tt.labelStyle}
+              formatter={(_value, _name, item) => [nf(Number(item.payload.value), 3), tx("Amount (TL trn)")]} />
             <Bar dataKey="range" isAnimationActive={false} radius={[2, 2, 0, 0]}>
               {data.map((d) => (
                 <Cell key={d.name} fill={fill(d.kind)} fillOpacity={d.kind === "total" ? 0.9 : 0.75} />
               ))}
               <LabelList
                 dataKey="value"
-                position="top"
+                position="right"
                 formatter={(v) => {
                   const n = Number(v);
                   return Number.isFinite(n)
-                    ? `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(3)}`
+                    ? `${n >= 0 ? "+" : "−"}${nf(Math.abs(n), 3)}`
                     : "";
                 }}
                 style={{
                   fill: "var(--foreground)",
-                  fontSize: 10,
+                  fontSize: 14,
                   fontWeight: 600,
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}

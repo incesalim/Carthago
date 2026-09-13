@@ -72,7 +72,7 @@ export function ChartCard({
       data-chart-card=""
       className={cn("group p-4 transition-colors hover:border-primary/40", className)}
     >
-      <div className="mb-3 flex flex-wrap items-start gap-3">
+      <div data-chart-header className="mb-3 flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-[1_1_14rem] space-y-0.5">
           {title && (
             <div
@@ -92,9 +92,9 @@ export function ChartCard({
           <ChartExport />
         </div>
       </div>
-      <div className={bodyClassName}>{children}</div>
+      <div data-chart-body className={bodyClassName}>{children}</div>
       {source && (
-        <div className="mt-3 border-t border-border pt-2.5 font-mono text-[9.5px] text-faint">
+        <div data-chart-source className="mt-3 border-t border-border pt-2.5 font-mono text-[9.5px] text-faint">
           {tx(source)}
         </div>
       )}

@@ -399,7 +399,7 @@ export function Levels({
 }) {
   const tx = useText();
   return (
-    <div className="grid grid-cols-2 border-b border-hair sm:grid-cols-4">
+    <div data-levels className="grid grid-cols-2 border-b border-hair sm:grid-cols-4">
       {items.map((it) => (
         <div
           key={it.k}
@@ -588,7 +588,7 @@ export interface TransmissionItem {
 export function Transmission({ items }: { items: TransmissionItem[] }) {
   const tx = useText();
   return (
-    <div>
+    <div data-transmission>
       {items.map((it) => (
         <div
           key={it.k}
@@ -846,7 +846,7 @@ export function ChartRow({
 
   return (
     <div data-chart-row className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <div className="lg:col-span-2">{children}</div>
+      {children && <div className="lg:col-span-2">{children}</div>}
       <div className="lg:pt-1">
         <h5 className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
           {tx(keys.length > 1 ? tx("Latest · {0} · Δ {1}", {0: latestPeriod ?? "", 1: deltaLabel}) : tx("The read · {0}", {0: latestPeriod ?? ""}))}
@@ -925,7 +925,7 @@ export function ChartFoot({
     items.push({ k: "Low", v: `${tx(labels[bottom.code] ?? bottom.code)} ${f(bottom.value)}` });
 
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
+    <div data-chart-foot className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
       {items.map((it) => (
         <span key={it.k} className="flex items-baseline gap-1.5">
           <span className="uppercase tracking-[0.07em]">{tx(it.k)}</span>

@@ -37,9 +37,10 @@ database the Python pipeline writes. Repo-wide rules: [../AGENTS.md](../AGENTS.m
   don't re-declare a local `nf`.
 
 ## Design
-All UI work follows **[DESIGN.md](DESIGN.md)** ("The Desk" system): white sheet on
-paper ground, hairlines not boxes, blue = links only, mono figures, and financial
-topics with their indicators and analysis together. Chart colours live in
+All UI work follows **[DESIGN.md](DESIGN.md)**. The eight sector routes use the
+2026-09-13 analytics workspace: neutral ground, readable analytical panels,
+financial-topic sections and responsive chart comparisons. Other routes retain
+the document-sheet conventions. Shared colours and typography preserve the site identity. Chart colours live in
 `app/lib/chart-theme.ts` in LOCKSTEP with `app/globals.css` tokens.
 
 ## Local dev & deploy

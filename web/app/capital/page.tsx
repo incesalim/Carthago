@@ -1,17 +1,5 @@
-import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
-/**
- * Capital tab — "The Desk" two-layer page.
- *
- * Layer 1 (the brief): the vitals band — CAR + buffer over BDDK's 12% target
- * (the statutory floor is 8%), audited Tier-1 / CET1, equity growth vs asset growth (the capital
- * generation gap), RWA density and leverage — every note computed from the
- * same series the charts read.
- *
- * Layer 2 ("In depth"): the pre-Desk evidence — CAR by group, the headroom
- * sizing device, audited capital composition, the per-bank capital-adequacy
- * ranking, equity & leverage and risk density — carried over, restyled, not
- * removed.
- */
+import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorSection, SectorDirectory, SectorFooter, SectorOpening, SectorGrid, SectorPanel } from "@/app/components/sector-report";
+/** Capital adequacy, audited composition, bank comparisons and balance-sheet risk. */
 import { localizeMetadata } from "@/i18n/metadata";
 import { getText } from "@/i18n/server";
 import type { Metadata } from "next";
@@ -36,8 +24,7 @@ import { BANK_NAMES } from "@/app/lib/bank_names";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
 import StepWaterfall from "./StepWaterfall";
-import TrendChart from "@/app/components/TrendChart";
-import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
+import SectorTrend from "@/app/components/SectorTrend";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { capitalInsights } from "@/app/lib/insights";
@@ -46,7 +33,6 @@ import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   CadenceBand,
   ChartFoot,
-  ChartRow,
   Flags,
   Levels,
   Movers,
@@ -228,7 +214,7 @@ export default async function CapitalPage() {
   const moverRows: MoverRow[] = [
     { label: "Capital adequacy", ...mv(carSector), fmt: (v) => `${v.toFixed(2)}%`, good: "up" },
     {
-      label: "RWA density", note: "rwa net ÷ gross",
+      label: "Risk-weighted asset density", note: "rwa net ÷ gross",
       ...mv(rwaSector), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "neutral",
     },
     {
@@ -426,6 +412,8 @@ export default async function CapitalPage() {
     },
   ];
 
+  const sectorAssessment = await withLlmHeadline("capital", read, tx.locale);
+
   return (
     <SectorReport>
 <SectorHeader sector="capital" record={<>{tx("Record ")}<b className="font-normal text-foreground">{tx(recMonth)}</b>{tx(" · vs ")}{tx(vsMonth)}
@@ -444,7 +432,8 @@ export default async function CapitalPage() {
             basis: "sum of reporting banks' BRSA filings",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "adequacy", label: "Capital adequacy"}, {id: "composition", label: "Capital composition"}, {id: "leverage", label: "Equity and leverage"}, {id: "risk-weights", label: "Risk-weighted assets"}, {id: "banks", label: "Capital by bank"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "adequacy", label: "Capital adequacy"}, {id: "composition", label: "Capital composition"}, {id: "banks", label: "Capital by bank"}, {id: "leverage", label: "Equity and leverage"}, {id: "risk-weights", label: "Risk-weighted assets"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector compact />} />
+<SectorOpening>
 <SectorMetrics><Vital
           label={tx("Capital adequacy")}
           value={carNow != null ? carNow.toFixed(1) : "—"}
@@ -480,7 +469,7 @@ export default async function CapitalPage() {
           }
         />
 <Vital
-          label={tx("RWA density")}
+          label={tx("Risk-weighted asset density")}
           value={rwaNow != null ? rwaNow.toFixed(1) : "—"}
           unit="%"
           series={rwaSector.slice(-13)}
@@ -497,14 +486,15 @@ export default async function CapitalPage() {
             ? <>≈ {tx(`${levX.toFixed(1)}×`)}{tx(" assets / equity")}</>
             : <>{tx("The current bulletin does not provide this ratio.")}</>}
         /></SectorMetrics>
-<Takeaway data={await withLlmHeadline("capital", read, tx.locale)} variant="report" />
+<Takeaway data={sectorAssessment} variant="report-summary" />
+</SectorOpening>
 <SectorSection id="adequacy" title={tx("Capital adequacy")} description={tx("Published sector ratios, changes over time and bank-group comparisons.")}>
-<SmallMultiplesTrend
-          plain
+<SectorTrend mode="groups" references={[{ value: CAR_TARGET, label: tx("BDDK target") }, { value: CAR_LEGAL_MIN, label: tx("Statutory minimum") }]}
+
           data={carAll}
           seriesLabels={BANK_TYPE_LABELS}
-          title={
-            tx(firstClaim(
+          title={tx("Capital adequacy by bank group")}
+          description={<><span className="block">{tx(firstClaim(
               [
                 step?.isBreak && together && !!sw,
                 tx("Every ownership group {0} together in {1}", { 0: sw?.verb, 1: monthLabel(step?.period ?? null, false) }),
@@ -515,9 +505,7 @@ export default async function CapitalPage() {
               ],
             ) ??
               seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }, tx.locale) ??
-              "Capital adequacy — by group")
-          }
-          description={tx("capital adequacy (syr), %, monthly · by group · target ratio 12%")}
+              "Capital adequacy — by group")}</span><span className="mt-1 block">{tx("capital adequacy (syr), %, monthly · by group · target ratio 12%")}</span></>}
           source={
             <ChartFoot data={carAll} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
           }
@@ -525,46 +513,15 @@ export default async function CapitalPage() {
           decimals={1}
           deltaPeriods={12}
           deltaLabel="12m"
-          height={104}
-          columns={3}
+          height={320}
+
           referencePeriod={step?.isBreak ? step.period : undefined}
           referenceLabel={step?.isBreak ? `${step.delta.toFixed(2)}pp` : undefined}
         />
-<div className="grid grid-cols-1 gap-8 lg:grid-cols-2"><div>
-          <SecHead title={tx("Period changes")} meta={tx("{0} → {1} · monthly", { 0: vsMonth, 1: monthLabel(carSector.at(-1)?.period, false) })} className="mb-2.5" />
-          <Movers
-            from={vsMonth.toUpperCase()}
-            to={monthLabel(carSector.at(-1)?.period, false).toUpperCase()}
-            rows={moverRows}
-          />
-        </div>
-<div>
-          <SecHead
-            title={tx(step?.isBreak ? "Changes in capital adequacy" : "Capital and balance-sheet growth")}
-            meta={tx("Capital ratios and balance-sheet changes")}
-            className="mb-2.5"
-          />
-          <Transmission items={transmission} />
-        </div></div>
-{step?.isBreak && split && (
-            <Levels
-              items={[
-                {
-                  k: monthLabel(carSector[stepIdx - 1]?.period ?? null),
-                  v: fmtPct(beforeStep, 2),
-                },
-                { k: monthLabel(step.period), v: fmtPct(afterStep, 2) },
-                { k: "The step", v: `${step.delta.toFixed(2)}pp` },
-                {
-                  k: monthLabel(carSector.at(-1)?.period ?? null),
-                  v: fmtPct(split.to, 2),
-                },
-              ]}
-            />
-          )}
-<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            
-            {split && step?.isBreak ? (
+<Takeaway data={sectorAssessment} variant="report-details" />
+
+<SectorGrid ratio="wide-left">
+<div className="min-w-0 space-y-5">{split && step?.isBreak ? (
               <StepWaterfall
                 fromLabel={monthLabel(carSector.at(-13)?.period ?? null)}
                 toLabel={monthLabel(carSector.at(-1)?.period ?? null)}
@@ -573,10 +530,13 @@ export default async function CapitalPage() {
                 step={split.step}
                 rest={split.rest}
                 stepLabel={tx("The {0} step", { 0: monthLabel(step.period, false) })}
-                title={tx("The year's {0} is the step — the rest of the year {1} capital", { 0: split.total < 0 ? "decline" : "gain", 1: split.rest >= 0 ? "added" : "lost" })}
-                description={tx("12-month change in CAR, pp · the one-off isolated from everything else")}
+                title={tx("Capital adequacy — change over 12 months")}
+                description={<>
+                  <span className="block">{tx("12-month change in the capital adequacy ratio, percentage points.")}</span>
+                  <span className="mt-2 block">{tx("The ratio changed by {0} over 12 months. The change in {1} was {2}; the remaining months contributed {3}.", { 0: signedPp(split.total, 2), 1: monthLabel(step.period, false), 2: signedPp(split.step, 2), 3: signedPp(split.rest, 2) })}</span>
+                </>}
                 source={
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[13px] text-faint">
                     <span>
                       12M <b className="font-semibold text-foreground">{tx(signedPp(split.total, 2))}</b>
                     </span>
@@ -604,9 +564,24 @@ export default async function CapitalPage() {
                 decimals={1}
               />
             )}
-          </div>
+{step?.isBreak && split && (
+            <Levels
+              items={[
+                {
+                  k: monthLabel(carSector[stepIdx - 1]?.period ?? null),
+                  v: fmtPct(beforeStep, 2),
+                },
+                { k: monthLabel(step.period), v: fmtPct(afterStep, 2) },
+                { k: "The step", v: `${step.delta.toFixed(2)}pp` },
+                {
+                  k: monthLabel(carSector.at(-1)?.period ?? null),
+                  v: fmtPct(split.to, 2),
+                },
+              ]}
+            />
+          )}
 {step?.isBreak && (
-            <p className="mt-4 max-w-[96ch] text-[12px] leading-relaxed text-muted-foreground">
+            <p className="mt-4 max-w-[96ch] text-[13px] leading-relaxed text-muted-foreground">
               <b className="font-semibold text-foreground">{tx("Not attributed.")}</b>{tx(" The step is in the data, not in the explanation: no rule in our regulation window covers it, and RWA density")}{" "}
               {rwaHeld ? (
                 <>{tx("barely moved (")}{tx(fmtPct(rwaNow))}{tx("), so it arrived through the capital numerator rather than the risk mix")}</>
@@ -615,9 +590,30 @@ export default async function CapitalPage() {
                   {tx(rwaStepMove)} {tx(signedPp(rwaStepDelta ?? 0, 1))}{tx(" in the same month, so the risk mix moved with it")}</>
               )}{tx(". The buffer is therefore sized against the")}{" "}
               <b className="font-semibold text-foreground">{tx(driftBasis)}</b>{tx(" slope — extrapolating a step would be arithmetic dressed as a forecast.")}</p>
-          )}
+          )}</div><SectorPanel>
+<div>
+          <SecHead title={tx("Period changes")} meta={tx("{0} → {1} · monthly", { 0: vsMonth, 1: monthLabel(carSector.at(-1)?.period, false) })} className="mb-2.5" />
+          <Movers
+            from={vsMonth.toUpperCase()}
+            to={monthLabel(carSector.at(-1)?.period, false).toUpperCase()}
+            rows={moverRows}
+          />
+        </div>
+</SectorPanel>
+</SectorGrid>
+<SectorPanel>
+<div>
+          <SecHead
+            title={tx(step?.isBreak ? "Changes in capital adequacy" : "Capital and balance-sheet growth")}
+            meta={tx("Capital ratios and balance-sheet changes")}
+            className="mb-2.5"
+          />
+          <Transmission items={transmission} />
+        </div>
+</SectorPanel>
 </SectorSection>
 <SectorSection id="composition" title={tx("Capital composition")} description={tx("audited §4 · Σ component ÷ Σ RWA · {0}", { 0: auditQ })}>
+<SectorPanel>
 <CadenceBand
         title={tx("Audited capital composition")}
         observation={{
@@ -650,8 +646,9 @@ export default async function CapitalPage() {
           />
         </Vitals>
       </CadenceBand>
-<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <StackedArea
+</SectorPanel>
+<SectorGrid ratio="balanced">
+<StackedArea
               plain
               data={stack as unknown as Record<string, string | number | null>[]}
               series={[
@@ -665,7 +662,7 @@ export default async function CapitalPage() {
                 // Against the bulletin's CAR (a different basis — 16.34 vs 16.07) the
                 // title said composition was fine while the flag said it was not.
                 tx(hybrids != null && auditBuffer != null && hybrids > auditBuffer
-                  ? "The cushion over the minimum is instruments, not common equity"
+                  ? "The buffer above the BDDK target is supported by AT1 and Tier 2 instruments"
                   : "Capital composition — CET1, AT1 and Tier-2")
               }
               description={tx("capital stack, % of RWA, audited quarterly · sums to total capital")}
@@ -687,35 +684,42 @@ export default async function CapitalPage() {
               decimals={2}
               height={280}
             />
-            <ChartRow data={capRatios} labels={AUDIT_CAPITAL_LABELS} deltaPeriods={4} deltaLabel="4q" fmt={(v) => `${v.toFixed(1)}%`}>
-              <TrendChart readout
-                plain
+<SectorTrend mode="trend" deltaBasis="published" deltaFromFullHistory deltaPeriods={4} deltaLabel="4q" source={tx("Source: BRSA quarterly filings (§4)")}
+
                 data={capRatios}
                 seriesLabels={AUDIT_CAPITAL_LABELS}
                 title={tx("CET1, Tier 1 and total capital ratios")}
                 description={tx("audited quarterly, % of RWA · sector · Σ component ÷ Σ RWA")}
                 yFormat="pct"
                 decimals={1}
-                height={280}
+                height={320}
                 hero="CET1"
               />
-            </ChartRow>
-          </div>
+</SectorGrid>
+</SectorSection>
+<SectorSection id="banks" title={tx("Capital by bank")} description={tx("Bank-level capital ratios from quarterly financial statements.")}>
+<SectorPanel>
+<div>
+          <SecHead title={tx("Bank comparisons")} meta={tx("audited {0}", { 0: auditQ })} href="/banks" hrefLabel={tx("by bank →")} className="mb-2.5" />
+          <Standings groups={standings} />
+        </div>
+</SectorPanel>
+<SectorPanel>
+<CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
+</SectorPanel>
 </SectorSection>
 <SectorSection id="leverage" title={tx("Equity and leverage")} description={tx("Equity levels, annual growth and leverage")}>
-<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
-<TrendChart readout
-              plain
-              data={equityYoYSec}
-              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity y/y" }}
-              title={
-                tx(genGap == null
+<SectorGrid ratio="balanced">
+<SectorTrend mode="trend" hero="EQUITY"
+
+              data={[...equityYoYSec.map(row => ({ ...row, bank_type_code: "EQUITY" })), ...assetsYoYSec.map(row => ({ ...row, bank_type_code: "ASSETS" }))]}
+              seriesLabels={{ EQUITY: "Equity y/y", ASSETS: "Asset growth, y/y" }}
+              title={tx("Equity and asset growth")}
+              description={<><span className="block">{tx(genGap == null
                   ? "Equity growth — sector"
                   : genGap >= 0
                     ? "Equity compounds faster than the balance sheet — generation is not the constraint"
-                    : "The balance sheet is outgrowing its equity")
-              }
-              description={tx("equity growth y/y, %, monthly · sector")}
+                    : "The balance sheet is outgrowing its equity")}</span><span className="mt-1 block">{tx("equity growth y/y, %, monthly · sector")}</span></>}
               source={
                 <ChartFoot
                   data={equityYoYSec}
@@ -726,11 +730,11 @@ export default async function CapitalPage() {
               }
               yFormat="pct"
               decimals={1}
-              height={280}
+              height={320}
               zeroLine
             />
-<TrendChart readout
-              plain
+<SectorTrend mode="trend"
+
               data={equity}
               seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
               title={tx("Total sector equity")}
@@ -738,17 +742,17 @@ export default async function CapitalPage() {
               source={tx("Source: BDDK monthly bulletin")}
               yFormat="trn"
               decimals={2}
-              height={260}
+              height={320}
             />
-</div>
-<SmallMultiplesTrend
-              plain
+</SectorGrid>
+<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
+
               data={lev}
               seriesLabels={BANK_TYPE_LABELS}
               // Both halves were typed: a direction AND a ranking, next to the very
               // series that decides them. `lev` is this chart's own data prop.
-              title={
-                tx(firstClaim(
+              title={tx("Liabilities relative to equity")}
+              description={<><span className="block">{tx(firstClaim(
                   [
                     levTrend != null && levTrend !== VERBS.trend.flat && levTopLabel != null,
                     tx("Gearing keeps {0} — the {1} banks lean hardest", { 0: levTrend, 1: levTopLabel }),
@@ -757,25 +761,22 @@ export default async function CapitalPage() {
                     levTopLabel != null,
                     tx("Gearing is flat — the {0} banks lean hardest", { 0: levTopLabel }),
                   ],
-                ) ?? "Liabilities ÷ equity — by group")
-              }
-              description={tx("liabilities ÷ equity, %, monthly · by ownership group")}
+                ) ?? "Liabilities ÷ equity — by group")}</span><span className="mt-1 block">{tx("liabilities ÷ equity, %, monthly · by ownership group")}</span></>}
               source={
                 <ChartFoot data={lev} labels={BANK_TYPE_LABELS} decimals={0} deltaPeriods={12} />
               }
               yFormat="pct"
               decimals={0}
-              height={142}
-              columns={3} />
+              height={320}
+               />
 </SectorSection>
 <SectorSection id="risk-weights" title={tx("Risk-weighted assets")} description={tx("Risk-weighted assets and off-balance-sheet exposures")}>
-<div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
-<div className="lg:col-span-2"><SmallMultiplesTrend
-              plain
+<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
+
               data={rwa}
               seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(firstClaim(
+              title={tx("Risk-weighted asset density")}
+              description={<><span className="block">{tx(firstClaim(
                   [
                     step?.isBreak && rwaHeld && !!sw,
                     tx("Risk density barely moved through the step — the {0} came from capital, not the risk mix", { 0: sw?.noun }),
@@ -784,29 +785,25 @@ export default async function CapitalPage() {
                     step?.isBreak && !rwaHeld && rwaStepDelta != null,
                     tx("Risk density {0} {1} through the step — the risk mix moved with it", { 0: rwaStepMove, 1: signedPp(rwaStepDelta ?? 0, 1) }),
                   ],
-                ) ?? "RWA net / gross — by group")
-              }
-              description={tx("rwa net ÷ gross, %, monthly · lower = more low-weight exposure")}
+                ) ?? "RWA net / gross — by group")}</span><span className="mt-1 block">{tx("rwa net ÷ gross, %, monthly · lower = more low-weight exposure")}</span></>}
               source={
                 <ChartFoot data={rwa} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
               }
               yFormat="pct"
               decimals={1}
-              height={142}
-              columns={3} /></div>
-<div className="lg:col-span-2"><SmallMultiplesTrend
-              plain
+              height={320}
+               />
+<SectorTrend deltaPeriods={12} deltaLabel="12m" mode="groups"
+
               data={offBsDeriv}
               seriesLabels={BANK_TYPE_LABELS}
               // "a foreign-bank story" — true when written, and never re-checked.
               // Phrased so it reads for whichever group actually leads.
-              title={
-                tx(claim(
+              title={tx("Off-balance-sheet derivatives relative to assets")}
+              description={<><span className="block">{tx(claim(
                   derivTopLabel != null,
                   tx("The derivative book is concentrated in the {0} banks", { 0: derivTopLabel }),
-                ) ?? "Off-balance-sheet derivatives ÷ assets — by group")
-              }
-              description={tx("off-balance-sheet derivatives ÷ total assets, %, monthly · by group")}
+                ) ?? "Off-balance-sheet derivatives ÷ assets — by group")}</span><span className="mt-1 block">{tx("off-balance-sheet derivatives ÷ total assets, %, monthly · by group")}</span></>}
               source={
                 <ChartFoot
                   data={offBsDeriv}
@@ -817,29 +814,23 @@ export default async function CapitalPage() {
               }
               yFormat="pct"
               decimals={1}
-              height={142}
-              columns={3} /></div>
-</div>
-</SectorSection>
-<SectorSection id="banks" title={tx("Capital by bank")} description={tx("Bank-level capital ratios from quarterly financial statements.")}>
-<div>
-          <SecHead title={tx("Bank comparisons")} meta={tx("audited {0}", { 0: auditQ })} href="/banks" hrefLabel={tx("by bank →")} className="mb-2.5" />
-          <Standings groups={standings} />
-        </div>
-<CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
+              height={320}
+               />
 </SectorSection>
 <SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
+<SectorPanel>
 <div>
-          <p className="mb-3 text-[12px] text-muted-foreground">{tx("{0} of {1} monitoring thresholds exceeded", { 0: activeFlags, 1: flags.length })}</p>
+          <p className="mb-3 text-[13px] text-muted-foreground">{tx("{0} of {1} monitoring thresholds exceeded", { 0: activeFlags, 1: flags.length })}</p>
           <Flags variant="report"
             flags={flags}
             showCleared
             quietNote="The break test, the hybrid stack, common equity, generation and the buffer are all below threshold."
           />
         </div>
+</SectorPanel>
 </SectorSection>
 <SectorDirectory sector="capital" />
 <SectorFooter />
-</SectorReport>
+    </SectorReport>
   );
 }

@@ -1,37 +1,5 @@
-import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
-/**
- * Home / Overview — "The Desk" two-layer page.
- *
- * Layer 1 (the brief): vitals band → movers vs last month → the macro
- * backdrop's computed transmission into bank P&L → rule-based flags (rules
- * printed) → capital standings → the release schedule. Every figure and every
- * note is computed from the same D1/EVDS series the charts read — compiled,
- * not written.
- *
- * Layer 2 ("In depth"): the same evidence, on the same grid. The read leads
- * (deterministic pulse, no card); the Table-15 scorecard is the brief's OWN
- * vitals band re-rendered for whichever ownership group `?type=` selects, with
- * a peer bar marking where the sector sits; the by-group trend charts sit
- * directly on the sheet, two per row — each spanning three cells of the band
- * above it — under a computed foot line. No boxes, no second grid.
- */
+import { SectorReport, SectorHeader, SectorContents, SectorMetrics, SectorOpening, SectorGrid, SectorPanel, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
 import { localizeMetadata } from "@/i18n/metadata";
-/**
- * Home / Overview — "The Desk" two-layer page.
- *
- * Layer 1 (the brief): vitals band → movers vs last month → the macro
- * backdrop's computed transmission into bank P&L → rule-based flags (rules
- * printed) → capital standings → the release schedule. Every figure and every
- * note is computed from the same D1/EVDS series the charts read — compiled,
- * not written.
- *
- * Layer 2 ("In depth"): the same evidence, on the same grid. The read leads
- * (deterministic pulse, no card); the Table-15 scorecard is the brief's OWN
- * vitals band re-rendered for whichever ownership group `?type=` selects, with
- * a peer bar marking where the sector sits; the by-group trend charts sit
- * directly on the sheet, two per row — each spanning three cells of the band
- * above it — under a computed foot line. No boxes, no second grid.
- */
 import { getText } from "@/i18n/server";
 import Link from "next/link";
 import {
@@ -82,8 +50,7 @@ import {
   type StandingsGroup,
   type TransmissionItem,
 } from "@/app/components/desk";
-import TrendChart from "@/app/components/TrendChart";
-import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
+import SectorTrend from "@/app/components/SectorTrend";
 import BankTypeFilter from "@/app/components/BankTypeFilter";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import Takeaway from "@/app/components/Takeaway";
@@ -533,12 +500,12 @@ export default async function OverviewPage({
             basis: "bank-level standings only",
           },
         ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "developments", label: "Sector developments"}, {id: "by-type", label: "Bank groups"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector />} />
+<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "developments", label: "Sector developments"}, {id: "by-type", label: "Bank groups"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector compact />} />
 <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({ ...datasetJsonLd, name: tx(datasetJsonLd.name), description: tx(datasetJsonLd.description), inLanguage: tx.locale }) }}
       />
-<SectorMetrics><Vital
+<SectorOpening><SectorMetrics><Vital
           label={tx("Capital adequacy")}
           value={carNow != null ? carNow.toFixed(1) : "—"}
           unit="%"
@@ -623,89 +590,44 @@ export default async function OverviewPage({
           series={spark(sRoa)}
           note="the leverage-free read"
         /></SectorMetrics>
-<Takeaway data={read} variant="report" />
-<SectorDirectory />
+<Takeaway data={read} variant="report-summary" /></SectorOpening>
 <SectorSection id="developments" title={tx("Sector developments")} description={tx("Credit growth, asset quality, capital adequacy and profitability by bank group.")}>
-<div className="grid grid-cols-1 gap-8 lg:grid-cols-2"><div>
-          <SecHead title={tx("Period changes")} meta={tx(`${vsMonth} → ${monthLabel(sNpl.at(-1)?.period, false)}`)} className="mb-2.5" />
-          <Movers
-            from={vsMonth.toUpperCase()}
-            to={monthLabel(sNpl.at(-1)?.period, false).toUpperCase()}
-            rows={moverRows}
-          />
-        </div>
-<div>
-          <SecHead
-            title={tx("Macroeconomic context")}
-            meta={tx("Policy rates, inflation and funding")}
-            className="mb-2.5"
-          />
-          <Transmission items={transmission} />
-        </div></div><TrendChart readout
-          plain
-          data={carGroups}
-          seriesLabels={BANK_TYPE_LABELS}
-          title={
-            tx(seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }, tx.locale) ??
-              "Capital adequacy (%) — by group")
-          }
-          description={tx("capital adequacy, %, monthly · target ratio 12% · BDDK")}
-          source={<ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
-          yFormat="pct"
-          decimals={1}
-          height={280}
-        /><div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
-<div className="lg:col-span-2"><SmallMultiplesTrend
-              plain
-              data={loansYoYGroups}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }, tx.locale) ??
-                  "Loan growth YoY (%) — by group")
-              }
-              description={tx("loan growth y/y, %, monthly · BDDK monthly bulletin")}
-              source={<ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
-              yFormat="pct"
-              decimals={1}
-              deltaPeriods={12}
-              deltaLabel="12m"
-              height={104}
-              columns={3}
-              zeroLine
-            /></div>
-<div className="lg:col-span-2"><SmallMultiplesTrend
-              plain
-              data={nplAllGroups}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(seriesFinding(sNpl, { noun: "NPL ratio", decimals: 2 }, tx.locale) ??
-                  "NPL ratio (%) — by group")
-              }
-              description={tx("npl ratio, %, monthly · BDDK monthly bulletin")}
-              source={<ChartFoot data={nplAllGroups} labels={BANK_TYPE_LABELS} decimals={2} />}
-              yFormat="pct"
-              decimals={2}
-              height={142}
-              columns={3} /></div>
-<div className="lg:col-span-2"><SmallMultiplesTrend
-              plain
-              data={roeGroups}
-              seriesLabels={BANK_TYPE_LABELS}
-              title={
-                tx(seriesFinding(sRoe, { noun: "ROE", decimals: 1 }, tx.locale) ??
-                  "ROE — annualized (%) — by group")
-              }
-              description={tx("roe annualized, %, monthly · BDDK monthly bulletin")}
-              source={<ChartFoot data={roeGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
-              yFormat="pct"
-              decimals={1}
-              height={142}
-              zeroLine
-              columns={3} /></div>
-</div>
+<SectorGrid>
+  <SectorPanel title={tx("Period changes")} description={tx(`${vsMonth} → ${monthLabel(sNpl.at(-1)?.period, false)}`)}>
+    <Movers from={vsMonth.toUpperCase()} to={monthLabel(sNpl.at(-1)?.period, false).toUpperCase()} rows={moverRows} />
+  </SectorPanel>
+  <SectorPanel title={tx("Macroeconomic context")} description={tx("Policy rates, inflation and funding")}>
+    <Transmission items={transmission} />
+  </SectorPanel>
+</SectorGrid>
+<SectorGrid>
+  <SectorTrend data={carGroups} seriesLabels={BANK_TYPE_LABELS}
+    title={tx("Capital adequacy")}
+    description={tx(seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }, tx.locale))}
+    references={[{ value:12, label:"BDDK target ratio" }]}
+    source={<><p>{tx("capital adequacy, %, monthly · target ratio 12% · BDDK")}</p><ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
+    yFormat="pct" decimals={1} height={310} />
+  <SectorTrend data={loansYoYGroups} seriesLabels={BANK_TYPE_LABELS}
+    title={tx("Loan growth y/y")}
+    description={tx(seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }, tx.locale))}
+    source={<><p>{tx("loan growth y/y, %, monthly · BDDK monthly bulletin")}</p><ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
+    yFormat="pct" decimals={1} deltaPeriods={12} deltaLabel="12m" zeroLine height={310} />
+  <SectorTrend deltaPeriods={12} deltaLabel="12m" data={nplAllGroups} seriesLabels={BANK_TYPE_LABELS}
+    title={tx("NPL ratio")}
+    description={tx(seriesFinding(sNpl, { noun: "NPL ratio", decimals: 2 }, tx.locale))}
+    source={<><p>{tx("npl ratio, %, monthly · BDDK monthly bulletin")}</p><ChartFoot data={nplAllGroups} labels={BANK_TYPE_LABELS} decimals={2} /></>}
+    yFormat="pct" decimals={2} height={310} />
+  <SectorTrend deltaPeriods={12} deltaLabel="12m" data={roeGroups} seriesLabels={BANK_TYPE_LABELS}
+    title={tx("ROE, ann.")}
+    description={tx(seriesFinding(sRoe, { noun: "ROE", decimals: 1 }, tx.locale))}
+    source={<><p>{tx("roe annualized, %, monthly · BDDK monthly bulletin")}</p><ChartFoot data={roeGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
+    yFormat="pct" decimals={1} zeroLine height={310} />
+</SectorGrid>
+<Takeaway data={read} variant="report-details" />
+
 </SectorSection>
 <SectorSection id="by-type" title={tx("Bank groups")}>
-<SecHead
+<SectorPanel><SecHead
             title={tx("Group indicators")}
             action={<BankTypeFilter active={bankType} />}
             meta={tx("BDDK monthly bulletin · {0}", { 0: groupLabel.toLowerCase() })}
@@ -752,7 +674,7 @@ export default async function OverviewPage({
             {tx(isSector
               ? "the sector aggregate — switch the group to read it against the league"
               : "bar = this group across the league of ownership groups · grey tick = the sector")}
-          </p><div>
+          </p></SectorPanel><SectorPanel>
           <SecHead
             title={tx("Bank comparisons")}
             meta={tx("car · {0}", { 0: quarterLabel(league.period) })}
@@ -761,18 +683,19 @@ export default async function OverviewPage({
             className="mb-2.5"
           />
           <Standings groups={standings} />
-        </div>
+        </SectorPanel>
 </SectorSection>
 <SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
-<div>
+<SectorPanel>
           <p className="mb-3 text-[12px] text-muted-foreground">{tx("{0} monitoring thresholds exceeded", { 0: activeFlags })}</p>
           <Flags variant="report"
             flags={flags}
             quietNote="NPL streak, capital drift, funding stretch and real returns are all below threshold."
           />
-        </div>
+        </SectorPanel>
 </SectorSection>
 
+<SectorDirectory />
 <SectorFooter />
 </SectorReport>
   );

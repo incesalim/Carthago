@@ -58,7 +58,7 @@ export default function CapitalByBank({
         meta={tx("common equity vs the hybrid stack · thinnest first · audited {0}", {0: quarterLabel(period)})}
         className="mb-2.5"
       />
-      <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
+      <p className="mb-3 text-[14px] leading-relaxed text-muted-foreground">
         <b className="font-semibold text-foreground">
           {tx(hybridFunded)}{tx(" of ")}{tx(ranked.length)}{tx(" banks")}</b>{" "}{tx("hold common equity below the ")}{tx(CAR_TARGET)}{tx("% target they must meet in total. AT1 and Tier-2 count toward that target, so this is not a breach — it is what the cushion is made of. Common equity answers to its own ")}{tx(CET1_TARGET)}{tx("% level (")}{tx(CET1_MIN)}{tx("% minimum + 2.5pp conservation buffer), and")}{" "}
         {belowCet1Req === 0 ? (
@@ -69,13 +69,13 @@ export default function CapitalByBank({
         )}{" "}{tx("— a constraint on distributions, not a breach of the ")}{tx(CET1_MIN)}{tx("% floor.")}</p>
 
       <div role="region" aria-label={tx("Capital ratios by bank")} tabIndex={0} className="max-w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2">
-      <table className="w-full border-collapse">
+      <table className="min-w-[700px] w-full border-collapse">
         <thead>
           <tr>
             {["Bank", "CET1 + AT1/Tier-2", "CET1", "Tier 1", "CAR", "Buffer"].map((h, i) => (
               <th
                 key={h}
-                className={`border-b border-foreground pb-1.5 font-mono text-[8.5px] font-normal uppercase tracking-[0.07em] text-faint ${
+                className={`border-b border-foreground pb-1.5 text-[14px] font-medium text-faint ${
                   i <= 1 ? "text-left" : "text-right"
                 }`}
               >
@@ -87,46 +87,46 @@ export default function CapitalByBank({
         <tbody>
           {ranked.map((b) => {
             const name = BANK_NAMES[b.bank_ticker] ?? b.bank_ticker;
-            const cet1 = b.cet1 ?? 0;
-            const hybrid = b.car != null ? Math.max(0, b.car - cet1) : 0;
+            const cet1 = b.cet1;
+            const hybrid = b.car != null && cet1 != null ? Math.max(0, b.car - cet1) : null;
             const w = (v: number) => `${Math.min(v / DOMAIN_MAX, 1) * 100}%`;
             const buffer = b.car == null ? null : b.car - CAR_TARGET;
             const thinCet1 = b.cet1 != null && b.cet1 < CET1_TARGET;
 
             return (
               <tr key={b.bank_ticker} className="hover:bg-muted">
-                <td className="border-b border-hair py-1.5 pr-3 text-[12.5px]">
+                <td className="border-b border-hair py-3 pr-3 text-[14px]">
                   <Link href={`/banks/${b.bank_ticker}`} className="font-medium text-foreground hover:text-primary">
                     {tx(name)}
                   </Link>
                 </td>
-                <td className="border-b border-hair py-1.5 pr-3">
+                <td className="border-b border-hair py-3 pr-3">
                   {/* the composition: common equity, then what was bought */}
-                  <span className="relative flex h-2 w-full min-w-[120px] bg-muted">
-                    <span className="h-full bg-data" style={{ width: w(cet1) }} />
-                    <span className="h-full bg-chart-5 opacity-70" style={{ width: w(hybrid) }} />
+                  {cet1 != null && hybrid != null ? <span className="relative flex h-3 w-full min-w-[120px] overflow-hidden bg-muted">
+                    <span className="h-full shrink-0 bg-data" style={{ width: w(cet1) }} />
+                    <span className="h-full shrink-0 bg-chart-5 opacity-70" style={{ width: w(hybrid) }} />
                     {/* BDDK's total-capital target, on the track */}
                     <span
                       className="absolute -top-0.5 -bottom-0.5 w-px bg-warning"
                       style={{ left: w(CAR_TARGET) }}
                       aria-hidden
                     />
-                  </span>
+                  </span> : <span className="text-[14px] text-muted-foreground">{tx("Composition unavailable")}</span>}
                 </td>
                 <td
-                  className={`border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] font-semibold tabular-nums ${
+                  className={`border-b border-hair py-3 pl-2 text-right font-mono text-[14px] font-semibold tabular-nums ${
                     thinCet1 ? "text-negative" : "text-foreground"
                   }`}
                 >
                   {tx(pctStr(b.cet1))}
                 </td>
-                <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] tabular-nums text-faint">
+                <td className="border-b border-hair py-3 pl-2 text-right font-mono text-[14px] tabular-nums text-faint">
                   {tx(pctStr(b.tier1))}
                 </td>
-                <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] tabular-nums text-foreground">
+                <td className="border-b border-hair py-3 pl-2 text-right font-mono text-[14px] tabular-nums text-foreground">
                   {tx(pctStr(b.car))}
                 </td>
-                <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] tabular-nums text-faint">
+                <td className="border-b border-hair py-3 pl-2 text-right font-mono text-[14px] tabular-nums text-faint">
                   {tx(buffer == null
                     ? "—"
                     : `${buffer >= 0 ? "+" : "−"}${Math.abs(buffer).toFixed(1)}pp`)}
@@ -137,7 +137,7 @@ export default function CapitalByBank({
         </tbody>
       </table>
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[14px] text-faint">
         <span>
           <span className="mr-1 inline-block size-2 bg-data align-middle" aria-hidden />{tx(" CET1")}</span>
         <span>

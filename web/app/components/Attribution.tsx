@@ -51,39 +51,44 @@ export default function Attribution({
 }) {
   const tx = useText();
   if (rows.length === 0) {
-    return <p className="py-6 text-[12px] text-faint">{tx(emptyNote)}</p>;
+    return <p className="py-6 text-[14px] text-muted-foreground">{tx(emptyNote)}</p>;
   }
 
   const sorted = [...rows].sort((a, b) => b.value - a.value);
-  const max = Math.max(...sorted.map((r) => Math.abs(r.value)), 0.1);
+  const low = Math.min(0, ...sorted.map((r) => r.value));
+  const high = Math.max(0, ...sorted.map((r) => r.value));
+  const span = high - low || 1;
+  const zero = -low / span * 100;
 
   return (
     <div data-attribution className={styles.attribution}>
       {sorted.map((r) => {
-        const width = (Math.abs(r.value) / max) * 100;
+        const width = Math.abs(r.value) / span * 100;
         const negative = r.value < 0;
-        const nest = nested && nested.of === r.key && r.value > 0 ? nested : null;
-        // The nested cut is expressed as a share of its PARENT's bar, so it can
-        // never render wider than the bar that contains it.
-        const nestWidth = nest ? Math.min(100, (nest.value / r.value) * 100) : 0;
+        const nest = nested && nested.of === r.key ? nested : null;
+        // A subset can contribute more than its parent if the remaining book
+        // contracts. Only a contribution genuinely inside the parent is nested
+        // visually; the exact subgroup figure always remains printed below it.
+        const nestFits = nest != null && r.value !== 0 && Math.sign(nest.value) === Math.sign(r.value) && Math.abs(nest.value) <= Math.abs(r.value);
+        const nestWidth = nestFits && nest ? Math.abs(nest.value / r.value) * 100 : 0;
 
         return (
           <div key={r.key} className={styles.row}>
             <span className={styles.label}>{tx(r.label)}</span>
 
-            <span className={styles.bar}>
+            <span className={styles.bar} aria-hidden="true">
+              <i className={styles.zero} style={{ left: `${zero}%` }} />
               <span
-                className={`relative block h-full ${
-                  negative ? "bg-negative" : nest ? "bg-data/35" : "bg-data"
-                }`}
-                style={{ width: `${width}%` }}
+                className={styles.mark}
+                data-negative={negative || undefined}
+                data-nested={nestFits || undefined}
+                style={{ left: `${negative ? zero - width : zero}%`, width: `${width}%` }}
               >
-                {nest && (
+                {nestFits && (
                   <span
-                    className="absolute inset-y-0 left-0 block border-r-2 border-card bg-data"
-                    style={{ width: `${nestWidth}%` }}
-                  >
-                  </span>
+                    className={styles.nestedMark}
+                    style={{ width: `${nestWidth}%`, ...(negative ? { right: 0 } : { left: 0 }) }}
+                  />
                 )}
               </span>
             </span>
@@ -97,8 +102,8 @@ export default function Attribution({
             </span>
 
             <span className={styles.meta}>
-              {nest && <span>{tx(nest.label)} {tx(fmtValue(nest.value))}{" · "}</span>}
-              {tx(r.meta)}
+              {nest && <span className={styles.nestedNote}><i />{tx(nest.label)} <strong>{tx(fmtValue(nest.value))}</strong></span>}
+              {r.meta != null && <span>{tx(r.meta)}</span>}
             </span>
           </div>
         );

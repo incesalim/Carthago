@@ -15,6 +15,7 @@
 import { createContext, useContext, useState } from "react";
 import { type RangeKey, DEFAULT_RANGES } from "@/app/lib/chart-range";
 import { RangePills } from "@/app/components/ui/range-pills";
+import { useText } from "@/i18n/use-text";
 
 const DEFAULT_RANGE: RangeKey = "3Y";
 
@@ -43,7 +44,14 @@ export function useChartRange(): RangeContextValue {
 }
 
 /** The single range selector — drop into the page header on chart pages. */
-export function GlobalRangeSelector() {
+export function GlobalRangeSelector({ compact = false }: { compact?: boolean }) {
   const { range, setRange } = useChartRange();
+  const tx = useText();
+  if (compact) return <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
+    <span>{tx("Period")}</span>
+    <select aria-label={tx("Chart period")} value={range} onChange={event => setRange(event.target.value as RangeKey)} className="rounded-md border border-border bg-card px-2 py-2 text-[13px] font-medium text-foreground focus-visible:outline-2 focus-visible:outline-primary">
+      {DEFAULT_RANGES.map(value => <option key={value} value={value}>{tx(value)}</option>)}
+    </select>
+  </label>;
   return <RangePills ranges={DEFAULT_RANGES} active={range} onSelect={setRange} />;
 }

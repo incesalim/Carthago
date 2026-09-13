@@ -53,7 +53,7 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`border-b-2 px-2 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      className={`border-b-2 px-3 py-2.5 text-[14px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${
         active
           ? "border-foreground font-semibold text-foreground"
           : "border-transparent text-muted-foreground hover:text-foreground"

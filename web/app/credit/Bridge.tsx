@@ -1,203 +1,56 @@
-/**
- * The bridge — /credit's signature element.
- *
- * Nominal loan growth in Türkiye is mostly not credit: it is the lira and the
- * price level. This walks the headline down to what actually grew:
- *
- *   nominal → −lira depreciation → FX-adjusted → −inflation → real, constant FX
- *
- * The nominal bar is drawn in CONTEXT grey, not hero navy: it is where the
- * reader starts, not what the page claims. The terminal bar carries the claim.
- * Deduction bars are floating (they hang between the two levels they connect),
- * so the legs reconcile the endpoints visually as well as arithmetically.
- */
+/** A horizontal waterfall keeps labels legible inside a narrow analysis panel. */
 import { useText } from "@/i18n/use-text";
+import { createFormatters } from "@/app/lib/chart-format";
 import type { CreditBridge } from "@/app/lib/credit";
+import styles from "./bridge.module.css";
 
-const fmtPct = (v: number, d = 1) => `${v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}%`;
-const fmtPp = (v: number, d = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)}pp`;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** 'YYYY-MM-DD' → 'at 26 Jun' */
-function weekOf(period: string, locale: string): string {
-  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(period);
-  if (locale === "tr" && m) return `${m[2]} ${MONTHS[Number(m[1]) - 1]}`;
-  return m ? `at ${m[2]} ${MONTHS[Number(m[1]) - 1]}` : "";
-}
-
-type Step =
-  | { kind: "level"; label: string; sub?: string; value: number; hero?: boolean }
-  | { kind: "cut"; label: string; sub?: string; value: number };
+type Step = { kind: "level" | "cut"; label: string; sub?: string; value: number; hero?: boolean };
 
 export default function Bridge({ bridge }: { bridge: CreditBridge }) {
   const tx = useText();
-  const { nominalAtReal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi, asOfReal, lagged } =
-    bridge;
-  if (
-    nominalAtReal == null || fxAdj == null || realFxAdj == null ||
-    currencyPp == null || inflationPp == null
-  ) {
-    return (
-      <p className="py-6 text-[12px] text-faint">{tx("The bridge needs a nominal print, an FX-adjusted print and a CPI month. One is not yet published.")}</p>
-    );
+  const fmt = createFormatters(tx.locale);
+  const { nominalAtReal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi, asOfReal, lagged } = bridge;
+  if (nominalAtReal == null || fxAdj == null || realFxAdj == null || currencyPp == null || inflationPp == null) {
+    return <p className={styles.empty}>{tx("The bridge needs a nominal print, an FX-adjusted print and a CPI month. One is not yet published.")}</p>;
   }
-
+  const pct = (value: number) => fmt.pct(value, 1);
+  const pp = (value: number) => tx("{0} pp", { 0: `${value < 0 ? "−" : "+"}${fmt.raw(Math.abs(value), 1)}` });
   const steps: Step[] = [
-    // Nominal is the only CONTEXT bar: it is where the reader starts, not the
-    // claim. Every level after it is a real measure of the book, so it carries
-    // the hero mark (or the negative mark, if the book actually shrank).
-    // Read at the REAL week, so a CPI lag can't mix two dates inside one bridge.
-    // That makes it differ from the vitals' nominal (the latest week) — say which
-    // week this is, rather than let the two numbers silently disagree.
-    {
-      kind: "level",
-      label: "Nominal 52w",
-      sub: lagged && asOfReal ? weekOf(asOfReal, tx.locale) : undefined,
-      value: nominalAtReal,
-    },
-    { kind: "cut", label: "Lira", sub: "depreciation", value: -currencyPp },
+    { kind: "level", label: "Nominal 52w", sub: lagged && asOfReal ? tx(asOfReal) : undefined, value: nominalAtReal },
+    { kind: "cut", label: "Lira", sub: tx("depreciation"), value: -currencyPp },
     { kind: "level", label: "FX-adjusted", value: fxAdj, hero: true },
-    { kind: "cut", label: "Inflation", sub: cpi != null ? tx("CPI {0}%", {0: cpi.toFixed(1)}) : undefined, value: -inflationPp },
+    { kind: "cut", label: "Inflation", sub: cpi != null ? tx("CPI {0}%", { 0: fmt.raw(cpi, 1) }) : undefined, value: -inflationPp },
     { kind: "level", label: "Real, const. FX", value: realFxAdj, hero: true },
   ];
-
-  // Geometry — derived from the data so the bars can't overflow the frame.
-  const W = 660, H = 208;
-  const PLOT_TOP = 26, PLOT_BOTTOM = 156; // below PLOT_BOTTOM: the x labels
-  const levels = steps.filter((s) => s.kind === "level").map((s) => s.value);
-  const maxPos = Math.max(0, ...levels);
-  const minNeg = Math.min(0, ...levels);
-  const span = maxPos - minNeg || 1;
-  const scale = (PLOT_BOTTOM - PLOT_TOP) / span;
-  const zeroY = PLOT_TOP + maxPos * scale; // where 0 sits
-  const y = (v: number) => zeroY - v * scale;
-
-  const bw = 78, gap = 52;
-  const step = bw + gap;
-  const x0 = 6;
-
+  // Every step is from the same observation date. Differences already reconcile
+  // in creditBridge; these coordinates display that identity without recomputing it.
+  const levels = [0, nominalAtReal, fxAdj, realFxAdj];
+  const low = Math.min(...levels);
+  const high = Math.max(...levels);
+  const span = high - low || 1;
+  const position = (value: number) => (value - low) / span * 100;
+  const zero = position(0);
   let running = 0;
-  const bars = steps.map((s, i) => {
-    const x = x0 + i * step;
-    let top: number, height: number, valueY: number;
-
-    if (s.kind === "level") {
-      const yv = y(s.value);
-      top = Math.min(yv, zeroY);
-      height = Math.max(Math.abs(yv - zeroY), 1.5);
-      valueY = s.value < 0 ? top + height + 13 : top - 7;
-      running = s.value;
-    } else {
-      const from = y(running);
-      const to = y(running + s.value);
-      top = Math.min(from, to);
-      height = Math.max(Math.abs(to - from), 1.5);
-      valueY = top - 7;
-      running += s.value;
-    }
-    return { s, i, x, top, height, valueY, running };
+  const bars = steps.map((step) => {
+    const from = step.kind === "level" ? 0 : running;
+    const to = step.kind === "level" ? step.value : running + step.value;
+    running = to;
+    return { step, from, to };
   });
 
-  return (
-    <div className="max-w-full overflow-x-auto" role="region" aria-label={tx("Exchange-rate and inflation effects")} tabIndex={0}>
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full min-w-[600px]"
-      role="img"
-      aria-label={tx("Nominal loan growth of {0} bridges down to {1} once lira depreciation ({2}) and inflation ({3}) are removed.", {0: fmtPct(nominalAtReal), 1: fmtPct(
-        realFxAdj,
-      ), 2: fmtPp(-currencyPp), 3: fmtPp(
-        -inflationPp,
-      )})}
-    >
-      {/* the zero rule — the only baseline the reader needs */}
-      <line
-        x1={0}
-        x2={W}
-        y1={zeroY}
-        y2={zeroY}
-        className="stroke-faint"
-        strokeWidth={1}
-        strokeDasharray="2 2"
-      />
-
-      {bars.map(({ s, i, x, top, height, valueY }, idx) => {
-        const prev = bars[idx - 1];
-        return (
-          <g key={s.label}>
-            {/* connector from the previous bar's landing height */}
-            {s.kind === "cut" && prev && (
-              <line
-                x1={x - gap}
-                x2={x}
-                y1={top}
-                y2={top}
-                className="stroke-faint"
-                strokeWidth={1}
-                strokeDasharray="2 2"
-              />
-            )}
-            {s.kind === "level" && i > 0 && prev && (
-              <line
-                x1={x - gap}
-                x2={x}
-                y1={y(s.value)}
-                y2={y(s.value)}
-                className="stroke-faint"
-                strokeWidth={1}
-                strokeDasharray="2 2"
-              />
-            )}
-
-            <rect
-              x={x}
-              y={top}
-              width={bw}
-              height={height}
-              className={
-                s.kind === "cut"
-                  ? "fill-negative opacity-25"
-                  : s.value < 0
-                    ? "fill-negative"
-                    : s.hero
-                      ? "fill-data"
-                      : "fill-context"
-              }
-            />
-
-            <text
-              x={x + bw / 2}
-              y={valueY}
-              textAnchor="middle"
-              className={`font-mono text-[11px] font-semibold ${
-                s.kind === "cut" || s.value < 0 ? "fill-negative" : "fill-foreground"
-              }`}
-            >
-              {tx(s.kind === "cut" ? fmtPp(s.value) : fmtPct(s.value))}
-            </text>
-
-            <text
-              x={x + bw / 2}
-              y={s.sub ? H - 17 : H - 7}
-              textAnchor="middle"
-              className="fill-muted-foreground text-[8.5px] uppercase tracking-[0.05em]"
-            >
-              {tx(s.label)}
-            </text>
-            {s.sub && (
-              <text
-                x={x + bw / 2}
-                y={H - 6}
-                textAnchor="middle"
-                className="fill-faint font-mono text-[8px]"
-              >
-                {tx(s.sub)}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-    </div>
-  );
+  return <figure className={styles.bridge} aria-label={tx("Exchange-rate and inflation effects")}>
+    <ol className={styles.steps}>
+      {bars.map(({ step, from, to }) => <li className={styles.step} key={step.label} data-kind={step.kind}>
+        <div className={styles.label}>{tx(step.label)}{step.sub && <span>{step.sub}</span>}</div>
+        <div className={styles.plot} aria-hidden="true">
+          <i className={styles.zero} style={{ left: `${zero}%` }} />
+          <span className={styles.bar} data-negative={step.value < 0 || undefined} data-hero={step.hero || undefined}
+            style={{ left: `${position(Math.min(from, to))}%`, width: `${Math.abs(to - from) / span * 100}%` }} />
+          {step.kind === "cut" && <><i className={styles.endpoint} style={{ left: `${position(from)}%` }} /><i className={styles.endpoint} style={{ left: `${position(to)}%` }} /></>}
+        </div>
+        <strong className={styles.value} data-negative={step.value < 0 || undefined}>{step.kind === "cut" ? pp(step.value) : pct(step.value)}</strong>
+      </li>)}
+    </ol>
+    <div className={styles.axis} aria-hidden="true"><span>{pct(low)}</span><span>{pct(high)}</span></div>
+  </figure>;
 }

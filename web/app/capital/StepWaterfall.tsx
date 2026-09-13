@@ -25,9 +25,9 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, PLOT_MARGIN_LEFT, Y_AXIS_WIDTH } from "@/app/lib/chart-theme";
-
-const MIN = 12; // the regulatory minimum the buffer is measured against
+import { CAR_TARGET } from "@/app/lib/capital-thresholds";
 
 export default function StepWaterfall({
   fromLabel,
@@ -62,9 +62,9 @@ export default function StepWaterfall({
   // `rest` is drawn from `from` upward, then the step from there.
   const afterRest = from + rest;
   const data = [
-    { name: fromLabel, range: [MIN, from] as [number, number], kind: "level", value: from },
+    { name: fromLabel, range: [CAR_TARGET, from] as [number, number], kind: "level", value: from },
     {
-      name: "Everything else",
+      name: tx("Everything else"),
       range: [Math.min(from, afterRest), Math.max(from, afterRest)] as [number, number],
       kind: rest >= 0 ? "up" : "down",
       value: rest,
@@ -75,16 +75,17 @@ export default function StepWaterfall({
       kind: step >= 0 ? "up" : "down",
       value: step,
     },
-    { name: toLabel, range: [MIN, to] as [number, number], kind: "level", value: to },
+    { name: toLabel, range: [CAR_TARGET, to] as [number, number], kind: "level", value: to },
   ];
 
   const fill = (kind: string) =>
     kind === "level" ? t.hero : kind === "up" ? "var(--positive)" : "var(--negative)";
-  const lo = Math.min(MIN, to, from) - 1.5;
+  const lo = Math.min(CAR_TARGET, to, from) - 1.5;
   const hi = Math.max(from, to, afterRest) + 1.2;
 
   return (
     <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
+      <ChartData table={{ columns: ["Capital adequacy change", "Value", "Unit"], rows: data.map(point => [point.name, point.value, point.kind === "level" ? "%" : "pp"]) }} />
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -94,30 +95,29 @@ export default function StepWaterfall({
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 11, fill: t.axis }}
+              tick={{ fontSize: 12, fill: t.axis }}
               axisLine={false}
               tickLine={false}
               interval={0}
             />
             <YAxis
               domain={[lo, hi]}
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
+              tick={{ fontSize: 14, fill: t.axis }}
               tickFormatter={(v: number) => `${v.toFixed(0)}%`}
               axisLine={false}
               tickLine={false}
               width={Y_AXIS_WIDTH}
             />
-            {/* the floor the buffer is measured against */}
+            {/* BDDK target, distinct from the 8% statutory minimum. */}
             <ReferenceLine
-              y={MIN}
+              y={CAR_TARGET}
               stroke="var(--warning)"
               strokeDasharray="3 3"
               label={{
-                value: "12% minimum",
+                value: tx("BDDK target: 12%"),
                 position: "insideBottomLeft",
                 fill: "var(--warning)",
-                fontSize: 10,
-                fontFamily: "var(--font-geist-mono), monospace",
+                fontSize: 12,
               }}
             />
             <Bar dataKey="range" isAnimationActive={false} radius={[2, 2, 0, 0]}>
@@ -138,7 +138,7 @@ export default function StepWaterfall({
                 }}
                 style={{
                   fill: "var(--foreground)",
-                  fontSize: 11,
+                  fontSize: 14,
                   fontWeight: 600,
                   fontFamily: "var(--font-geist-mono), monospace",
                 }}

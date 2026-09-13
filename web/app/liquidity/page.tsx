@@ -1,4 +1,15 @@
-import { SectorReport, SectorHeader, SectorContents, SectorSection, SectorDirectory, SectorFooter } from "@/app/components/sector-report";
+import {
+  SectorReport,
+  SectorHeader,
+  SectorContents,
+  SectorMetrics,
+  SectorOpening,
+  SectorGrid,
+  SectorPanel,
+  SectorSection,
+  SectorDirectory,
+  SectorFooter,
+} from "@/app/components/sector-report";
 /**
  * Liquidity tab — adapts the liquidity section of the BBVA (Garanti BBVA
  * Research) "Türkiye Banking Sector Outlook" into our data.
@@ -38,10 +49,16 @@ import {
   type WeeklyRow,
   type EvdsRow,
 } from "@/app/lib/metrics";
-import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-ratios";
-import { FWD_YEARS_BACK, RESERVE_CODES, reserveBuffer } from "@/app/lib/reserves";
 import {
-  CadenceBand,
+  sectorLiquidityRatios,
+  AUDIT_LIQUIDITY_LABELS,
+} from "@/app/lib/audit-ratios";
+import {
+  FWD_YEARS_BACK,
+  RESERVE_CODES,
+  reserveBuffer,
+} from "@/app/lib/reserves";
+import {
   ChartFoot,
   ChartRow,
   Compare,
@@ -57,12 +74,17 @@ import {
   type MoverRow,
   type TransmissionItem,
 } from "@/app/components/desk";
-import { lastVal, latestByGroup, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
+import {
+  lastVal,
+  latestByGroup,
+  monthLabel,
+  signedPp,
+  windowExtremes,
+} from "@/app/lib/desk";
 import { LDR_WEEKLY_TL } from "@/app/lib/ldr";
 import { VERBS, bandsFor, direction, firstClaim } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
-import TrendChart from "@/app/components/TrendChart";
-import SmallMultiplesTrend from "@/app/components/SmallMultiplesTrend";
+import SectorTrend from "@/app/components/SectorTrend";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import ReserveBuffer from "@/app/components/ReserveBuffer";
 import Takeaway from "@/app/components/Takeaway";
@@ -74,7 +96,8 @@ export const dynamic = "force-dynamic";
 
 const pageMetadata: Metadata = {
   title: "Turkish Banks — Liquidity & Funding",
-  description: "Liquidity and funding of Türkiye's banks: loan-to-deposit, LCR, FX liquidity and the deposit base from BDDK and BRSA data.",
+  description:
+    "Liquidity and funding of Türkiye's banks: loan-to-deposit, LCR, FX liquidity and the deposit base from BDDK and BRSA data.",
   alternates: { canonical: "/liquidity" },
 };
 
@@ -83,20 +106,36 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Long-form rows → TrendChart points (structurally identical; keeps types tidy).
-function toTrend(rows: (TimeSeriesRow | WeeklyRow)[]): { period: string; bank_type_code: string; value: number }[] {
-  return rows.map((r) => ({ period: r.period, bank_type_code: r.bank_type_code, value: r.value }));
+function toTrend(
+  rows: (TimeSeriesRow | WeeklyRow)[],
+): { period: string; bank_type_code: string; value: number }[] {
+  return rows.map((r) => ({
+    period: r.period,
+    bank_type_code: r.bank_type_code,
+    value: r.value,
+  }));
 }
 
 // EVDS rows → TimeSeriesChart points, scaling the value (e.g. /1000 → bn).
-function toPoints(rows: EvdsRow[], scale = 1): { period_date: string; value: number }[] {
-  return rows.map((r) => ({ period_date: r.period_date, value: r.value * scale }));
+function toPoints(
+  rows: EvdsRow[],
+  scale = 1,
+): { period_date: string; value: number }[] {
+  return rows.map((r) => ({
+    period_date: r.period_date,
+    value: r.value * scale,
+  }));
 }
 
 // Sum several EVDS series by date (used for FX cash = USD + EUR-eq deposits).
-function sumByDate(sets: EvdsRow[][], scale = 1): { period_date: string; value: number }[] {
+function sumByDate(
+  sets: EvdsRow[][],
+  scale = 1,
+): { period_date: string; value: number }[] {
   const acc = new Map<string, number>();
   for (const set of sets) {
-    for (const r of set) acc.set(r.period_date, (acc.get(r.period_date) ?? 0) + r.value);
+    for (const r of set)
+      acc.set(r.period_date, (acc.get(r.period_date) ?? 0) + r.value);
   }
   return Array.from(acc.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -119,7 +158,9 @@ function weekLabel(p: string | null | undefined, withYear = false): string {
 }
 
 /** Value ~a year (364 d) before the latest point, paired by DATE not row offset. */
-function valYearAgoByDate(s: { period: string; value: number | null }[]): number | null {
+function valYearAgoByDate(
+  s: { period: string; value: number | null }[],
+): number | null {
   const last = s.at(-1)?.period;
   if (!last) return null;
   const d = new Date(last);
@@ -148,18 +189,40 @@ export default async function LiquidityPage() {
   const DEPOSITS = { category: "mevduat", item_id: "4.0.1" };
 
   const [
-    tlLtd, fcLtd,
-    tlGrowthYoY, tlGrowth13w, tlGrowthOwn,
+    tlLtd,
+    fcLtd,
+    tlGrowthYoY,
+    tlGrowth13w,
+    tlGrowthOwn,
     dollarization,
-    evds, reer, fwdDeep, liqRatios,
+    evds,
+    reer,
+    fwdDeep,
+    liqRatios,
   ] = await Promise.all([
     // Loan-to-deposit ratios, public vs private
-    weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "TL"),
-    weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "FX"),
+    weeklyOwnershipRatio(
+      LOANS.category,
+      LOANS.item_id,
+      DEPOSITS.category,
+      DEPOSITS.item_id,
+      "TL",
+    ),
+    weeklyOwnershipRatio(
+      LOANS.category,
+      LOANS.item_id,
+      DEPOSITS.category,
+      DEPOSITS.item_id,
+      "FX",
+    ),
     // TL deposit growth — sector YoY (52w) + 13-week annualized momentum, plus
     // a public-vs-private 13w cut. Mirrors BBVA's two TL-deposit-growth panels.
-    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 52, [WEEKLY_BANK_TYPES.SECTOR]),
-    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 13, [WEEKLY_BANK_TYPES.SECTOR]),
+    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 52, [
+      WEEKLY_BANK_TYPES.SECTOR,
+    ]),
+    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 13, [
+      WEEKLY_BANK_TYPES.SECTOR,
+    ]),
     weeklyGrowthByOwnership(DEPOSITS.category, DEPOSITS.item_id, "TL", 13),
     // Deposit dollarization (sector / public / private)
     weeklyDollarization(),
@@ -168,8 +231,13 @@ export default async function LiquidityPage() {
     // DK.USD.A converts them from TL to USD; DOVVARNC.K15 is the forward/swap
     // short position used to split NIR into with-/excluding-swaps.
     evdsMulti(
-      ["TP.APIFON3", ...RESERVE_CODES,
-       "TP.HPBITABLO4.4", "TP.HPBITABLO4.5", "TP.HPBITABLO4.7"],
+      [
+        "TP.APIFON3",
+        ...RESERVE_CODES,
+        "TP.HPBITABLO4.4",
+        "TP.HPBITABLO4.5",
+        "TP.HPBITABLO4.7",
+      ],
       3,
     ),
     // REER over a longer horizon to show the real-appreciation trend
@@ -191,8 +259,16 @@ export default async function LiquidityPage() {
 
   // TL deposit growth — merge sector YoY + 13w annualized into one chart.
   const tlDepGrowth = [
-    ...tlGrowthYoY.map((r) => ({ period: r.period, bank_type_code: "YOY", value: r.value })),
-    ...tlGrowth13w.map((r) => ({ period: r.period, bank_type_code: "W13", value: r.value })),
+    ...tlGrowthYoY.map((r) => ({
+      period: r.period,
+      bank_type_code: "YOY",
+      value: r.value,
+    })),
+    ...tlGrowth13w.map((r) => ({
+      period: r.period,
+      bank_type_code: "W13",
+      value: r.value,
+    })),
   ];
 
   // Reserves & residents' FC are in USD millions → /1000 for USD bn.
@@ -218,7 +294,10 @@ export default async function LiquidityPage() {
   const tlLdrPub = tlLtd.filter((r) => r.bank_type_code === "PUBLIC");
   const tlLdrPriv = tlLtd.filter((r) => r.bank_type_code === "PRIVATE");
   const dollSector = dollarization.filter((r) => r.bank_type_code === "SECTOR");
-  const netFundingBn = netFunding.map((r) => ({ period: r.period, value: r.value / 1000 }));
+  const netFundingBn = netFunding.map((r) => ({
+    period: r.period,
+    value: r.value / 1000,
+  }));
 
   const lcrNow = lastVal(lcrS);
   const nsfrNow = lastVal(nsfrS);
@@ -229,17 +308,23 @@ export default async function LiquidityPage() {
 
   const lcrFloor = lcrNow != null ? lcrNow - 100 : null; // regulatory floor 100%
   const nsfrFloor = nsfrNow != null ? nsfrNow - 100 : null; // regulatory floor 100%
-  const pubPrivGap = pubNow != null && privNow != null ? pubNow - privNow : null;
+  const pubPrivGap =
+    pubNow != null && privNow != null ? pubNow - privNow : null;
 
   // "Both systems are pulling lira in at much the same pace" asserted a
   // CONVERGENCE with no threshold — the two could diverge 20pp and it would still
   // say so. The chart 40 lines up (pubPrivGap) already knew how to branch.
-  const ownGrowth = [...latestByGroup(toTrend(tlGrowthOwn)).values()].map((v) => v.value);
+  const ownGrowth = [...latestByGroup(toTrend(tlGrowthOwn)).values()].map(
+    (v) => v.value,
+  );
   const ownSpread =
-    ownGrowth.length >= 2 ? Math.max(...ownGrowth) - Math.min(...ownGrowth) : null;
+    ownGrowth.length >= 2
+      ? Math.max(...ownGrowth) - Math.min(...ownGrowth)
+      : null;
   const privRange = windowExtremes(tlLdrPriv, 52);
   const dollYearAgo = valYearAgoByDate(dollSector);
-  const dollYoY = dollNow != null && dollYearAgo != null ? dollNow - dollYearAgo : null;
+  const dollYoY =
+    dollNow != null && dollYearAgo != null ? dollNow - dollYearAgo : null;
 
   const auditQ = quarterLabel(lcrS.at(-1)?.period ?? liqRatios.at(-1)?.period);
   // The page's cadence is WEEKLY (the bulletin + the CBRT balance sheet); the §4
@@ -247,13 +332,20 @@ export default async function LiquidityPage() {
   const recWeek = weekLabel(tlLtd.at(-1)?.period, true);
 
   // "The Read" — deterministic, computed from the same series the charts show.
-  const read = liquidityInsights({
-    tlLdrPublic: toTrend(tlLtd).filter((r) => r.bank_type_code === "PUBLIC"),
-    tlLdrPrivate: toTrend(tlLtd).filter((r) => r.bank_type_code === "PRIVATE"),
-    dollarization: toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"),
-    netCbrtFunding: netFunding,
-    lcr: liqRatios.filter((r) => r.bank_type_code === "LCR"),
-  }, tx.locale);
+  const read = liquidityInsights(
+    {
+      tlLdrPublic: toTrend(tlLtd).filter((r) => r.bank_type_code === "PUBLIC"),
+      tlLdrPrivate: toTrend(tlLtd).filter(
+        (r) => r.bank_type_code === "PRIVATE",
+      ),
+      dollarization: toTrend(dollarization).filter(
+        (r) => r.bank_type_code === "SECTOR",
+      ),
+      netCbrtFunding: netFunding,
+      lcr: liqRatios.filter((r) => r.bank_type_code === "LCR"),
+    },
+    tx.locale,
+  );
 
   // ---- the buffer, decomposed ---------------------------------------------
   // The page already DERIVES net reserves and the swap-excluded net; it has
@@ -266,8 +358,10 @@ export default async function LiquidityPage() {
   const ownNow = bNow?.own ?? null;
   const swapStock = buf.swapStock;
   const banksFx = buf.banksFx;
-  const ownPctGross = ownNow != null && grossNow ? (ownNow / grossNow) * 100 : null;
-  const swapPctNet = swapStock != null && netNow ? (swapStock / netNow) * 100 : null;
+  const ownPctGross =
+    ownNow != null && grossNow ? (ownNow / grossNow) * 100 : null;
+  const swapPctNet =
+    swapStock != null && netNow ? (swapStock / netNow) * 100 : null;
   // How long the CBRT's own net FX has been below zero in this window — the
   // reason this is three lines and not a stacked area.
   const weeksOwnNegative = buf.weeksOwnNegative;
@@ -276,9 +370,12 @@ export default async function LiquidityPage() {
   // Residents' FC is MONTHLY, the reserves WEEKLY: pair them on the same date
   // (the last month both publish), never a fresh weekly print against a
   // month-old household number.
-  const goldAt = new Map(residentsFc["Precious metals"].map((r) => [r.period_date, r.value]));
+  const goldAt = new Map(
+    residentsFc["Precious metals"].map((r) => [r.period_date, r.value]),
+  );
   const nirAtDate = (d: string): number | null => {
-    for (let i = nir.length - 1; i >= 0; i--) if (nir[i].period_date <= d) return nir[i].value;
+    for (let i = nir.length - 1; i >= 0; i--)
+      if (nir[i].period_date <= d) return nir[i].value;
     return null;
   };
   const hh = residentsFc["FX cash (USD + EUR)"]
@@ -288,19 +385,26 @@ export default async function LiquidityPage() {
       gold: goldAt.get(r.period_date) ?? 0,
       nir: nirAtDate(r.period_date),
     }))
-    .filter((r): r is { period: string; cash: number; gold: number; nir: number } => r.nir != null);
+    .filter(
+      (r): r is { period: string; cash: number; gold: number; nir: number } =>
+        r.nir != null,
+    );
   const hhNow = hh.at(-1) ?? null;
   const hhTotal = hhNow ? hhNow.cash + hhNow.gold : null;
-  const hhVsNir = hhNow && hhTotal != null && hhNow.nir ? hhTotal / hhNow.nir : null;
+  const hhVsNir =
+    hhNow && hhTotal != null && hhNow.nir ? hhTotal / hhNow.nir : null;
   const goldVsNir = hhNow && hhNow.nir ? hhNow.gold / hhNow.nir : null;
 
-  const reerNow = lastVal(reer.map((r) => ({ period: r.period_date, value: r.value })));
+  const reerNow = lastVal(
+    reer.map((r) => ({ period: r.period_date, value: r.value })),
+  );
   const reer12 = reer.at(-13)?.value ?? null;
   const tl13w = lastVal(tlGrowth13w);
   const tlYoY = lastVal(tlGrowthYoY);
 
   const fmtBn = (v: number | null) => (v == null ? "—" : `$${v.toFixed(1)}bn`);
-  const fmtPct = (v: number | null, d = 1) => (v == null ? "—" : `${v.toFixed(d)}%`);
+  const fmtPct = (v: number | null, d = 1) =>
+    v == null ? "—" : `${v.toFixed(d)}%`;
 
   // ---- movers: the WEEKLY record only -------------------------------------
   // Net CBRT funding is DAILY; putting it in this Δ column would mix cadences,
@@ -314,26 +418,58 @@ export default async function LiquidityPage() {
     curr: s.at(-1)?.value ?? null,
   });
   const moverRows: MoverRow[] = [
-    { label: tx("{0} — public", {0: LDR_WEEKLY_TL.label}), ...wk(tlLdrPub), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down" },
     {
-      label: tx("{0} — private", {0: LDR_WEEKLY_TL.label}),
-      note: privNow != null ? tx("{0}pp from the 100% line", {0: (100 - privNow).toFixed(1)}) : undefined,
-      ...wk(tlLdrPriv), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down",
-    },
-    { label: "FC share of deposits", note: "the dollarization tell", ...wk(dollSector), good: "down" },
-    {
-      label: "Gross reserves", note: "USD bn",
-      ...wk(gross), fmt: (v) => `$${v.toFixed(1)}`, deltaDecimals: 1, deltaUnit: "", good: "up",
+      label: tx("{0} — public", { 0: LDR_WEEKLY_TL.label }),
+      ...wk(tlLdrPub),
+      fmt: (v) => `${v.toFixed(1)}%`,
+      deltaDecimals: 1,
+      good: "down",
     },
     {
-      label: "Net reserves", note: "derived · USD bn",
-      prev: buffer.at(-2)?.net ?? null, curr: netNow,
-      fmt: (v) => `$${v.toFixed(1)}`, deltaDecimals: 1, deltaUnit: "", good: "up",
+      label: tx("{0} — private", { 0: LDR_WEEKLY_TL.label }),
+      note:
+        privNow != null
+          ? tx("{0}pp from the 100% line", { 0: (100 - privNow).toFixed(1) })
+          : undefined,
+      ...wk(tlLdrPriv),
+      fmt: (v) => `${v.toFixed(1)}%`,
+      deltaDecimals: 1,
+      good: "down",
     },
     {
-      label: "Net excl. swaps", note: "the CBRT's own FX · USD bn",
-      prev: buffer.at(-2)?.own ?? null, curr: ownNow,
-      fmt: (v) => `$${v.toFixed(1)}`, deltaDecimals: 1, deltaUnit: "", good: "up",
+      label: "FC share of deposits",
+      note: "the dollarization tell",
+      ...wk(dollSector),
+      good: "down",
+    },
+    {
+      label: "Gross reserves",
+      note: "USD bn",
+      ...wk(gross),
+      fmt: (v) => `$${v.toFixed(1)}`,
+      deltaDecimals: 1,
+      deltaUnit: "",
+      good: "up",
+    },
+    {
+      label: "Net reserves",
+      note: "derived · USD bn",
+      prev: buffer.at(-2)?.net ?? null,
+      curr: netNow,
+      fmt: (v) => `$${v.toFixed(1)}`,
+      deltaDecimals: 1,
+      deltaUnit: "",
+      good: "up",
+    },
+    {
+      label: "Net excl. swaps",
+      note: "the CBRT's own FX · USD bn",
+      prev: buffer.at(-2)?.own ?? null,
+      curr: ownNow,
+      fmt: (v) => `$${v.toFixed(1)}`,
+      deltaDecimals: 1,
+      deltaUnit: "",
+      good: "up",
     },
   ];
 
@@ -345,16 +481,27 @@ export default async function LiquidityPage() {
       v: ((netNow / grossNow) * 100).toFixed(0),
       unit: "%",
       effect: (
-        <>{tx("Gross reserves are ")}<b>{tx(fmtBn(grossNow))}</b>{tx(", net ")}<b>{tx(fmtBn(netNow))}</b>{tx(". The difference —")}{" "}
-          <b>{tx(fmtBn(banksFx))}</b> —{" "}
+        <>
+          {tx("Gross reserves are ")}
+          <b>{tx(fmtBn(grossNow))}</b>
+          {tx(", net ")}
+          <b>{tx(fmtBn(netNow))}</b>
+          {tx(". The difference —")} <b>{tx(fmtBn(banksFx))}</b> —{" "}
           {banksFx > 0 ? (
-            <>{tx("is the banks’ own FX, held at the CBRT as required reserves.")}{" "}
+            <>
+              {tx(
+                "is the banks’ own FX, held at the CBRT as required reserves.",
+              )}{" "}
               <b>{tx("It is not the central bank’s money.")}</b>
             </>
           ) : (
             // gross − net ≡ the banks' FX at the CBRT, so this is normally positive.
             // If it inverts, the sentence above becomes nonsense — say what it is.
-            <>{tx("is negative: net reserves exceed gross, which the identity does not allow.")}</>
+            <>
+              {tx(
+                "is negative: net reserves exceed gross, which the identity does not allow.",
+              )}
+            </>
           )}
         </>
       ),
@@ -367,8 +514,16 @@ export default async function LiquidityPage() {
       unit: "bn",
       effect: (
         <>
-          {tx(fmtPct(swapPctNet, 0))}{tx(" of the net buffer is swapped in. Strip the swaps and the CBRT’s own net reserves are ")}<b>{tx(fmtBn(ownNow))}</b> —{" "}
-          <b>{tx(fmtPct(ownPctGross, 0))}{tx(" of the headline")}</b>.
+          {tx(fmtPct(swapPctNet, 0))}
+          {tx(
+            " of the net buffer is swapped in. Strip the swaps and the CBRT’s own net reserves are ",
+          )}
+          <b>{tx(fmtBn(ownNow))}</b> —{" "}
+          <b>
+            {tx(fmtPct(ownPctGross, 0))}
+            {tx(" of the headline")}
+          </b>
+          .
         </>
       ),
     });
@@ -379,8 +534,22 @@ export default async function LiquidityPage() {
       v: `$${hhTotal.toFixed(0)}`,
       unit: "bn",
       effect: (
-        <>{tx("Residents hold ")}<b>{tx(fmtBn(hhNow.cash))}</b>{tx(" in FX cash and ")}<b>{tx(fmtBn(hhNow.gold))}</b>{tx(" in gold — ")}<b>{tx(hhVsNir?.toFixed(1))}{tx("× the CBRT’s net reserves")}</b>{tx(" on the same date; the gold alone is ")}{tx(goldVsNir?.toFixed(1))}{tx("×. Dollarization is not just a deposit line.")}{" "}
-          <Link href="/deposits" className="font-semibold text-primary">{tx("Deposits")}</Link>
+        <>
+          {tx("Residents hold ")}
+          <b>{tx(fmtBn(hhNow.cash))}</b>
+          {tx(" in FX cash and ")}
+          <b>{tx(fmtBn(hhNow.gold))}</b>
+          {tx(" in gold — ")}
+          <b>
+            {tx(hhVsNir?.toFixed(1))}
+            {tx("× the CBRT’s net reserves")}
+          </b>
+          {tx(" on the same date; the gold alone is ")}
+          {tx(goldVsNir?.toFixed(1))}
+          {tx("×. Dollarization is not just a deposit line.")}{" "}
+          <Link href="/deposits" className="font-semibold text-primary">
+            {tx("Deposits")}
+          </Link>
         </>
       ),
     });
@@ -393,12 +562,23 @@ export default async function LiquidityPage() {
       effect: (
         <>
           {fundNow < 0 ? (
-            <>{tx("The system is ")}<b>{tx("short of lira")}</b>{tx(" and funds the gap at the CBRT — the channel a rate decision travels down. How fast it arrives is the maturity ladder’s question, not this one.")}{" "}
+            <>
+              {tx("The system is ")}
+              <b>{tx("short of lira")}</b>
+              {tx(
+                " and funds the gap at the CBRT — the channel a rate decision travels down. How fast it arrives is the maturity ladder’s question, not this one.",
+              )}{" "}
             </>
           ) : (
-            <>{tx("The system holds ")}<b>{tx("excess lira")}</b>{tx(" and places it back with the CBRT. ")}</>
+            <>
+              {tx("The system holds ")}
+              <b>{tx("excess lira")}</b>
+              {tx(" and places it back with the CBRT. ")}
+            </>
           )}
-          <Link href="/deposits" className="font-semibold text-primary">{tx("Deposits")}</Link>
+          <Link href="/deposits" className="font-semibold text-primary">
+            {tx("Deposits")}
+          </Link>
         </>
       ),
     });
@@ -415,14 +595,24 @@ export default async function LiquidityPage() {
       effect: (
         <>
           {reerMove === VERBS.noun.flat ? (
-            <>{tx("The real exchange rate is flat over 12 months — the lira carry is unchanged.")}</>
+            <>
+              {tx(
+                "The real exchange rate is flat over 12 months — the lira carry is unchanged.",
+              )}
+            </>
           ) : (
-            <>{tx(reerD > 0
-              ? "The real exchange rate appreciated {0} points over 12 months; TL deposits are running at {1} annualized."
-              : "The real exchange rate depreciated {0} points over 12 months; TL deposits are running at {1} annualized.",
-            {0: Math.abs(reerD).toFixed(1), 1: fmtPct(tl13w, 0)})}</>
+            <>
+              {tx(
+                reerD > 0
+                  ? "The real exchange rate appreciated {0} points over 12 months; TL deposits are running at {1} annualized."
+                  : "The real exchange rate depreciated {0} points over 12 months; TL deposits are running at {1} annualized.",
+                { 0: Math.abs(reerD).toFixed(1), 1: fmtPct(tl13w, 0) },
+              )}
+            </>
           )}{" "}
-          <Link href="/economy" className="font-semibold text-primary">{tx("/economy")}</Link>
+          <Link href="/economy" className="font-semibold text-primary">
+            {tx("/economy")}
+          </Link>
         </>
       ),
     });
@@ -435,80 +625,160 @@ export default async function LiquidityPage() {
       active: ownPctGross != null && ownPctGross < 40,
       body: (
         <>
-          <b className="font-semibold">{tx("Thin own-buffer")}</b>{tx(" — the CBRT’s own net reserves are")}{" "}
-          {tx(fmtBn(ownNow))}, {tx(fmtPct(ownPctGross, 0))}{tx(" of the ")}{tx(fmtBn(grossNow))}{tx(" headline. The rest is the banks’ required reserves and swapped-in FX.")}</>
+          <b className="font-semibold">{tx("Thin own-buffer")}</b>
+          {tx(" — the CBRT’s own net reserves are")} {tx(fmtBn(ownNow))},{" "}
+          {tx(fmtPct(ownPctGross, 0))}
+          {tx(" of the ")}
+          {tx(fmtBn(grossNow))}
+          {tx(
+            " headline. The rest is the banks’ required reserves and swapped-in FX.",
+          )}
+        </>
       ),
       rule: "net_excl_swaps / gross < 40%",
-      clear: <>{tx("Own buffer — ")}{tx(fmtPct(ownPctGross, 0))}{tx(" of gross is the CBRT’s own FX")}</>,
+      clear: (
+        <>
+          {tx("Own buffer — ")}
+          {tx(fmtPct(ownPctGross, 0))}
+          {tx(" of gross is the CBRT’s own FX")}
+        </>
+      ),
     },
     {
       code: "swap-dependence",
       active: swapPctNet != null && swapPctNet > 25,
       body: (
         <>
-          <b className="font-semibold">{tx("Swap dependence")}</b> — {tx(fmtBn(swapStock))}{tx(" of the")}{" "}
-          {tx(fmtBn(netNow))}{tx(" net buffer is borrowed (")}{tx(fmtPct(swapPctNet, 0))}{tx("). A swap is a liability with a date on it.")}</>
+          <b className="font-semibold">{tx("Swap dependence")}</b> —{" "}
+          {tx(fmtBn(swapStock))}
+          {tx(" of the")} {tx(fmtBn(netNow))}
+          {tx(" net buffer is borrowed (")}
+          {tx(fmtPct(swapPctNet, 0))}
+          {tx("). A swap is a liability with a date on it.")}
+        </>
       ),
       rule: "swaps / nir > 25%",
-      clear: <>{tx("Swaps — ")}{tx(fmtPct(swapPctNet, 0))}{tx(" of the net buffer")}</>,
+      clear: (
+        <>
+          {tx("Swaps — ")}
+          {tx(fmtPct(swapPctNet, 0))}
+          {tx(" of the net buffer")}
+        </>
+      ),
     },
     {
       code: "tl-deficit",
       active: fundNow != null && fundNow < 0,
       body: (
         <>
-          <b className="font-semibold">{tx("TL deficit")}</b>{tx(" — net CBRT funding is")}{" "}
-          <b>₺{tx(fundNow?.toFixed(0))}{tx("bn")}</b>{tx(": the system is short of lira and funds the gap at the policy rate.")}</>
+          <b className="font-semibold">{tx("TL deficit")}</b>
+          {tx(" — net CBRT funding is")}{" "}
+          <b>
+            ₺{tx(fundNow?.toFixed(0))}
+            {tx("bn")}
+          </b>
+          {tx(
+            ": the system is short of lira and funds the gap at the policy rate.",
+          )}
+        </>
       ),
       rule: "net_cbrt_funding < 0",
-      clear: <>{tx("TL liquidity — net CBRT funding ₺")}{tx(fundNow?.toFixed(0))}{tx("bn, in surplus")}</>,
+      clear: (
+        <>
+          {tx("TL liquidity — net CBRT funding ₺")}
+          {tx(fundNow?.toFixed(0))}
+          {tx("bn, in surplus")}
+        </>
+      ),
     },
     {
       code: "private-ldr",
       active: privNow != null && privNow > LDR_WEEKLY_TL.line,
       body: (
         <>
-          <b className="font-semibold">{tx("Private LDR at the line")}</b>{tx(" — private TL loan/deposit")}{" "}
-          {tx("{0}; {1}pp below 100%. New lending requires additional funding. This is the TL book; the published TL+FC sector ratio is on", {0: fmtPct(privNow), 1: privNow != null ? (100 - privNow).toFixed(1) : "—"})}{" "}
-          <Link href="/deposits" className="font-semibold text-primary">{tx("Deposits")}</Link>.
+          <b className="font-semibold">{tx("Private LDR at the line")}</b>
+          {tx(" — private TL loan/deposit")}{" "}
+          {tx(
+            "{0}; {1}pp below 100%. New lending requires additional funding. This is the TL book; the published TL+FC sector ratio is on",
+            {
+              0: fmtPct(privNow),
+              1: privNow != null ? (100 - privNow).toFixed(1) : "—",
+            },
+          )}{" "}
+          <Link href="/deposits" className="font-semibold text-primary">
+            {tx("Deposits")}
+          </Link>
+          .
         </>
       ),
       rule: LDR_WEEKLY_TL.rule,
-      clear: <>{tx("Private TL loan/deposit — ")}{tx(fmtPct(privNow))}{tx(", clear of the line")}</>,
+      clear: (
+        <>
+          {tx("Private TL loan/deposit — ")}
+          {tx(fmtPct(privNow))}
+          {tx(", clear of the line")}
+        </>
+      ),
     },
     {
       code: "lcr-floor",
       active: lcrNow != null && lcrNow < 100,
       body: (
         <>
-          <b className="font-semibold">{tx("LCR below the floor")}</b> — {tx(fmtPct(lcrNow, 0))}{tx(" against the 100% regulatory minimum (audited ")}{tx(auditQ)}).
+          <b className="font-semibold">{tx("LCR below the floor")}</b> —{" "}
+          {tx(fmtPct(lcrNow, 0))}
+          {tx(" against the 100% regulatory minimum (audited ")}
+          {tx(auditQ)}).
         </>
       ),
       rule: "lcr < 100%",
-      clear: <>{tx("LCR — ")}{tx(fmtPct(lcrNow, 0))}{tx(", clear of the floor")}</>,
+      clear: (
+        <>
+          {tx("LCR — ")}
+          {tx(fmtPct(lcrNow, 0))}
+          {tx(", clear of the floor")}
+        </>
+      ),
     },
     {
       code: "nsfr-floor",
       active: nsfrNow != null && nsfrNow < 100,
       body: (
         <>
-          <b className="font-semibold">{tx("NSFR below the floor")}</b> — {tx(fmtPct(nsfrNow, 0))}{tx(" against the 100% regulatory minimum (audited ")}{tx(auditQ)}).
+          <b className="font-semibold">{tx("NSFR below the floor")}</b> —{" "}
+          {tx(fmtPct(nsfrNow, 0))}
+          {tx(" against the 100% regulatory minimum (audited ")}
+          {tx(auditQ)}).
         </>
       ),
       rule: "nsfr < 100%",
-      clear: <>{tx("NSFR — ")}{tx(fmtPct(nsfrNow, 0))}{tx(", clear of the floor")}</>,
+      clear: (
+        <>
+          {tx("NSFR — ")}
+          {tx(fmtPct(nsfrNow, 0))}
+          {tx(", clear of the floor")}
+        </>
+      ),
     },
     {
       code: "re-dollarization",
       active: dollYoY != null && dollYoY > 1,
       body: (
         <>
-          <b className="font-semibold">{tx("Re-dollarization")}</b>{tx(" — FC share ")}{tx(fmtPct(dollNow))},{" "}
-          {tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}{tx(" y/y: savers are moving back into hard currency.")}</>
+          <b className="font-semibold">{tx("Re-dollarization")}</b>
+          {tx(" — FC share ")}
+          {tx(fmtPct(dollNow))},{" "}
+          {tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}
+          {tx(" y/y: savers are moving back into hard currency.")}
+        </>
       ),
       rule: "Δ52w(fc_share) > +1pp",
       clear: (
-        <>{tx("Dollarization — FC share ")}{tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}{tx(" over 52w")}</>
+        <>
+          {tx("Dollarization — FC share ")}
+          {tx(dollYoY != null ? signedPp(dollYoY, 2) : "—")}
+          {tx(" over 52w")}
+        </>
       ),
     },
   ];
@@ -517,17 +787,35 @@ export default async function LiquidityPage() {
   // ---- the two systems ----------------------------------------------------
   const fcPub = lastVal(fcLtd.filter((r) => r.bank_type_code === "PUBLIC"));
   const fcPriv = lastVal(fcLtd.filter((r) => r.bank_type_code === "PRIVATE"));
-  const dollPub = lastVal(dollarization.filter((r) => r.bank_type_code === "PUBLIC"));
-  const dollPriv = lastVal(dollarization.filter((r) => r.bank_type_code === "PRIVATE"));
+  const dollPub = lastVal(
+    dollarization.filter((r) => r.bank_type_code === "PUBLIC"),
+  );
+  const dollPriv = lastVal(
+    dollarization.filter((r) => r.bank_type_code === "PRIVATE"),
+  );
   const compareRows: CompareRow[] = [
     { label: "TL loan / deposit (weekly)", a: pubNow, b: privNow },
     { label: "FC loan / deposit (weekly)", a: fcPub, b: fcPriv },
     { label: "FC share of deposits", a: dollPub, b: dollPriv },
   ];
 
+  const sectorAssessment = await withLlmHeadline("liquidity", read, tx.locale);
+
   return (
     <SectorReport>
-<SectorHeader sector="liquidity" record={<>{tx("Record ")}<b className="font-normal text-foreground">{tx("week ending {0}", { 0: recWeek })}</b> · {tx(auditQ)}{tx(" filings + weekly")}</>} observations={[
+      <SectorHeader
+        sector="liquidity"
+        record={
+          <>
+            {tx("Record ")}
+            <b className="font-normal text-foreground">
+              {tx("week ending {0}", { 0: recWeek })}
+            </b>{" "}
+            · {tx(auditQ)}
+            {tx(" filings + weekly")}
+          </>
+        }
+        observations={[
           {
             cadence: "daily",
             role: "current",
@@ -554,20 +842,21 @@ export default async function LiquidityPage() {
             asOf: auditQ,
             basis: "BRSA LCR and NSFR filings",
           },
-        ]} />
-<SectorContents sections={[{id: "overview", label: "Key indicators"}, {id: "cbrt-funding", label: "CBRT funding"}, {id: "lira-funding", label: "Lira funding"}, {id: "fx-funding", label: "FX liquidity"}, {id: "reserves", label: "Reserves"}, {id: "liquidity-ratios", label: "Liquidity ratios"}, {id: "monitoring", label: "Monitoring"}]} controls={<GlobalRangeSelector />} />
-<SectorSection id="overview" title={tx("Key indicators")}>
-<CadenceBand
-        title={tx("Weekly funding pressure")}
-        observation={{
-          cadence: "weekly",
-          role: "current",
-          asOf: tlLdrPriv.at(-1)?.period,
-          window: "52w context",
-          basis: LDR_WEEKLY_TL.basis,
-        }}
-      >
-        <Vitals cols={3} rule="hair">
+        ]}
+      />
+      <SectorContents
+        sections={[
+          { id: "overview", label: "Key indicators" },
+          { id: "liquidity-ratios", label: "Liquidity ratios" },
+          { id: "lira-funding", label: "Lira funding" },
+          { id: "fx-funding", label: "FX liquidity" },
+          { id: "reserves", label: "Reserves" },
+          { id: "monitoring", label: "Monitoring" },
+        ]}
+        controls={<GlobalRangeSelector compact />}
+      />
+      <SectorOpening>
+        <SectorMetrics>
           <Vital
             label={tx("{0} — public", { 0: LDR_WEEKLY_TL.label })}
             value={pubNow != null ? pubNow.toFixed(1) : "—"}
@@ -577,11 +866,24 @@ export default async function LiquidityPage() {
             note={
               pubPrivGap != null ? (
                 <>
-                  {tx(pubPrivGap >= 0
-                    ? tx("{0}pp above", { 0: pubPrivGap.toFixed(1) })
-                    : tx("{0}pp below", { 0: Math.abs(pubPrivGap).toFixed(1) }))}{" "}{tx("private")}</>
+                  {tx(
+                    pubPrivGap >= 0
+                      ? tx("{0}pp above", { 0: pubPrivGap.toFixed(1) })
+                      : tx("{0}pp below", {
+                          0: Math.abs(pubPrivGap).toFixed(1),
+                        }),
+                  )}{" "}
+                  {tx("private")}
+                </>
               ) : undefined
             }
+            observation={{
+              cadence: "weekly",
+              role: "current",
+              asOf: tlLdrPriv.at(-1)?.period,
+              window: "52w context",
+              basis: LDR_WEEKLY_TL.basis,
+            }}
           />
           <Vital
             label={tx("{0} — private", { 0: LDR_WEEKLY_TL.label })}
@@ -591,10 +893,19 @@ export default async function LiquidityPage() {
             decimals={1}
             note={
               privRange ? (
-                <>{tx("52w range ")}{tx(privRange.min.toFixed(0))}–{tx(privRange.max.toFixed(0))}%
+                <>
+                  {tx("52w range ")}
+                  {tx(privRange.min.toFixed(0))}–{tx(privRange.max.toFixed(0))}%
                 </>
               ) : undefined
             }
+            observation={{
+              cadence: "weekly",
+              role: "current",
+              asOf: tlLdrPriv.at(-1)?.period,
+              window: "52w context",
+              basis: LDR_WEEKLY_TL.basis,
+            }}
           />
           <Vital
             label={tx("FC share of deposits")}
@@ -607,269 +918,473 @@ export default async function LiquidityPage() {
                 <>
                   <b
                     className={
-                      dollYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
+                      dollYoY <= 0
+                        ? "font-semibold text-positive"
+                        : "font-semibold text-negative"
                     }
                   >
                     {tx(signedPp(dollYoY, 1))}
                   </b>{" "}
-                  {tx("y/y")} {" "}
-                  <Link href="/deposits" className="font-semibold text-primary">{tx("Deposits")}</Link>
+                  {tx("y/y")}{" "}
+                  <Link href="/deposits" className="font-semibold text-primary">
+                    {tx("Deposits")}
+                  </Link>
+                </>
+              ) : undefined
+            }
+            observation={{
+              cadence: "weekly",
+              role: "current",
+              asOf: tlLdrPriv.at(-1)?.period,
+              window: "52w context",
+              basis: LDR_WEEKLY_TL.basis,
+            }}
+          />
+          <Vital
+            label={tx("Net CBRT funding")}
+            value={fundNow != null ? fundNow.toFixed(0) : "—"}
+            unit={tx.locale === "tr" ? "milyar ₺" : "₺bn"}
+            series={lastYearWindow(netFundingBn)}
+            format="raw"
+            decimals={0}
+            note={
+              fundNow != null ? (
+                <>
+                  {tx(
+                    fundNow >= 0
+                      ? "The system has a TL surplus; banks place the excess at the CBRT."
+                      : "The system has a TL shortage; banks borrow from the CBRT.",
+                  )}
+                </>
+              ) : undefined
+            }
+            observation={{
+              cadence: "daily",
+              role: "current",
+              asOf: netFundingBn.at(-1)?.period,
+              basis: "TCMB net funding balance",
+            }}
+          />
+        </SectorMetrics>
+        <Takeaway
+          data={sectorAssessment}
+          variant="report-summary"
+        />
+      </SectorOpening>
+      <SectorSection
+        id="liquidity-ratios"
+        title={tx("Liquidity ratios")}
+        description={tx(
+          "audited §4 · {0} · asset-weighted across reporting banks",
+          { 0: auditQ },
+        )}
+      >
+        <SecHead
+          title={tx("Regulatory buffers")}
+          meta={tx("audited quarterly · not a live weekly measure")}
+          className="mb-2.5 mt-6"
+        />
+        <Vitals cols={2}>
+          <Vital
+            label={tx("LCR")}
+            value={lcrNow != null ? lcrNow.toFixed(0) : "—"}
+            unit="%"
+            series={lcrS.slice(-13)}
+            decimals={0}
+            note={
+              lcrFloor != null ? (
+                <>
+                  <b
+                    className={
+                      lcrFloor >= 0
+                        ? "font-semibold text-positive"
+                        : "font-semibold text-negative"
+                    }
+                  >
+                    {tx(signedPp(lcrFloor, 0))}
+                  </b>{" "}
+                  {tx("vs the 100% floor · audited ")}
+                  {tx(auditQ)}
+                </>
+              ) : undefined
+            }
+          />
+          <Vital
+            label={tx("NSFR")}
+            value={nsfrNow != null ? nsfrNow.toFixed(0) : "—"}
+            unit="%"
+            series={nsfrS.slice(-13)}
+            decimals={0}
+            note={
+              nsfrFloor != null ? (
+                <>
+                  <b
+                    className={
+                      nsfrFloor >= 0
+                        ? "font-semibold text-positive"
+                        : "font-semibold text-negative"
+                    }
+                  >
+                    {tx(signedPp(nsfrFloor, 0))}
+                  </b>{" "}
+                  {tx("vs the 100% floor · audited ")}
+                  {tx(auditQ)}
                 </>
               ) : undefined
             }
           />
         </Vitals>
-      </CadenceBand>
-</SectorSection>
-<Takeaway data={await withLlmHeadline("liquidity", read, tx.locale)} variant="report" />
-<SectorSection id="cbrt-funding" title={tx("CBRT funding")} description={tx("Daily net funding and the banking system’s lira liquidity position.")}>
-<CadenceBand
-          title={tx("Daily system liquidity")}
-          observation={{
-            cadence: "daily",
-            role: "current",
-            asOf: netFundingBn.at(-1)?.period,
-            basis: "TCMB net funding balance",
-          }}
-        >
-          <Vitals cols={3} rule="hair">
-            <Vital
-              label={tx("Net CBRT funding")}
-              value={fundNow != null ? fundNow.toFixed(0) : "—"}
-              unit={tx.locale === "tr" ? "milyar ₺" : "₺bn"}
-              series={lastYearWindow(netFundingBn)}
-              format="raw"
-              decimals={0}
-              note={
-                fundNow != null ? (
-                  <>{tx(fundNow >= 0
-                    ? "The system has a TL surplus; banks place the excess at the CBRT."
-                    : "The system has a TL shortage; banks borrow from the CBRT.")}</>
-                ) : undefined
-              }
-            />
-          </Vitals>
-        </CadenceBand>
-<ChartRow data={netFunding} deltaPeriods={252} deltaLabel="52w" fmt={(v) => `₺${(v / 1000).toFixed(0)}bn`}>
-          <TrendChart readout
-            plain
-            data={netFunding}
-            seriesLabels={{ NETFUND: "Net funding" }}
-            title={
-              tx(fundNow != null && fundNow < 0
-                ? "The system is short of lira — it funds the gap at the CBRT"
-                : "Net CBRT funding")
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorTrend
+            data={liqRatios.filter((row) => row.bank_type_code !== "LEV")}
+            seriesLabels={{ LCR: AUDIT_LIQUIDITY_LABELS.LCR, NSFR: AUDIT_LIQUIDITY_LABELS.NSFR }}
+            source={
+              <ChartFoot
+                data={liqRatios}
+                labels={AUDIT_LIQUIDITY_LABELS}
+                heroCode="LCR"
+                decimals={0}
+                deltaPeriods={4}
+                deltaLabel="4q"
+              />
             }
-            description={tx("net cbrt funding, ₺ bn, daily · zero = neutral")}
-            yFormat="bn"
+            yFormat="pct"
             decimals={0}
-            height={300}
+            title={tx("Liquidity coverage and stable funding")}
+            height={320}
+            hero="LCR"
+            mode="trend"
+            references={[{ value: 100, label: tx("Regulatory minimum") }]}
+            description={
+              <>
+                {tx("LCR and NSFR, %, quarterly · regulatory minimum 100%")}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    lcrNow != null &&
+                      nsfrNow != null &&
+                      lcrNow > 100 &&
+                      nsfrNow > 100
+                      ? "LCR and NSFR clear their floors with room to spare"
+                      : "LCR and NSFR — sector",
+                  )}
+                </p>
+              </>
+            }
+          />
+          <SectorTrend
+            data={liqRatios.filter((row) => row.bank_type_code === "LEV")}
+            seriesLabels={{ LEV: AUDIT_LIQUIDITY_LABELS.LEV }}
+            description={tx("Audited leverage ratio, %, quarterly")}
+            source={tx("Source: BRSA quarterly filings (§4)")}
+            yFormat="pct"
+            decimals={1}
+            title={tx("Leverage ratio — sector")}
+            height={320}
+            mode="trend"
+          />
+        </SectorGrid>
+<Takeaway data={sectorAssessment} variant="report-details" />
+
+      </SectorSection>
+      <SectorSection
+        id="lira-funding"
+        title={tx("Lira funding")}
+        description={tx(
+          "Weekly TL loan-to-deposit ratios and deposit growth for public and private banks.",
+        )}
+      >
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorTrend
+            data={toTrend(tlLtd)}
+            seriesLabels={LIQ_OWNERSHIP_LABELS}
+            yFormat="pct"
+            decimals={0}
+            hero="PRIVATE"
+            title={tx("TL loan / deposit — public vs private")}
+            height={320}
+            mode="trend"
+            references={[{ value: 100, label: tx("100% reference") }]}
+            description={
+              <>
+                {tx(
+                  "TL loans / TL deposits, %, weekly · public and private banks",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    pubPrivGap != null && pubPrivGap < 0
+                      ? "The private banks lend out nearly every lira they take in; the state banks do not"
+                      : "TL loan / deposit — public vs private",
+                  )}
+                </p>
+              </>
+            }
+            source={
+              <>
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-[13px] font-medium">
+                    {tx("Historical comparison")}
+                  </summary>
+                  <ChartRow
+                    data={toTrend(tlLtd)}
+                    labels={LIQ_OWNERSHIP_LABELS}
+                    deltaPeriods={52}
+                    deltaLabel="52w"
+                    fmt={(v) => `${v.toFixed(0)}%`}
+                  >
+                    {null}
+                  </ChartRow>
+                </details>
+              </>
+            }
+          />
+          <div id="cbrt-funding" className="min-w-0 scroll-mt-32">
+            <SectorTrend
+              data={netFunding}
+              seriesLabels={{ NETFUND: "Net funding" }}
+              yFormat="bn"
+              decimals={0}
+              zeroLine
+              title={tx("Net CBRT funding")}
+              height={320}
+              mode="trend"
+              description={
+                <>
+                  {tx("net cbrt funding, ₺ bn, daily · zero = neutral")}
+                  <p className="mt-2 text-[14px] leading-relaxed">
+                    {tx(
+                      fundNow != null && fundNow < 0
+                        ? "The system is short of lira — it funds the gap at the CBRT"
+                        : "Net CBRT funding",
+                    )}
+                  </p>
+                </>
+              }
+              source={
+                <>
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-[13px] font-medium">
+                      {tx("Historical comparison")}
+                    </summary>
+                    <ChartRow
+                      data={netFunding}
+                      deltaPeriods={252}
+                      deltaLabel="52w"
+                      fmt={(v) => `₺${(v / 1000).toFixed(0)}bn`}
+                    >
+                      {null}
+                    </ChartRow>
+                  </details>
+                </>
+              }
+            />
+          </div>
+        </SectorGrid>
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorPanel>
+            <SecHead
+              title={tx("Period changes")}
+              meta={tx("the weekly record · {0} → {1}", {
+                0: weekLabel(tlLdrPriv.at(-2)?.period),
+                1: weekLabel(tlLdrPriv.at(-1)?.period),
+              })}
+              className="mb-2.5"
+            />
+            <Movers
+              from={weekLabel(tlLdrPriv.at(-2)?.period).toUpperCase()}
+              to={weekLabel(tlLdrPriv.at(-1)?.period).toUpperCase()}
+              rows={moverRows}
+            />
+          </SectorPanel>
+          <SectorPanel>
+            <SecHead
+              title={tx("Public and private banks")}
+              meta={tx("public vs private · w/e {0}", { 0: recWeek })}
+              className="mb-2.5"
+            />
+            <Compare a="Public" b="Private" rows={compareRows} />
+            <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">
+              {tx(
+                "Public: state-owned banks. Private: domestic private and foreign-owned banks.",
+              )}
+            </p>
+          </SectorPanel>
+        </SectorGrid>
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorTrend
+            data={tlDepGrowth}
+            seriesLabels={{ YOY: "52w", W13: "13w ann." }}
+            source={
+              <ChartFoot
+                data={tlDepGrowth}
+                labels={{ YOY: "52w", W13: "13w ann." }}
+                heroCode="W13"
+                decimals={1}
+                deltaPeriods={52}
+                deltaLabel="52w"
+              />
+            }
+            yFormat="pct"
+            decimals={0}
+            hero="W13"
             zeroLine
+            title={tx("TL deposit growth — sector")}
+            height={320}
+            mode="trend"
+            description={
+              <>
+                {tx(
+                  "tl deposit growth, %, weekly · 52w vs 13w annualized · sector",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    tl13w != null && tlYoY != null && tl13w - tlYoY > 5
+                      ? tx(
+                          "TL deposits are running at a {0}% annualized pace — well above the {1}% yearly rate",
+                          { 0: tl13w.toFixed(0), 1: tlYoY.toFixed(0) },
+                        )
+                      : "TL deposit growth — sector",
+                  )}
+                </p>
+              </>
+            }
           />
-        </ChartRow>
-</SectorSection>
-<SectorSection id="lira-funding" title={tx("Lira funding")} description={tx("Weekly TL loan-to-deposit ratios and deposit growth for public and private banks.")}>
-<div data-sector-pair className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-<ChartRow data={toTrend(tlLtd)} labels={LIQ_OWNERSHIP_LABELS} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(0)}%`}>
-            <TrendChart readout
-              plain
-              data={toTrend(tlLtd)}
-              seriesLabels={LIQ_OWNERSHIP_LABELS}
-              title={
-                tx(pubPrivGap != null && pubPrivGap < 0
-                  ? "The private banks lend out nearly every lira they take in; the state banks do not"
-                  : "TL loan / deposit — public vs private")
-              }
-              description={tx("TL loans / TL deposits, %, weekly · public and private banks")}
-              yFormat="pct"
-              decimals={0}
-              height={300}
-              hero="PRIVATE"
-            />
-          </ChartRow>
-<div>
-          {/* Pair the week labels off a SINGLE-series array: tlLtd is long-form
-              (one row per ownership group per week), so its .at(-2) is the same
-              week's other group, not last week. */}
-          <SecHead
-            title={tx("Period changes")}
-            meta={tx("the weekly record · {0} → {1}", { 0: weekLabel(tlLdrPriv.at(-2)?.period), 1: weekLabel(tlLdrPriv.at(-1)?.period) })}
-            className="mb-2.5"
+          <SectorTrend
+            data={toTrend(tlGrowthOwn)}
+            seriesLabels={LIQ_OWNERSHIP_LABELS}
+            source={
+              <ChartFoot
+                data={toTrend(tlGrowthOwn)}
+                labels={LIQ_OWNERSHIP_LABELS}
+                heroCode="PRIVATE"
+                decimals={1}
+                deltaPeriods={52}
+                deltaLabel="52w"
+              />
+            }
+            yFormat="pct"
+            decimals={0}
+            deltaPeriods={13}
+            deltaLabel="13w"
+            zeroLine
+            title={tx("TL deposit growth — public vs private")}
+            height={320}
+            mode="trend"
+            description={
+              <>
+                {tx(
+                  "tl deposit growth, 13w annualized, %, weekly · public vs private",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    firstClaim(
+                      [
+                        ownSpread != null && ownSpread < 5,
+                        "Both systems are pulling lira in at much the same pace",
+                      ],
+                      [
+                        ownSpread != null,
+                        tx(
+                          "The two systems are pulling lira in at different speeds — {0}pp apart",
+                          { 0: (ownSpread ?? 0).toFixed(0) },
+                        ),
+                      ],
+                    ) ?? "TL deposit growth — public vs private",
+                  )}
+                </p>
+              </>
+            }
           />
-          <Movers
-            from={weekLabel(tlLdrPriv.at(-2)?.period).toUpperCase()}
-            to={weekLabel(tlLdrPriv.at(-1)?.period).toUpperCase()}
-            rows={moverRows}
+        </SectorGrid>
+      </SectorSection>
+      <SectorSection
+        id="fx-funding"
+        title={tx("FX liquidity")}
+        description={tx(
+          "Foreign-currency funding, deposits and household holdings.",
+        )}
+      >
+        <SectorGrid columns={2} ratio="balanced">
+          <SectorTrend
+            data={toTrend(fcLtd)}
+            seriesLabels={LIQ_OWNERSHIP_LABELS}
+            source={
+              <ChartFoot
+                data={toTrend(fcLtd)}
+                labels={LIQ_OWNERSHIP_LABELS}
+                heroCode="PUBLIC"
+                decimals={1}
+                deltaPeriods={52}
+                deltaLabel="52w"
+              />
+            }
+            yFormat="pct"
+            decimals={0}
+            hero="PUBLIC"
+            title={tx("FC loan / deposit — public vs private")}
+            height={320}
+            mode="trend"
+            description={
+              <>
+                {tx("fc loans ÷ fc deposits, %, weekly · public vs private")}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    fcPub != null && fcPriv != null && fcPub > fcPriv
+                      ? "In foreign currency the roles reverse — the state banks are the stretched ones"
+                      : "FC loan / deposit — public vs private",
+                  )}
+                </p>
+              </>
+            }
           />
-        </div>
-</div>
-<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart readout
-              plain
-              data={tlDepGrowth}
-              seriesLabels={{ YOY: "52w", W13: "13w ann." }}
-              title={
-                tx(tl13w != null && tlYoY != null && tl13w - tlYoY > 5
-                  ? tx("TL deposits are running at a {0}% annualized pace — well above the {1}% yearly rate", { 0: tl13w.toFixed(0), 1: tlYoY.toFixed(0) })
-                  : "TL deposit growth — sector")
-              }
-              description={tx("tl deposit growth, %, weekly · 52w vs 13w annualized · sector")}
-              source={
-                <ChartFoot
-                  data={tlDepGrowth}
-                  labels={{ YOY: "52w", W13: "13w ann." }}
-                  heroCode="W13"
-                  decimals={1}
-                  deltaPeriods={52}
-                  deltaLabel="52w"
-                />
-              }
-              yFormat="pct"
-              decimals={0}
-              height={280}
-              hero="W13"
-              zeroLine
-            />
-            <SmallMultiplesTrend
-              plain
-              data={toTrend(tlGrowthOwn)}
-              seriesLabels={LIQ_OWNERSHIP_LABELS}
-              title={
-                tx(firstClaim(
-                  [
-                    ownSpread != null && ownSpread < 5,
-                    "Both systems are pulling lira in at much the same pace",
-                  ],
-                  [
-                    ownSpread != null,
-                    tx("The two systems are pulling lira in at different speeds — {0}pp apart", { 0: (ownSpread ?? 0).toFixed(0) }),
-                  ],
-                ) ?? "TL deposit growth — public vs private")
-              }
-              description={tx("tl deposit growth, 13w annualized, %, weekly · public vs private")}
-              source={
-                <ChartFoot
-                  data={toTrend(tlGrowthOwn)}
-                  labels={LIQ_OWNERSHIP_LABELS}
-                  heroCode="PRIVATE"
-                  decimals={1}
-                  deltaPeriods={52}
-                  deltaLabel="52w"
-                />
-              }
-              yFormat="pct"
-              decimals={0}
-              deltaPeriods={13}
-              deltaLabel="13w"
-              height={126}
-              columns={2}
-              zeroLine
-            />
-          </div>
-<div>
-          <SecHead
-            title={tx("The two systems")}
-            meta={tx("public vs private · w/e {0}", { 0: recWeek })}
-            className="mb-2.5"
+          <SectorTrend
+            data={toTrend(dollarization)}
+            seriesLabels={LIQ_DOLLARIZATION_LABELS}
+            source={
+              <ChartFoot
+                data={toTrend(dollarization)}
+                labels={LIQ_DOLLARIZATION_LABELS}
+                heroCode="SECTOR"
+                decimals={1}
+                deltaPeriods={52}
+                deltaLabel="52w"
+              />
+            }
+            yFormat="pct"
+            decimals={1}
+            hero="SECTOR"
+            title={tx("Deposit dollarization — FC share of deposits")}
+            height={320}
+            mode="trend"
+            description={
+              <>
+                {tx(
+                  "fc share of total deposits, %, weekly · sector / public / private",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    seriesFinding(
+                      toTrend(dollarization).filter(
+                        (r) => r.bank_type_code === "SECTOR",
+                      ),
+                      { noun: "Deposit dollarization", decimals: 1 },
+                      tx.locale,
+                    ) ?? "Deposit dollarization — FC share of deposits",
+                  )}
+                </p>
+              </>
+            }
           />
-          <Compare a="Public" b="Private" rows={compareRows} />
-          <p className="mt-2 text-[10.5px] leading-snug text-faint">{tx("Public: state-owned banks. Private: domestic private and foreign-owned banks.")}</p>
-        </div>
-</SectorSection>
-<SectorSection id="fx-funding" title={tx("FX liquidity")} description={tx("Foreign-currency funding, deposits and household holdings.")}>
-<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart readout
-              plain
-              data={toTrend(fcLtd)}
-              seriesLabels={LIQ_OWNERSHIP_LABELS}
-              title={
-                tx(fcPub != null && fcPriv != null && fcPub > fcPriv
-                  ? "In foreign currency the roles reverse — the state banks are the stretched ones"
-                  : "FC loan / deposit — public vs private")
-              }
-              description={tx("fc loans ÷ fc deposits, %, weekly · public vs private")}
-              source={
-                <ChartFoot
-                  data={toTrend(fcLtd)}
-                  labels={LIQ_OWNERSHIP_LABELS}
-                  heroCode="PUBLIC"
-                  decimals={1}
-                  deltaPeriods={52}
-                  deltaLabel="52w"
-                />
-              }
-              yFormat="pct"
-              decimals={0}
-              height={280}
-              hero="PUBLIC"
-            />
-            <TrendChart readout
-              plain
-              data={toTrend(dollarization)}
-              seriesLabels={LIQ_DOLLARIZATION_LABELS}
-              title={
-                tx(seriesFinding(toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"), { noun: "Deposit dollarization", decimals: 1 }, tx.locale) ?? "Deposit dollarization — FC share of deposits")
-              }
-              description={tx("fc share of total deposits, %, weekly · sector / public / private")}
-              source={
-                <ChartFoot
-                  data={toTrend(dollarization)}
-                  labels={LIQ_DOLLARIZATION_LABELS}
-                  heroCode="SECTOR"
-                  decimals={1}
-                  deltaPeriods={52}
-                  deltaLabel="52w"
-                />
-              }
-              yFormat="pct"
-              decimals={1}
-              height={280}
-              hero="SECTOR"
-            />
-          </div>
-<TimeSeriesChart readout
-              plain
-              series={reerSeries}
-              title={
-                tx(reerNow != null && reer12 != null && reerNow > reer12
-                  ? "Real appreciation is what makes holding lira pay"
-                  : "Real effective exchange rate")
-              }
-              description={tx("real effective exchange rate, cpi based, 2003 = 100, monthly")}
-              source={
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>{tx("LATEST")}{" "}
-                    <b className="font-semibold text-foreground">
-                      {tx(reerNow != null ? reerNow.toFixed(1) : "—")}
-                    </b>
-                  </span>
-                  <span>
-                    Δ 12M{" "}
-                    <b className="font-semibold text-foreground">
-                      {tx(reerNow != null && reer12 != null
-                        ? signedPp(reerNow - reer12, 1).replace("pp", "")
-                        : "—")}
-                    </b>
-                  </span>
-                  <span>{tx("BASIS ")}<b className="font-semibold text-foreground">2003 = 100</b>
-                  </span>
-                </div>
-              }
-              yFormat="rate"
-              decimals={1}
-              height={280}
-            />
-</SectorSection>
-<SectorSection id="reserves" title={tx("Reserves")} description={tx("whose fx is it · derived from the tcmb analytical balance sheet")}>
-<div>
-          <SecHead
-            title={tx("Reserve composition")}
-            meta={tx("Gross reserves, net reserves and swaps")}
-            className="mb-2.5"
-          />
-          <Transmission items={transmission} />
-        </div>
-<Levels
+        </SectorGrid>
+      </SectorSection>
+      <SectorSection
+        id="reserves"
+        title={tx("Reserves")}
+        description={tx(
+          "whose fx is it · derived from the tcmb analytical balance sheet",
+        )}
+      >
+        <SectorPanel>
+          <Levels
             items={[
               { k: "Gross reserves", v: fmtBn(grossNow) },
               { k: "Net (derived)", v: fmtBn(netNow) },
@@ -877,161 +1392,208 @@ export default async function LiquidityPage() {
               { k: "Residents' FX + gold", v: fmtBn(hhTotal) },
             ]}
           />
-<div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <ReserveBuffer
-              data={buffer}
-              title={
-                tx(weeksOwnNegative > 0 && ownNow != null
-                  ? tx("The central bank's own net FX was below zero for {0} of the last {1} weeks — and is {2} today", { 0: weeksOwnNegative, 1: buffer.length, 2: fmtBn(ownNow) })
-                  : "Gross → net → net excluding swaps")
-              }
-              description={tx("gross → net → net excl. swaps, USD bn, weekly · the gaps are the banks' required reserves and the swap stock")}
-              source={
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>{tx("GROSS ")}<b className="font-semibold text-foreground">{tx(fmtBn(grossNow))}</b>
-                  </span>
-                  <span>{tx("CBRT’S OWN")}{" "}
-                    <b className="font-semibold text-foreground">
-                      {tx(fmtBn(ownNow))} ({tx(fmtPct(ownPctGross, 0))}{tx(" of gross)")}</b>
-                  </span>
-                  <span>{tx("SWAPPED ")}<b className="font-semibold text-foreground">{tx(fmtBn(swapStock))}</b>
-                  </span>
-                  <span>{tx("BANKS’ REQ. RES.")}{" "}
-                    <b className="font-semibold text-foreground">{tx(fmtBn(banksFx))}</b>
-                  </span>
-                </div>
-              }
-              height={300}
-            />
-            <TimeSeriesChart readout
-              plain
-              series={{
-                "Residents FX + gold": hh.map((r) => ({
-                  period_date: r.period,
-                  value: r.cash + r.gold,
-                })),
-                "— of which gold": hh.map((r) => ({ period_date: r.period, value: r.gold })),
-                "CBRT net reserves": hh.map((r) => ({ period_date: r.period, value: r.nir })),
-              }}
-              title={
-                tx(hhVsNir != null && hhVsNir > 1
-                  ? "Households hold more FX and gold than the central bank holds net reserves"
-                  : "Residents' FC savings vs the CBRT's net reserves")
-              }
-              description={tx("residents' fc savings vs cbrt net reserves, USD bn, monthly · paired on the same date")}
-              source={
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span>{tx("RESIDENTS ")}<b className="font-semibold text-foreground">{tx(fmtBn(hhTotal))}</b>
-                  </span>
-                  <span>{tx("GOLD ")}<b className="font-semibold text-foreground">{tx(fmtBn(hhNow?.gold ?? null))}</b>
-                  </span>
-                  <span>{tx("CBRT NET, SAME DATE")}{" "}
-                    <b className="font-semibold text-foreground">{tx(fmtBn(hhNow?.nir ?? null))}</b>
-                  </span>
-                  <span>{tx("RATIO")}{" "}
-                    <b className="font-semibold text-foreground">
-                      {tx(hhVsNir != null ? `${hhVsNir.toFixed(1)}×` : "—")}
-                    </b>
-                  </span>
-                </div>
-              }
-              yFormat="raw"
-              decimals={0}
-              height={300}
-            />
-          </div>
-</SectorSection>
-<SectorSection id="liquidity-ratios" title={tx("Liquidity ratios")} description={tx("audited §4 · {0} · asset-weighted across reporting banks", { 0: auditQ })}>
-<SecHead
-        title={tx("Regulatory buffers")}
-        meta={tx("audited quarterly · not a live weekly measure")}
-        className="mb-2.5 mt-6"
-      />
-<Vitals cols={2}>
-        <Vital
-          label={tx("LCR")}
-          value={lcrNow != null ? lcrNow.toFixed(0) : "—"}
-          unit="%"
-          series={lcrS.slice(-13)}
-          decimals={0}
-          note={
-            lcrFloor != null ? (
+        </SectorPanel>
+        <SectorGrid columns={2} ratio="wide-left">
+          <ReserveBuffer
+            data={buffer}
+            title={tx("CBRT reserves — gross and net")}
+            description={
               <>
-                <b
-                  className={
-                    lcrFloor >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
-                  }
-                >
-                  {tx(signedPp(lcrFloor, 0))}
-                </b>{" "}{tx("vs the 100% floor · audited ")}{tx(auditQ)}
+                {tx(
+                  "gross → net → net excl. swaps, USD bn, weekly · the gaps are the banks' required reserves and the swap stock",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    weeksOwnNegative > 0 && ownNow != null
+                      ? tx(
+                          "The central bank's own net FX was below zero for {0} of the last {1} weeks — and is {2} today",
+                          {
+                            0: weeksOwnNegative,
+                            1: buffer.length,
+                            2: fmtBn(ownNow),
+                          },
+                        )
+                      : "Gross → net → net excluding swaps",
+                  )}
+                </p>
               </>
-            ) : undefined
-          }
-        />
-        <Vital
-          label={tx("NSFR")}
-          value={nsfrNow != null ? nsfrNow.toFixed(0) : "—"}
-          unit="%"
-          series={nsfrS.slice(-13)}
-          decimals={0}
-          note={
-            nsfrFloor != null ? (
-              <>
-                <b
-                  className={
-                    nsfrFloor >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
-                  }
-                >
-                  {tx(signedPp(nsfrFloor, 0))}
-                </b>{" "}{tx("vs the 100% floor · audited ")}{tx(auditQ)}
-              </>
-            ) : undefined
-          }
-        />
-      </Vitals>
-
-<div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
-            <TrendChart readout
-              plain
-              data={liqRatios.filter(row => row.bank_type_code !== "LEV")}
-              seriesLabels={AUDIT_LIQUIDITY_LABELS}
-              title={
-                tx(lcrNow != null && nsfrNow != null && lcrNow > 100 && nsfrNow > 100
-                  ? "LCR and NSFR clear their floors with room to spare"
-                  : "LCR and NSFR — sector")
-              }
-              description={tx("LCR and NSFR, %, quarterly · regulatory minimum 100%")}
-              source={
-                <ChartFoot
-                  data={liqRatios}
-                  labels={AUDIT_LIQUIDITY_LABELS}
-                  heroCode="LCR"
-                  decimals={0}
-                  deltaPeriods={4}
-                  deltaLabel="4q"
-                />
-              }
-              yFormat="pct"
-              decimals={0}
-              height={280}
-              hero="LCR"
-            />
-            
-          </div>
-<TrendChart readout plain data={liqRatios.filter(row => row.bank_type_code === "LEV")} seriesLabels={AUDIT_LIQUIDITY_LABELS} title={tx("Leverage ratio — sector")} description={tx("Audited leverage ratio, %, quarterly")} source={tx("Source: BRSA quarterly filings (§4)")} yFormat="pct" decimals={1} height={240} />
-</SectorSection>
-<SectorSection id="monitoring" title={tx("Monitoring indicators")} description={tx("Thresholds and developments relevant to this sector.")}>
-<div>
-          <p className="mb-3 text-[12px] text-muted-foreground">{tx("{0} of {1} monitoring thresholds exceeded", { 0: activeFlags, 1: flags.length })}</p>
-          <Flags variant="report"
-            flags={flags}
-            showCleared
-            quietNote="The buffer, the swap stock, the TL deficit, the private LDR, both regulatory floors and dollarization are all below threshold."
+            }
+            source={
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span>
+                  {tx("GROSS ")}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(grossNow))}
+                  </b>
+                </span>
+                <span>
+                  {tx("CBRT’S OWN")}{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(ownNow))} ({tx(fmtPct(ownPctGross, 0))}
+                    {tx(" of gross)")}
+                  </b>
+                </span>
+                <span>
+                  {tx("SWAPPED ")}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(swapStock))}
+                  </b>
+                </span>
+                <span>
+                  {tx("BANKS’ REQ. RES.")}{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(banksFx))}
+                  </b>
+                </span>
+              </div>
+            }
+            height={360}
           />
-        </div>
-</SectorSection>
-<SectorDirectory sector="liquidity" />
-<SectorFooter />
-</SectorReport>
+          <SectorPanel
+            title={tx("Reserve composition")}
+            description={tx("Gross reserves, net reserves and swaps")}
+          >
+            <Transmission items={transmission} />
+          </SectorPanel>
+        </SectorGrid>
+        <SectorGrid columns={2} ratio="balanced">
+          <TimeSeriesChart
+            readout
+            plain
+            series={reerSeries}
+            title={tx("Real effective exchange rate")}
+            description={
+              <>
+                {tx(
+                  "real effective exchange rate, cpi based, 2003 = 100, monthly",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    reerNow != null && reer12 != null && reerNow > reer12
+                      ? "Real appreciation is what makes holding lira pay"
+                      : "Real effective exchange rate",
+                  )}
+                </p>
+              </>
+            }
+            source={
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span>
+                  {tx("LATEST")}{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(reerNow != null ? reerNow.toFixed(1) : "—")}
+                  </b>
+                </span>
+                <span>
+                  Δ 12M{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(
+                      reerNow != null && reer12 != null
+                        ? signedPp(reerNow - reer12, 1).replace("pp", "")
+                        : "—",
+                    )}
+                  </b>
+                </span>
+                <span>
+                  {tx("BASIS ")}
+                  <b className="font-semibold text-foreground">2003 = 100</b>
+                </span>
+              </div>
+            }
+            yFormat="rate"
+            decimals={1}
+            height={320}
+          />
+          <TimeSeriesChart
+            readout
+            plain
+            series={{
+              "Residents FX + gold": hh.map((r) => ({
+                period_date: r.period,
+                value: r.cash + r.gold,
+              })),
+              "— of which gold": hh.map((r) => ({
+                period_date: r.period,
+                value: r.gold,
+              })),
+              "CBRT net reserves": hh.map((r) => ({
+                period_date: r.period,
+                value: r.nir,
+              })),
+            }}
+            title={tx("Residents’ FX savings and CBRT net reserves")}
+            description={
+              <>
+                {tx(
+                  "residents' fc savings vs cbrt net reserves, USD bn, monthly · paired on the same date",
+                )}
+                <p className="mt-2 text-[14px] leading-relaxed">
+                  {tx(
+                    hhVsNir != null && hhVsNir > 1
+                      ? "Households hold more FX and gold than the central bank holds net reserves"
+                      : "Residents' FC savings vs the CBRT's net reserves",
+                  )}
+                </p>
+              </>
+            }
+            source={
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span>
+                  {tx("RESIDENTS ")}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(hhTotal))}
+                  </b>
+                </span>
+                <span>
+                  {tx("GOLD ")}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(hhNow?.gold ?? null))}
+                  </b>
+                </span>
+                <span>
+                  {tx("CBRT NET, SAME DATE")}{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(fmtBn(hhNow?.nir ?? null))}
+                  </b>
+                </span>
+                <span>
+                  {tx("RATIO")}{" "}
+                  <b className="font-semibold text-foreground">
+                    {tx(hhVsNir != null ? `${hhVsNir.toFixed(1)}×` : "—")}
+                  </b>
+                </span>
+              </div>
+            }
+            yFormat="raw"
+            decimals={0}
+            height={320}
+          />
+        </SectorGrid>
+      </SectorSection>
+      <SectorSection
+        id="monitoring"
+        title={tx("Monitoring indicators")}
+        description={tx("Thresholds and developments relevant to this sector.")}
+      >
+        <SectorPanel>
+          <div>
+            <p className="mb-3 text-[13px] text-muted-foreground">
+              {tx("{0} of {1} monitoring thresholds exceeded", {
+                0: activeFlags,
+                1: flags.length,
+              })}
+            </p>
+            <Flags
+              variant="report"
+              flags={flags}
+              showCleared
+              quietNote="The buffer, the swap stock, the TL deficit, the private LDR, both regulatory floors and dollarization are all below threshold."
+            />
+          </div>
+        </SectorPanel>
+      </SectorSection>
+      <SectorDirectory sector="liquidity" />
+      <SectorFooter />
+    </SectorReport>
   );
 }

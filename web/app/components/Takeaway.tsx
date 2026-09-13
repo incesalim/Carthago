@@ -36,10 +36,27 @@ export default function Takeaway({
    * display face and the drivers as hairline-ruled columns (DESIGN.md ground
    * rule 1). "card" keeps the legacy surface for tabs not yet converted.
    */
-  variant?: "card" | "desk" | "report";
+  variant?: "card" | "desk" | "report" | "report-summary" | "report-details";
 }) {
   const tx = useText();
   if (!data.items.length) return null;
+
+  if (variant === "report-summary") {
+    return <aside data-sector-summary aria-label={tx("Period assessment")}>
+      <div><span>{tx("Period assessment")}</span>{data.asOf && <span>{tx(data.asOf)}</span>}</div>
+      <p>{tx(data.headline)}</p>
+    </aside>;
+  }
+
+  if (variant === "report-details") {
+    return <aside data-sector-detail-notes aria-label={tx("Period assessment")}>
+      <h3>{tx("Period assessment")}</h3>
+      <ul>{data.items.map((it, i) => <li key={i}>
+        {tx(it.text)}
+        {it.href && <Link href={it.href} className="ml-1 text-primary underline underline-offset-4">{tx("Related analysis")}</Link>}
+      </li>)}</ul>
+    </aside>;
+  }
 
   if (variant === "report") {
     return <aside data-sector-assessment className="mt-4 border-t border-border pt-5" aria-label={tx("Period assessment")}>
