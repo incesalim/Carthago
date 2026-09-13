@@ -1,5 +1,28 @@
 # Project State
 
+## Wide equity source-table capture (2026-09-13)
+
+The source capture now supports framed equity statements with explicit period
+bands and one level of grouped amount headers. Native header wording and repeated
+body positions establish the column inventory; no fixed bank coordinates or
+accounting totals select the grid. Every literal amount, sign, dash, blank,
+period range, unit and dipnote stays linked to native words. Ambiguous headers,
+overlapping columns and unsupported period bands abstain.
+
+The independently read GARAN 2022Q4 consolidated page 20 fixture has 18 columns,
+544 printed amount cells, 34 numeric rows and separate 2021/2022 period labels.
+Both OCI groups retain their three child columns. Both 5.5 references resolve to
+the complete equity note on page 174 in reader tests. Source-corruption tests
+cover whole-table, row/column, header, date, note, unit and word removal, plus
+ambiguous inputs and distinct blank/dash/zero states. The tests also change page
+position, row count and amount-column count to guard against a fixed template.
+
+This is an unreviewed source grid, not approval of analytical D1 coverage or
+full registered-corpus completeness. A scoped Actions capture is required for
+older retained revisions. Other source formats, publication-validator repair
+and structured prose coverage remain unfinished. Run receipts and source proof:
+`docs/knowledge/2026-09-13-equity-tables/RESULTS.md`.
+
 ## Framed source-table columns (2026-09-13)
 
 The existing capture engine now has a guarded path for tables whose outer frame

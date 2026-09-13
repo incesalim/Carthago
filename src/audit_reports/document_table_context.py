@@ -25,7 +25,7 @@ def _grid(table):
     """Infer spanning slots only when every cell agrees with one physical grid."""
     rows, columns = table['rows'], table['n_cols']
     if table['method'] not in ('pymupdf_lines_strict', 'horizontal_rule_cells', 'segmented_rules_and_source_lines',
-                               'framed_currency_headers_and_source_words') or not rows or columns < 1:
+                               'framed_currency_headers_and_source_words', 'framed_equity_headers_and_source_words') or not rows or columns < 1:
         return None
     if any(len(row['cells']) != columns for row in rows):
         return None

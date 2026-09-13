@@ -31,7 +31,7 @@ def _inside(w, box):
     return box[0] < _cx(w) < box[2] and box[1] < _cy(w) < box[3]
 
 
-def _frames(source):
+def _frame_bands(source):
     rules = [d for d in source['drawings'] if d['path_items'] == 1]
     vertical = [d for d in rules if 0 <= d['bbox'][2] - d['bbox'][0] <= 1
                 and d['bbox'][3] - d['bbox'][1] > 40]
@@ -45,10 +45,16 @@ def _frames(source):
             matches = sorted((d for d in horizontal if abs(d['bbox'][0] - x0) < 1
                               and d['bbox'][2] <= x1 + 1
                               and left['bbox'][1] - 1 <= _cy(d) <= left['bbox'][3] + 1), key=_cy)
-            if (len(matches) == 3 and all(abs(d['bbox'][2] - x1) < 1 for d in (matches[0], matches[-1]))
+            if (len(matches) >= 3 and all(abs(d['bbox'][2] - x1) < 1 for d in (matches[0], matches[-1]))
                     and abs(_cy(matches[0]) - left['bbox'][1]) < 1
                     and abs(_cy(matches[-1]) - left['bbox'][3]) < 1):
-                yield [x0, _cy(matches[0]), x1, _cy(matches[-1])], _cy(matches[1]), [left, right, *matches]
+                yield [x0, _cy(matches[0]), x1, _cy(matches[-1])], [_cy(d) for d in matches[1:-1]], [left, right, *matches]
+
+
+def _frames(source):
+    for box, separators, rules in _frame_bands(source):
+        if len(separators) == 1:
+            yield box, separators[0], rules
 
 
 def _cell(words, row, column, box):

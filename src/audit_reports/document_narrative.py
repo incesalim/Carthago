@@ -13,7 +13,7 @@ from statistics import median
 # These overlapping alternatives are retained for table review. Their inferred
 # header rectangles must not split or reclassify the underlying source prose.
 _ALTERNATIVE_TABLE_METHODS = {'horizontal_rule_cells', 'segmented_rules_and_source_lines',
-                              'framed_currency_headers_and_source_words'}
+                              'framed_currency_headers_and_source_words', 'framed_equity_headers_and_source_words'}
 _ROMAN_HEADING = re.compile(r'^\s*[IVXLCDM]+\.\s+')
 
 

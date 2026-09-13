@@ -1,5 +1,18 @@
 # Operations
 
+## Capture grouped equity tables (2026-09-13)
+
+`build-document-corpus.yml` also captures framed equity tables when native leaf
+headers, separated parent headings, repeated amount bands and explicit period
+labels agree. `framed-equity-tables-1` records the required view at report and
+page level so structural verification detects even complete candidate removal.
+Unsupported header hierarchies abstain; existing alternatives stay available.
+
+Use a scoped bank/period/kind Actions probe with `publish=false`, inspect the
+source grid and note links, then publish that filing. This changes R2 source
+structure only; settled analytical lanes and D1 values require no force run.
+It does not grant logical-row, table-boundary or financial-review approval.
+
 ## Capture framed currency tables (2026-09-13)
 
 `build-document-corpus.yml` uses the capture engine's framed-currency fallback

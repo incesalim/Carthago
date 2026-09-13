@@ -1,5 +1,13 @@
 # Admin control center
 
+## Wide equity tables and note links (2026-09-13)
+
+After a scoped source refresh, supported equity grids retain all amount columns,
+grouped OCI headers and separate period bands. Both current and prior rows keep
+their printed dipnote references. The source reader displays the complete grid
+and opens the addressed note, including child passages. Native-cell checks
+remain distinct from unverified table boundaries and analytical coverage.
+
 ## Framed-table source columns (2026-09-13)
 
 After a scoped capture refresh, the source-table reader also displays grids
