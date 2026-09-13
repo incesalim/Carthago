@@ -465,17 +465,20 @@ def _npl_movement_rows(conn, bank, period, kind):
     has_accrual = any(r[1] == "accrual_movement"
                       for r in conn.execute("PRAGMA table_info(bank_audit_npl_movement)"))
     accrual_column = "accrual_movement" if has_accrual else "NULL AS accrual_movement"
+    has_other = any(r[1] == "other_movement"
+                    for r in conn.execute("PRAGMA table_info(bank_audit_npl_movement)"))
+    other_column = "other_movement" if has_other else "NULL AS other_movement"
     # provision + net_balance were stored but never SELECTed, so the table's own
     # second identity (closing − |provision| = net) was unavailable to the
     # validator — free coverage on 2,097/2,097 rows, left on the floor.
     return [dict(zip(
         ("group_code", "period_type", "opening_balance", "additions",
          "transfers_in", "transfers_out", "collections", "write_offs",
-         "sold", "fx_diff", "accrual_movement", "closing_balance", "provision", "net_balance"), r))
+         "sold", "fx_diff", "accrual_movement", "other_movement", "closing_balance", "provision", "net_balance"), r))
             for r in conn.execute(
                 "SELECT group_code, period_type, opening_balance, additions, "
                 "       transfers_in, transfers_out, collections, write_offs, "
-                f"       sold, fx_diff, {accrual_column}, closing_balance, provision, net_balance "
+                f"       sold, fx_diff, {accrual_column}, {other_column}, closing_balance, provision, net_balance "
                 "FROM bank_audit_npl_movement WHERE bank_ticker=? AND period=? AND kind=?",
                 (bank, period, kind))]
 
@@ -661,11 +664,14 @@ def _merge_source_capture(
         ledger_line_count=ledger_line_count,
         ledger_data_row_count=ledger_data_row_count,
     ))
-    if lane == "loans_by_sector" and ledger_line_count:
+    if lane in {"loans_by_sector", "npl_movement"} and ledger_line_count:
         from src.audit_reports.units import UNIT_SCALE, within_sweep
 
-        source_lines = [dict(zip(("source_page", "line_text"), row)) for row in conn.execute(
-            "SELECT source_page,line_text FROM bank_audit_source_lines "
+        has_cells = any(r[1] == 'cell_sources_json' for r in conn.execute(
+            'PRAGMA table_info(bank_audit_source_lines)'))
+        cell_column = 'cell_sources_json' if has_cells else 'NULL AS cell_sources_json'
+        source_lines = [dict(zip(("source_page", "line_order", "line_text", "is_data_row", "cell_sources_json"), row)) for row in conn.execute(
+            f"SELECT source_page,line_order,line_text,is_data_row,{cell_column} FROM bank_audit_source_lines "
             "WHERE bank_ticker=? AND period=? AND kind=? AND statement_type=? "
             "ORDER BY source_page,line_order", (bank, period, kind, lane))]
         unit_row = conn.execute(
@@ -674,8 +680,14 @@ def _merge_source_capture(
         scale = UNIT_SCALE.get(unit_row[0] if unit_row else None)
         if scale is None and within_sweep(period):
             scale = 1
-        result.merge(v.check_sector_source_cells(
-            _loans_sector_rows(conn, bank, period, kind), source_lines, scale))
+        if lane == 'loans_by_sector':
+            result.merge(v.check_sector_source_cells(
+                _loans_sector_rows(conn, bank, period, kind), source_lines, scale))
+        else:
+            from src.audit_reports.npl_source_validation import check_source_cells
+
+            result.merge(check_source_cells(
+                _npl_movement_rows(conn, bank, period, kind), source_lines, scale))
 
 
 def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "v.ValidationResult"]:

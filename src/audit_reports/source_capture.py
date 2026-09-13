@@ -202,6 +202,7 @@ class CapturedLine:
     mapped_key: str | None
     line_hash: str
     shape_hash: str
+    cell_sources_json: str | None = None
 
 
 @dataclass(frozen=True)
@@ -296,7 +297,7 @@ def _selected_pages(
     return tuple(sorted(pages))
 
 
-def _word_lines(page: object, y_tolerance: float = 3.0) -> list[str]:
+def _word_token_lines(page: object, y_tolerance: float = 3.0) -> list[list[tuple[float, float, str]]]:
     words = page.get_text("words")
     # fitz returns unrotated coordinates. Equity tables often use /Rotate 90;
     # bucketing those coordinates by y transposes movements into component rows.
@@ -311,18 +312,19 @@ def _word_lines(page: object, y_tolerance: float = 3.0) -> list[str]:
         words = rotated
     words = sorted(words, key=lambda word: (word[1], word[0]))
     if not words:
-        return [line.strip() for line in page.get_text("text").splitlines() if line.strip()]
-    rows: list[tuple[float, list[tuple[float, str]]]] = []
+        return [[(0.0, 0.0, line.strip())] for line in page.get_text("text").splitlines() if line.strip()]
+    rows: list[tuple[float, list[tuple[float, float, str]]]] = []
     for word in words:
         if rows and word[1] - rows[-1][0] <= y_tolerance:
-            rows[-1][1].append((word[0], str(word[4])))
+            rows[-1][1].append((word[0], word[2], str(word[4])))
         else:
-            rows.append((word[1], [(word[0], str(word[4]))]))
-    return [
-        " ".join(token for _, token in sorted(tokens)).strip()
-        for _, tokens in rows
-        if tokens
-    ]
+            rows.append((word[1], [(word[0], word[2], str(word[4]))]))
+    return [sorted(tokens, key=lambda t: t[0]) for _, tokens in rows if tokens]
+
+
+def _word_lines(page: object, y_tolerance: float = 3.0) -> list[str]:
+    return [" ".join(t for _, _, t in tokens).strip()
+            for tokens in _word_token_lines(page, y_tolerance)]
 
 
 def _dynamic_mappings(report: object | None, lane: str) -> list[tuple[str, str]]:
@@ -455,7 +457,7 @@ def _npl_table_rows(lines: list[str]) -> tuple[set[int], dict[int, str]]:
     rows: set[int] = set()
     context: dict[int, str] = {}
     flow_keys = {"additions", "transfers_in", "transfers_out", "collections",
-                 "write_offs", "sold", "fx_diff", "accrual_movement"}
+                 "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement"}
     for n, header in enumerate(headers):
         stop = headers[n + 1] if n + 1 < len(headers) else len(lines)
         # A stage 1/2/3 ECL table can follow the III/IV/V stock table on the same
@@ -509,9 +511,18 @@ def _npl_table_rows(lines: list[str]) -> tuple[set[int], dict[int, str]]:
                 continue
             children: list[int] = []
             for child in range(parent + 1, end + 1):
+                if not lines[child].strip():
+                    continue  # displaced nil fragments retained on their source lines
                 tail = _numeric_tail(lines[child])
                 label = " ".join(lines[child].split()[:-len(tail)]) if tail else lines[child]
-                if len(tail) > 3 or _fold(label) not in categories or len(children) >= 4:
+                child_key = _match_row_label(lines[child])
+                # Other can be an actual category (ISCTR) or a separate signed
+                # movement after an already-complete sale breakdown (GARAN).
+                if child_key == "other_movement" and children and _npl_breakdown_ties(
+                        lines[parent], [lines[n] for n in children]):
+                    break
+                if (child_key not in {None, "other_movement"} or len(tail) > 3
+                        or _fold(label) not in categories or len(children) >= 4):
                     break
                 children.append(child)
             if not children:
@@ -575,19 +586,34 @@ def _capture_lane(
 
     cfg = _CONFIG[lane]
     captured: list[CapturedLine] = []
-    retained_lines = {page: _word_lines(doc[page - 1]) for page in pages}
+    retained_tokens = {page: _word_token_lines(doc[page - 1]) for page in pages}
+    retained_lines = {page: [" ".join(t for _, _, t in row).strip() for row in tokens]
+                      for page, tokens in retained_tokens.items()}
     sector_lines = (_sector_disclosure_lines(retained_lines)
                     if lane == "loans_by_sector" else None)
+    npl_notes = []
+    if lane == 'npl_movement':
+        from .npl_disclosure import row_note_links, star_notes
+
+        npl_notes = star_notes(retained_lines)
     for page_number in pages:
         page_lines = retained_lines[page_number]
         context_mappings = (_credit_quality_context_mappings(page_lines)
                             if lane == "credit_quality" else {})
         npl_rows: set[int] = set()
+        npl_corrected, nil_fragments = [], {}
         if lane == "npl_movement":
-            npl_rows, context_mappings = _npl_table_rows(page_lines)
+            from .npl_disclosure import recover_nil_fragments
+
+            npl_corrected, nil_fragments = recover_nil_fragments(retained_tokens[page_number])
+            npl_rows, context_mappings = _npl_table_rows([
+                " ".join(t for _, _, t in row) for row in npl_corrected])
+        npl_period = None
         equity_page = lane != "equity_change" or _equity_table_page(page_lines)
         for order, text in enumerate(page_lines, 1):
             clean = _SPACE_RX.sub(" ", text).strip()
+            table_text = (" ".join(t for _, _, t in npl_corrected[order - 1])
+                          if lane == "npl_movement" else clean)
             value_tokens = tuple(_VALUE_RX.findall(clean))
             has_numeric_token = any(
                 any(char.isdigit() for char in token) for token in value_tokens)
@@ -606,6 +632,12 @@ def _capture_lane(
                            and len(_numeric_tail(clean)) >= cfg.min_value_tokens
                            and equity_page
                            and (lane != "npl_movement" or order in npl_rows))
+            if lane == "npl_movement":
+                is_data = order in npl_rows and len(_numeric_tail(table_text)) >= cfg.min_value_tokens
+                if not is_data:
+                    caption = re.match(r"^(current|prior|cari|önceki)\s+(?:period|dönem)\b", clean, re.I)
+                    if caption:
+                        npl_period = "prior" if caption[1].lower() in {"prior", "önceki"} else "current"
             if lane == "loans_by_sector":
                 if sector_lines is not None and (page_number, order) not in sector_lines:
                     is_data = False
@@ -617,7 +649,7 @@ def _capture_lane(
                         and re.fullmatch(r"[-–—]+", tail[1])):
                     is_data = False
             mapped = _mapped_key(
-                clean, report, lane, dynamic_mappings) if is_data else None
+                table_text, report, lane, dynamic_mappings) if is_data else None
             if is_data and mapped is None and lane == "equity_change":
                 # Labels wrap above their cells ("III. Adjusted Balances ..." /
                 # "Of Period (I+II) 1 2 ..."). Use only contiguous non-value lines.
@@ -637,8 +669,31 @@ def _capture_lane(
                         and order >= 2
                         and re.match(r"^\s*X\.?\s+", page_lines[order - 2])):
                     mapped = "X."
-            if is_data and mapped is None:
+            if is_data and (mapped is None or (mapped == "other_movement" and order in context_mappings)):
                 mapped = context_mappings.get(order)
+            cell_sources = None
+            if lane == "npl_movement" and is_data and npl_period is not None:
+                from .extractor import parse_amount
+                from .npl_movement import _match_row_label
+
+                row = npl_corrected[order - 1]
+                cells = []
+                for c, (x0, x1, token) in enumerate(row[-3:]):
+                    refs = nil_fragments.get(order - 1)
+                    cells.append({"group_code": ("III", "IV", "V")[c], "text": token,
+                                  "state": ("dash" if re.fullmatch(r"[-–—]+", token) else
+                                            "zero" if parse_amount(token) == 0 else "number"),
+                                  "fragments": refs[c] if refs else [{
+                                      "line_order": order, "token_order": len(row) - 3 + c,
+                                      "text": token, "x0": x0, "x1": x1}]})
+                key = _match_row_label(table_text)
+                if key == "other_movement" and mapped != key:
+                    key = None  # reconciled category, not an independent flow
+                cell_sources = json.dumps({"period_type": npl_period, "row_key": key,
+                                           "parent_key": mapped if key is None else None,
+                                           "cells": cells,
+                                           "note_links": row_note_links(table_text, npl_period, key, npl_notes)},
+                                          ensure_ascii=False, separators=(",", ":"))
             captured.append(CapturedLine(
                 source_page=page_number,
                 line_order=order,
@@ -648,6 +703,7 @@ def _capture_lane(
                 mapped_key=mapped,
                 line_hash=_digest((clean,)),
                 shape_hash=_digest((_shape(clean),)),
+                cell_sources_json=cell_sources,
             ))
 
     if not pages:
@@ -669,6 +725,7 @@ def _capture_lane(
         shape_hash=_digest(page_parts + [line.shape_hash for line in captured]),
         mapping_hash=_digest(
             f"{line.source_page}:{line.line_order}:{int(line.is_data_row)}:{line.mapped_key or ''}"
+            + (f":{line.cell_sources_json}" if line.cell_sources_json is not None else "")
             for line in captured
         ),
         capture_status=status,
@@ -822,7 +879,7 @@ def _source_rows(capture: LaneCapture) -> list[tuple]:
             line.source_page, line.line_order, line.line_text,
             json.dumps(line.numeric_tokens, ensure_ascii=False, separators=(",", ":")),
             len(line.numeric_tokens), int(line.is_data_row), line.mapped_key,
-            line.line_hash, line.shape_hash,
+            line.line_hash, line.shape_hash, line.cell_sources_json,
         )
         for line in capture.lines
     ]
@@ -838,7 +895,7 @@ def _upsert_source_lines(
     desired = _source_rows(capture)
     current = conn.execute(
         "SELECT source_page,line_order,line_text,numeric_tokens_json,"
-        "numeric_token_count,is_data_row,mapped_key,line_hash,shape_hash "
+        "numeric_token_count,is_data_row,mapped_key,line_hash,shape_hash,cell_sources_json "
         "FROM bank_audit_source_lines WHERE bank_ticker=? AND period=? AND kind=? "
         "AND statement_type=? ORDER BY source_page,line_order",
         (bank_ticker, period, kind, capture.statement_type),
@@ -854,8 +911,8 @@ def _upsert_source_lines(
         conn.executemany(
             "INSERT INTO bank_audit_source_lines "
             "(bank_ticker,period,kind,statement_type,source_page,line_order,line_text,"
-            "numeric_tokens_json,numeric_token_count,is_data_row,mapped_key,line_hash,shape_hash) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "numeric_tokens_json,numeric_token_count,is_data_row,mapped_key,line_hash,shape_hash,cell_sources_json) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 (bank_ticker, period, kind, capture.statement_type, *row)
                 for row in desired

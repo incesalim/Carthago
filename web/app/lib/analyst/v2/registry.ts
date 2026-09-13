@@ -133,13 +133,13 @@ export const STATEMENTS: Record<string, StatementSpec> = {
     table: "bank_audit_npl_movement",
     columns: [
       "group_code", "opening_balance", "additions", "transfers_in", "transfers_out",
-      "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "closing_balance", "provision",
+      "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement", "closing_balance", "provision",
       "net_balance", "source_page",
     ],
     rowIdentity: ["group_code"],
     numericColumns: [
       "opening_balance", "additions", "transfers_in", "transfers_out", "collections",
-      "write_offs", "sold", "fx_diff", "accrual_movement", "closing_balance", "provision", "net_balance",
+      "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement", "closing_balance", "provision", "net_balance",
     ],
     hasPeriodType: true,
     hasSourcePage: true,
@@ -148,6 +148,7 @@ export const STATEMENTS: Record<string, StatementSpec> = {
       "group_code III/IV/V are the BRSA loan groups (substandard/doubtful/loss), not IFRS stages",
       "transfers are BETWEEN groups — the table foots per group only with them included",
       "accrual_movement is the signed movement of NPL interest/profit-share accruals, separate from fx_diff; NULL means not separately disclosed",
+      "other_movement is a separately disclosed signed Other flow, including reclassifications explained by source dipnotes; NULL does not mean zero, and it is not a sale or FX amount",
     ],
   },
   credit_quality: {

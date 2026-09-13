@@ -2606,32 +2606,22 @@ def check_prose(rows: list[dict]) -> ValidationResult:
 def check_npl_movement(
     rows: list[dict], gross_by_group: dict | None = None,
 ) -> ValidationResult:
-    """NPL movement: opening + flows = closing, per BRSA group (III/IV/V).
+    """Movement and net identities for both periods, per BRSA group (III/IV/V).
 
-    write_offs / sold / transfers_out are sometimes ABSENT from a bank's table
-    (it simply omits a genuinely-zero row — e.g. a bank with no write-offs) and
-    sometimes just unextracted. A NULL alone can't tell the two apart, so we treat
-    NULL flow-columns as 0 and PASS only when the roll-forward then TIES: a
-    genuinely-missed NON-zero column wouldn't tie, so it stays a SKIP — never a
-    false pass, never a false fail. fx_diff is 0 when NULL (absent in most BRSA
-    formats). Separately disclosed accrual movements keep their signed value;
-    they are not exchange-rate effects.
+    Signed Other movements, FX and accrual movements remain separate. Outflows
+    and provisions use magnitudes regardless of the printed sign convention.
 
-    When all flow columns ARE present and it STILL doesn't tie, the flow
-    roll-forward is unreliable for this bank — many tables carry an unmodeled
-    "Diğer" (other-movements) flow or a sub-breakdown that doesn't foot to its
-    own total (TEB), or mis-scaled flows from a stacked sub-table (PASHA). So we
-    cross-check the CLOSING balance against the authoritative npl_brsa_gross
-    (`gross_by_group`, the same period-end NPL from the credit-quality table):
-    if the closing MATCHES the gross, the movement table's bottom line is correct
-    and the residual is an unmodeled flow → SKIP (don't fail faithful data). Only
-    when the closing ALSO disagrees with the gross is it a genuine extraction
-    error (HALKB reads a loans-by-borrower sub-category, not the total) → FAIL.
-    Mirrors the cash_flow lesson: validate the reliable bottom line, not a
-    flow-model the source doesn't follow.
+    The legacy arithmetic check treats optional NULL flows as zero without
+    writing a zero. A mismatch with missing outflow columns remains a skip.
+    The current-period credit-quality closing can also justify a skip of an
+    unresolved movement residual; it cannot validate a comparative closing.
+    Passing arithmetic alone does not establish completeness: cancelling
+    omissions and missing printed zeros remain invisible to this check.
+    Revalidation additionally runs npl_source_validation for bounded source
+    disclosures, comparing each printed current/prior cell and category sum.
     """
     res = ValidationResult()
-    cur = [r for r in rows if r.get("period_type") == "current"]
+    cur = [r for r in rows if r.get("period_type") in {"current", "prior"}]
     if not cur:
         res.add_skip()
         return res
@@ -2646,7 +2636,7 @@ def check_npl_movement(
         if (op is None or cl is None) and any(
                 r.get(k) is not None for k in
                 ("additions", "transfers_in", "transfers_out",
-                 "collections", "write_offs", "sold", "accrual_movement")):
+                 "collections", "write_offs", "sold", "accrual_movement", "other_movement")):
             res.add_fail("npl_movement_balance_missing",
                          f"group {r.get('group_code') or ''}: opening/closing dropped "
                          "(movement flows present, balance NULL)",
@@ -2663,6 +2653,7 @@ def check_npl_movement(
         sold        = r.get("sold")          or 0.0
         fx          = r.get("fx_diff")       or 0.0
         accrual     = r.get("accrual_movement") or 0.0
+        other       = r.get("other_movement") or 0.0
         # The always-outflow columns are magnitudes the roll-forward SUBTRACTS.
         # Most banks print them positive ("Tahsilat (-) 829.970"); some print the
         # value itself in parentheses ("Tahsilat (-) (8.115)") which the extractor
@@ -2672,7 +2663,7 @@ def check_npl_movement(
         # tie are unaffected.
         t_out, collections, writeoffs, sold = (
             abs(t_out), abs(collections), abs(writeoffs), abs(sold))
-        implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx + accrual
+        implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx + accrual + other
         tol = _tol(abs(cl), base=100.0, rel=0.002)
         if abs(implied - cl) <= tol:
             res.add_pass()
@@ -2683,7 +2674,7 @@ def check_npl_movement(
             res.add_skip()
         else:
             grp = r.get("group_code") or ""
-            g = (gross_by_group or {}).get(grp)
+            g = (gross_by_group or {}).get(grp) if r.get("period_type") == "current" else None
             if g is not None and abs(cl - g) <= _tol(abs(g), base=100.0, rel=0.005):
                 # Closing matches the authoritative npl_brsa_gross → the table's
                 # bottom line is correct; the roll-forward residual is an

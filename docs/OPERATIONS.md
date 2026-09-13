@@ -1,5 +1,22 @@
 # Operations
 
+## NPL comparative and dipnote repair (2026-09-14)
+
+Apply migration `0051_npl_other_movement.sql` before publishing repaired NPL
+figures. Use the existing `reextract-statement.yml` with `statement=npl_movement`,
+exact `partitions`, `require_passing=true` and a `dry_run=true` preview. A forced
+override is limited to the two evidenced GARAN 2022Q4 filings; it is not permission
+for a whole-lane force run. Review every candidate change before publication.
+
+For these two disclosures, expect six normalized group/period rows per filing,
+30 mapped physical data rows (including six category rows), 90 native cells and
+zero unmapped data rows. Validate both periods and the printed signed Other flow.
+The source ledger's `cell_sources_json` retains cells, displaced dash fragments
+and source-addressed star dipnotes in R2, not D1. Ambiguous printed note markers
+remain explicit. Read back D1 and the published snapshot, verify the candidate
+matches the reviewed source, and compare unrelated data and unchanged timestamps.
+These counts and the bounded source gate do not certify unsupported bank layouts.
+
 ## Sector header-layout repair checks (2026-09-13)
 
 For the GARAN 2023Q4–2025Q4 sector repair, preview exact bank/period/kind

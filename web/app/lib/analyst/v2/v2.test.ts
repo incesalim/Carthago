@@ -155,6 +155,23 @@ describe("reconciliations", () => {
     expect(rows.find((r) => r.group === "IV")).toMatchObject({ verdict: "reconciles", computed_closing: 1256 });
     expect(rows.find((r) => r.group === "V")?.verdict).toBe("BREAKS"); // computed 18 ≠ 99
   });
+
+  it("npl footing includes signed Other separately and subtracts parenthesized outflows", async () => {
+    const c = await ctx();
+    c.db = { all: async <T>(sql: string): Promise<T[]> => {
+      if (!/FROM bank_audit_npl_movement/.test(sql)) return [];
+      expect(sql).toContain("other_movement");
+      return [{ group_code: "V", opening_balance: 1_000_000, additions: 0,
+        transfers_in: 0, transfers_out: -20_000, collections: -30_000,
+        write_offs: -40_000, sold: -50_000, fx_diff: 10_000,
+        accrual_movement: 5_000, other_movement: -254_928,
+        closing_balance: 620_072 }] as T[];
+    } };
+    const rec = await runTool(c, "reconcile_statements", { reconciliation: "npl_movement_footing" });
+    expect(rec.data).toEqual([expect.objectContaining({
+      group: "V", computed_closing: 620_072, verdict: "reconciles",
+    })]);
+  });
 });
 
 describe("scout", () => {

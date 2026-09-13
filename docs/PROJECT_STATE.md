@@ -1,5 +1,28 @@
 # Project State
 
+## NPL comparative cells and signed reclassifications (2026-09-14)
+
+The existing NPL extractor now reads a bounded movement disclosure across pages,
+including the comparative table. A separate signed `other_movement` field keeps
+reclassifications distinct from debt sales, FX and accruals. Migration 0051 adds
+the nullable D1 column. Upserts compare facts and retain unchanged timestamps.
+
+Source capture retains native III/IV/V cells, debt-sale category detail and
+literal star-note references in the existing R2 snapshot ledger. Displaced dash
+glyphs keep their original line/token addresses; absent cells are not invented.
+GARAN's conflicting current/prior star markers remain ambiguous, with separately
+labelled candidates supported by the note's wording and amounts. These retained
+links are pipeline evidence; exposing them in the admin reader is still pending.
+
+The revalidation path compares every retained current/prior main cell, checks
+category sums and movement identities at source precision, and rejects missing
+native evidence or broken references for bounded disclosures. Retained-source
+regressions cover GARAN 2022Q4 both kinds: 30 physical data rows and 90 cells per
+filing, including category detail. The fresh production baseline has nine group
+rows rather than twelve. Production preview/publication and independent readback
+remain pending; passing regressions are not a publication claim. Evidence:
+`docs/knowledge/2026-09-13-npl-completeness/`.
+
 ## Wrapped sector headers and independent completeness checks (2026-09-13)
 
 The existing sector extractor retains column headers above and beside period

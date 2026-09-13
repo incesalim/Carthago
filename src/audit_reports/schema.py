@@ -350,6 +350,7 @@ CREATE INDEX IF NOT EXISTS idx_bank_lbs_sector
 --   sold                NPL portfolio sales
 --   fx_diff             FX revaluation (rare; GARAN-style banks only)
 --   accrual_movement    signed change in NPL interest/profit-share accruals
+--   other_movement      separately disclosed signed other/reclassification flow
 --   closing_balance     period-end NPL balance
 --   provision           cumulative loss provision against the group
 --   net_balance         closing_balance − provision (carrying amount)
@@ -369,6 +370,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_npl_movement (
     sold               REAL,
     fx_diff            REAL,
     accrual_movement   REAL,
+    other_movement     REAL,
     closing_balance    REAL,
     provision          REAL,
     net_balance        REAL,
@@ -566,6 +568,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_source_lines (
     line_text           TEXT NOT NULL,
     numeric_tokens_json TEXT NOT NULL DEFAULT '[]',
     numeric_token_count INTEGER NOT NULL DEFAULT 0,
+    cell_sources_json   TEXT,
     is_data_row         INTEGER NOT NULL DEFAULT 0,
     mapped_key          TEXT,
     line_hash           TEXT NOT NULL,
@@ -762,6 +765,9 @@ CREATE TABLE IF NOT EXISTS d1_pending_deletes (
 _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # Migration 0046: TFKB discloses accrual movements separately from FX.
     ("bank_audit_npl_movement", "accrual_movement", "REAL"),
+    ("bank_audit_npl_movement", "other_movement", "REAL"),
+    # Native row cells remain in the existing local/R2 source ledger, not D1.
+    ("bank_audit_source_lines", "cell_sources_json", "TEXT"),
     # Added 2026-05-14 (commit 6b429d8) alongside the IFRS 9 credit-quality
     # extractor. Without this, old snapshots in R2 crash inside
     # src/audit_reports/loader.py:upsert_report.

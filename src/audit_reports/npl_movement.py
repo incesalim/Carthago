@@ -22,6 +22,7 @@ For each group, the rollforward gives:
   sold                 NPL portfolio sales
   fx_diff              FX revaluation (GARAN-style; many banks omit)
   accrual_movement     Signed movement of NPL interest/profit-share accruals
+  other_movement       Separately disclosed signed other movements/reclassifications
   closing_balance      End-of-period gross NPL balance
   provision            Cumulative loss provision against the group
   net_balance          closing_balance − provision (balance-sheet carrying amount)
@@ -310,6 +311,7 @@ class NplGroupRow:
     sold: float | None = None
     fx_diff: float | None = None
     accrual_movement: float | None = None
+    other_movement: float | None = None
     closing_balance: float | None = None
     provision: float | None = None
     net_balance: float | None = None
@@ -335,9 +337,16 @@ def _match_row_label(text: str) -> str | None:
     lower = _tr_lower(text).lstrip()
     # Strip a leading hierarchy code (a., 1., i., etc.)
     lower = re.sub(r"^(?:\(?\w{1,3}[\.\)]\s+)+", "", lower)
+    lower = re.sub(r"\s*/\s*", "/", lower)
     for lbl, key in _ROW_LABELS_SORTED:
-        if lower.startswith(lbl):
+        if lower.startswith(re.sub(r"\s*/\s*", "/", lbl)):
             return key
+    # Bare Other is a signed flow within a movement table, not the prefix of
+    # "Other loans (gross)" in a subsequent customer-category table.
+    label = re.sub(rf"(?:\s+{_NUM_TOKEN})+\s*$", "", lower)
+    label = re.sub(r"\(\*+\)|\([+-]\)", "", label).strip()
+    if label in {"other", "others", "diğer"}:
+        return "other_movement"
     return None
 
 
@@ -448,11 +457,15 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
                 out.append(row)
         cur = None
 
-    for ln in lines:
+    for line_index, ln in enumerate(lines):
         line_stripped = ln.strip()
         if not line_stripped:
             continue
         key = _match_row_label(line_stripped)
+        if key == "other_movement":
+            from .npl_disclosure import is_category_other
+            if is_category_other(lines, line_index):
+                continue
         # ODEA / ALNTF print the opening & closing rows as bare period-end DATES
         # ("31 Aralık 2024 …" / "31 Aralık 2025 …") with no opening/closing WORD,
         # so the taxonomy can't match them. Fall back to the date-balance
@@ -560,7 +573,7 @@ def _extract_with_sparse_columns(
         return original
     headers = [i for i, line in enumerate(lines) if _GROUPS_RX.search(line)]
     flow_keys = {"additions", "transfers_in", "transfers_out", "collections",
-                 "write_offs", "sold", "fx_diff", "accrual_movement"}
+                 "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement"}
     stock_keys = {"opening_balance", "closing_balance", "provision", "net_balance"}
     numeric = re.compile(_NUM_TOKEN)
     corrected = list(lines)
@@ -651,6 +664,12 @@ def extract_from_pdf(
             text = _fitz_page_text(pdf_path, i - 1)
             if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
                 continue
+            bounded = _extract_bounded_disclosure({
+                page: _fitz_page_line_tokens(pdf_path, page - 1)
+                for page in range(i, min(n_pages, i + 3) + 1)})
+            if bounded is not None:
+                rep.rows = bounded
+                return rep
             rows = _extract_with_sparse_columns(
                 i, text, _fitz_page_line_tokens(pdf_path, i - 1))
             if rows:
@@ -658,6 +677,37 @@ def extract_from_pdf(
                 # The table is rarely repeated — stop once found.
                 return rep
     return rep
+
+
+def _extract_bounded_disclosure(pages: dict[int, list[list[tuple[float, float, str]]]]
+                                ) -> list[NplGroupRow] | None:
+    from .npl_disclosure import disclosure_lines, recover_nil_fragments
+
+    texts = {page: [" ".join(t for _, _, t in row) for row in lines]
+             for page, lines in pages.items()}
+    selected = disclosure_lines(texts)
+    if selected is None:
+        return None
+    combined = []
+    opening_pages = []
+    for page, lines in sorted(pages.items()):
+        corrected, _ = recover_nil_fragments(lines)
+        for order, row in enumerate(corrected, 1):
+            if (page, order) not in selected:
+                continue
+            text = " ".join(t for _, _, t in row)
+            if _match_row_label(text) == "opening_balance" and _THREE_NUMS_TAIL.search(text):
+                opening_pages.append(page)
+            combined.append(row)
+    if len(opening_pages) not in (1, 2):
+        return None
+    rows = _extract_with_sparse_columns(min(pages), "\n".join(
+        " ".join(t for _, _, t in row) for row in combined), combined)
+    if len(rows) != len(opening_pages) * 3:
+        return None
+    for row in rows:
+        row.page = opening_pages[0 if row.period_type == "current" else 1]
+    return rows
 
 
 def extract(pdf_path: str | Path) -> NplMovementReport:
@@ -678,28 +728,37 @@ def upsert(
     commit: bool = True,
 ) -> int:
     cur = conn.cursor()
-    cur.execute(
-        "DELETE FROM bank_audit_npl_movement "
-        "WHERE bank_ticker=? AND period=? AND kind=?",
-        (bank_ticker, period, kind),
-    )
+    keys = {(r.group_code, r.period_type) for r in rep.rows}
+    if len(keys) != len(rep.rows):
+        raise ValueError("duplicate NPL group/period rows in extracted table")
+    existing = set(cur.execute(
+        "SELECT group_code,period_type FROM bank_audit_npl_movement "
+        "WHERE bank_ticker=? AND period=? AND kind=?", (bank_ticker, period, kind)))
+    cur.executemany(
+        "DELETE FROM bank_audit_npl_movement WHERE bank_ticker=? AND period=? "
+        "AND kind=? AND group_code=? AND period_type=?",
+        [(bank_ticker, period, kind, *key) for key in existing - keys])
+    facts = ("source_page", "opening_balance", "additions", "transfers_in", "transfers_out",
+             "collections", "write_offs", "sold", "fx_diff", "accrual_movement",
+             "other_movement", "closing_balance", "provision", "net_balance")
+    columns = ("bank_ticker", "period", "kind", "group_code", "period_type", *facts)
     rows = [(
         bank_ticker, period, kind, r.group_code, r.period_type, r.page,
         r.opening_balance, r.additions, r.transfers_in, r.transfers_out,
-        r.collections, r.write_offs, r.sold, r.fx_diff, r.accrual_movement,
+        r.collections, r.write_offs, r.sold, r.fx_diff, r.accrual_movement, r.other_movement,
         r.closing_balance, r.provision, r.net_balance,
     ) for r in rep.rows]
     # Normalise to canonical `bin` BEFORE the insert. The factor comes
     # from the caller because this function has no PDF to read.
-    rows = unit.scale_rows("bank_audit_npl_movement", ["bank_ticker","period","kind","group_code","period_type","source_page","opening_balance","additions","transfers_in","transfers_out","collections","write_offs","sold","fx_diff","accrual_movement","closing_balance","provision","net_balance"], rows)
+    rows = unit.scale_rows("bank_audit_npl_movement", list(columns), rows)
     if rows:
         cur.executemany(
             "INSERT INTO bank_audit_npl_movement "
-            "(bank_ticker, period, kind, group_code, period_type, source_page, "
-            " opening_balance, additions, transfers_in, transfers_out, "
-            " collections, write_offs, sold, fx_diff, accrual_movement, closing_balance, "
-            " provision, net_balance) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            f"({','.join(columns)}) VALUES ({','.join('?' for _ in columns)}) "
+            "ON CONFLICT(bank_ticker,period,kind,group_code,period_type) DO UPDATE SET "
+            + ",".join(f"{col}=excluded.{col}" for col in facts)
+            + ",extracted_at=CURRENT_TIMESTAMP WHERE "
+            + " OR ".join(f"{col} IS NOT excluded.{col}" for col in facts),
             rows,
         )
     if commit:
