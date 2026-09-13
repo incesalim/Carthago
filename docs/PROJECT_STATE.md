@@ -56,8 +56,12 @@ NPL gate now exposes 84 previously-green filings without changing their figures:
 49 lack the new native-cell evidence, while 35 have comparative movement
 mismatches (GARAN 6, HALKB 21, VAKBN 8). These are unresolved evidence/validation
 failures, not a claim that all 84 contain wrong amounts. Source-only backfill
-selection must recognize `npl_source_cells_missing` before refreshing those
-49 filings; the existing `only_failing` filter currently matches only `capture_*`.
+`only_failing` now selects NPL `npl_source_cells_missing` and
+`npl_source_cell_reference` failures alongside `capture_*` failures. It
+revalidates selected filings even when their retained evidence is unchanged,
+logs each lane verdict, and pushes only metadata tables whose facts changed.
+The 49-filing evidence backfill has not been dispatched; this code change
+does not resolve the stored backlog or alter analytical figures.
 Comparative repairs require individual source review and scoped Actions previews.
 
 Both analyst paths carry the signed Other field. The report assembler also

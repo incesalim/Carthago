@@ -44,8 +44,12 @@ and ECL cells that aggregate footing alone can miss in supported layouts.
 
 For source-only repairs, `backfill-audit-source-capture.yml` keeps analytical
 facts unchanged. Its `[CAPTURE]` line reports source pages, data rows,
-mapped/unmapped rows and normalized rows per lane. Inspect those counters;
-a successful process exit alone does not establish complete mapping.
+mapped/unmapped rows and normalized rows per lane. `[CAPTURE_VALIDATION]`
+adds native-cell row counts, passed/failed/skipped totals and every remaining
+failure. Inspect both; a successful process exit alone does not establish
+complete mapping or a passing verdict. `only_failing=true` revalidates selected
+filings even when capture is unchanged. Manifest and validation tables are
+pushed only for partitions where their respective facts changed.
 
 ## Refresh preview follow-up boundary (2026-09-13)
 
@@ -328,7 +332,7 @@ validation and unchanged-content guards.
 | After CI passes on `master` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
 | Manual only | `backfill-document-capture.yml` | Capture EVERY table each filing prints — rows, inferred columns, cells — plus the footnotes that qualify them, linked to the rows carrying their marker. Document-scoped, so tables with no parser are captured too. Writes no analytical row (safe over the settled BS/P&L). `--from-r2` streams each PDF, captures and deletes it. The raw ledger goes to `data/bank_audit_capture.db` and R2 `state/bank_audit_capture.db.gz`; **only** `bank_audit_document_manifest` is pushed to D1. `upload_ledger=false` skips the R2 object, `push_manifest=false` skips D1, `dry_run=true` writes nothing anywhere. Shares `bddk-audit` concurrency. Since migration `0044` the manifest's gap column is `unreadable_page_count` — vector-outline **and** raster-image pages both, İş Bankası having filed whole statement pages as pictures (PROJECT_STATE, 2026-08-19). The incremental per-run form (`--recent-hours`) runs inside `refresh-audit.yml`; this workflow remains the fleet build |
-| Manual only | `backfill-audit-source-capture.yml` | Preserve and classify the physical source lines for the eight normalized/summary audit lanes without changing analytical facts. Pulls the audit snapshot, downloads existing PDFs, writes local/R2 `bank_audit_source_lines`, pushes only compact `bank_audit_capture_manifest` + changed validation rows, refreshes coverage, and saves the final refreshed snapshot so R2 and D1 retain the same verdict rows. Missing/non-captured manifests are the default scope; `refresh_existing=true` recomputes content-idempotently. `only_failing=true` selects only lanes with existing failed `capture_*` checks and takes precedence over refresh-existing; it does not select missing manifests or accounting-only failures. Repair financial rows first, or retain exact partition targets, because fixing a capture-only failure can make a financial partition pass and leave a later only-failing re-extract with no candidates. `dry_run=true` writes only the runner-local DB. Shares `bddk-audit` concurrency. |
+| Manual only | `backfill-audit-source-capture.yml` | Preserve and classify the physical source lines for the eight normalized/summary audit lanes without changing analytical facts. Pulls the audit snapshot, downloads existing PDFs, writes local/R2 `bank_audit_source_lines`, pushes only compact `bank_audit_capture_manifest` + changed validation rows, refreshes coverage, and saves the final refreshed snapshot so R2 and D1 retain the same verdict rows. Missing/non-captured manifests are the default scope; `refresh_existing=true` recomputes content-idempotently. `only_failing=true` selects lanes with existing failed `capture_*` checks, plus `npl_movement` failures named `npl_source_cells_missing` or `npl_source_cell_reference`, and takes precedence over refresh-existing. It does not select missing manifests, missing/wrong normalized NPL cells (`npl_source_cell_missing` / `npl_source_cell`), or accounting-only failures. Repair financial rows first, or retain exact partition targets, because fixing a capture-only failure can make a financial partition pass and leave a later only-failing re-extract with no candidates. `dry_run=true` writes only the runner-local DB. Shares `bddk-audit` concurrency. |
 
 All are also triggerable manually: **GitHub → Actions → pick
 workflow → Run workflow**.

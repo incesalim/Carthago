@@ -18,7 +18,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
@@ -57,6 +58,8 @@ def _pending_lanes(
             (bank, period, kind)).fetchall()
         pending = {lane for lane, detail in failures
                    if any(str(item.get("check", "")).startswith("capture_")
+                          or (lane == "npl_movement" and item.get("check") in {
+                              "npl_source_cells_missing", "npl_source_cell_reference"})
                           for item in json.loads(detail or "[]"))}
         return tuple(lane for lane in lanes if lane in pending)
     if refresh_existing:
@@ -84,7 +87,7 @@ def main() -> int:
     parser.add_argument("--refresh-existing", action="store_true",
                         help="recompute existing manifests too (content-idempotent)")
     parser.add_argument("--only-failing", action="store_true",
-                        help="refresh only existing failed capture checks; overrides refresh-existing")
+                        help="refresh failed capture or NPL source-evidence checks; overrides refresh-existing")
     parser.add_argument("--dry-run", action="store_true",
                         help="update only the local DB; no D1 or R2 snapshot writes")
     parser.add_argument("--no-pull", action="store_true",
@@ -143,7 +146,7 @@ def main() -> int:
                     written = capture_and_upsert(
                         conn, bank, period, kind, dest, lanes=pending)
                     validation_changed = False
-                    if written.manifest_changed_lanes:
+                    if written.changed or args.only_failing:
                         results = revalidate_partition(conn, bank, period, kind)
                         validation_changed = upsert_validation(
                             conn, bank, period, kind, results)
@@ -174,13 +177,28 @@ def main() -> int:
                               f"mapped={manifest['mapped_data_row_count']} "
                               f"unmapped={manifest['unmapped_data_row_count']} "
                               f"normalized={manifest['normalized_row_count']}", flush=True)
+                    validation = conn.execute(
+                        "SELECT checks_passed,checks_failed,checks_skipped,failed_detail "
+                        "FROM bank_audit_validation WHERE bank_ticker=? AND period=? "
+                        "AND kind=? AND statement=?", (bank, period, kind, lane)).fetchone()
+                    native_rows = conn.execute(
+                        "SELECT COUNT(*) FROM bank_audit_source_lines WHERE bank_ticker=? "
+                        "AND period=? AND kind=? AND statement_type=? "
+                        "AND cell_sources_json IS NOT NULL", (bank, period, kind, lane)).fetchone()[0]
+                    print("  [CAPTURE_VALIDATION] " + json.dumps({
+                        "bank_ticker": bank, "period": period, "kind": kind, "lane": lane,
+                        "native_cell_rows": native_rows,
+                        "validation": None if validation is None else {
+                            "passed": validation[0], "failed": validation[1], "skipped": validation[2],
+                            "failures": json.loads(validation[3] or "[]")},
+                    }, ensure_ascii=False), flush=True)
                 part = (bank, period, kind)
                 if written.source_changed_lanes:
                     source_touched.add(part)
                 if written.manifest_changed_lanes:
                     manifest_touched.add(part)
-                    if validation_changed:
-                        validation_touched.add(part)
+                if validation_changed:
+                    validation_touched.add(part)
                 if index % 25 == 0:
                     conn.commit()
                     print(f"  [{index}/{len(pdfs)}] scanned={scanned} "
@@ -198,12 +216,17 @@ def main() -> int:
     if args.dry_run:
         print("[capture] dry-run: local DB only; no D1/R2 writes", flush=True)
         return 0 if failed == 0 else 1
-    touched = sorted(manifest_touched | validation_touched)
-    if touched:
-        # One atomic partition replacement keeps the backfill to one D1 call.
+    # Each set is fact-idempotent. A validation-only repair must not restamp an
+    # unchanged manifest (and an evidence refresh need not rewrite every verdict).
+    if manifest_touched:
         push_partitions(
-            touched, db_path=db_path, window_hours=24,
-            tables=["bank_audit_capture_manifest", "bank_audit_validation"],
+            sorted(manifest_touched), db_path=db_path, window_hours=24,
+            tables=["bank_audit_capture_manifest"],
+        )
+    if validation_touched:
+        push_partitions(
+            sorted(validation_touched), db_path=db_path, window_hours=24,
+            tables=["bank_audit_validation"],
         )
     if source_touched or manifest_touched or validation_touched:
         push_snapshot(db_path)
