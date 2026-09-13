@@ -539,7 +539,7 @@ export default async function OverviewPage({
           series={spark(sRoa)}
           note="the leverage-free read"
         /></SectorMetrics>
-<Takeaway data={read} variant="report-summary" /></SectorOpening>
+</SectorOpening>
 <SectorSection id="developments" title={tx("Sector developments")} description={tx("Credit growth, asset quality, capital adequacy and profitability by bank group.")}>
 <SectorGrid>
   <SectorPanel title={tx("Period changes")} description={tx(`${vsMonth} → ${monthLabel(sNpl.at(-1)?.period, false)}`)}>
@@ -572,7 +572,7 @@ export default async function OverviewPage({
     source={<><p>{tx("roe annualized, %, monthly · BDDK monthly bulletin")}</p><ChartFoot data={roeGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
     yFormat="pct" decimals={1} zeroLine height={310} />
 </SectorGrid>
-<Takeaway data={read} variant="report-details" />
+<Takeaway data={read} variant="report" />
 
 </SectorSection>
 <SectorSection id="by-type" title={tx("Bank groups")}>

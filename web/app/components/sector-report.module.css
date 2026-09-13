@@ -24,7 +24,7 @@
 .range { flex:0 0 auto; display:flex; align-items:center; margin-left:auto; padding-block:8px; }
 .range > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 
-/* Current indicators and the short dated assessment headline. */
+/* Current indicators; the complete assessment follows the first charts. */
 .opening { display:flex; flex-direction:column; gap:16px; margin-top:22px; align-items:stretch; }
 .metrics { padding:20px; background:var(--card); border:1px solid var(--border); border-radius:10px; scroll-margin-top:100px; }
 .report > .metrics { margin-top:22px; }
@@ -43,14 +43,6 @@
 .report [data-vital-note] { font:13px/1.55 var(--font-sans); color:var(--muted-foreground); }
 .report [data-vital-note] a { margin-inline-start:4px; text-underline-offset:3px; }
 .report [data-vital-observation] { margin-top:9px; padding-top:8px; font:12px/1.5 var(--font-sans); text-transform:none; letter-spacing:0; }
-
-/* Dated headline in the opening; complete supporting notes after the first chart. */
-.report [data-sector-summary] { padding:16px 20px; border-left:3px solid var(--data); background:color-mix(in srgb,var(--data) 5%,var(--card)); border-radius:0 8px 8px 0; }
-.report [data-sector-summary] > div { display:flex; gap:12px; justify-content:space-between; margin-bottom:7px; font-size:12px; color:var(--muted-foreground); }
-.report [data-sector-summary] p { max-width:110ch; font-size:19px; line-height:1.5; font-weight:550; letter-spacing:-.02em; }
-.report [data-sector-detail-notes] { padding:20px 24px; background:var(--card); border:1px solid var(--border); border-radius:10px; }
-.report [data-sector-detail-notes] h3 { font-size:15px; font-weight:600; margin-bottom:14px; }
-.report [data-sector-detail-notes] ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 28px; color:var(--muted-foreground); font-size:13px; line-height:1.65; }
 
 /* Analytical panels and chapter rhythm. */
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
@@ -152,9 +144,6 @@
   .grid[data-columns="3"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .grid[data-columns="3"] > :last-child:nth-child(3) { grid-column:1/-1; }
 }
-@media (max-width:1200px) {
-  .report [data-sector-detail-notes] ul { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
 @media (max-width:1023px) {
   .toolbar { top:59px; }
   .section,.metrics { scroll-margin-top:200px; }
@@ -183,7 +172,4 @@
   .header { display:block; }
   .record { margin-top:16px; }
   .metricsGrid [data-vital-label] { min-height:42px; }
-  .report [data-sector-summary] p { font-size:17px; }
-  .report [data-sector-detail-notes] { padding:18px; }
-  .report [data-sector-detail-notes] ul { grid-template-columns:minmax(0,1fr); }
 }

@@ -406,7 +406,6 @@ export default async function CapitalPage() {
             ? <>≈ {tx(`${levX.toFixed(1)}×`)}{tx(" assets / equity")}</>
             : <>{tx("The current bulletin does not provide this ratio.")}</>}
         /></SectorMetrics>
-<Takeaway data={sectorAssessment} variant="report-summary" />
 </SectorOpening>
 <SectorSection id="adequacy" title={tx("Capital adequacy")} description={tx("Published sector ratios, changes over time and bank-group comparisons.")}>
 <SectorTrend mode="groups" references={[{ value: CAR_TARGET, label: tx("BDDK target") }, { value: CAR_LEGAL_MIN, label: tx("Statutory minimum") }]}
@@ -438,7 +437,7 @@ export default async function CapitalPage() {
           referencePeriod={step?.isBreak ? step.period : undefined}
           referenceLabel={step?.isBreak ? `${step.delta.toFixed(2)}pp` : undefined}
         />
-<Takeaway data={sectorAssessment} variant="report-details" />
+<Takeaway data={sectorAssessment} variant="report" />
 
 <SectorGrid ratio="wide-left">
 <div className="min-w-0 space-y-5">{split && step?.isBreak ? (

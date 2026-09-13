@@ -798,10 +798,6 @@ export default async function LiquidityPage() {
             }}
           />
         </SectorMetrics>
-        <Takeaway
-          data={sectorAssessment}
-          variant="report-summary"
-        />
       </SectorOpening>
       <SectorSection
         id="liquidity-ratios"
@@ -915,7 +911,7 @@ export default async function LiquidityPage() {
             mode="trend"
           />
         </SectorGrid>
-<Takeaway data={sectorAssessment} variant="report-details" />
+<Takeaway data={sectorAssessment} variant="report" />
 
       </SectorSection>
       <SectorSection

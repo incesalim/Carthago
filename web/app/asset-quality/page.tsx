@@ -550,10 +550,6 @@ export default async function AssetQualityPage() {
             }
           />
         </SectorMetrics>
-        <Takeaway
-          data={sectorAssessment}
-          variant="report-summary"
-        />
       </SectorOpening>
       <SectorSection
         id="npl"
@@ -591,7 +587,7 @@ export default async function AssetQualityPage() {
             height={320}
           />
         </SectorGrid>
-<Takeaway data={sectorAssessment} variant="report-details" />
+<Takeaway data={sectorAssessment} variant="report" />
 
       </SectorSection>
       <SectorSection

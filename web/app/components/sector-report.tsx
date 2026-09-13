@@ -54,7 +54,7 @@ export function SectorMetrics({ children }: { children: ReactNode }) {
   </section>;
 }
 
-/** The opening pairs the current figures with their economic context. */
+/** Current figures lead into the first charts; the assessment follows them. */
 export function SectorOpening({ children }: { children: ReactNode }) {
   return <div className={styles.opening}>{children}</div>;
 }

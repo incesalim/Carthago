@@ -1,5 +1,19 @@
 # Project State
 
+## Unified sector assessments (2026-09-13)
+
+All eight sector pages now present the dated assessment as a single panel after
+the first chapter's charts. The opening headline banner and separate notes block
+are replaced by one readable lead and topic-labelled notes. All prior headlines,
+supporting text, figures and analysis links remain visible, with a responsive
+one-, two- or three-column note layout. Charts and query calculations are unchanged.
+
+`Insight.label` is optional presentation metadata; the cached headline hash and
+numeric guards still use the original headline and note text. Other dashboard
+routes keep their existing Takeaway styles. Signals remain admin-only. Design
+and verification evidence: `docs/knowledge/2026-09-13-sector-assessment/`.
+
+
 ## Sector-loan cells, comparatives and source validation (2026-09-13)
 
 The existing sector extractor now reads explicitly bounded three-column

@@ -1,13 +1,12 @@
 /**
- * Takeaway — "The Read": the editorial perspective callout that leads a tab.
- * Renders a deterministic TabTakeaway (from lib/insights.ts) in the editorial
- * frame: a terracotta left rail, a mono kicker, a serif lead paragraph, and a
- * joined-cell grid of tone-coloured drivers that link to the tab proving each.
- * Server component — computed live from D1, so it always matches the charts.
+ * A dated reading of the current data. Sector reports keep the complete
+ * assessment together after the first charts, with topic-labelled notes.
+ * Legacy tabs retain their existing card/desk presentation.
  */
 import { useText } from "@/i18n/use-text";
 import Link from "next/link";
 import type { TabTakeaway } from "@/app/lib/insights";
+import styles from "./takeaway.module.css";
 
 const TONE_TEXT: Record<string, string> = {
   positive: "text-positive",
@@ -31,44 +30,26 @@ export default function Takeaway({
 }: {
   title?: string;
   data: TabTakeaway;
-  /**
-   * "desk" — on the sheet, no card: a mono-caps kicker, the headline in the
-   * display face and the drivers as hairline-ruled columns (DESIGN.md ground
-   * rule 1). "card" keeps the legacy surface for tabs not yet converted.
-   */
-  variant?: "card" | "desk" | "report" | "report-summary" | "report-details";
+  /** "report" keeps the headline and every supporting note in one reading. */
+  variant?: "card" | "desk" | "report";
 }) {
   const tx = useText();
   if (!data.items.length) return null;
 
-  if (variant === "report-summary") {
-    return <aside data-sector-summary aria-label={tx("Period assessment")}>
-      <div><span>{tx("Period assessment")}</span>{data.asOf && <span>{tx(data.asOf)}</span>}</div>
-      <p>{tx(data.headline)}</p>
-    </aside>;
-  }
-
-  if (variant === "report-details") {
-    return <aside data-sector-detail-notes aria-label={tx("Period assessment")}>
-      <h3>{tx("Period assessment")}</h3>
-      <ul>{data.items.map((it, i) => <li key={i}>
-        {tx(it.text)}
-        {it.href && <Link href={it.href} className="ml-1 text-primary underline underline-offset-4">{tx("Related analysis")}</Link>}
-      </li>)}</ul>
-    </aside>;
-  }
-
   if (variant === "report") {
-    return <aside data-sector-assessment className="mt-4 border-t border-border pt-5" aria-label={tx("Period assessment")}>
-      <div className="mb-2 flex flex-wrap justify-between gap-2 text-[13px] text-muted-foreground">
-        <span className="font-semibold">{tx("Period assessment")}</span>
-        {data.asOf && <span>{tx(data.asOf)}</span>}
-      </div>
-      <p className="max-w-[100ch] text-[20px] font-medium leading-[1.5] tracking-tight">{tx(data.headline)}</p>
-      <ul className="mt-4 grid gap-x-8 gap-y-3 text-[14px] leading-[1.65] text-muted-foreground md:grid-cols-2">
-        {data.items.map((it, i) => <li key={i} className="border-t border-hair pt-3">
-          {tx(it.text)}
-          {it.href && <Link href={it.href} className="ml-1 text-primary underline underline-offset-4">{tx("Related analysis")}</Link>}
+    return <aside data-sector-assessment className={styles.assessment} aria-label={tx("Period assessment")}>
+      <header className={styles.header}>
+        <h3>{tx("Period assessment")}</h3>
+        {data.asOf && <span className={styles.date}>{tx(data.asOf)}</span>}
+      </header>
+      <p className={styles.lead}>{tx(data.headline)}</p>
+      <ul className={styles.notes}>
+        {data.items.map((it, i) => <li key={i} className={styles.note}>
+          {it.label && <h4>{it.href
+            ? <Link href={it.href}>{tx(it.label)}<span aria-hidden="true">↗</span></Link>
+            : tx(it.label)}</h4>}
+          <p>{tx(it.text)}</p>
+          {!it.label && it.href && <Link className={styles.related} href={it.href}>{tx("Related analysis")}<span aria-hidden="true"> ↗</span></Link>}
         </li>)}
       </ul>
     </aside>;

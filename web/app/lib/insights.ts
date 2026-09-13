@@ -16,6 +16,7 @@ export interface SeriesPoint {
 export type Tone = "positive" | "warn" | "neutral";
 
 export interface Insight {
+  label?: string;
   text: string;
   tone: Tone;
   href?: string;
@@ -82,6 +83,7 @@ export function overviewInsights(d: {
   const ly = last(d.loansYoY);
   const dy = last(d.depositsYoY);
   items.push({
+    label: tx("Balance-sheet growth"),
     text: tx("Balance sheet {0} — assets {1} y/y, loans {2}, deposits {3}.", {0: ay != null && ay >= 0 ? "expanding" : "contracting", 1: pct(ay), 2: pct(ly), 3: pct(dy)}),
     tone: "neutral",
     href: "/credit",
@@ -91,6 +93,7 @@ export function overviewInsights(d: {
   const npl = last(d.npl);
   const nplD = deltaPp(d.npl);
   items.push({
+    label: tx("Asset quality"),
     text: tx("NPL ratio {0}{1}.", {0: pct(npl, 2), 1: nplD != null ? tx(" ({0} m/m, {1})", {0: ppStr(nplD), 1: nplD > 0.03 ? "creeping up" : nplD < -0.03 ? "easing" : "broadly stable"}) : ""}),
     tone: nplD != null && nplD > 0.03 ? "warn" : nplD != null && nplD < -0.03 ? "positive" : "neutral",
     href: "/asset-quality",
@@ -101,6 +104,7 @@ export function overviewInsights(d: {
   const carD = deltaPp(d.car);
   const buffer = car != null ? car - CAR_TARGET : null;
   items.push({
+    label: tx("Capital adequacy"),
     text: tx("Capital adequacy {0}{1}{2}.", {0: pct(car), 1: buffer != null ? tx(" — {0}pp above the {1}% target ratio", {0: buffer.toFixed(1), 1: CAR_TARGET}) : "", 2: carD != null ? tx(" ({0} m/m)", {0: ppStr(carD)}) : ""}),
     tone: buffer != null && buffer < 2 ? "warn" : buffer != null && buffer >= 4 ? "positive" : "neutral",
     href: "/capital",
@@ -110,6 +114,7 @@ export function overviewInsights(d: {
   const roe = last(d.roe);
   const roeD = deltaPp(d.roe);
   items.push({
+    label: tx("Return on equity"),
     text: tx("ROE {0} (annualized){1}.", {0: pct(roe), 1: roeD != null ? tx(", {0} {1}pp m/m", {0: roeD >= 0 ? "up" : "down", 1: Math.abs(roeD).toFixed(1)}) : ""}),
     tone: "neutral",
     href: "/profitability",
@@ -118,6 +123,7 @@ export function overviewInsights(d: {
   // Funding / liquidity (L)
   const ldr = last(d.ldr);
   items.push({
+    label: tx("Loan-to-deposit ratio"),
     // TL+FC, because that is what the published ratio measures. The link goes to
     // /liquidity, where the TL-only book is read — a different, hotter number, so
     // the sentence has to say which one it is quoting. See lib/ldr.ts.
@@ -178,6 +184,7 @@ export function creditInsights(d: {
   // Lead with what the book actually did, not with the nominal print.
   if (real != null && y != null) {
     items.push({
+      label: tx("Real credit growth"),
       text:
         tx("Nominal credit grows {0} y/y — but strip the lira and the price level and the book ", {0: pct(y)}) +
         tx("{0} {1} in real, constant-FX terms.", {0: real < 0 ? "shrank" : "grew", 1: pct(Math.abs(real))}),
@@ -185,6 +192,7 @@ export function creditInsights(d: {
     });
     if (b?.currencyPp != null && b?.inflationPp != null) {
       items.push({
+        label: tx("Currency and inflation effects"),
         text:
           tx("Of that {0} print, {1} is lira depreciation revaluing the FX book ", {0: pct(y), 1: ppStr(b.currencyPp)}) +
           tx("and {0} is inflation. What remains is real volume.", {0: ppStr(b.inflationPp)}),
@@ -193,6 +201,7 @@ export function creditInsights(d: {
     }
   } else if (y != null) {
     items.push({
+      label: tx("Nominal credit growth"),
       text: tx("Loan growth {0} y/y (nominal){1}.", {0: pct(y), 1: m4 != null ? tx("; the 4-week pace ({0}) says the trend is {1}", {0: pct(m4), 1: pace}) : ""}),
       tone: "neutral",
     });
@@ -200,6 +209,7 @@ export function creditInsights(d: {
 
   if (real != null && y != null && m4 != null) {
     items.push({
+      label: tx("Short-term credit growth"),
       text: tx("The 4-week pace ({0}) says the NOMINAL trend is {1} — on a book that is not growing in real terms.", {0: pct(m4), 1: pace}),
       tone: "neutral",
     });
@@ -209,6 +219,7 @@ export function creditInsights(d: {
   const pr = last(d.yoyPrivate);
   if (st != null && pr != null) {
     items.push({
+      label: tx("Bank groups"),
       text: tx("{0} banks lead the lending cycle — {1} vs {2} y/y ({3} gap).", {0: st >= pr ? "State" : "Private", 1: pct(Math.max(st, pr)), 2: pct(Math.min(st, pr)), 3: ppStr(Math.abs(st - pr))}),
       tone: "neutral",
     });
@@ -218,6 +229,7 @@ export function creditInsights(d: {
   const fxD = deltaPp(d.fxShare);
   if (fx != null) {
     items.push({
+      label: tx("Foreign-currency loans"),
       text: tx("FX loans are {0} share of the book — {1} of total{2}.", {0: fxD != null && fxD < -0.3 ? "losing" : fxD != null && fxD > 0.3 ? "gaining" : "holding", 1: pct(fx), 2: fxD != null ? ` (${ppStr(fxD)})` : ""}),
       tone: "neutral",
     });
@@ -228,6 +240,7 @@ export function creditInsights(d: {
   if (cards != null && sme != null) {
     const tilt = cards > sme + 5 ? "consumer-led (cards)" : sme > cards + 5 ? "SME-led" : "broad-based";
     items.push({
+      label: tx("Lending mix"),
       text: tx("The mix is {0}: retail cards {1} vs SME {2} y/y.", {0: tilt, 1: pct(cards), 2: pct(sme)}),
       tone: cards > sme + 15 ? "warn" : "neutral",
       href: "/asset-quality",
@@ -262,6 +275,7 @@ export function depositsInsights(d: {
   if (dy != null) {
     const gap = ly != null ? dy - ly : null;
     items.push({
+      label: tx("Deposit and loan growth"),
       // "easing" here meant the GAP, while everywhere else it means a series
       // falling — one word doing two jobs, which makes the direction unreadable
       // (and the regime-flip gate unable to tell a bug from a coincidence).
@@ -275,6 +289,7 @@ export function depositsInsights(d: {
   const fxD = deltaOver(d.fxShare, 52);
   if (fx != null) {
     items.push({
+      label: tx("Foreign-currency deposits"),
       text: tx("Dollarization {0} — FX deposits {1} of total{2}.", {0: fxD != null ? (fxD < -0.5 ? "unwinding" : fxD > 0.5 ? "rebuilding" : "flat") : "", 1: pct(fx), 2: fxD != null ? tx(" ({0} y/y)", {0: ppStr(fxD)}) : ""}),
       tone: fxD != null && fxD < -0.5 ? "positive" : fxD != null && fxD > 1 ? "warn" : "neutral",
     });
@@ -284,6 +299,7 @@ export function depositsInsights(d: {
   const dsD = deltaOver(d.demandShare, 52);
   if (ds != null) {
     items.push({
+      label: tx("Demand deposits"),
       text: tx("Demand deposits — the cheapest funding — are {0} of the base{1}.", {0: pct(ds), 1: dsD != null ? tx(" ({0} y/y)", {0: ppStr(dsD)}) : ""}),
       tone: dsD != null && dsD < -1 ? "warn" : "neutral",
     });
@@ -292,6 +308,7 @@ export function depositsInsights(d: {
   const l = last(d.ldr);
   if (l != null) {
     items.push({
+      label: tx("Loan-to-deposit ratio"),
       text: tx("Loan-to-deposit (TL+FC, published) at {0} — {1}.", {0: pct(l), 1: l > 110 ? "stretched; growth leans on non-deposit funding" : l > 95 ? "fully lent" : "comfortable"}),
       tone: l > 110 ? "warn" : "neutral",
       href: "/liquidity",
@@ -341,12 +358,14 @@ export function assetQualityInsights(d: {
   // level, which reads "benign" and is the misreading this tab exists to prevent.
   if (L) {
     items.push({
+      label: tx("Loan classification"),
       text:
         tx("The ratio prints Stage 3 — {0} of the book. Loans the banks themselves ", {0: pct(L.stage3Share)}) +
         tx("classify as deteriorated are {0}, {1}× as much ({2}).", {0: pct(L.problemShare), 1: L.multipleOfPrinted.toFixed(1), 2: L.period}),
       tone: L.multipleOfPrinted >= 3 ? "warn" : "neutral",
     });
     items.push({
+      label: tx("Stage 2 coverage"),
       text:
         tx("The Stage-2 watchlist is {0} of loans at {1} cover, against ", {0: pct(L.stage2Share), 1: pct(L.cov2)}) +
         tx("Stage 3 at {0} — lower cover is expected on a book that is not impaired, but it is where the next NPLs come from.", {0: pct(L.cov3)}),
@@ -359,6 +378,7 @@ export function assetQualityInsights(d: {
   if (d.roll && d.formationMultiple) {
     const r = d.roll;
     items.push({
+      label: tx("NPL formation and recoveries"),
       text:
         tx("NPL formation ran {0}× the prior year in {1} ", {0: d.formationMultiple.toFixed(1), 1: r.year}) +
         tx("(net +₺{0}bn), and exits are {1}% collections — ", {0: Math.round(r.net), 1: r.collectionShare.toFixed(0)}) +
@@ -372,6 +392,7 @@ export function assetQualityInsights(d: {
     // "is growing X% y/y" would have read "growing −8.0%" on a shrinking stock.
     const gw = direction(g, VERBS.size, { flat: 1, sharp: Number.POSITIVE_INFINITY });
     items.push({
+      label: tx("Non-performing loan stock"),
       text: tx("{0} — the ratio is a slow summary of a fast-moving stock.", {0: gw === VERBS.size.flat
           ? "The NPL stock is flat y/y"
           : tx("The NPL stock {0} {1} y/y", {0: gw, 1: pct(Math.abs(g))})}),
@@ -385,6 +406,7 @@ export function assetQualityInsights(d: {
     // inside it, "rising"; beyond it, "climbing".
     const move = direction(nD, VERBS.trend, { flat: 0.03, sharp: 0.1 });
     items.push({
+      label: tx("Published NPL ratio"),
       text: tx("The published NPL ratio is {0}{1}{2}.", {0: pct(n, 2), 1: nD != null ? tx(" ({0} m/m)", {0: ppStr(nD)}) : "", 2: move ? ` — ${move}` : ""}),
       tone: nD != null && nD > 0.05 ? "warn" : "neutral",
     });
@@ -394,6 +416,7 @@ export function assetQualityInsights(d: {
   const cD = deltaPp(d.coverage);
   if (c != null) {
     items.push({
+      label: tx("Provision coverage"),
       text: tx("Provision coverage {0} of gross NPL{1}{2}.", {0: pct(c), 1: cD != null ? tx(" ({0} m/m)", {0: ppStr(cD)}) : "", 2: cD != null && cD < -0.3 ? " — slipping as the book seasons" : ""}),
       tone: cD != null && cD < -0.3 ? "warn" : "neutral",
     });
@@ -407,6 +430,7 @@ export function assetQualityInsights(d: {
         ? { name: "retail cards", v: cards }
         : { name: "SME", v: sme as number };
     items.push({
+      label: tx("Credit segments"),
       text: tx("Stress is concentrated in {0} ({1} NPL){2}.", {0: worst.name, 1: pct(worst.v, 2), 2: cards != null && sme != null ? tx(" — vs {0} for {1}", {0: pct(Math.min(cards, sme), 2), 1: cards >= sme ? "SME" : "retail cards"}) : ""}),
       tone: n != null && worst.v > 2 * n ? "warn" : "neutral",
       href: "/credit",
@@ -446,6 +470,7 @@ export function capitalInsights(d: {
   const buffer = car != null ? car - CAR_TARGET : null;
   if (car != null && buffer != null) {
     items.push({
+      label: tx("Capital buffer"),
       text: tx("CAR {0} — a {1}pp buffer over the {2}% target ratio{3}.", {0: pct(car), 1: buffer.toFixed(1), 2: CAR_TARGET, 3: carD != null ? tx(" ({0} m/m)", {0: ppStr(carD)}) : ""}),
       tone: buffer < 2 ? "warn" : buffer >= 4 ? "positive" : "neutral",
     });
@@ -454,6 +479,7 @@ export function capitalInsights(d: {
   const cet1 = last(d.cet1);
   if (cet1 != null) {
     items.push({
+      label: tx("Core capital"),
       text: tx("CET1 — the loss-absorbing core — at {0} (audited quarterly); the CAR-to-CET1 spread is AT1/Tier-2 reliance.", {0: pct(cet1)}),
       tone: "neutral",
     });
@@ -468,6 +494,7 @@ export function capitalInsights(d: {
   const bs = d.assetsYoY ? last(d.assetsYoY) : null;
   if (eq != null) {
     items.push({
+      label: tx("Equity growth"),
       text:
         bs == null
           ? tx("Equity is compounding {0} y/y — the generation side of the ratio.", {0: pct(eq)})
@@ -481,6 +508,7 @@ export function capitalInsights(d: {
   const levD = deltaPp(d.leverage);
   if (lev != null) {
     items.push({
+      label: tx("Leverage"),
       text: tx("Gearing at {0}× equity{1}.", {0: (lev / 100).toFixed(1), 1: levD != null && levD > 10 ? " and rising" : ""}),
       tone: "neutral",
     });
@@ -510,6 +538,7 @@ export function profitabilityInsights(d: {
   const real = realRate(roe, cpi);
   if (roe != null) {
     items.push({
+      label: tx("Return on equity"),
       text: tx("ROE {0} nominal{1}.", {0: pct(roe), 1: real != null ? tx(" — Fisher-deflated by 12m-avg CPI: {0}{1}% real, so {2}", {0: real >= 0 ? "+" : "", 1: real.toFixed(1), 2: real > 5 ? "solidly positive" : real > 0 ? "barely positive" : "negative"}) : ""}),
       tone: real != null && real < 0 ? "warn" : real != null && real > 5 ? "positive" : "neutral",
     });
@@ -519,6 +548,7 @@ export function profitabilityInsights(d: {
   const nimD = deltaPp(d.nim);
   if (nim != null) {
     items.push({
+      label: tx("Net interest margin"),
       text: tx("NIM {0}{1}.", {0: pct(nim, 2), 1: nimD != null ? tx(" ({0} m/m — margins {1})", {0: ppStr(nimD), 1: nimD > 0.05 ? "widening as funding reprices down" : nimD < -0.05 ? "compressing" : "flat"}) : ""}),
       tone: nimD != null && nimD > 0.05 ? "positive" : nimD != null && nimD < -0.05 ? "warn" : "neutral",
       href: "/rates",
@@ -527,13 +557,14 @@ export function profitabilityInsights(d: {
 
   const roa = last(d.roa);
   if (roa != null) {
-    items.push({ text: tx("ROA {0} — the leverage-free read on the same earnings.", {0: pct(roa, 2)}), tone: "neutral" });
+    items.push({ label: tx("Return on assets"), text: tx("ROA {0} — the leverage-free read on the same earnings.", {0: pct(roa, 2)}), tone: "neutral" });
   }
 
   const opex = last(d.opex);
   const opexD = deltaPp(d.opex);
   if (opex != null) {
     items.push({
+      label: tx("Operating costs"),
       text: tx("Operating cost {0} of assets{1} — inflation passes through wages with a lag.", {0: pct(opex, 2), 1: opexD != null ? tx(" ({0} {1} m/m)", {0: opexD <= 0 ? "improving" : "deteriorating", 1: ppStr(opexD)}) : ""}),
       tone: opexD != null && opexD > 0.05 ? "warn" : "neutral",
     });
@@ -564,6 +595,7 @@ export function liquidityInsights(d: {
   if (pub != null && priv != null) {
     const worst = Math.max(pub, priv);
     items.push({
+      label: tx("TL funding balance"),
       text: tx("TL loan-to-deposit: public {0} vs private {1} — {2}.", {0: pct(pub, 0), 1: pct(priv, 0), 2: worst > 100 ? "the TL book is more than fully lent" : "the TL book is fully funded by deposits"}),
       tone: worst > 110 ? "warn" : "neutral",
     });
@@ -573,6 +605,7 @@ export function liquidityInsights(d: {
   const dollD = deltaOver(d.dollarization, 52);
   if (doll != null) {
     items.push({
+      label: tx("Foreign-currency deposits"),
       text: tx("FC deposits {0} of the base{1} — dollarization is the system's structural funding risk.", {0: pct(doll), 1: dollD != null ? tx(" ({0} y/y)", {0: ppStr(dollD)}) : ""}),
       tone: dollD != null && dollD > 1 ? "warn" : dollD != null && dollD < -1 ? "positive" : "neutral",
       href: "/deposits",
@@ -582,6 +615,7 @@ export function liquidityInsights(d: {
   const lcr = last(d.lcr);
   if (lcr != null) {
     items.push({
+      label: tx("Liquidity coverage"),
       text: tx("LCR {0} (audited quarterly) — {1} cushion over the 100% floor.", {0: pct(lcr, 0), 1: lcr >= 150 ? "a wide" : lcr >= 110 ? "an adequate" : "a thin"}),
       tone: lcr < 110 ? "warn" : lcr >= 150 ? "positive" : "neutral",
     });
@@ -590,6 +624,7 @@ export function liquidityInsights(d: {
   const fund = last(d.netCbrtFunding);
   if (fund != null) {
     items.push({
+      label: tx("CBRT funding"),
       text: tx("Net CBRT funding ₺{0}bn {1}.", {0: Math.abs(fund / 1000).toFixed(0), 1: fund >= 0 ? "surplus — the system parks TL at the central bank" : "shortfall — the system leans on CBRT for TL"}),
       tone: "neutral",
       href: "/rates",
@@ -615,6 +650,7 @@ export function marketRiskInsights(d: {
   const nop = last(d.nop);
   if (nop != null) {
     items.push({
+      label: tx("Foreign-exchange position"),
       text: tx("FX net open position {0}{1}% of capital — {2} (net {3}).", {0: nop >= 0 ? "+" : "", 1: nop.toFixed(1), 2: Math.abs(nop) < 5 ? "small and well inside the ±20% limit; direct FX risk is hedged" : "a live currency exposure", 3: nop >= 0 ? "long" : "short"}),
       tone: Math.abs(nop) > 10 ? "warn" : "neutral",
     });
@@ -623,6 +659,7 @@ export function marketRiskInsights(d: {
   const gap = last(d.gap1y);
   if (gap != null) {
     items.push({
+      label: tx("Interest-rate sensitivity"),
       text:
         gap < 0
           ? tx("The ≤1y repricing gap is {0}% of assets — liabilities reprice first, so falling rates lift NII; the exposure is an easing-cycle stall.", {0: gap.toFixed(1)})

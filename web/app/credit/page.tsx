@@ -425,7 +425,7 @@ export default async function CreditPage() {
             </>
           }
         /></SectorMetrics>
-<Takeaway data={readData} variant="report-summary" /></SectorOpening>
+</SectorOpening>
 <SectorSection id="growth" title={tx("Loan growth")} description={tx("Nominal growth and the effects of exchange rates and inflation.")}>
 <SectorGrid ratio="wide-left">
 <SectorTrend height={320} hero="REALFX"
@@ -484,7 +484,7 @@ export default async function CreditPage() {
         </div>
 </SectorPanel>
 </SectorGrid>
-<Takeaway data={readData} variant="report-details" />
+<Takeaway data={readData} variant="report" />
 
 <SectorGrid columns={3}>
 <SectorTrend height={280}

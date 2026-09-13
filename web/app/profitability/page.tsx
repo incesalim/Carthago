@@ -417,7 +417,6 @@ export default async function ProfitabilityPage() {
               </b>{" "}{tx("y/y cost intensity")}</>
           }
         /></SectorMetrics>
-<Takeaway data={sectorAssessment} variant="report-summary" />
 </SectorOpening>
 <SectorSection id="returns" title={tx("Returns")} description={tx("Return on equity, return on assets and comparison with inflation.")}>
 {cpiAvg.length > 0 && (<SectorTrend mode="trend" deltaBasis="published" deltaFromFullHistory deltaPeriods={12} deltaLabel="12m"
@@ -436,7 +435,7 @@ export default async function ProfitabilityPage() {
                   height={320}
                   hero={BANK_TYPES.SECTOR}
                 />)}
-<Takeaway data={sectorAssessment} variant="report-details" />
+<Takeaway data={sectorAssessment} variant="report" />
 
 <SectorGrid ratio="balanced">
 <SectorPanel>

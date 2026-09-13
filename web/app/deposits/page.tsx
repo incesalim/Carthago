@@ -729,7 +729,6 @@ export default async function DepositsPage() {
             }
           />
         </SectorMetrics>
-        <Takeaway data={readData} variant="report-summary" />
       </SectorOpening>
       <SectorSection
         id="growth"
@@ -795,7 +794,7 @@ export default async function DepositsPage() {
             mode="trend"
           />
         </SectorGrid>
-<Takeaway data={readData} variant="report-details" />
+<Takeaway data={readData} variant="report" />
 
         <SectorGrid columns={2} ratio="balanced">
           <SectorPanel>

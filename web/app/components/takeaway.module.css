@@ -1,0 +1,37 @@
+.assessment {
+  container-type: inline-size;
+  padding: 24px 28px 28px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--foreground);
+}
+.header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; }
+.header h3 { font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -.02em; }
+.date { color: var(--muted-foreground); font-size: 13px; line-height: 1.5; white-space: nowrap; }
+.lead { max-width: 86ch; margin-top: 14px; font-size: 19px; font-weight: 450; line-height: 1.65; letter-spacing: -.012em; text-wrap: pretty; }
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 32px; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--border); list-style: none; }
+.note { min-width: 0; }
+.note:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.note h4 { margin-bottom: 7px; font-size: 14px; font-weight: 600; line-height: 1.45; }
+.note p { max-width: 76ch; color: var(--muted-foreground); font-size: 14px; line-height: 1.65; text-wrap: pretty; }
+.note a { color: var(--primary); text-decoration: none; text-underline-offset: 4px; }
+.note h4 a { display: inline-flex; align-items: baseline; gap: 8px; }
+.note a:hover { text-decoration: underline; }
+.note a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 2px; }
+.related { display: inline-block; margin-top: 6px; font-size: 13px; }
+@container (min-width: 1080px) {
+  .notes { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .note, .note:last-child:nth-child(odd) { grid-column: span 2; }
+  .notes:has(> :last-child:nth-child(3n + 2)) > :nth-last-child(-n + 2) { grid-column: span 3; }
+  .note:last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
+}
+@container (max-width: 560px) {
+  .notes { grid-template-columns: minmax(0, 1fr); gap: 18px; margin-top: 20px; padding-top: 18px; }
+  .lead { font-size: 17px; line-height: 1.65; }
+  .note + .note { padding-top: 16px; border-top: 1px solid var(--hair); }
+}
+@media (max-width: 800px) {
+  .assessment { padding: 20px 18px; }
+  .header h3 { font-size: 17px; }
+}

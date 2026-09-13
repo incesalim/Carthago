@@ -173,9 +173,13 @@ interaction. Static topic names and related routes live in `sector-pages.ts`.
 Database concepts and implementation plans never become visitor-facing headings.
 
 The opening combines a compact title/date header, topic navigation with one
-labelled period selector, current indicators and a short dated assessment
-headline. All supporting assessment notes remain visible immediately after the
-first main chart or chart grid in the first chapter. The history selector changes
+labelled period selector and current indicators, then leads straight into the
+first charts. A single dated assessment follows those charts: a readable lead
+paragraph and all supporting notes grouped under short financial-topic headings.
+Keep the lead and notes together, never split them into a banner and a later
+block. Use a neutral panel, normal-weight prose with a bounded line length and
+topic links; do not repeat the KPI row or collapse substantive analysis.
+The history selector changes
 charts, not the latest-period indicators. Four indicators use
 four columns when there is room, six use six only on wide desktop; use two
 columns on phones. Align metric labels and figures. Preserve essential dates

@@ -171,7 +171,6 @@ export default async function MarketRiskPage() {
             ) : undefined
           }
         /></SectorMetrics>
-<Takeaway variant="report-summary" data={sectorAssessment} />
 </SectorOpening>
 <SectorSection id="fx-position" title={tx("FX position")} description={tx("The sector's net foreign-currency position. A small net-open-position / capital ratio means on- and off-balance FX is well-matched; the by-currency split shows where the system is net long (+) or short (−).")}>
 <SectorGrid ratio="balanced">
@@ -211,7 +210,7 @@ export default async function MarketRiskPage() {
 </div>
 </ChartCard>
 </SectorGrid>
-<Takeaway data={sectorAssessment} variant="report-details" />
+<Takeaway data={sectorAssessment} variant="report" />
 
 
 </SectorSection>
