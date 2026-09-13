@@ -14,9 +14,17 @@ of the coordinate parser and rejects missing current cells or entire periods.
 Actions preview 34780144337 at d52e1d0 rejected GARAN 2023Q4 solo and 2025Q4
 consolidated candidates, protecting production from incorrect parsing. It also
 exposed an existing 2025Q4 solo professional-services row containing education
-figures and a missing separate education row. Source-backed regressions cover
-these layouts; repair publication requires a new scoped preview. Earlier GARAN
-2022Q4 publication was verified against D1 and R2 (all 240 printed cells).
+figures and a missing separate education row. Commit 310cdf3 fixed those layouts;
+preview 34780961260 and publication 34781104486 passed for the six exact GARAN
+2023Q4–2025Q4 annual filings. Independent D1/R2 readback matched all 240 rows and
+720 printed cells: 81 rows added, 80 NULL cells filled, and three misplaced
+professional-services figures corrected. Each filing has 40 mapped source rows,
+zero unmapped rows, and 134 passing checks with zero failures or skips. Other
+statement data and unrelated sector partitions stayed unchanged; 78 unchanged
+rows retained their timestamps. The existing manual coverage provenance for
+2023Q4 solo was preserved. CI 34780947782 and deployment 34781067264 succeeded.
+Earlier GARAN 2022Q4 publication also matches all 240 printed cells in D1/R2.
+This verifies these sector disclosures, not complete reports or other lanes.
 Evidence and current publication status:
 `docs/knowledge/2026-09-13-sector-registered-garan/` and
 `docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
