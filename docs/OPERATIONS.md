@@ -301,7 +301,7 @@ validation and unchanged-content guards.
 |---|---|---|
 | After audit acquisition/refresh + manual | `build-document-corpus.yml` | Preserve original audit PDFs and versioned source-page evidence in `document-corpus/v1/` on R2. Inputs `banks=ALL`, optional `period`, `limit=0`, `publish=true`. Uses existing `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; optional local `R2_BUCKET` overrides the default bucket. Separate `audit-document-corpus` concurrency group; no D1 or analytical snapshot writes. Reuses only evidence matching current PDF bytes and current engine; retains every source revision and failed filing. Run artifacts contain inventory and outcomes. Successful source preservation does not certify table/prose correctness. |
 | Manual only | `repair-audit-roles.yml` | Restore missing/stale `bank_audit_pl_roles` after a targeted reload omitted the role map. Pulls the current audit snapshot, compares semantic role content with live D1, and requires identical underlying P&L rows before replacing **only differing role partitions**. No PDF extraction or financial-row writes. Inputs: explicit `banks` (no ALL), optional `periods`, `kind`, `dry_run=true` by default. `--apply` is Actions-only; a repeat run writes nothing. Uses existing R2 and `CLOUDFLARE_API_TOKEN` secrets; serialized with the `bddk-audit` lane |
-| Manual only | `repair-missing-audit-rows.yml` | Repair narrowly proven D1 drift against the latest authoritative R2 audit snapshot without extraction or re-stamping. Default missing-row mode accepts explicit allowlisted `tables` (no ALL) plus optional `banks`/`periods`/`kind`; complete D1 factual multisets must be strict source subsets (null is distinct from zero), then Actions-only apply replaces only affected table partitions, post-verifies, requires a no-op replay, and uploads updated snapshot digests. `remove_remote_extras=true` instead requires explicit `partitions=BANK:YYYYQn:kind` and no Cartesian filters; every named D1 partition must contain every authoritative fact unchanged, then one atomic import deletes only the extra full primary keys. Canonical rows and R2 remain untouched. Missing tables, source-empty targets, schema/PK drift, changed or missing canonical facts, duplicate keys, or incomplete reads abort **all selected tables before any write**. `dry_run=true` by default; unchanged runs write neither D1 nor R2. Uses existing R2 and `CLOUDFLARE_API_TOKEN` secrets; serialized with `bddk-audit` |
+| Manual only | `repair-missing-audit-rows.yml` | Repair narrowly proven D1 drift against the latest authoritative R2 audit snapshot without extraction or re-stamping. Default missing-row mode accepts explicit allowlisted `tables` (no ALL) plus optional `banks`/`periods`/`kind`; complete D1 factual multisets must be strict source subsets (null is distinct from zero), then Actions-only apply replaces only affected table partitions, post-verifies, requires a no-op replay, and uploads updated snapshot digests. `remove_remote_extras=true` instead requires explicit `partitions=BANK:YYYYQn:kind` and no Cartesian filters; every named D1 partition must contain every authoritative fact unchanged, then one atomic import deletes only the extra full primary keys. Canonical D1 rows remain untouched; a verified checkpoint records the successful cleanup. Missing tables, source-empty targets, schema/PK drift, changed or missing canonical facts, duplicate keys, or incomplete reads abort **all selected tables before any write**. `dry_run=true` by default; unchanged runs write neither D1 nor R2. Uses existing R2 and `CLOUDFLARE_API_TOKEN` secrets; serialized with `bddk-audit` |
 | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS **daily/workday series only** (FX, policy/funding rates, sterilization, …) → D1. Weekly/monthly/quarterly series are polled by Saturday's full refresh. A run with no changed observation performs no D1 or R2 write |
 | Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
 | First + last 5 days 13:00 UTC; Fri 13:30/15:30 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins only. The 13:00 runs probe the **monthly** bulletin around month-end; the Friday runs bracket the **weekly** publication window. The redundant Saturday 02:00 run is gone because `refresh-data.yml` follows at 03:00. A byte-stable SQLite result skips VACUUM, gzip, D1 and R2 entirely |
@@ -776,12 +776,41 @@ The **in-dashboard button** does the same without the CLI: `/admin` →
 **Presentation** → **Generate PDF** opens `GET /api/presentation?print=1` and the
 browser print dialog (Save as PDF). See [ADMIN.md](ADMIN.md) §Presentation deck.
 
+### Release publication and rollback
+
+`deploy-cloudflare.yml` accepts `sha` (exact 40-character commit; empty uses the
+selected ref) and `rollback` (false by default). Both automatic and manual
+normal releases need current successful push CI for that SHA and current master.
+The release lock is `carthago-production-release`, followed by `bddk-audit` so
+schema adoption cannot race an old audit writer. Build happens first in the same
+job/checkout; `.open-next/release-sha.txt` identifies the deployed bundle. The
+eligibility check runs after building and before the first migration. An API
+lookup failure refuses publication; a superseded run exits without publishing.
+
+For rollback, select a SHA from a successful **verified** release run within the latest 100 successful runs and set
+`rollback=true`. It must still have successful exact-SHA CI. Additive schema is
+retained, then the previous application build is deployed and smoke-checked.
+Rollback inspects the run's job steps: both deployment and the smoke check must have succeeded; a
+green superseded/no-op run is not a release. The first release under this policy must succeed before it can become a rollback
+target; older unverified releases are deliberately ineligible. `check_release.py`
+uses `GH_TOKEN` (the workflow's `GITHUB_TOKEN`), `GITHUB_REPOSITORY`,
+`GITHUB_OUTPUT`, `RELEASE_SHA` and the step's `ROLLBACK` value. No new secret.
+`check_release_smoke.py` makes bounded read-only requests; failure leaves the
+release failed for investigation, without automatic schema reversal.
+
+All existing shared ingestion groups use `queue: max` and
+`cancel-in-progress: false`: up to 100 pending runs survive while a writer is
+busy. This does not promise FIFO. Keep jobs sharing a current snapshot under
+the same existing lock; use Actions run history to verify queue behavior after
+rollout.
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in
-`web/migrations/` (idempotent, `IF NOT EXISTS`). To change it:
+`web/migrations/`. Migration filenames are recorded once in `d1_migrations`;
+`ALTER TABLE ADD COLUMN` is not itself repeatable. To change it:
 
-1. Add a new numbered file, e.g. `web/migrations/0002_add_xyz.sql`, with the
+1. Add a new numbered file, e.g. `web/migrations/NNNN_add_xyz.sql`, with the
    `CREATE TABLE IF NOT EXISTS …` / `ALTER TABLE … ADD COLUMN …` statements.
    Follow the naming rules in [SCHEMA_CONVENTIONS.md](SCHEMA_CONVENTIONS.md)
    (`bank_ticker` / `amount_fc` / snake_case / no reserved words / unique number)
@@ -790,12 +819,33 @@ The schema source of truth is the hand-authored, version-controlled files in
    staging SQLite matches.
 2. Commit + push. The deploy workflow runs `wrangler d1 migrations apply
    bddk-data --remote`, which applies only files not yet recorded in the
-   `d1_migrations` table. (`CREATE … IF NOT EXISTS` makes re-apply a no-op.)
+   `d1_migrations` table. Ingestion never applies production DDL.
 3. Test locally first: `cd web; npx wrangler d1 migrations apply bddk-data --local`.
 
 `scripts/archive/generate_d1_migrations.py` was a one-time D1 seed (writes to
 `web/seeds/`, gitignored) — **not schema, and no longer part of any lane**.
 Routine row updates go through `push_to_d1.py`.
+
+The first release with migration 0047 runs `reconcile_schema.py --apply` before
+Wrangler migrations. It compares physical definitions and the migration ledger,
+adopts only the reviewed effects of 0045/0046/0047, applies any missing allowed
+columns with the ledger entry in one file import, then rechecks the result.
+A mismatch in type, nullability, default or key refuses adoption. It never copies
+staging DDL into production or changes a financial value. Read-only planning is
+`python scripts/reconcile_schema.py` with `CLOUDFLARE_API_TOKEN` and either
+`CLOUDFLARE_ACCOUNT_ID` or `R2_ACCOUNT_ID` in the environment. `--apply` is
+Actions-only; it does not blindly retry an uncertain import. The captured live
+metadata on 2026-09-06 required only the 0047 ledger entry; rollout reads it again.
+
+Run `python scripts/check_schema_contract.py` before publication. Every real
+publisher also checks current serving columns and emitted staging columns. A
+schema refusal requires fixing/applying the migration, not bypassing the check.
+Explicit table scope is mandatory for writes: e.g. `--table-set bulletin`,
+`--table-set evds`, `--table-set news` (including KAP `bank_earnings`),
+`--table-set audit-refresh`, or `--only-tables bank_audit_capital`.
+`--lane` can assert the intended owner. Cross-lane scopes and canonical DB/lane
+mismatches fail. `--check-only` and `--dry-run` can still inspect all tables;
+they neither checkpoint nor write. Unrelated queued deletes stay pending.
 
 ### Rebuild the public-API series catalog
 
@@ -1372,19 +1422,45 @@ npx wrangler d1 time-travel restore bddk-data --timestamp=<UNIX_TS>
 ```
 (Destructive — it overwrites current data after a confirm. Free plan = 7 days back.)
 
-**Pipeline snapshots — dated R2 backups.** Each refresh writes a dated copy to
-`state/history/<lane>-YYYYMMDD.db.gz` (lane = `bddk_data` or `bank_audit`) and
-keeps the last 7, so a corrupt run never destroys the only snapshot. To recover,
-copy a good dated backup over the live key, e.g.:
-```
-# in a checkout with R2 creds in env
-python - <<'PY'
-from src.audit_reports import r2_storage
-r2_storage.download_to("state/history/bddk_data-20260601.db.gz", "snap.db.gz")
-r2_storage.upload_file("snap.db.gz", "state/bddk_data.db.gz")
-PY
-```
-Then re-run the relevant refresh workflow to push the restored rows to D1.
+**Pipeline snapshots — verified immutable checkpoints.** Supported writers use
+`src.pipeline.snapshots.publish_snapshot(db, lane)` for `bulletin`, `audit`,
+`analyst`, and `capture`. Current keys remain `state/bddk_data.db.gz`,
+`state/bank_audit.db.gz`, `state/analyst.db.gz`, and
+`state/bank_audit_capture.db.gz`. The helper uses SQLite backup (including WAL),
+checks integrity, uploads a unique checkpoint, downloads it and verifies SHA-256,
+then promotes it server-side. It keeps seven recent committed runs plus the
+latest from seven distinct days. Same-day runs never overwrite each other.
+
+Before a real D1 publication, `prepare_candidate` writes a verified
+`state/checkpoints/<lane>/<UTC timestamp>-<UUID>-candidate.db.gz`. Successful
+snapshot promotion writes a `-committed.db.gz` checkpoint and resolves only
+candidates recorded in that runner's `<db>.candidates.json`. A failed D1 write,
+unknown response, failed verification or failed promotion leaves recoverable
+candidates; failed analyst jobs no longer overwrite the current snapshot.
+Metadata alongside each checkpoint records both compressed and SQLite hashes.
+An analyst run with `push=false`, or raw capture without D1 output, records
+successful staging state only; "committed" does not imply a D1 write occurred.
+
+Recovery procedure (heavy operations remain in Actions under the owning lock):
+
+1. Inspect the failed run and checkpoint metadata. Preserve unresolved candidates;
+   they describe intended publication, not proof of what D1 accepted.
+2. Download the chosen candidate/committed checkpoint and its `.json` sidecar.
+   Verify the compressed SHA-256, decompress, verify `sqlite_sha256`, then run
+   `PRAGMA integrity_check`. Preserve nulls, source stamps and push bookkeeping.
+3. Compare the affected D1 partitions with that state using the existing scoped
+   repair tools. If the import outcome is unknown, read D1 first. Do not mark
+   digests as confirmed or blindly restore a current key.
+4. Repair only proven differences, verify convergence, then use the shared
+   snapshot helper in the owning Actions job to promote the confirmed state.
+   Uploading an old snapshot alone does not restore D1 or force old rows past
+   timestamp/hash skips. Never use fleet re-extraction as snapshot recovery.
+
+Old `state/history/` objects remain available; they have no new sidecar guarantee
+and require independent integrity/content checks. Unresolved candidates are
+retained indefinitely until their incident has been reconciled; review storage
+and remove only explicitly resolved candidates after preserving the chosen
+recovery evidence. Automatic retention never deletes them.
 
 ## Secrets
 
