@@ -1,5 +1,5 @@
 /**
- * Loan-to-deposit — one name, four legitimate bases (strings only; safe on the
+ * Loan-to-deposit — one name, three legitimate bases (strings only; safe on the
  * client). This module exists so no surface can print a bare "Loan / deposit"
  * again.
  *
@@ -11,15 +11,9 @@
  *
  * They are not the same quantity:
  *
- *   published  BDDK's own published ratio, monthly, sector, TL+FC, development
- *              & investment banks excluded (the headline basis; see METRICS.md
- *              App. B §1). Per DESIGN.md ("one metric, one number — never print
- *              a home-made version of a published one") this IS the sector's
- *              loan/deposit ratio.
- *   publishedAll  the same Table 15 row including development & investment
- *              banks. A named secondary on `/deposits`; because those banks
- *              lend project finance against no deposit base, this runs hotter
- *              and is not the headline.
+ *   published  BDDK's own published ratio, monthly, sector, TL+FC. Per DESIGN.md
+ *              ("one metric, one number — never print a home-made version of a
+ *              published one") this IS the sector's loan/deposit ratio.
  *   weeklyTl   computed from the weekly bulletin: TL loans ÷ TL deposits, split
  *              public vs private. Not published at this granularity, and the one
  *              that shows funding pressure first — the TL book is where a
@@ -48,29 +42,17 @@ export interface LdrBasis {
   rule: string;
 }
 
-/** `/deposits` — BDDK's published headline sector ratio (`financial_ratios`,
- * monthly), the ex-development-&-investment Table 15 row. */
+/** `/deposits` — BDDK's published sector ratio (`financial_ratios`, monthly). */
 export const LDR_PUBLISHED: LdrBasis = {
-  label: "Loan / deposit — TL+FC, ex Dev & Inv",
+  label: "Loan / deposit — TL+FC",
   // Name the table and the population. "all currencies" alone left the reader
   // unable to tell whether the ratio was the all-banks Table 15 row or a
   // deposit-banks-only cut, and BDDK publishes both.
   basis:
-    "BDDK monthly financial-ratios table (Table 15), sector total — development & investment banks excluded, TL+FC",
-  elsewhere: { href: "/liquidity", what: "TL-only, weekly, public vs private" },
-  line: 100,
-  rule: "published TL+FC loan/deposit > 100%",
-};
-
-/** `/deposits` only — the same Table 15 row with development & investment banks
- * included. Named secondary, never the headline. */
-export const LDR_PUBLISHED_ALL: LdrBasis = {
-  label: "Loan / deposit — TL+FC, all banks",
-  basis:
     "BDDK monthly financial-ratios table (Table 15), sector total — all banks including development & investment, TL+FC",
   elsewhere: { href: "/liquidity", what: "TL-only, weekly, public vs private" },
   line: 100,
-  rule: "published TL+FC all-banks loan/deposit > 100%",
+  rule: "published TL+FC loan/deposit > 100%",
 };
 
 /** `/liquidity` — computed from the weekly bulletin, TL legs only, by group. */
@@ -93,12 +75,7 @@ export const LDR_AUDITED: LdrBasis = {
   rule: "audited TL+FC loan/deposit > 100%",
 };
 
-export const LDR_BASES = [
-  LDR_PUBLISHED,
-  LDR_PUBLISHED_ALL,
-  LDR_WEEKLY_TL,
-  LDR_AUDITED,
-] as const;
+export const LDR_BASES = [LDR_PUBLISHED, LDR_WEEKLY_TL, LDR_AUDITED] as const;
 
 /**
  * The note that goes under a printed figure: what this one is, and where its

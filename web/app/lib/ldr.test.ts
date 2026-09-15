@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LDR_AUDITED, LDR_BASES, LDR_PUBLISHED, LDR_PUBLISHED_ALL, LDR_WEEKLY_TL, ldrNoteParts } from "./ldr";
+import { LDR_AUDITED, LDR_BASES, LDR_PUBLISHED, LDR_WEEKLY_TL, ldrNoteParts } from "./ldr";
 
 /**
  * The bug these pin (2026-07-13 sector-page audit, finding 2): three legitimate
@@ -57,14 +57,5 @@ describe("loan-to-deposit bases", () => {
       href: "/liquidity",
       what: LDR_PUBLISHED.elsewhere.what,
     });
-  });
-
-  it("makes the ex-Dev&Inv Table 15 row the headline, all-banks a named secondary", () => {
-    // METRICS.md Appendix B §1: the headline LDR excludes development &
-    // investment banks. The all-banks row is kept as a named secondary only.
-    expect(LDR_PUBLISHED.label).toContain("ex Dev & Inv");
-    expect(LDR_PUBLISHED.basis).toContain("excluded");
-    expect(LDR_PUBLISHED_ALL.label).toContain("all banks");
-    expect(LDR_PUBLISHED_ALL.basis).toContain("including");
   });
 });

@@ -554,7 +554,7 @@ export default async function OverviewPage({
             <>
               {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
                 ? tx("below the {0}% line", { 0: LDR_PUBLISHED.line })
-                : tx("above the {0}% line", { 0: LDR_PUBLISHED.line }))}{" "}{tx("— published, monthly, BDDK Table 15, ex development & investment ")}<Go href="/deposits">{tx("Deposits")}</Go>
+                : tx("above the {0}% line", { 0: LDR_PUBLISHED.line }))}{" "}{tx("— published, monthly, BDDK Table 15, all banks ")}<Go href="/deposits">{tx("Deposits")}</Go>
             </>
           }
         />
