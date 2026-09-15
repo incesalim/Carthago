@@ -301,7 +301,7 @@ def _store_report(
     # the report transaction, so suppress those commits here; otherwise a later
     # validation/statement failure can leave a half-written partition.
     _COMMIT_AWARE_PERSISTERS = {
-        'credit_quality', 'loans_by_sector', 'npl_movement', 'capital',
+        'credit_quality', 'loans_by_sector', 'loans_currency', 'npl_movement', 'capital',
         'liquidity', 'fx_position', 'repricing', 'profile', 'audit_opinion',
         'free_provision',
     }
