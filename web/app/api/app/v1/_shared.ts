@@ -5,7 +5,7 @@
  * surface: a documented series contract that third parties build against, so its
  * shapes can only ever be added to. This one is the private wire format between
  * our own Worker and our own Expo client — screen-oriented, denormalised, and
- * free to change the moment a screen changes. Keeping them apart is what lets
+ * versioned separately from the public API. Keeping them apart is what lets
  * the mobile app iterate without freezing the public API, and vice versa.
  *
  * The client pins a namespace version (`/v1`) rather than a build date, so a
@@ -13,6 +13,7 @@
  * binaries in the wild until the store rollout catches up. See
  * docs/ARCHITECTURE.md § "Mobile app".
  */
+import { CONTRACT_VERSION, decode, type Payloads } from "@/app/lib/app-api-contract.generated";
 import { envFlag, getEnv } from "@/app/lib/cf-env";
 
 /**
@@ -44,12 +45,12 @@ export const CACHE_HEADERS: Record<string, string> = {
 /** The contract version the client negotiates against. Bump only for a
  *  BREAKING reshape — additive fields don't need it, since the client reads
  *  fields it knows and ignores the rest. */
-export const APP_API_VERSION = 1;
+export const APP_API_VERSION = CONTRACT_VERSION;
 
 /**
  * Oldest client build this API still serves happily. The app compares its own
- * build number against this on launch (`GET /api/app/v1`) and shows a soft
- * upgrade prompt when it falls behind.
+ * build number against this on launch (`GET /api/app/v1`) and shows a blocking
+ * upgrade screen when it falls behind.
  *
  * Raise this ONLY when an older build would actively misread a payload — a
  * renamed field, a changed unit. It is not a marketing nag: every raise strands
@@ -62,6 +63,13 @@ export function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { ...CORS_HEADERS, ...(status === 200 ? CACHE_HEADERS : {}) },
   });
+}
+
+/** Typed at the producer and validated again before JSON serialization. */
+export function appResponse<K extends keyof Payloads>(kind: K, body: Payloads[K]): Response {
+  decode(kind, body);
+  return Response.json(body, { headers: { ...CORS_HEADERS,
+    ...(kind === "handshake" ? { "Cache-Control": "no-store" } : CACHE_HEADERS) } });
 }
 
 export function errorResponse(message: string, status = 400): Response {
