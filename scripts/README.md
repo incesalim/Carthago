@@ -51,6 +51,7 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | Script | Guards | Run by | Class |
 |---|---|---|---|
 | `reconcile_schema.py` | Read-only adoption plan; Actions-only apply of reviewed legacy schema effects. | `deploy-cloudflare.yml` | operational |
+| `sync_app_contract.py` | `contracts/app-api-v1.ts` is the single wire contract: regenerates the isolated Next/Metro copies (`--check` in CI) and enforces mobile clientBuild = Android versionCode = iOS buildNumber. | `ci.yml` | gate |
 | `check_scripts_index.py` | THIS index ↔ the scripts that exist, both directions. | `ci.yml` | gate |
 | `check_docs_sync.py` | OPERATIONS/ADMIN/TELEGRAM_BOT name every workflow, secret and env key the code reads. | `ci.yml` | gate |
 | `check_schema_naming.py` | D1 migrations ≥ 0022 follow SCHEMA_CONVENTIONS.md. | `ci.yml` | gate |
