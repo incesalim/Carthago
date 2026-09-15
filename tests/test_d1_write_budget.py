@@ -40,6 +40,13 @@ import push_to_d1 as P  # noqa: E402
 from src.audit_reports.units import UnitContext  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def isolated_publication_boundary(monkeypatch):
+    # These tests exercise SQL/hash behavior; external preflights are covered
+    # separately in test_pipeline_contracts with failure injection.
+    monkeypatch.setattr(P, "preflight_publication", lambda *a, **k: None)
+
+
 def fake_remote(rows_per_partition=0):
     """Deterministic stand-in for remote_partition_rows. Injected explicitly so
     no unit test can reach `npx wrangler` by omission."""
@@ -1193,8 +1200,15 @@ def _run(monkeypatch, db, *extra, remote=0):
 
 
 def _generated_sql() -> str:
+    # The push now names its SQL file uniquely per run (issue #105), so read the
+    # most recently written one rather than a fixed path that no longer exists.
     import tempfile as _t
-    return (Path(_t.gettempdir()) / "d1_incremental.sql").read_text(encoding="utf-8")
+    tmp = Path(_t.gettempdir())
+    candidates = sorted(tmp.glob("d1_incremental_*.sql"),
+                        key=lambda p: p.stat().st_mtime, reverse=True)
+    if not candidates:
+        candidates = [tmp / "d1_incremental.sql"]
+    return candidates[0].read_text(encoding="utf-8")
 
 
 def _listing(tmp_path, *parts):

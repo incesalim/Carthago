@@ -12,8 +12,8 @@ old "clear D1, then push" two-step that stranded partitions when the second call
 did not happen.
 
 Usage:
-    python scripts/push_to_d1.py             # default window 48h
-    python scripts/push_to_d1.py --hours 168 # one week back
+    python scripts/push_to_d1.py --table-set bulletin  # default window 48h
+    python scripts/push_to_d1.py --table-set bulletin --hours 168 # one week back
 
 Env:
     CLOUDFLARE_API_TOKEN   (required) — wrangler picks this up automatically
@@ -39,7 +39,6 @@ DB = ROOT / "data" / "bddk_data.db"
 WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
-from src.audit_reports.registry import AUDIT_TABLES as _AUDIT_TABLES    # noqa: E402
 # NB: this file no longer reads the billing cycle. `src/d1_usage.py` still
 # exists and is still read by scripts/healthcheck.py, which is now the ONLY
 # place cycle usage is observed — see the note above `billed_estimate`.
@@ -64,71 +63,9 @@ _MOJIBAKE_TABLES = {"news_items", "regulation_briefings"}
 # We only sync tables that have a `downloaded_at` column for incremental
 # filtering. Reference tables (bank_types, table_definitions) rarely change
 # and were loaded by the initial migration.
-SYNC_TABLES = [
-    "balance_sheet",
-    "income_statement",
-    "loans",
-    "deposits",
-    "financial_ratios",
-    "other_data",
-    "weekly_series",
-    "nonbank_balance_sheet",
-    "bank_audit_balance_sheet",
-    "bank_audit_profit_loss",
-    "bank_audit_oci",
-    "bank_audit_cash_flow",
-    "bank_audit_equity_change",
-    "bank_audit_credit_quality",
-    "bank_audit_profile",
-    "bank_audit_loans_by_sector",
-    "bank_audit_npl_movement",
-    "bank_audit_opinion",
-    "bank_audit_free_provision",
-    "bank_audit_prose",
-    "bank_audit_stages",
-    "bank_audit_capital",
-    "bank_audit_liquidity",
-    "bank_audit_fx_position",
-    "bank_audit_repricing",
-    "bank_audit_validation",
-    "bank_audit_extractions",
-    "bank_audit_pl_roles",
-    "bank_audit_capture_manifest",
-    "bank_audit_document_manifest",
-    "evds_series",
-    "news_items",
-    "news_item_banks",
-    "regulation_briefings",
-    "bank_earnings",
-    "bank_call_transcripts",
-    "tbb_digital_stats",
-    "tbb_acquisition_stats",
-    "tkbb_digital_stats",
-    "tkbb_acquisition_stats",
-    "kap_ownership",
-    "bank_advertised_rates",
-    "product_attributes",
-    "bank_products",
-    "bank_product_profile",
-    "release_calendar",
-    "faaliyet_franchise",
-    "faaliyet_extractions",
-    "tefas_manager_daily",
-    "tefas_category_daily",
-    "tefas_allocation_daily",
-    "tefas_top_funds",
-    "bank_audit_expected",
-    "bank_audit_statement_types",
-    "bank_audit_coverage",
-    "api_series",
-    # The analyst lane's staging tables. They live in their own DB
-    # (data/analyst.db, which rides R2 as state/analyst.db.gz), so a push names
-    # them with --db data/analyst.db; every other staging DB simply reports them
-    # "not present" and skips.
-    "analyst_signals",
-    "analyst_basis_metadata",
-    "analyst_notes",
-]
+from src.pipeline.registry import SYNC_TABLES, TABLE_SETS as _TABLE_SETS, owner  # noqa: E402
+from src.pipeline.schema import assert_remote_schema, assert_staging_schema  # noqa: E402
+
 
 # Precomputed rollups with no per-row timestamp: scripts/sync_audit_expected.py
 # (and scripts/build_api_catalog.py for api_series) rebuild them wholesale, so
@@ -182,17 +119,6 @@ if _COVERAGE_INCREMENTAL:                      # the activation switch — see a
 # or none: a hand-written subset in a workflow is exactly how bank_audit_fx_position
 # and bank_audit_repricing stopped reaching D1 while still being extracted,
 # validated and snapshotted every quarter.
-_AUDIT_REFRESH_TABLES = list(dict.fromkeys(_AUDIT_TABLES + [
-    "bank_audit_expected",
-    "bank_audit_statement_types",
-    "bank_audit_coverage",
-]))
-_TABLE_SETS: dict[str, list[str]] = {
-    # Partition-safe set used by targeted replacement/repair callers.
-    "audit": _AUDIT_TABLES,
-    # Whole refresh set: the same rows plus the locally rebuilt coverage spine.
-    "audit-refresh": _AUDIT_REFRESH_TABLES,
-}
 
 # Full-rebuild tables emit `DELETE FROM t; INSERT …` for EVERY row, and D1 bills
 # rows written — DELETEs included, index maintenance included (~3.6x per logical
@@ -393,6 +319,48 @@ _NL_SENTINEL = "__D1_NL__"
 def has_partition_key(conn: sqlite3.Connection, table: str) -> bool:
     cols = {c[1] for c in conn.execute(f"PRAGMA table_info({table})")}
     return set(_PART_KEY) <= cols
+
+
+def natural_key_columns(conn: sqlite3.Connection, table: str) -> list[tuple[str, ...]]:
+    """Unique/primary constraints on `table` that are NOT the `id` surrogate.
+
+    `push_to_d1` emits `INSERT OR REPLACE`, whose conflict target is EVERY unique
+    constraint SQLite finds. A local SQLite `id` is an AUTOINCREMENT surrogate
+    assigned independently of D1's, so leaving it in the column list makes the
+    rowid alias the conflict target: a scoped/historical backfill that inserts
+    rows locally (ids 27301…, while D1 already holds id 27300 for a DIFFERENT
+    natural key) silently replaces an unrelated remote row. See issue #105.
+    """
+    info = list(conn.execute(f"PRAGMA table_info({table})"))
+    pk = tuple(c[1] for c in info if c[5])
+    keys: list[tuple[str, ...]] = []
+    if pk and pk != ("id",):
+        keys.append(pk)
+    for idx in conn.execute(f"PRAGMA index_list({table})"):
+        if not idx[2]:                      # not a unique constraint
+            continue
+        cols = tuple(r[2] for r in conn.execute(f"PRAGMA index_info({idx[1]})"))
+        if cols and cols != ("id",):
+            keys.append(cols)
+    return keys
+
+
+def emit_columns(conn: sqlite3.Connection, table: str) -> list[str]:
+    """Columns to send, dropping the surrogate `id` when a natural key exists.
+
+    Dropping it hands conflict resolution to the natural UNIQUE, which is stable
+    across staging databases while the local AUTOINCREMENT sequence is not.
+
+    A table whose ONLY key is `id` (no natural key to conflict on) keeps it:
+    there is nothing else for `INSERT OR REPLACE` to key on, and dropping it
+    would append a duplicate of the same logical row on every overlapping
+    window. That residual is real — `other_data` is such a table today — and the
+    remedy is a natural key on the table, not a guess here.
+    """
+    cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")]
+    if "id" in cols and natural_key_columns(conn, table):
+        cols = [c for c in cols if c != "id"]
+    return cols
 
 
 def partition_digests(conn: sqlite3.Connection, table: str,
@@ -678,11 +646,16 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  resend: bool = False,
                  rowcounts: dict[str, dict[str, int]] | None = None,
                  dropped: dict[str, list[str]] | None = None,
-                 replace: set[str] | None = None,
+                     replace: set[str] | None = None,
                  remote_rows: Callable[[str, list[str]], dict[str, int] | None]
                  | None = None,
                  stale: dict[str, list[str]] | None = None) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
+
+    Conflict resolution is the table's natural UNIQUE key, never the local
+    AUTOINCREMENT `id` — `emit_columns` drops that surrogate when a natural key
+    exists, so a colliding local id cannot replace an unrelated remote row
+    (issue #105).
 
     Tables with a `downloaded_at` column are filtered by it.
     bank_audit_* tables don't have one — they're filtered by extracted_at
@@ -706,7 +679,9 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         print(f"  [skip] {table}: not present in this staging DB", flush=True)
         return [f"-- {table}: not present locally — skip"]
 
-    cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")]
+    # NOT `SELECT *`/PRAGMA directly: a local AUTOINCREMENT `id` must not travel
+    # when a natural key can carry the upsert instead (issue #105).
+    cols = emit_columns(conn, table)
     col_list = ",".join(cols)
 
     # Full-rebuild rollups: push every row, prefixed by a DELETE so D1 can't keep
@@ -1108,8 +1083,16 @@ def resolve_tables(only_tables: str | None, table_set: str | None) -> set[str] |
     return names
 
 
+def preflight_publication(db: Path, tables: set[str], lane: str) -> None:
+    from src.pipeline.snapshots import prepare_candidate
+    assert_remote_schema(tables)
+    assert_staging_schema(db, tables)
+    prepare_candidate(db, lane)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--lane", choices=["bulletin", "audit", "analyst"])
     parser.add_argument("--hours", type=int, default=48,
                         help="Sync rows updated in the last N hours (default 48)")
     parser.add_argument("--dry-run", action="store_true",
@@ -1198,6 +1181,20 @@ def main() -> int:
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return EXIT_VALIDATION
+
+    if allowed_tables is None and not (args.check_only or args.dry_run):
+        print("ERROR: production publication requires --table-set or --only-tables", file=sys.stderr)
+        return EXIT_VALIDATION
+    lane = None
+    if allowed_tables:
+        try:
+            lane = owner(allowed_tables, args.lane)
+            known_sources = {"bddk_data.db": "bulletin", "bank_audit.db": "audit", "analyst.db": "analyst"}
+            if db.name in known_sources and known_sources[db.name] != lane:
+                raise ValueError(f"{db.name} belongs to {known_sources[db.name]}, not {lane}")
+        except ValueError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return EXIT_VALIDATION
 
     replace: set[str] | None = None
     if args.replace_partitions:
@@ -1301,6 +1298,16 @@ def main() -> int:
     pending = [] if replace is not None else conn.execute(
         "SELECT rowid, sql FROM d1_pending_deletes ORDER BY rowid"
     ).fetchall()
+    if allowed_tables is not None:
+        scoped_pending = []
+        for rid, stmt in pending:
+            proven = outbox_delete_rows(conn, stmt)
+            if proven is None:
+                print("ERROR: invalid outbox statement; cannot establish its scope", file=sys.stderr)
+                return EXIT_VALIDATION
+            if proven[0] in allowed_tables:
+                scoped_pending.append((rid, stmt))
+        pending = scoped_pending
     if pending:
         # These execute, so they must be priced. The outbox contract is one
         # PK-scoped row per statement (tefas_top_funds queues a fund code that
@@ -1385,8 +1392,15 @@ def main() -> int:
         print("check-only: not executing")
         return 0
 
-    sql_path = Path(tempfile.gettempdir()) / "d1_incremental.sql"
-    sql_path.write_text("\n".join(lines), encoding="utf-8")
+    # A UNIQUE path per run. The old fixed `d1_incremental.sql` name is shared
+    # process-wide: a second push (or a stale file from an aborted run) writing
+    # the same name between generate and `wrangler execute` would send the wrong
+    # SQL to D1. The name is unique, the file is kept for inspection.
+    with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", prefix="d1_incremental_", suffix=".sql",
+            delete=False, dir=tempfile.gettempdir()) as fh:
+        fh.write("\n".join(lines))
+        sql_path = Path(fh.name)
     size_mb = sql_path.stat().st_size / 1024 / 1024
     print(f"generated {sql_path} ({total_inserts} INSERT batches, {size_mb:.2f} MB)")
 
@@ -1394,6 +1408,12 @@ def main() -> int:
         print("dry-run — skipping wrangler execute")
         return 0
 
+    # No remote write happens before serving-schema and durable recovery checks.
+    try:
+        preflight_publication(db, allowed_tables, lane)
+    except (ValueError, RuntimeError, OSError) as exc:
+        print(f"publication preflight failed: {exc}", file=sys.stderr)
+        return EXIT_VALIDATION
     rc = run_wrangler(sql_path)
     if rc != 0:
         # Remapped: wrangler's own code could collide with EXIT_VALIDATION (or
