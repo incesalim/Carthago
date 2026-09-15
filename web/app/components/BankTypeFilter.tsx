@@ -2,6 +2,7 @@
 
 import { useText } from "@/i18n/use-text";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { ScrollX } from "@/app/components/ui/scroll-x";
 
 // Order: Sector, then the deposit-ownership trio State / Domestic / Foreign,
 // then Participation and Dev & Inv. "Domestic" (10005 = Yerli Özel) reads
@@ -38,14 +39,25 @@ export default function BankTypeFilter({ active }: { active: string }) {
   // The Desk's control register: mono-caps text with an ink underline on the
   // active tab — no pill, no fill, no blue (blue is a verb; this navigates
   // nothing, it switches what the band below is showing).
+  //
+  // Turkish makes the last label ("Kalkınma ve Yatırım") long enough that
+  // wrapping orphans it on its own row. Keep the register on one line and let
+  // it scroll; hovering or tabbing to a clipped tab brings its full name in.
   return (
-    <div className="inline-flex flex-wrap gap-px">
+    <ScrollX
+      className="min-w-0 max-w-full"
+      innerClassName="flex flex-nowrap gap-px"
+      label={tx("Bank group filter — scrolls horizontally")}
+    >
       {OPTIONS.map((o) => (
         <button
           key={o.code}
           onClick={() => select(o.code)}
+          onMouseEnter={(event) => event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" })}
+          onFocus={(event) => event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" })}
           aria-pressed={active === o.code}
-          className={`border-b-2 px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.07em] transition-colors ${
+          style={{ scrollMarginInline: 34 }}
+          className={`shrink-0 whitespace-nowrap border-b-2 px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.07em] transition-colors ${
             active === o.code
               ? "border-foreground font-semibold text-foreground"
               : "border-transparent text-faint hover:text-foreground"
@@ -54,6 +66,6 @@ export default function BankTypeFilter({ active }: { active: string }) {
           {tx(o.label)}
         </button>
       ))}
-    </div>
+    </ScrollX>
   );
 }

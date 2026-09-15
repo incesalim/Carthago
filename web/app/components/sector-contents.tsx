@@ -40,6 +40,22 @@ export function SectorContents({ sections, controls }: {
     };
   }, [measure]);
 
+  // A label clipped at the toolbar edge has to be readable the moment the
+  // reader points at it (or tabs to it), not only after they work out that the
+  // strip scrolls: nudge the strip so the whole tab clears the edge fade.
+  const reveal = useCallback((el: HTMLElement) => {
+    const box = scroller.current;
+    if (!box) return;
+    const pad = 32; // clear the 28px edge fade
+    const boxRect = box.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (elRect.left < boxRect.left + pad) {
+      box.scrollBy({ left: elRect.left - boxRect.left - pad, behavior: "smooth" });
+    } else if (elRect.right > boxRect.right - pad) {
+      box.scrollBy({ left: elRect.right - boxRect.right + pad, behavior: "smooth" });
+    }
+  }, []);
+
   useEffect(() => {
     const nodes = ids.split("|").map(id => document.getElementById(id)).filter((node): node is HTMLElement => !!node);
     let frame = 0;
@@ -67,7 +83,11 @@ export function SectorContents({ sections, controls }: {
   return <div ref={nav} className={styles.toolbar}>
     <div className={styles.contentsWrap}>
       <nav ref={scroller} aria-label={tx("On this page")} className={styles.contents}>
-        {sections.map(({ id, label }) => <a key={id} href={`#${id}`} onClick={() => setActive(id)} aria-current={active === id ? "location" : undefined}>{tx(label)}</a>)}
+        {sections.map(({ id, label }) => <a key={id} href={`#${id}`} title={tx(label)}
+          onClick={(event) => { setActive(id); reveal(event.currentTarget); }}
+          onMouseEnter={(event) => reveal(event.currentTarget)}
+          onFocus={(event) => reveal(event.currentTarget)}
+          aria-current={active === id ? "location" : undefined}>{tx(label)}</a>)}
       </nav>
       <div aria-hidden className={cn(styles.contentsFade, styles.contentsFadeStart)} data-hidden={start} />
       <div aria-hidden className={cn(styles.contentsFade, styles.contentsFadeEnd)} data-hidden={end} />
