@@ -2875,7 +2875,8 @@ def _check_sector_year_swap(cur: list[dict], prior_year_total: dict | None,
         res.add_pass()
 
 
-def _check_sector_child_le_parent(cur: list[dict], res: ValidationResult) -> None:
+def _check_sector_child_le_parent(cur: list[dict], res: ValidationResult,
+                                   cols: tuple[str, ...] = ("stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount")) -> None:
     """A group total is the sum of its non-negative children, so NO CHILD can
     exceed its parent. A child > parent is a merged-label corruption the footing
     check is blind to: the extractor fused two adjacent rows ("Balıkçılık - - -
@@ -2903,7 +2904,7 @@ def _check_sector_child_le_parent(cur: list[dict], res: ValidationResult) -> Non
         prow = by.get(parent)
         if prow is None:
             continue
-        for col in ("stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount"):
+        for col in cols:
             pv = prow.get(col)
             if pv is None:
                 continue
@@ -2987,6 +2988,68 @@ def check_loans_by_sector(rows: list[dict],
         # Total + sector rows both present, but every amount column is NULL on one
         # side → the columns were dropped; the footing never ran. Fail, don't skip.
         res.add_fail("loans_sector_columns_missing",
+                     "no checkable amount column (total or sector cols all NULL)",
+                     expected=0.0, actual=0.0)
+    return res
+
+
+# ===========================================================================
+# Loans by sector — currency split validation
+# ===========================================================================
+
+def check_loans_currency(rows: list[dict]) -> ValidationResult:
+    """Loans by sector currency split: Σ top-level sectors ≈ total row for TL and FC.
+
+    Same structure as check_loans_by_sector but for the tl_amount / fc_amount
+    columns.  Percentage columns (tl_pct, fc_pct) are informational only and
+    not validated here.
+    """
+    res = ValidationResult()
+    unknowns = [r for r in rows if r.get("sector") == "unknown"]
+    if unknowns:
+        res.add_fail("loans_currency_unknown_rows",
+                     f"{len(unknowns)} source row(s) with unrecognized sector labels",
+                     expected=0, actual=len(unknowns))
+    cur = [r for r in rows if r.get("period_type") == "current"]
+    if not cur:
+        res.add_skip()
+        return res
+    total_row = next((r for r in cur if r.get("sector") == "total"), None)
+    sectors = [r for r in cur if r.get("sector") and r.get("sector") != "total"]
+    if total_row is None:
+        if sectors:
+            res.add_fail("loans_currency_total_missing",
+                         "TOTAL row dropped (sector rows present)", expected=0.0, actual=0.0)
+        else:
+            res.add_skip()
+        return res
+    top_rows = _resolved_top_level(cur)
+    if not top_rows:
+        res.add_fail("loans_currency_detail_missing",
+                     "sector detail dropped (total present, no sector rows)",
+                     expected=0.0, actual=0.0)
+        return res
+    _check_sector_child_le_parent(cur, res, cols=("tl_amount", "fc_amount"))
+    any_check = False
+    for col in ("tl_amount", "fc_amount"):
+        tot_val = total_row.get(col)
+        if tot_val is None:
+            res.add_skip()
+            continue
+        col_vals = [r.get(col) for r in top_rows if r.get(col) is not None]
+        if not col_vals:
+            res.add_skip()
+            continue
+        sector_sum = sum(col_vals)
+        tol = _tol(abs(tot_val), base=1000.0, rel=0.005)
+        if abs(sector_sum - tot_val) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("loans_currency_total", f"{col}: Σ top-level sectors ≠ total",
+                         expected=tot_val, actual=sector_sum)
+        any_check = True
+    if not any_check:
+        res.add_fail("loans_currency_columns_missing",
                      "no checkable amount column (total or sector cols all NULL)",
                      expected=0.0, actual=0.0)
     return res

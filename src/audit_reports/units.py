@@ -236,6 +236,7 @@ MONEY_COLUMNS: dict[str, frozenset[str]] = {
         "stage1_ecl", "stage2_ecl", "stage3_ecl", "total_ecl"}),
     "bank_audit_loans_by_sector": frozenset({
         "stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount"}),
+    "bank_audit_loans_currency": frozenset({"tl_amount", "fc_amount"}),
     "bank_audit_npl_movement": frozenset({
         "opening_balance", "additions", "transfers_in", "transfers_out",
         "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement", "closing_balance",
@@ -277,6 +278,7 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
     "bank_audit_stages": frozenset({
         "stage1_coverage", "stage2_coverage", "stage3_coverage"}),
     "bank_audit_loans_by_sector": frozenset({"source_page"}),
+    "bank_audit_loans_currency": frozenset({"source_page", "tl_pct", "fc_pct"}),
     "bank_audit_npl_movement": frozenset({"source_page"}),
     "bank_audit_capital": frozenset({
         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio", "source_page",

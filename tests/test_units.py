@@ -140,8 +140,8 @@ def test_stage_amounts_are_money_but_are_never_scaled_at_write():
 
 
 def test_exactly_thirteen_raw_writers_need_scaling():
-    """13 raw monetary tables + 1 derived = the 14 that carry money."""
-    assert len(U.RAW_MONEY_TABLES) == 13
+    """14 raw monetary tables + 1 derived = the 15 that carry money."""
+    assert len(U.RAW_MONEY_TABLES) == 14
     assert len(U.DERIVED_MONEY_TABLES) == 1
     assert U.RAW_MONEY_TABLES | U.DERIVED_MONEY_TABLES == set(U.MONEY_COLUMNS)
 
@@ -195,7 +195,7 @@ def test_fourteen_tables_carry_money_and_eight_carry_none():
             "bank_audit_validation", "bank_audit_extractions",
             "bank_audit_pl_roles", "bank_audit_prose",
             "bank_audit_capture_manifest", "bank_audit_document_manifest"}
-    assert len(money) == 14
+    assert len(money) == 15
     assert len(none) == 8
     assert money | none == set(AUDIT_TABLES)
     for t in none:
@@ -908,6 +908,20 @@ def test_writer_loans_by_sector_reads_back_scaled(tmp_path):
         (2_000.0, 3_000.0, 1_000.0, 7, "agriculture")
 
 
+def test_writer_loans_currency_reads_back_scaled(tmp_path):
+    from src.audit_reports.loans_currency import (LoansCurrencyReport, CurrencyRow,
+                                                  upsert)
+    conn = _wdb(tmp_path, "lc")
+    rep = LoansCurrencyReport(pdf_path="x.pdf", rows=[
+        CurrencyRow(sector="agriculture", tl_amount=5.0, fc_amount=2.0,
+                    period_type="current", page=7, raw_label="Tarım")])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT tl_amount, fc_amount, source_page, sector "
+        "FROM bank_audit_loans_currency").fetchone() == \
+        (5_000.0, 2_000.0, 7, "agriculture")
+
+
 def test_writer_npl_movement_reads_back_scaled(tmp_path):
     from src.audit_reports.npl_movement import NplGroupRow, NplMovementReport, upsert
     conn = _wdb(tmp_path, "npl")
@@ -1024,6 +1038,7 @@ def test_writer_free_provision_reads_back_scaled(tmp_path):
 _READ_BACK_COVERED = frozenset({
     "bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_cash_flow",
     "bank_audit_oci", "bank_audit_credit_quality", "bank_audit_loans_by_sector",
+    "bank_audit_loans_currency",
     "bank_audit_npl_movement", "bank_audit_capital", "bank_audit_fx_position",
     "bank_audit_repricing", "bank_audit_equity_change",
     "bank_audit_free_provision", "bank_audit_liquidity",

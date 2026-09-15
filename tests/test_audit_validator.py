@@ -1854,6 +1854,84 @@ def test_loans_by_sector_child_within_parent_passes():
     assert not any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)
 
 
+# --- Loans by sector currency split validation ----------------------------
+
+def _currency_row(sector, tl, fc, period_type="current"):
+    return {"sector": sector, "period_type": period_type,
+            "tl_amount": tl * 1000, "fc_amount": fc * 1000}
+
+
+def test_loans_currency_passes():
+    rows = [
+        _currency_row("agri_total", 10, 5),
+        _currency_row("mfg_total", 20, 10),
+        _currency_row("construction", 5, 3),
+        _currency_row("svc_total", 30, 15),
+        _currency_row("other", 5, 2),
+        _currency_row("total", 70, 35),
+    ]
+    res = v.check_loans_currency(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_loans_currency_fails():
+    rows = [
+        _currency_row("agri_total", 10, 5),
+        _currency_row("mfg_total", 20, 10),
+        _currency_row("construction", 5, 3),
+        _currency_row("svc_total", 30, 15),
+        _currency_row("other", 5, 2),
+        _currency_row("total", 999, 999),
+    ]
+    res = v.check_loans_currency(rows)
+    assert res.failed > 0
+
+
+def test_loans_currency_unknown_rows_fail():
+    rows = [
+        _currency_row("unknown", 10, 5),
+        _currency_row("total", 10, 5),
+    ]
+    res = v.check_loans_currency(rows)
+    assert any(f["check"] == "loans_currency_unknown_rows" for f in res.failures)
+
+
+def test_loans_currency_total_missing_fail():
+    rows = [
+        _currency_row("agri_total", 10, 5),
+        _currency_row("mfg_total", 20, 10),
+    ]
+    res = v.check_loans_currency(rows)
+    assert any(f["check"] == "loans_currency_total_missing" for f in res.failures)
+
+
+def test_loans_currency_detail_missing_fail():
+    rows = [_currency_row("total", 70, 35)]
+    res = v.check_loans_currency(rows)
+    assert any(f["check"] == "loans_currency_detail_missing" for f in res.failures)
+
+
+def test_loans_currency_columns_missing_fail():
+    rows = [
+        {"sector": "agri_total", "period_type": "current",
+         "tl_amount": None, "fc_amount": None},
+        {"sector": "total", "period_type": "current",
+         "tl_amount": 70000, "fc_amount": 35000},
+    ]
+    res = v.check_loans_currency(rows)
+    assert any(f["check"] == "loans_currency_columns_missing" for f in res.failures)
+
+
+def test_loans_currency_child_exceeds_parent_fails():
+    rows = [
+        _currency_row("agri_farming", 30, 15),
+        _currency_row("agri_total", 10, 5),
+        _currency_row("total", 40, 20),
+    ]
+    res = v.check_loans_currency(rows)
+    assert any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)
+
+
 def _pl_sub(h, name, amount):
     """Minimal P&L row for the sub-item sum checks — no scaling, unlike the
     module-level `_pl` helper above, which multiplies by 1000."""

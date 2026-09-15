@@ -245,6 +245,7 @@ def _store_report(
     # still differs per extractor; that's the next uniformity step.)
     from .credit_quality import CreditQualityReport, upsert as _upsert_cq
     from .loans_by_sector import LoansBySectorReport, upsert as _upsert_lbs
+    from .loans_currency import LoansCurrencyReport, upsert as _upsert_lc
     from .npl_movement import NplMovementReport, upsert as _upsert_nplm
     from .capital_adequacy import CapitalReport, upsert as _upsert_cap
     from .liquidity import LiquidityReport, upsert as _upsert_liq
@@ -260,6 +261,7 @@ def _store_report(
     persisters = [
         ('credit_quality',  lambda: CreditQualityReport(pdf_path=pdf_path, rows=getattr(rep, 'credit_quality', []) or []),  _upsert_cq,  False),
         ('loans_by_sector', lambda: LoansBySectorReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_by_sector', []) or []), _upsert_lbs, False),
+        ('loans_currency',  lambda: LoansCurrencyReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_currency', []) or []),  _upsert_lc,  False),
         ('npl_movement',    lambda: NplMovementReport(pdf_path=pdf_path, rows=getattr(rep, 'npl_movement', []) or []),      _upsert_nplm, False),
         # §4 ratios: extract() attaches a full report object; rebuild an empty one
         # if the scan was skipped/failed so the upsert still clears stale rows.
@@ -291,7 +293,7 @@ def _store_report(
         if key in registry.BY_KEY
     }
     _UNIT_AWARE_PERSISTERS = {
-        'credit_quality', 'loans_by_sector', 'npl_movement', 'capital',
+        'credit_quality', 'loans_by_sector', 'loans_currency', 'npl_movement', 'capital',
         'liquidity', 'fx_position', 'repricing', 'equity_change',
         'free_provision',
     }

@@ -575,6 +575,16 @@ def _loans_sector_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _loans_currency_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_loans_currency"):
+        return []
+    return [dict(zip(("sector", "period_type", "tl_amount", "fc_amount"), r))
+            for r in conn.execute(
+                "SELECT sector, period_type, tl_amount, fc_amount "
+                "FROM bank_audit_loans_currency WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank, period, kind))]
+
+
 def _fx_position_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_fx_position"):
         return []
@@ -757,6 +767,8 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         else v.check_loans_by_sector(sector_rows,
                                      prior_year_total=_prior_year_sector_total(
                                          conn, bank, period, kind)))
+    lc_rows = _loans_currency_rows(conn, bank, period, kind)
+    results["loans_currency"] = v.check_loans_currency(lc_rows)
     # prior_ye_totals drives the cross-period anchor; withhold it (only) for the
     # curated genuine-restatement / defective-comparative partitions so footing
     # and completeness still run.
@@ -780,6 +792,7 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     for _lane, _rows in (
         ("equity_change", eq),
         ("loans_by_sector", sector_rows),
+        ("loans_currency", lc_rows),
         ("npl_movement", npl_rows),
         ("credit_quality", cq_rows),
         ("capital", cap_rows),

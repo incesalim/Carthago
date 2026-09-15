@@ -25,6 +25,7 @@ from typing import Iterable
 TARGET_LANES: tuple[str, ...] = (
     "equity_change",
     "loans_by_sector",
+    "loans_currency",
     "npl_movement",
     "credit_quality",
     "capital",
@@ -70,6 +71,11 @@ _CONFIG: dict[str, _LaneConfig] = {
         ("sektor", "sector"),
         ("ikinci asama", "stage 2", "yakin izlemedeki"),
         ("ucuncu asama", "stage 3", "takipteki"),
+    ), min_value_tokens=3, pages_after=1),
+    "loans_currency": _LaneConfig((
+        ("sektor", "sector"),
+        ("nakdi", "cash", "kredi", "loan"),
+        ("tp", "yp", "tl", "fc", "foreign", "yabanci"),
     ), min_value_tokens=3, pages_after=1),
     "npl_movement": _LaneConfig((
         ("donuk alacak", "non performing loan", "nonperforming loan"),
@@ -270,7 +276,7 @@ def _selected_pages(
     n = len(texts)
     anchors = {i + 1 for i, text in enumerate(texts) if _anchor_matches(text, cfg)}
     sector_headings: set[int] = set()
-    if lane == "loans_by_sector":
+    if lane in ("loans_by_sector", "loans_currency"):
         from .loans_by_sector import _page_has_sector_heading
 
         sector_headings = {page for page, text in enumerate(texts, 1)
@@ -288,7 +294,7 @@ def _selected_pages(
     else:
         for page in origins:
             pages.update(range(page, min(n, page + cfg.pages_after) + 1))
-    if lane == "loans_by_sector":
+    if lane in ("loans_by_sector", "loans_currency"):
         # A heading-only page may precede all cells and both table periods.
         # Retain the same bounded window as the extractor independently of its
         # row hints, including the next numbered disclosure needed for scoping.
