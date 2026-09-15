@@ -16,18 +16,12 @@
 
 /* Sticky topic navigation and the chart-period control. */
 .toolbar { position:sticky; top:0; z-index:15; display:flex; flex-wrap:wrap; align-items:center; gap:0 16px; padding:0 16px; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 3px 10px color-mix(in srgb,var(--foreground) 3%,transparent); }
-.contentsWrap { position:relative; display:flex; flex:1 1 520px; min-width:0; }
-.contents { display:flex; flex:1 1 auto; min-width:0; gap:22px; overflow-x:auto; scrollbar-width:thin; scroll-padding-inline:16px; }
+.contentsWrap { position:relative; display:flex; flex:1 1 auto; min-width:0; }
+.contents { display:flex; flex:1 1 auto; min-width:0; flex-wrap:wrap; gap:2px 22px; }
 .contents a { flex-shrink:0; padding:11px 0 9px; border-bottom:3px solid transparent; color:var(--muted-foreground); font-size:13px; font-weight:500; text-decoration:none; }
 .contents a[aria-current] { color:var(--primary); border-color:var(--primary); font-weight:650; }
 .contents a:hover { color:var(--primary); }
 .contents a:focus-visible,.directory a:focus-visible,.breadcrumb a:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
-/* Overflow affordance: fades are mounted per side and hidden once that edge is
-   reached, so a clipped tab is always visibly "more that way". */
-.contentsFade { pointer-events:none; position:absolute; inset-block:0; width:28px; transition:opacity .15s; }
-.contentsFade[data-hidden="true"] { opacity:0; }
-.contentsFadeStart { left:0; background:linear-gradient(to right,var(--card),transparent); }
-.contentsFadeEnd { right:0; background:linear-gradient(to left,var(--card),transparent); }
 .range { flex:0 0 auto; display:flex; align-items:center; margin-left:auto; padding-block:6px; }
 .range > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 
@@ -164,10 +158,8 @@
   .header h1 { font-size:32px; }
   .description { font-size:14px; }
   .toolbar { padding-inline:12px; }
-  /* Below 800px the topic strip wraps instead of scrolling: every label is
-     fully readable without hover or scroll, and the edge fades switch off
-     (there is no hidden overflow to signal). */
-  .contents { flex-wrap:wrap; overflow-x:visible; gap:2px 20px; }
+  /* The topic strip already wraps at every width, so narrow screens only need
+     a tighter vertical rhythm — no overflow and no fade to explain. */
   .contents a { padding:9px 0 7px; }
   .metricsGrid,.metricsGrid:has(> [data-vital]:nth-child(6):last-child) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
   .metrics { padding:18px; }

@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useText } from "@/i18n/use-text";
-import { cn } from "@/app/lib/cn";
 import styles from "./sector-report.module.css";
 
-/** Only reading position is client state; section content and figures are server-rendered. */
+/**
+ * Topic navigation. The strip WRAPS at every width: a label is either on the
+ * first row or on a later one, never cut at the toolbar edge, so it is readable
+ * without hover, scroll or a fade hint. Only reading position is client state;
+ * section content and figures are server-rendered.
+ */
 export function SectorContents({ sections, controls }: {
   sections: { id: string; label: string }[];
   controls?: ReactNode;
@@ -13,48 +17,7 @@ export function SectorContents({ sections, controls }: {
   const tx = useText();
   const [active, setActive] = useState(sections[0]?.id);
   const nav = useRef<HTMLDivElement>(null);
-  const scroller = useRef<HTMLElement>(null);
-  // Edge fades say "there is more this way" only while it is true, so a tab
-  // clipped at the toolbar edge never reads as the end of the list.
-  const [{ start, end }, setEdges] = useState({ start: true, end: true });
   const ids = sections.map(section => section.id).join("|");
-
-  const measure = useCallback(() => {
-    const el = scroller.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    setEdges({ start: el.scrollLeft <= 1, end: el.scrollLeft >= max - 1 });
-  }, []);
-
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    measure();
-    el.addEventListener("scroll", measure, { passive: true });
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    if (el.firstElementChild) ro.observe(el.firstElementChild);
-    return () => {
-      el.removeEventListener("scroll", measure);
-      ro.disconnect();
-    };
-  }, [measure]);
-
-  // A label clipped at the toolbar edge has to be readable the moment the
-  // reader points at it (or tabs to it), not only after they work out that the
-  // strip scrolls: nudge the strip so the whole tab clears the edge fade.
-  const reveal = useCallback((el: HTMLElement) => {
-    const box = scroller.current;
-    if (!box) return;
-    const pad = 32; // clear the 28px edge fade
-    const boxRect = box.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    if (elRect.left < boxRect.left + pad) {
-      box.scrollBy({ left: elRect.left - boxRect.left - pad, behavior: "smooth" });
-    } else if (elRect.right > boxRect.right - pad) {
-      box.scrollBy({ left: elRect.right - boxRect.right + pad, behavior: "smooth" });
-    }
-  }, []);
 
   useEffect(() => {
     const nodes = ids.split("|").map(id => document.getElementById(id)).filter((node): node is HTMLElement => !!node);
@@ -80,18 +43,13 @@ export function SectorContents({ sections, controls }: {
       window.removeEventListener("resize", update);
     };
   }, [ids]);
+
   return <div ref={nav} className={styles.toolbar}>
-    <div className={styles.contentsWrap}>
-      <nav ref={scroller} aria-label={tx("On this page")} className={styles.contents}>
-        {sections.map(({ id, label }) => <a key={id} href={`#${id}`} title={tx(label)}
-          onClick={(event) => { setActive(id); reveal(event.currentTarget); }}
-          onMouseEnter={(event) => reveal(event.currentTarget)}
-          onFocus={(event) => reveal(event.currentTarget)}
-          aria-current={active === id ? "location" : undefined}>{tx(label)}</a>)}
-      </nav>
-      <div aria-hidden className={cn(styles.contentsFade, styles.contentsFadeStart)} data-hidden={start} />
-      <div aria-hidden className={cn(styles.contentsFade, styles.contentsFadeEnd)} data-hidden={end} />
-    </div>
+    <nav aria-label={tx("On this page")} className={styles.contents}>
+      {sections.map(({ id, label }) => <a key={id} href={`#${id}`} title={tx(label)}
+        onClick={() => setActive(id)}
+        aria-current={active === id ? "location" : undefined}>{tx(label)}</a>)}
+    </nav>
     {controls && <div className={styles.range}><span>{tx("Chart period")}</span>{controls}</div>}
   </div>;
 }

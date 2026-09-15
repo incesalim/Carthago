@@ -301,6 +301,7 @@ export function Vital({
   value,
   unit,
   note,
+  noteTitle,
   peer,
   series,
   format = "pct",
@@ -312,6 +313,12 @@ export function Vital({
   unit?: string;
   /** One computed line under the sparkline; may embed a route link. */
   note?: React.ReactNode;
+  /**
+   * Plain-text form of `note`, carried as the card's tooltip instead of a
+   * visible supporting line. The key-indicator band uses this so its figures
+   * read as number + sparkline, with the observation one hover away.
+   */
+  noteTitle?: string;
   /** Optional peer bar (see <PeerBar/>) — where this cell sits vs the sector. */
   peer?: React.ReactNode;
   series?: { period: string; value: number | null }[];
@@ -338,10 +345,11 @@ export function Vital({
         .map((part) => tx(part))
         .join(" · ")
     : "";
+  const title = [noteTitle, observationTitle].filter(Boolean).join(" · ");
   return (
     <div
       data-vital
-      title={observationTitle || undefined}
+      title={title || undefined}
       className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0"
     >
       <div data-vital-label className="text-[11px] font-medium text-muted-foreground">{tx(label)}</div>
@@ -362,7 +370,7 @@ export function Vital({
         </div>
       )}
       {tx(peer)}
-      {note && <div data-vital-note className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
+      {note && !noteTitle && <div data-vital-note className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
     </div>
   );
 }

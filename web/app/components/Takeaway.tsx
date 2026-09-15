@@ -44,13 +44,19 @@ export default function Takeaway({
       </header>
       <p className={styles.lead}>{tx(data.headline)}</p>
       <ul className={styles.notes}>
-        {data.items.map((it, i) => <li key={i} className={styles.note}>
+        {data.items.map((it, i) => {
+          // The decorative link arrow is a positive-valence cue. A warn-tone
+          // item (rising NPLs, softening ROE) must not carry it: the label
+          // still links, but the ↗/→ that reads as "improving" is dropped.
+          const showArrow = it.tone !== "warn";
+          return <li key={i} className={styles.note}>
           {it.label && <h4>{it.href
-            ? <Link href={it.href}>{tx(it.label)}<span aria-hidden="true">→</span></Link>
+            ? <Link href={it.href}>{tx(it.label)}{showArrow && <span aria-hidden="true">→</span>}</Link>
             : tx(it.label)}</h4>}
           <p>{tx(it.text)}</p>
-          {!it.label && it.href && <Link className={styles.related} href={it.href}>{tx("Related analysis")}<span aria-hidden="true"> →</span></Link>}
-        </li>)}
+          {!it.label && it.href && <Link className={styles.related} href={it.href}>{tx("Related analysis")}{showArrow && <span aria-hidden="true"> →</span>}</Link>}
+        </li>;
+        })}
       </ul>
     </aside>;
   }

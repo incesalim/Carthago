@@ -65,6 +65,25 @@ describe("display translation", () => {
       }
     }
   });
+  it("resolves catalogue entries whose source key carries surrounding whitespace", () => {
+    // The runtime key is trimmed; a catalogue source key that is not (the
+    // overview headline ends in a space) must still be found, or the Turkish
+    // read falls back to English mid-sentence.
+    const headline = tx("As of {0}: the sector is {1} (assets {2} y/y); ROE is {3} nominal, ", {
+      0: "Tem 2026", 1: "büyüyor", 2: "32.2%", 3: "25.0%",
+    });
+    expect(headline).not.toContain("ROE is");
+    expect(headline).toContain("özkaynak kârlılığı");
+    expect(headline).not.toMatch(/kârlı(?![l])/);
+  });
+  it("keeps the sector headline a level read, not a profitability verdict", () => {
+    const s = [{ period: "2026-03", value: 10 }, { period: "2026-04", value: 12 }];
+    const data = { assetsYoY: s, loansYoY: [], depositsYoY: s, npl: s, car: s, ldr: s, roe: s };
+    const en = overviewInsights(data).headline;
+    const trh = overviewInsights(data, "tr").headline;
+    expect(en).not.toMatch(/\bprofitable\b/);
+    expect(trh).not.toMatch(/kârlı(?![l])/);
+  });
   it("formats dates and chart values without touching storage units", () => {
     expect(formatDateLabel("2026-04-30", "tr")).toBe("30 Nis 2026");
     expect(formatDateLabel("2026Q1", "tr")).toBe("2026 1.Ç");

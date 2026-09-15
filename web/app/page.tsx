@@ -264,8 +264,9 @@ export default async function OverviewPage({
   const nimLow = nimRange?.min ?? null;
   const nimLowPeriod = nimRange?.minPeriod ?? null;
   // One NIM story for the page: the KPI note and the period-changes row read the
-  // same trough-to-now sentence, so the two surfaces cannot drift. The fallback
-  // keeps the row non-blank whenever the trough test does not fire.
+  // same trough-to-now sentence, so the two surfaces cannot drift. A period-
+  // changes row is only meaningful beside a current reading: with no NIM at all
+  // the sentence would print over a row of em-dashes, so the row is omitted.
   const nimStory =
     nimLow != null && nimLowPeriod != null && nimNow != null && nimNow - nimLow > 0.5
       ? tx("recovered from the {0}% trough in {1}", { 0: nimLow.toFixed(1), 1: monthLabel(nimLowPeriod, false) })
@@ -312,13 +313,17 @@ export default async function OverviewPage({
       curr: nplNow,
       good: "down",
     },
-    {
-      label: "Net interest margin",
-      note: nimStory,
-      prev: sNim.at(-2)?.value ?? null,
-      curr: nimNow,
-      good: "up",
-    },
+    // Trough-to-now NIM, or no row: a NIM row with a null current value would
+    // render as "— / — / —" with a note about a level it does not show.
+    ...(nimNow != null
+      ? [{
+          label: "Net interest margin",
+          note: nimStory,
+          prev: sNim.at(-2)?.value ?? null,
+          curr: nimNow,
+          good: "up" as const,
+        }]
+      : []),
     {
       label: LDR_PUBLISHED.label,
       prev: sLdr.at(-2)?.value ?? null,
@@ -504,32 +509,19 @@ export default async function OverviewPage({
           unit="%"
           series={spark(sCar)}
           decimals={1}
-          note={
-            <>{tx("buffer ")}<b className="font-semibold text-positive">{tx(buffer != null ? `+${buffer.toFixed(1)}pp` : "—")}</b>{" "}
-              <Go href="/capital">{tx("Capital")}</Go>
-            </>
-          }
+          noteTitle={buffer != null ? `${tx("buffer")} +${buffer.toFixed(1)}pp · /capital` : tx("Capital adequacy")}
         />
 <Vital
           label={tx("NPL ratio")}
           value={nplNow != null ? nplNow.toFixed(2) : "—"}
           unit="%"
           series={spark(sNpl)}
-          note={
-            <>
-              <em className="not-italic font-semibold text-negative">
-                {nplStreak >= 1
-                  ? tx("{0} straight monthly rises", { 0: nplStreak })
-                  : tx("rising")}
-              </em>
-              {ladder ? (
-                <>
-                  {" · "}
-                  {tx("Stage 2 watchlist / not in the NPL ratio ({0})", { 0: ladder.stage2Share.toFixed(2) })}
-                </>
-              ) : null}{" "}
-              <Go href="/asset-quality">{tx("Asset Quality")}</Go>
-            </>
+          noteTitle={
+            (nplStreak >= 1
+              ? tx("{0} straight monthly rises", { 0: nplStreak })
+              : tx("rising"))
+            + (ladder ? ` · ${tx("Stage 2 watchlist / not in the NPL ratio ({0})", { 0: ladder.stage2Share.toFixed(2) })}` : "")
+            + " · /asset-quality"
           }
         />
 <Vital
@@ -537,12 +529,7 @@ export default async function OverviewPage({
           value={nimNow != null ? nimNow.toFixed(2) : "—"}
           unit="%"
           series={spark(sNim)}
-          note={
-            <>
-              {tx(nimStory)}{" "}
-              <Go href="/profitability">{tx("Profitability")}</Go>
-            </>
-          }
+          noteTitle={`${tx(nimStory)} · /profitability`}
         />
 <Vital
           label={tx(LDR_PUBLISHED.label)}
@@ -550,12 +537,12 @@ export default async function OverviewPage({
           unit="%"
           series={spark(sLdr)}
           decimals={1}
-          note={
-            <>
-              {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
-                ? tx("below the {0}% line", { 0: LDR_PUBLISHED.line })
-                : tx("above the {0}% line", { 0: LDR_PUBLISHED.line }))}{" "}{tx("— published, monthly, BDDK Table 15, ex development & investment ")}<Go href="/deposits">{tx("Deposits")}</Go>
-            </>
+          noteTitle={
+            tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
+              ? "below the {0}% line"
+              : "above the {0}% line", { 0: LDR_PUBLISHED.line })
+            + " — " + tx("— published, monthly, BDDK Table 15, ex development & investment")
+            + " · /deposits"
           }
         />
 <Vital
@@ -564,26 +551,14 @@ export default async function OverviewPage({
           unit="%"
           series={spark(sRoe)}
           decimals={1}
-          note={
-            <>{tx("nominal")}{" · "}{tx("Fisher real")}{" "}
-              <em
-                className={
-                  roeReal != null && roeReal < 0
-                    ? "not-italic font-semibold text-negative"
-                    : "not-italic font-semibold text-positive"
-                }
-              >
-                {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}</em>{" "}
-              <Go href="/profitability">{tx("Profitability")}</Go>
-            </>
-          }
+          noteTitle={`${tx("nominal")} · ${tx("Fisher real")} ${tx(roeReal != null ? signedPct(roeReal, 1) : "—")} · /profitability`}
         />
 <Vital
           label={tx("ROA, ann.")}
           value={roaNow != null ? roaNow.toFixed(2) : "—"}
           unit="%"
           series={spark(sRoa)}
-          note="the leverage-free read"
+          noteTitle={tx("the leverage-free read")}
         /></SectorMetrics>
 </SectorOpening>
 <SectorSection id="balance-sheet" title={tx("Balance sheet structure")} description={tx("How the sector's assets and funding are distributed.")}>
@@ -675,7 +650,7 @@ export default async function OverviewPage({
                       />
                     ) : undefined
                   }
-                  note={chg ? `12m ${chg}` : undefined}
+                  noteTitle={chg ? `12m ${chg}` : undefined}
                 />
               );
             })}
