@@ -13,7 +13,7 @@ import {
   MIN_SUPPORTED_CLIENT,
   appApiDisabled,
   disabledResponse,
-  jsonResponse,
+  appResponse,
 } from "./_shared";
 
 export { OPTIONS } from "./_shared";
@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   if (await appApiDisabled()) return disabledResponse();
 
-  return jsonResponse({
+  return appResponse("handshake", {
     name: "Carthago Mobile API",
     version: APP_API_VERSION,
     minSupportedClient: MIN_SUPPORTED_CLIENT,
