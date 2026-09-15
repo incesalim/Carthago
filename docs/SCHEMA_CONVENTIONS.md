@@ -69,6 +69,21 @@ Decide once; copy from here instead of inventing per table.
 - **Mirror the Python DDL** (`src/*/schema.py` / the scraper) for any table the
   pipeline writes, so local SQLite staging and D1 agree (`push_to_d1` relies on it).
 
+## Serving authority and compatibility
+
+`web/migrations/` alone defines serving DDL. Python schema initialization is
+local-only. `ensure_d1_schema()` now performs a read-only check; it cannot emit
+CREATE/ALTER statements. `check_schema_contract.py` builds a fresh serving DB,
+checks publishable staging columns/types/keys, and executes a representative
+extraction-log insert. ISO timestamp fields explicitly tolerate legacy
+TEXT/TIMESTAMP declarations. Real publication checks the current remote schema
+and the actual staging columns too.
+
+Migration 0047 adds the two extraction counters missing from version control.
+The rollout helper may adopt only the exact reviewed effects of 0045–0047 after
+checking physical definitions, defaults, keys, nullability and ledger state.
+Never add a broad duplicate-column exception or mark unknown migrations applied.
+
 ## Deliberate exceptions
 
 Grandfathered / intentional — the linter does not flag these:

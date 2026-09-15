@@ -1,65 +1,36 @@
-"""Column-aware D1 schema ensure (scripts/audit_d1.py).
+"""Serving-schema authority is the migration chain, never staging initialization."""
+import pytest
 
-Regression for the 2026-07-02 incident: `rows_fx_position`/`rows_repricing`
-were added to the bank_audit_extractions DDL (market-risk lane, 2026-06-27)
-but CREATE ... IF NOT EXISTS can't evolve an existing table, so long-lived D1
-deployments never got the columns and the override push died mid-flight AFTER
-its partition clear. ensure_d1_schema now diffs remote columns against the DDL
-and emits add-only ALTERs; the diff itself is pure and tested here.
-"""
-import sys
-from pathlib import Path
-
-REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO))
-
-from scripts.audit_d1 import _ddl_columns, missing_column_alters  # noqa: E402
+from scripts import audit_d1
+from src.pipeline import schema
 
 
-def test_ddl_columns_include_market_risk_extraction_counters():
-    cols = {name for name, _, _ in _ddl_columns()["bank_audit_extractions"]}
-    assert {"rows_fx_position", "rows_repricing"} <= cols
+def test_versioned_counters_are_present():
+    conn = schema.migrated_schema()
+    try:
+        assert {"rows_fx_position", "rows_repricing"} <= schema.columns(conn, "bank_audit_extractions").keys()
+    finally:
+        conn.close()
 
 
-def test_incident_shape_produces_exactly_the_two_alters():
-    """Remote missing the two market-risk counters → two add-only ALTERs."""
-    ddl = _ddl_columns()
-    remote = {t: {name for name, _, _ in cols} for t, cols in ddl.items()}
-    remote["bank_audit_extractions"] -= {"rows_fx_position", "rows_repricing"}
-    alters = missing_column_alters(ddl, remote)
-    assert alters == [
-        "ALTER TABLE bank_audit_extractions ADD COLUMN rows_fx_position INTEGER;",
-        "ALTER TABLE bank_audit_extractions ADD COLUMN rows_repricing INTEGER;",
-    ]
+def test_drift_in_repair_is_a_read_only_refusal(monkeypatch):
+    def drift(tables):
+        raise schema.SchemaMismatch("missing rows_fx_position")
+    monkeypatch.setattr(schema, "assert_remote_schema", drift)
+    monkeypatch.setattr(audit_d1, "retry_wrangler", lambda *a: pytest.fail("DDL is forbidden"))
+    with pytest.raises(schema.SchemaMismatch, match="rows_fx_position"):
+        audit_d1.ensure_d1_schema()
 
 
-def test_in_sync_schema_yields_no_alters():
-    ddl = _ddl_columns()
-    remote = {t: {name for name, _, _ in cols} for t, cols in ddl.items()}
-    assert missing_column_alters(ddl, remote) == []
-
-
-def test_remote_only_column_is_left_alone():
-    """Add-only: a column D1 has but the DDL doesn't must NOT produce DDL."""
-    ddl = {"t": [("a", "TEXT", None)]}
-    remote = {"t": {"a", "legacy_extra"}}
-    assert missing_column_alters(ddl, remote) == []
-
-
-def test_absent_remote_table_is_skipped():
-    """A table missing remotely was just created by the DDL pass — no ALTERs."""
-    ddl = {"t": [("a", "TEXT", None)]}
-    assert missing_column_alters(ddl, {}) == []
-
-
-def test_non_constant_default_is_dropped_from_alter():
-    """SQLite refuses ADD COLUMN with a non-constant default — emit the column
-    without it (validated_at/extracted_at style CURRENT_TIMESTAMP)."""
-    ddl = {"t": [("ts", "TEXT", "CURRENT_TIMESTAMP"), ("n", "INTEGER", "0"),
-                 ("s", "TEXT", "'x'")]}
-    remote = {"t": set()}
-    assert missing_column_alters(ddl, remote) == [
-        "ALTER TABLE t ADD COLUMN ts TEXT;",
-        "ALTER TABLE t ADD COLUMN n INTEGER DEFAULT 0;",
-        "ALTER TABLE t ADD COLUMN s TEXT DEFAULT 'x';",
-    ]
+@pytest.mark.parametrize("definition", ["TEXT", "INTEGER DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"])
+def test_adoption_checks_type_default_and_nullability(definition):
+    from scripts.reconcile_schema import adoption_plan
+    conn = schema.migrated_schema()
+    applied = {p.name for p in schema.MIGRATIONS.glob("*.sql")} - {"0047_audit_extraction_counters.sql"}
+    conn.execute("ALTER TABLE bank_audit_extractions DROP COLUMN rows_fx_position")
+    try:
+        conn.execute(f"ALTER TABLE bank_audit_extractions ADD COLUMN rows_fx_position {definition}")
+        with pytest.raises(schema.SchemaMismatch, match="definition differs"):
+            adoption_plan(conn, applied)
+    finally:
+        conn.close()

@@ -321,6 +321,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_loans_by_sector (
     sector           TEXT NOT NULL,
     period_type      TEXT NOT NULL,           -- 'current' | 'prior'
     source_page      INTEGER,
+    stage1_amount    REAL,                    -- performing loans (when disclosed, 4-column layout)
     stage2_amount    REAL,                    -- loans with significant increase in credit risk
     stage3_amount    REAL,                    -- defaulted / impaired loans (sector NPL gross)
     ecl_amount       REAL,                    -- expected credit loss provisions

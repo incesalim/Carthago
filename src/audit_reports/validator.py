@@ -209,15 +209,16 @@ def check_source_capture(
 
 def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
                               scale: int | None) -> ValidationResult:
-    """Compare printed three-column sector cells with both stored periods.
+    """Compare printed sector cells (3- or 4-column) with both stored periods.
 
     This is independent of the extractor's coordinate alignment and aggregate
     footing. Missing ECL cells or an entire comparative cannot remove their own
     constraint. Wider/unbounded source layouts retain the existing checks.
+    When Stage 1 is printed, it is validated too.
     """
     from .extractor import parse_amount
     from .loans_by_sector import (
-        _LABEL_TO_KEY, _THREE_NUMS_TAIL, _sector_disclosure_lines,
+        _LABEL_TO_KEY, _THREE_NUMS_TAIL, _FOUR_NUMS_TAIL, _sector_disclosure_lines,
     )
 
     res = ValidationResult()
@@ -250,7 +251,13 @@ def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
                 if headers:
                     headers.append(text)
                 continue
-            tail = _THREE_NUMS_TAIL.search(text)
+            # Try 4-number pattern first (Stage 1 present), then 3-number.
+            header_text = " ".join(headers).lower().replace("i̇", "i")
+            has_stage1 = bool(re.search(r"stage\s*1|birinci\s+aşama|1\.\s*aşama|first\s+stage", header_text))
+            if has_stage1:
+                tail = _FOUR_NUMS_TAIL.search(text)
+            else:
+                tail = _THREE_NUMS_TAIL.search(text)
             label = text[:tail.start()] if tail else text
             label = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", label)
             label = re.sub(r"\(\*+\)\s*$", "", label).strip().lower()
@@ -258,16 +265,22 @@ def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
             if key is None or tail is None:
                 headers.append(text)
                 continue
-            header = " ".join(headers).lower().replace("i̇", "i")
-            ecl_header = (re.search(r"expected credit losses|beklenen (?:kredi zararları|zarar karşılıkları)", header)
-                          or (re.search(r"beklenen kredi\b", header)
-                              and re.search(r"zararı karşılıkları\b", header)))
-            if not (re.search(r"stage\s*2\b|ikinci\s+aşama", header)
-                    and re.search(r"stage\s*3\b|üçüncü\s+aşama", header)
+            ecl_header = (re.search(r"expected credit losses|beklenen (?:kredi zararları|zarar karşılıkları)", header_text)
+                          or (re.search(r"beklenen kredi\b", header_text)
+                              and re.search(r"zararı karşılıkları\b", header_text)))
+            if not (re.search(r"stage\s*2\b|ikinci\s+aşama", header_text)
+                    and re.search(r"stage\s*3\b|üçüncü\s+aşama", header_text)
                     and ecl_header):
                 continue
-            expected_rows.append((period_type, key, page, [
-                parse_amount(tail[f"n{i}"]) for i in (1, 2, 3)]))
+            if has_stage1:
+                expected_rows.append((period_type, key, page, True, [
+                    parse_amount(tail["s1"]),
+                    parse_amount(tail["s2"]),
+                    parse_amount(tail["s3"]),
+                    parse_amount(tail["ecl"])]))
+            else:
+                expected_rows.append((period_type, key, page, False, [
+                    parse_amount(tail[f"n{i}"]) for i in (1, 2, 3)]))
             if key == "total":
                 headers, period_type = [], None
     if not expected_rows:
@@ -276,13 +289,17 @@ def check_sector_source_cells(rows: list[dict], source_lines: list[dict],
     if scale is None:
         res.add_fail("sector_source_unit", "unknown source denomination", 1, 0)
         return res
-    for period_type, key, page, amounts in expected_rows:
+    for period_type, key, page, is_stage1, amounts in expected_rows:
         node = f"{period_type}/{key} p.{page}"
         row = stored.get((period_type, key))
         if row is None:
             res.add_fail("sector_source_row_missing", node, 1, 0)
             continue
-        for col, amount in zip(("stage2_amount", "stage3_amount", "ecl_amount"), amounts):
+        if is_stage1:
+            cols = ("stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount")
+        else:
+            cols = ("stage2_amount", "stage3_amount", "ecl_amount")
+        for col, amount in zip(cols, amounts):
             actual = row.get(col)
             if amount is None:
                 res.add_skip()
@@ -2886,7 +2903,7 @@ def _check_sector_child_le_parent(cur: list[dict], res: ValidationResult) -> Non
         prow = by.get(parent)
         if prow is None:
             continue
-        for col in ("stage2_amount", "stage3_amount", "ecl_amount"):
+        for col in ("stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount"):
             pv = prow.get(col)
             if pv is None:
                 continue
@@ -2948,7 +2965,8 @@ def check_loans_by_sector(rows: list[dict],
         return res
     _check_sector_child_le_parent(cur, res)
     any_check = False
-    for col in ("stage2_amount", "stage3_amount"):  # ecl_amount excluded: collective provisioning ≠ sector-exact
+    for col in ("stage1_amount", "stage2_amount", "stage3_amount"):
+        # ecl_amount excluded: collective provisioning ≠ sector-exact
         tot_val = total_row.get(col)
         if tot_val is None:
             res.add_skip()

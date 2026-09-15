@@ -256,6 +256,7 @@ def _is_legacy_pastdue_table(text: str, lines=None) -> bool:
 @dataclass
 class SectorRow:
     sector: str                       # canonical key (e.g. 'mfg_production') or 'unknown'
+    stage1_amount: float | None = None
     stage2_amount: float | None = None
     stage3_amount: float | None = None
     ecl_amount: float | None = None
@@ -283,6 +284,9 @@ class LoansBySectorReport:
 _NUM_TOKEN = r"(?:\(?\d{1,4}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|[-–—]+)"
 _THREE_NUMS_TAIL = re.compile(
     rf"(?P<n1>{_NUM_TOKEN})\s+(?P<n2>{_NUM_TOKEN})\s+(?P<n3>{_NUM_TOKEN})\s*$"
+)
+_FOUR_NUMS_TAIL = re.compile(
+    rf"(?P<s1>{_NUM_TOKEN})\s+(?P<s2>{_NUM_TOKEN})\s+(?P<s3>{_NUM_TOKEN})\s+(?P<ecl>{_NUM_TOKEN})\s*$"
 )
 
 
@@ -375,12 +379,19 @@ def _xy_lines(pdf_path: str, page_idx_0: int, ytol: float = 3.0
     return out
 
 
-def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | None, float | None]:
-    """Right-edge x of the Stage 2 and Stage 3 column headers (leftmost pair —
-    the loan columns sit left of any provision/ECL columns labelled the same)."""
+def _stage_col_x(lines: list[list[tuple[float, float, str]]]
+                 ) -> tuple[float | None, float | None, float | None, float | None]:
+    """Right-edge x of the Stage 1 / Stage 2 / Stage 3 / ECL column headers.
+
+    Stage 2 and Stage 3 are the leftmost loan columns (the ones the narrow
+    lane always extracts).  Stage 1 appears left of Stage 2 when a bank
+    discloses it (4-column layout).  ECL is the rightmost column, left of any
+    provision columns labelled the same.  All four are optional — a 3-column
+    table returns (None, s2, s3, None).
+    """
     def clean(t: str) -> str:
         return t.lower().strip("().:%–-—* ")
-    s2 = s3 = None
+    s1 = s2 = s3 = ecl = None
     # Fallback anchor for a LONE Stage-3 word whose "Aşama"/"Stage" partner wrapped
     # onto a different y-clustered header row (ATBANK prints "Temerrüt (Üçüncü" on one
     # line and "Aşama)" on the next, so "üçüncü" has no adjacent "aşama"). Kept
@@ -394,16 +405,21 @@ def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | N
         for i, (x0, x1, t) in enumerate(row):
             c = clean(t)
             x = x1
-            if c in ("stage2", "2.aşama", "2aşama"):
+            if c in ("stage1", "1.aşama", "1aşama", "birinci asama", "birinci asama"):
                 pass
             elif c in ("stage", "aşama") and i + 1 < len(row):
                 n = clean(row[i + 1][2])
-                if n == "2":
+                if n == "1":
+                    x, c = row[i + 1][1], "stage1"
+                elif n == "2":
                     x, c = row[i + 1][1], "stage2"
                 elif n == "3":
                     x, c = row[i + 1][1], "stage3"
                 else:
                     continue
+            elif c in ("first", "birinci") and i + 1 < len(row) \
+                    and clean(row[i + 1][2]) in ("stage", "aşama"):
+                x, c = row[i + 1][1], "stage1"
             elif c in ("second", "ikinci", "i̇kinci") and i + 1 < len(row) \
                     and clean(row[i + 1][2]) in ("stage", "aşama"):
                 # EXIM-style "(Second Stage)" / "İkinci Aşama"
@@ -413,6 +429,13 @@ def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | N
                 x, c = row[i + 1][1], "stage3"
             elif c in ("stage3", "3.aşama", "3aşama"):
                 c = "stage3"
+            elif re.search(r"^(beklenen|expected)", c):
+                # ECL / "Beklenen Kredi Zararları" / "Expected Credit Losses"
+                # The ECL column is always right of Stage 3; take the leftmost
+                # token in the ECL header band to anchor the column.
+                if ecl is None or x < ecl:
+                    ecl = x
+                continue
             else:
                 if c in ("third", "üçüncü", "uçuncu", "temerrüt"):
                     # "Temerrüt" (= Default) / "Üçüncü" anchor Stage-3; record the
@@ -420,7 +443,9 @@ def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | N
                     if s3_lone is None or x1 < s3_lone:
                         s3_lone = x1
                 continue
-            if c == "stage2" and (s2 is None or x < s2):
+            if c == "stage1" and (s1 is None or x < s1):
+                s1 = x
+            elif c == "stage2" and (s2 is None or x < s2):
                 s2 = x
             elif c == "stage3" and (s3 is None or x < s3):
                 s3 = x
@@ -428,7 +453,7 @@ def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | N
     # Stage-3 token is to its right (the genuine ATBANK wrap), never otherwise.
     if s3 is None and s2 is not None and s3_lone is not None and s3_lone > s2:
         s3 = s3_lone
-    return s2, s3
+    return s1, s2, s3, ecl
 
 
 def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]]]
@@ -438,7 +463,7 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
     before the stages or provision/ECL columns after (QNBFB's 5-column layout),
     which the trailing-3-numbers heuristic mis-reads. Returns None (→ caller falls
     back to the text parser) when the stage headers can't be located."""
-    s2x, s3x = _stage_col_x(lines)
+    s1x, s2x, s3x, ecl_x = _stage_col_x(lines)
     if s2x is None or s3x is None or abs(s2x - s3x) < 8:
         return None
     rows: list[SectorRow] = []
@@ -480,21 +505,26 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
                     best, bestd = v, d
             return best
 
+        s1v = nearest(s1x, s2x) if s1x is not None else None
         s2v = nearest(s2x, s3x)
         s3v = nearest(s3x, s2x)
+        eclv = nearest(ecl_x, s3x) if ecl_x is not None else None
         rows.append(SectorRow(
-            sector=sector_key, stage2_amount=s2v, stage3_amount=s3v,
-            ecl_amount=None, period_type=period_type, page=page_idx,
+            sector=sector_key, stage1_amount=s1v,
+            stage2_amount=s2v, stage3_amount=s3v, ecl_amount=eclv,
+            period_type=period_type, page=page_idx,
             raw_label=clean[:60],
         ))
     return rows or None
 
 
 def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
-    """Pull every (sector, n1, n2, n3) tuple from this page's text.
+    """Pull every (sector, n1, n2, n3 [, n4]) tuple from this page's text.
 
     Each sector heading line has the pattern
         <known_sector_label> <stage2> <stage3> <ecl>
+    or, when Stage 1 is disclosed:
+        <known_sector_label> <stage1> <stage2> <stage3> <ecl>
     occasionally with a leading hierarchy code ("a. Tarım") or a footnote
     ref. We strip those before matching.
 
@@ -508,6 +538,12 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
     seen_current_caption = False
     raw_lines = text.splitlines()
     merged_lines = _merge_wrapped_labels(raw_lines)
+    # Detect Stage 1 presence: a header line mentioning Stage 1 / Birinci
+    # Aşama means the table has 4 columns (Stage1 + Stage2 + Stage3 + ECL).
+    has_stage1 = bool(re.search(
+        r"stage\s*1|birinci\s+aşama|1\.\s*aşama|first\s+stage",
+        text, re.IGNORECASE))
+    num_pat = _FOUR_NUMS_TAIL if has_stage1 else _THREE_NUMS_TAIL
     for raw in merged_lines:
         ln = raw.strip()
         if not ln:
@@ -531,8 +567,8 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
         ln_clean = re.sub(r"^\(\d+\)\s+", "", ln_clean)
         # TFKB numbers its rows "1 Tarım" / "2.2 İmalat" — a bare index, no dot.
         ln_clean = re.sub(r"^\d+(?:\.\d+)*\s+", "", ln_clean)
-        # Attempt to locate three trailing numbers
-        m_nums = _THREE_NUMS_TAIL.search(ln_clean)
+        # Attempt to locate trailing numbers (3 or 4 depending on Stage 1)
+        m_nums = num_pat.search(ln_clean)
         if not m_nums:
             continue
         label_part = ln_clean[: m_nums.start()].strip()
@@ -555,18 +591,34 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
                 break
         if sector_key is None:
             sector_key = "unknown"
-        n2 = parse_amount(m_nums.group("n1"))
-        n3 = parse_amount(m_nums.group("n2"))
-        ecl = parse_amount(m_nums.group("n3"))
-        rows.append(SectorRow(
-            sector=sector_key,
-            stage2_amount=n2,
-            stage3_amount=n3,
-            ecl_amount=ecl,
-            period_type=period_type,
-            page=page_idx,
-            raw_label=candidate,
-        ))
+        if has_stage1:
+            s1 = parse_amount(m_nums.group("s1"))
+            n2 = parse_amount(m_nums.group("s2"))
+            n3 = parse_amount(m_nums.group("s3"))
+            ecl = parse_amount(m_nums.group("ecl"))
+            rows.append(SectorRow(
+                sector=sector_key,
+                stage1_amount=s1,
+                stage2_amount=n2,
+                stage3_amount=n3,
+                ecl_amount=ecl,
+                period_type=period_type,
+                page=page_idx,
+                raw_label=candidate,
+            ))
+        else:
+            n2 = parse_amount(m_nums.group("n1"))
+            n3 = parse_amount(m_nums.group("n2"))
+            ecl = parse_amount(m_nums.group("n3"))
+            rows.append(SectorRow(
+                sector=sector_key,
+                stage2_amount=n2,
+                stage3_amount=n3,
+                ecl_amount=ecl,
+                period_type=period_type,
+                page=page_idx,
+                raw_label=candidate,
+            ))
     return rows
 
 
@@ -712,7 +764,7 @@ def _extract_three_column_disclosure(page_lines: dict[int, list[list[tuple[float
             if tail is None:
                 return None
             if anchors is None:
-                s2, s3 = _stage_col_x(headers)
+                _s1, s2, s3, _ecl = _stage_col_x(headers)
                 ecl = []
                 # Read the ECL column vertically as well as across one line.
                 # Turkish prints "Beklenen Kredi / Zararı Karşılıkları" with
@@ -742,7 +794,15 @@ def _extract_three_column_disclosure(page_lines: dict[int, list[list[tuple[float
                 distances = [abs(x - anchor) for anchor in anchors]
                 if distances[index] != min(distances) or distances[index] > gap / 2:
                     return None
-            rows.append(SectorRow(key, *(v for v, _ in nums), period_type, page, label))
+            rows.append(SectorRow(
+                sector=key,
+                stage2_amount=nums[0][0],
+                stage3_amount=nums[1][0],
+                ecl_amount=nums[2][0],
+                period_type=period_type,
+                page=page,
+                raw_label=label,
+            ))
             if key == "total":
                 headers, anchors, period_type = [], None, None
     identities = {(row.period_type, row.sector) for row in rows}
@@ -793,7 +853,7 @@ def extract_from_pdf(
         # table's Stage 2/3 LOAN columns. ANADOLU mentions "gayri nakdi krediler"
         # in a sector ROW of the cash table, which must not exclude the page.
         if _NONCASH_HINTS.search(text):
-            s2, s3 = _stage_col_x(lines) if lines else (None, None)
+            _s1, s2, s3, _ecl = _stage_col_x(lines) if lines else (None, None, None, None)
             if s2 is None or s3 is None:
                 continue
         # A numbered disclosure can span a heading page, current table and
@@ -819,7 +879,7 @@ def extract_from_pdf(
             # rows, retry with the next page's lines appended so they align to this
             # page's columns.
             if not xy and i < n_pages:
-                s2, s3 = _stage_col_x(lines)
+                _s1, s2, s3, _ecl = _stage_col_x(lines)
                 if s2 is not None and s3 is not None:
                     # No sector row was found on the heading page. The retry's
                     # rows come from the continuation page and must cite it.
@@ -859,12 +919,13 @@ def _pick_total(rows: list[SectorRow]) -> list[SectorRow]:
     if len(totals) <= 1:
         return rows
     from .validator import _resolved_top_level
-    cur = [{"sector": r.sector, "stage2_amount": r.stage2_amount,
+    cur = [{"sector": r.sector, "stage1_amount": r.stage1_amount,
+            "stage2_amount": r.stage2_amount,
             "stage3_amount": r.stage3_amount}
            for r in rows if r.period_type == "current" and r.sector != "total"]
     top = _resolved_top_level(cur)
     sums = {c: sum(r[c] for r in top if r.get(c) is not None)
-            for c in ("stage2_amount", "stage3_amount")}
+            for c in ("stage1_amount", "stage2_amount", "stage3_amount")}
 
     def err(t: SectorRow) -> float:
         e = 0.0
@@ -884,7 +945,8 @@ def _foot_error(rows: list[SectorRow]) -> float:
     stage2/stage3 columns) — used to pick the better of two parses. Big sentinel
     when there's no total row to check against."""
     from .validator import _resolved_top_level
-    cur = [{"sector": r.sector, "stage2_amount": r.stage2_amount,
+    cur = [{"sector": r.sector, "stage1_amount": r.stage1_amount,
+            "stage2_amount": r.stage2_amount,
             "stage3_amount": r.stage3_amount}
            for r in rows if r.period_type == "current"]
     total = next((r for r in cur if r["sector"] == "total"), None)
@@ -894,7 +956,7 @@ def _foot_error(rows: list[SectorRow]) -> float:
     if not top:
         return 1e18
     errs = []
-    for col in ("stage2_amount", "stage3_amount"):
+    for col in ("stage1_amount", "stage2_amount", "stage3_amount"):
         tv = total.get(col)
         if tv is None:
             continue
@@ -935,19 +997,19 @@ def upsert(
         [(bank_ticker, period, kind, *key) for key in existing - keys])
     rows = [(
         bank_ticker, period, kind, r.sector, r.period_type,
-        r.page, r.stage2_amount, r.stage3_amount, r.ecl_amount,
+        r.page, r.stage1_amount, r.stage2_amount, r.stage3_amount, r.ecl_amount,
         r.raw_label,
     ) for r in rep.rows]
     # Normalise to canonical `bin` BEFORE the insert. The factor comes
     # from the caller because this function has no PDF to read.
-    rows = unit.scale_rows("bank_audit_loans_by_sector", ["bank_ticker","period","kind","sector","period_type","source_page","stage2_amount","stage3_amount","ecl_amount","raw_label"], rows)
+    rows = unit.scale_rows("bank_audit_loans_by_sector", ["bank_ticker","period","kind","sector","period_type","source_page","stage1_amount","stage2_amount","stage3_amount","ecl_amount","raw_label"], rows)
     if rows:
-        facts = ("source_page", "stage2_amount", "stage3_amount", "ecl_amount", "raw_label")
+        facts = ("source_page", "stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount", "raw_label")
         cur.executemany(
             "INSERT INTO bank_audit_loans_by_sector "
             "(bank_ticker, period, kind, sector, period_type, source_page, "
-            " stage2_amount, stage3_amount, ecl_amount, raw_label) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            " stage1_amount, stage2_amount, stage3_amount, ecl_amount, raw_label) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
             "ON CONFLICT(bank_ticker,period,kind,sector,period_type) DO UPDATE SET "
             + ",".join(f"{col}=excluded.{col}" for col in facts)
             + ",extracted_at=CURRENT_TIMESTAMP WHERE "
@@ -964,12 +1026,13 @@ def summarize(rep: LoansBySectorReport) -> str:
         return f"{Path(rep.pdf_path).name}\n  (no sector table found)"
     lines = [Path(rep.pdf_path).name]
     for r in rep.rows:
+        s1 = f"{r.stage1_amount:,.0f}" if r.stage1_amount is not None else "-"
         s2 = f"{r.stage2_amount:,.0f}" if r.stage2_amount is not None else "-"
         s3 = f"{r.stage3_amount:,.0f}" if r.stage3_amount is not None else "-"
         ecl = f"{r.ecl_amount:,.0f}" if r.ecl_amount is not None else "-"
         lines.append(
             f"  p.{r.page:>3}  {r.period_type:<7}  {r.sector:<18}  "
-            f"S2={s2:>18}  S3={s3:>18}  ECL={ecl:>18}"
+            f"S1={s1:>18}  S2={s2:>18}  S3={s3:>18}  ECL={ecl:>18}"
         )
     return "\n".join(lines)
 

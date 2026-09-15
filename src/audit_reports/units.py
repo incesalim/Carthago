@@ -235,7 +235,7 @@ MONEY_COLUMNS: dict[str, frozenset[str]] = {
         "stage1_amount", "stage2_amount", "stage3_amount", "total_amount",
         "stage1_ecl", "stage2_ecl", "stage3_ecl", "total_ecl"}),
     "bank_audit_loans_by_sector": frozenset({
-        "stage2_amount", "stage3_amount", "ecl_amount"}),
+        "stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount"}),
     "bank_audit_npl_movement": frozenset({
         "opening_balance", "additions", "transfers_in", "transfers_out",
         "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement", "closing_balance",

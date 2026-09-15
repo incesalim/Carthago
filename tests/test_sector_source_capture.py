@@ -113,7 +113,7 @@ def test_split_sector_extractor_cites_the_page_containing_the_values(monkeypatch
     monkeypatch.setattr(extractor, '_page_has_sector_heading', lambda text: text == 'heading')
     monkeypatch.setattr(extractor, '_is_legacy_pastdue_table', lambda *_: False)
     monkeypatch.setattr(extractor, '_xy_lines', lambda _, page: ['columns'] if page == 0 else ['values'])
-    monkeypatch.setattr(extractor, '_stage_col_x', lambda _: (100, 200))
+    monkeypatch.setattr(extractor, '_stage_col_x', lambda _: (None, 100, 200, None))
     monkeypatch.setattr(extractor, '_extract_section', lambda *_: [])
     monkeypatch.setattr(extractor, '_extract_three_column_disclosure', lambda _: None)
 
@@ -121,7 +121,7 @@ def test_split_sector_extractor_cites_the_page_containing_the_values(monkeypatch
         if lines == ['columns']:
             return []
         assert lines == ['columns', 'values']
-        return [extractor.SectorRow('total', 10, 20, 30, page=page)]
+        return [extractor.SectorRow('total', stage2_amount=10, stage3_amount=20, ecl_amount=30, page=page)]
 
     monkeypatch.setattr(extractor, '_extract_section_xy', aligned)
     report = extractor.extract_from_pdf('unused.pdf', skip_pages=0)
@@ -327,8 +327,10 @@ def test_sector_writer_keeps_unchanged_timestamps_and_removes_only_obsolete_rows
     conn = sqlite3.connect(':memory:')
     init_schema(conn)
     unit = UnitContext.canonical()
-    current = SectorRow('total', 10, 20, 30, 'current', 1, 'Total')
-    prior = SectorRow('total', 1, 2, 3, 'prior', 2, 'Total')
+    current = SectorRow('total', stage2_amount=10, stage3_amount=20, ecl_amount=30,
+                        period_type='current', page=1, raw_label='Total')
+    prior = SectorRow('total', stage2_amount=1, stage3_amount=2, ecl_amount=3,
+                      period_type='prior', page=2, raw_label='Total')
     upsert(conn, 'X', '2022Q4', 'consolidated', LoansBySectorReport(rows=[current]), unit=unit)
     conn.execute("UPDATE bank_audit_loans_by_sector SET extracted_at='old'")
     upsert(conn, 'X', '2022Q4', 'consolidated', LoansBySectorReport(rows=[current, prior]), unit=unit)
@@ -369,3 +371,159 @@ def test_bounded_parser_does_not_guess_unsupported_columns(change):
         assert result is None or all(row.period_type != 'current' for row in result)
     else:
         assert result is None
+
+
+# --- Stage 1 (4-column) extraction tests --------------------------------
+
+def test_text_parser_extracts_stage1_when_header_present(monkeypatch):
+    """When Stage 1 / Birinci Aşama headers are present, the text parser
+    reads 4 numbers per row (Stage1, Stage2, Stage3, ECL)."""
+    from src.audit_reports import loans_by_sector as extractor
+
+    monkeypatch.setattr(extractor, '_HAS_FITZ', True)
+    monkeypatch.setattr(extractor, '_fitz_page_count', lambda _: 1)
+    monkeypatch.setattr(extractor, '_fitz_page_text', lambda _, page: (
+        "Information by Sectors\n"
+        "Stage 1  Stage 2  Stage 3  ECL\n"
+        "Tarım 5.000 1.000 200 100\n"
+        "Sanayi 8.000 1.500 300 150\n"
+        "Toplam 13.000 2.500 500 250"
+    ))
+    monkeypatch.setattr(extractor, '_xy_lines', lambda _, page: [])
+    monkeypatch.setattr(extractor, '_page_has_sector_heading', lambda text: True)
+    monkeypatch.setattr(extractor, '_is_legacy_pastdue_table', lambda *_: False)
+    monkeypatch.setattr(extractor, '_extract_three_column_disclosure', lambda _: None)
+
+    report = extractor.extract_from_pdf('stage1_test.pdf', skip_pages=0)
+    agri = next((r for r in report.rows if r.sector == 'agri_total'), None)
+    mfg = next((r for r in report.rows if r.sector == 'mfg_total'), None)
+    total = next((r for r in report.rows if r.sector == 'total'), None)
+    assert agri is not None
+    assert agri.stage1_amount == 5000.0
+    assert agri.stage2_amount == 1000.0
+    assert agri.stage3_amount == 200.0
+    assert agri.ecl_amount == 100.0
+    assert mfg is not None
+    assert mfg.stage1_amount == 8000.0
+    assert total is not None
+    assert total.stage1_amount == 13000.0
+
+
+def test_text_parser_no_stage1_when_header_absent(monkeypatch):
+    """Without Stage 1 headers, the text parser reads 3 numbers as before."""
+    from src.audit_reports import loans_by_sector as extractor
+
+    monkeypatch.setattr(extractor, '_HAS_FITZ', True)
+    monkeypatch.setattr(extractor, '_fitz_page_count', lambda _: 1)
+    monkeypatch.setattr(extractor, '_fitz_page_text', lambda _, page: (
+        "Information by Sectors\n"
+        "Stage 2  Stage 3  ECL\n"
+        "Tarım 1.000 200 100\n"
+        "Toplam 1.000 200 100"
+    ))
+    monkeypatch.setattr(extractor, '_xy_lines', lambda _, page: [])
+    monkeypatch.setattr(extractor, '_page_has_sector_heading', lambda text: True)
+    monkeypatch.setattr(extractor, '_is_legacy_pastdue_table', lambda *_: False)
+    monkeypatch.setattr(extractor, '_extract_three_column_disclosure', lambda _: None)
+
+    report = extractor.extract_from_pdf('no_stage1_test.pdf', skip_pages=0)
+    agri = next((r for r in report.rows if r.sector == 'agri_total'), None)
+    assert agri is not None
+    assert agri.stage1_amount is None
+    assert agri.stage2_amount == 1000.0
+    assert agri.stage3_amount == 200.0
+    assert agri.ecl_amount == 100.0
+
+
+def test_xy_aligner_extracts_ecl_column(monkeypatch):
+    """The x-coordinate aligner now extracts ECL in addition to Stage 2/3."""
+    from src.audit_reports import loans_by_sector as extractor
+
+    monkeypatch.setattr(extractor, '_HAS_FITZ', True)
+    monkeypatch.setattr(extractor, '_fitz_page_count', lambda _: 1)
+    monkeypatch.setattr(extractor, '_fitz_page_text', lambda _, page: (
+        "Stage 2  Stage 3  ECL\nTarım 1.000 200 100\nToplam 1.000 200 100"
+    ))
+    monkeypatch.setattr(extractor, '_xy_lines', lambda _, page: [])
+    monkeypatch.setattr(extractor, '_page_has_sector_heading', lambda text: True)
+    monkeypatch.setattr(extractor, '_is_legacy_pastdue_table', lambda *_: False)
+    monkeypatch.setattr(extractor, '_extract_three_column_disclosure', lambda _: None)
+
+    report = extractor.extract_from_pdf('ecl_test.pdf', skip_pages=0)
+    agri = next((r for r in report.rows if r.sector == 'agri_total'), None)
+    assert agri is not None
+    assert agri.ecl_amount == 100.0
+
+
+def test_validator_stage1_foot_check():
+    """Stage 1 column is included in the footing check when present."""
+    from src.audit_reports import validator as v
+
+    rows = [
+        {"sector": "agri_total", "period_type": "current",
+         "stage1_amount": 5000, "stage2_amount": 1000, "stage3_amount": 200, "ecl_amount": 100},
+        {"sector": "mfg_total", "period_type": "current",
+         "stage1_amount": 8000, "stage2_amount": 1500, "stage3_amount": 300, "ecl_amount": 150},
+        {"sector": "construction", "period_type": "current",
+         "stage1_amount": 2000, "stage2_amount": 500, "stage3_amount": 100, "ecl_amount": 50},
+        {"sector": "svc_total", "period_type": "current",
+         "stage1_amount": 10000, "stage2_amount": 2000, "stage3_amount": 400, "ecl_amount": 200},
+        {"sector": "other", "period_type": "current",
+         "stage1_amount": 3000, "stage2_amount": 600, "stage3_amount": 120, "ecl_amount": 60},
+        {"sector": "total", "period_type": "current",
+         "stage1_amount": 28000, "stage2_amount": 5600, "stage3_amount": 1120, "ecl_amount": 560},
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_validator_stage1_child_exceeds_parent_fails():
+    """A child with Stage 1 > parent's Stage 1 fails the hierarchy check."""
+    from src.audit_reports import validator as v
+
+    rows = [
+        {"sector": "agri_farming", "period_type": "current",
+         "stage1_amount": 6000, "stage2_amount": 100, "stage3_amount": 50, "ecl_amount": 25},
+        {"sector": "agri_total", "period_type": "current",
+         "stage1_amount": 5000, "stage2_amount": 200, "stage3_amount": 100, "ecl_amount": 50},
+        {"sector": "total", "period_type": "current",
+         "stage1_amount": 5000, "stage2_amount": 200, "stage3_amount": 100, "ecl_amount": 50},
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)
+
+
+def test_validator_stage1_missing_source_cell_fails():
+    """When Stage 1 is printed but the stored row has it NULL, the source
+    completeness gate fails."""
+    from src.audit_reports.validator import check_sector_source_cells
+
+    # Build a source page with a 4-column disclosure, including numbered
+    # disclosure boundaries so _sector_disclosure_lines can locate the table.
+    source = [
+        {"source_page": 1, "line_text": "4.2.6 Information by Sectors"},
+        {"source_page": 1, "line_text": "Loans"},
+        {"source_page": 1, "line_text": "Current Period"},
+        {"source_page": 1, "line_text": "Stage 1  Stage 2  Stage 3  Expected Credit Losses"},
+        {"source_page": 1, "line_text": "Agriculture 5.000 1.000 200 100"},
+        {"source_page": 1, "line_text": "Total 5.000 1.000 200 100"},
+        {"source_page": 1, "line_text": "Prior Period"},
+        {"source_page": 1, "line_text": "Stage 1  Stage 2  Stage 3  Expected Credit Losses"},
+        {"source_page": 1, "line_text": "Agriculture 4.000 800 160 80"},
+        {"source_page": 1, "line_text": "Total 4.000 800 160 80"},
+        {"source_page": 1, "line_text": "4.2.7 Other Information"},
+    ]
+    # Stored rows with stage1_amount = NULL (not captured)
+    rows = [
+        {"period_type": "current", "sector": "agri_total",
+         "stage1_amount": None, "stage2_amount": 1000, "stage3_amount": 200, "ecl_amount": 100},
+        {"period_type": "current", "sector": "total",
+         "stage1_amount": None, "stage2_amount": 1000, "stage3_amount": 200, "ecl_amount": 100},
+        {"period_type": "prior", "sector": "agri_total",
+         "stage1_amount": None, "stage2_amount": 800, "stage3_amount": 160, "ecl_amount": 80},
+        {"period_type": "prior", "sector": "total",
+         "stage1_amount": None, "stage2_amount": 800, "stage3_amount": 160, "ecl_amount": 80},
+    ]
+    res = check_sector_source_cells(rows, source, 1)
+    assert res.failed > 0
+    assert any(f["check"] == "sector_source_cell_missing" for f in res.failures)
