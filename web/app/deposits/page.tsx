@@ -31,6 +31,7 @@ import {
   weeklyTotalDepositsYoY,
   depositMaturityMix,
   ratioLdr,
+  ratioLdrAll,
   latestPerBank,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
@@ -62,7 +63,7 @@ import {
   signedPp,
   valAgo,
 } from "@/app/lib/desk";
-import { LDR_PUBLISHED } from "@/app/lib/ldr";
+import { LDR_PUBLISHED, LDR_PUBLISHED_ALL } from "@/app/lib/ldr";
 import { everyOf, firstClaim } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import SectorTrend from "@/app/components/SectorTrend";
@@ -214,6 +215,7 @@ export default async function DepositsPage() {
     fxSec,
     mix,
     ldr,
+    ldrAll,
     loansYoYSector,
     tlYoySector,
     fundingDetail,
@@ -230,6 +232,7 @@ export default async function DepositsPage() {
     weeklySeries(MEVDUAT, TOTAL, "FX", sector, 156),
     depositMaturityMix(BANK_TYPES.SECTOR),
     ratioLdr(PRIMARY_BANK_TYPES),
+    ratioLdrAll(PRIMARY_BANK_TYPES),
     // Loan growth (sector) — only for the deposits-vs-loans funding-gap read.
     weeklyGrowth("krediler", "1.0.1", "TOTAL", 52, sector, 104),
     // TL-only deposit growth — the vitals' de-dollarized read of the base.
@@ -275,6 +278,9 @@ export default async function DepositsPage() {
   }
 
   const ldrSector = ldr.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR);
+  const ldrAllSector = ldrAll.filter(
+    (r) => r.bank_type_code === BANK_TYPES.SECTOR,
+  );
 
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = depositsInsights(
@@ -312,6 +318,7 @@ export default async function DepositsPage() {
     dShareNow != null && dShare52 != null ? dShareNow - dShare52 : null;
 
   const ldrNow = lastVal(ldrSector);
+  const ldrAllNow = lastVal(ldrAllSector);
 
   // "Every deposit-taking group funds its loan book below the 100% line" was
   // guarded on the SECTOR ratio — while the Standings table on this very page
@@ -629,7 +636,7 @@ export default async function DepositsPage() {
             cadence: "monthly",
             role: "structure",
             asOf: ldrSector.at(-1)?.period,
-            basis: "published TL+FC funding ratio",
+            basis: "published TL+FC funding ratio (ex development & investment)",
           },
         ]}
       />
@@ -1229,7 +1236,7 @@ export default async function DepositsPage() {
         id="loan-funding"
         title={tx("Loan-to-deposit")}
         description={tx(
-          "Published monthly ratio for TL and foreign-currency loans and deposits.",
+          "Published monthly ratio for TL and foreign-currency loans and deposits, development & investment banks excluded.",
         )}
       >
         <CadenceBand
@@ -1241,7 +1248,7 @@ export default async function DepositsPage() {
             basis: LDR_PUBLISHED.basis,
           }}
         >
-          <Vitals cols={3} rule="hair">
+          <Vitals cols={2} rule="hair">
             <Vital
               label={tx(LDR_PUBLISHED.label)}
               value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
@@ -1252,8 +1259,8 @@ export default async function DepositsPage() {
                 <>
                   {tx(
                     ldrNow != null && ldrNow < LDR_PUBLISHED.line
-                      ? "Below the {0}% line. This is the BDDK-published monthly sector ratio for all currencies. The weekly TL-only public/private comparison is on"
-                      : "Above the {0}% line. This is the BDDK-published monthly sector ratio for all currencies. The weekly TL-only public/private comparison is on",
+                      ? "Below the {0}% line. This is the BDDK-published monthly sector ratio for all currencies, development & investment banks excluded. The weekly TL-only public/private comparison is on"
+                      : "Above the {0}% line. This is the BDDK-published monthly sector ratio for all currencies, development & investment banks excluded. The weekly TL-only public/private comparison is on",
                     { 0: LDR_PUBLISHED.line },
                   )}{" "}
                   <Link
@@ -1264,6 +1271,16 @@ export default async function DepositsPage() {
                   </Link>
                 </>
               }
+            />
+            <Vital
+              label={tx(LDR_PUBLISHED_ALL.label)}
+              value={ldrAllNow != null ? ldrAllNow.toFixed(1) : "—"}
+              unit="%"
+              series={ldrAllSector.slice(-13)}
+              decimals={1}
+              note={tx(
+                "the same Table 15 row including development & investment banks, whose project-finance lending has no deposit counterpart.",
+              )}
             />
           </Vitals>
         </CadenceBand>
@@ -1279,7 +1296,7 @@ export default async function DepositsPage() {
           description={
             <>
               {tx(
-                "published all-currency loans ÷ deposits, %, monthly · by ownership group",
+                "published all-currency loans ÷ deposits (ex development & investment), %, monthly · by ownership group",
               )}
               <p className="mt-2 text-[14px] leading-relaxed">
                 {tx(
