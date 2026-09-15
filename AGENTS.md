@@ -6,11 +6,15 @@ read by a Next.js dashboard on Cloudflare Workers (<https://carthago.app>) and a
 Expo native app. Everything scheduled runs in GitHub Actions — there is no server
 we own and no other scheduler.
 
-**Orientation:** [README.md](README.md) for the layout →
+**Orientation:** [docs/SYSTEM_MAP.md](docs/SYSTEM_MAP.md) for the one-page mental
+model (data flow, domain catalog, script lifecycle) →
+[README.md](README.md) for the layout →
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the stack →
 [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md) for what is actually in the
 database right now → [docs/OPERATIONS.md](docs/OPERATIONS.md) for how to run it.
-Full index: [docs/README.md](docs/README.md).
+Full index: [docs/README.md](docs/README.md); workflow families:
+[docs/WORKFLOWS.md](docs/WORKFLOWS.md); audit docs:
+[docs/audit/README.md](docs/audit/README.md).
 
 > When an older doc and `PROJECT_STATE.md` disagree, PROJECT_STATE wins. When
 > PROJECT_STATE and the code disagree, the code wins and the doc is a bug.
