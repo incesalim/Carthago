@@ -189,7 +189,9 @@ def test_capture_does_not_confuse_numeric_prose_with_sector_rows():
     ]), [""], "loans_by_sector", (1,), None)
     assert len(capture.lines) == 3  # evidence remains lossless
     assert [r.line_text for r in capture.data_rows] == ["New undisclosed sector 1 2 3"]
-    assert capture.data_rows[0].mapped_key is None
+    # Unrecognized rows are now mapped as 'unknown' so the near-full completeness
+    # gate can surface them to the validator instead of silently dropping them.
+    assert capture.data_rows[0].mapped_key == 'unknown'
 
 
 def test_sector_capture_distinguishes_percentage_ranges_from_unknown_amount_rows():
@@ -201,7 +203,7 @@ def test_sector_capture_distinguishes_percentage_ranges_from_unknown_amount_rows
     capture = _capture_lane(_FakeDoc(lines), [""], "loans_by_sector", (1,), None)
     assert len(capture.lines) == len(lines)
     assert [row.line_text for row in capture.data_rows] == lines[2:]
-    assert all(row.mapped_key is None for row in capture.data_rows)
+    assert all(row.mapped_key == 'unknown' for row in capture.data_rows)
 
 
 def test_npl_capture_bounds_movements_but_keeps_unknown_movement_rows():

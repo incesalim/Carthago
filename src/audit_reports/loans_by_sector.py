@@ -255,7 +255,7 @@ def _is_legacy_pastdue_table(text: str, lines=None) -> bool:
 
 @dataclass
 class SectorRow:
-    sector: str                       # canonical key (e.g. 'mfg_production')
+    sector: str                       # canonical key (e.g. 'mfg_production') or 'unknown'
     stage2_amount: float | None = None
     stage3_amount: float | None = None
     ecl_amount: float | None = None
@@ -464,13 +464,13 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
             if clean.lower().startswith(lbl):
                 sector_key = key
                 break
-        if sector_key is None:
-            continue
         # numbers with their right-edge x (skip the label tokens)
         nums = [(parse_amount(t), x1) for _x0, x1, t in row if re.fullmatch(_NUM_TOKEN, t)]
         nums = [(v, x) for v, x in nums if v is not None]
         if not nums:
             continue
+        if sector_key is None:
+            sector_key = "unknown"
 
         def nearest(anchor: float, other: float):
             best, bestd = None, 1e9
@@ -554,7 +554,7 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
                 sector_key = key
                 break
         if sector_key is None:
-            continue
+            sector_key = "unknown"
         n2 = parse_amount(m_nums.group("n1"))
         n3 = parse_amount(m_nums.group("n2"))
         ecl = parse_amount(m_nums.group("n3"))
@@ -830,14 +830,16 @@ def extract_from_pdf(
         txt_rows.extend(_extract_section(i, text))
 
     def _dedupe(rows: list[SectorRow]) -> list[SectorRow]:
-        # Keep the first occurrence of each (sector, period_type) — EXCEPT 'total':
-        # a page can carry two sector tables (e.g. ICBCT's loans then a second
-        # breakdown), each ending in its own "Toplam", so keep every total and let
-        # _pick_total choose the one that foots with the captured sectors.
+        # Keep the first occurrence of each (sector, period_type) — EXCEPT 'total'
+        # and 'unknown': a page can carry two sector tables (e.g. ICBCT's loans
+        # then a second breakdown), each ending in its own "Toplam", so keep every
+        # total and let _pick_total choose the one that foots with the captured
+        # sectors.  Every 'unknown' row is a distinct unmatched source row that
+        # must not be collapsed — they carry different raw_labels.
         seen: set[tuple[str, str]] = set()
         out: list[SectorRow] = []
         for idx, r in enumerate(rows):
-            key = (r.sector, r.period_type, idx) if r.sector == "total" else (r.sector, r.period_type)
+            key = (r.sector, r.period_type, idx) if r.sector in ("total", "unknown") else (r.sector, r.period_type)
             if key in seen:
                 continue
             seen.add(key)

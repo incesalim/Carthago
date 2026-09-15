@@ -350,6 +350,28 @@ def test_nil_elsewhere_does_not_suppress_table():
             "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler\n"
             "Tarım 1.234 567 890\nToplam 1.234 567 890")
     assert _is_nil_declared_note(text) is False
+
+
+def test_unknown_sector_row_captured_not_dropped():
+    """A row with 3 trailing numbers whose label doesn't match any known sector
+    is captured as sector='unknown' with the raw_label preserved, instead of
+    being silently dropped."""
+    from src.audit_reports.loans_by_sector import _extract_section
+    text = (
+        "Tarım 1.234 567 890\n"
+        "Previously undisclosed sector 101 202 303\n"
+        "Toplam 1.335 769 1.193"
+    )
+    rows = _extract_section(1, text)
+    keys = [r.sector for r in rows]
+    assert "agri_total" in keys
+    assert "total" in keys
+    unknowns = [r for r in rows if r.sector == "unknown"]
+    assert len(unknowns) == 1
+    assert unknowns[0].raw_label == "Previously undisclosed sector"
+    assert unknowns[0].stage2_amount == 101.0
+    assert unknowns[0].stage3_amount == 202.0
+    assert unknowns[0].ecl_amount == 303.0
 def test_section_reference_with_trailing_dot_and_simple_roman_note():
     from src.audit_reports.extractor import _parse_rows
     rows = _parse_rows(

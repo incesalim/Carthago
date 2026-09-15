@@ -1601,6 +1601,31 @@ def test_loans_by_sector_year_swap_nil_on_nil_passes():
     assert not any(f["check"] == "loans_sector_year_swap" for f in res.failures)
 
 
+def test_loans_by_sector_unknown_rows_fail():
+    # A row with sector='unknown' means the extractor found a numeric data row
+    # whose label didn't match the known taxonomy — this MUST fail so the gap
+    # is visible and the taxonomy can be extended.
+    rows = [
+        _sector_row("agri_total", 10, 5, 3),
+        _sector_row("mfg_total", 20, 10, 6),
+        _sector_row("construction", 5, 3, 2),
+        _sector_row("svc_total", 30, 15, 9),
+        _sector_row("other", 5, 2, 1),
+        _sector_row("total", 70, 35, 21),
+        {"sector": "unknown", "period_type": "current",
+         "stage2_amount": 1000, "stage3_amount": 500, "ecl_amount": 200},
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert any(f["check"] == "loans_sector_unknown_rows" for f in res.failures)
+
+
+def test_loans_by_sector_no_unknown_rows_passes():
+    # A clean table with no unknowns must not trigger the unknown-row gate.
+    rows = _sector_total_pass_rows()
+    res = v.check_loans_by_sector(rows)
+    assert not any(f["check"] == "loans_sector_unknown_rows" for f in res.failures)
+
+
 # --- Cash flow validation -------------------------------------------------
 
 def _cf_row(h, name, amount, scale=1000):

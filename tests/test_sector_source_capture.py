@@ -70,7 +70,9 @@ def test_unknown_sector_rows_and_missing_parent_mappings_remain_unclassified(cha
     else:
         filing['stored_labels'] = [r for r in filing['stored_labels'] if r['sector'] != 'svc_total']
     result = capture(filing)
-    assert any(row.mapped_key is None for row in result.data_rows)
+    # Unknown rows are now classified as 'unknown' instead of left unmapped,
+    # so the near-full completeness gate can surface them to the validator.
+    assert any(row.mapped_key == 'unknown' for row in result.data_rows)
     assert all(row.mapped_key != 'svc_education' for row in result.data_rows
                if row.line_text.startswith('Services '))
 
@@ -85,7 +87,7 @@ def test_incomplete_disclosure_boundaries_keep_conservative_evidence(missing):
         for page in filing['pages']:
             page['lines'] = [line for line in page['lines'] if not line.startswith(marker)]
     result = capture(filing)
-    assert any(row.mapped_key is None and 'Provisions' in row.line_text for row in result.data_rows)
+    assert any(row.mapped_key == 'unknown' and 'Provisions' in row.line_text for row in result.data_rows)
     assert len(result.lines) == sum(len(p['lines']) for p in filing['pages'])
 
 
@@ -96,7 +98,9 @@ def test_unknown_nested_disclosure_and_forward_reference_are_not_hidden():
     page['lines'].insert(38, '4.2.6.1 Additional sector information')
     page['lines'].insert(39, 'Unknown additional sector - - -')
     result = capture(filing)
-    assert any(row.line_text == 'Unknown additional sector - - -' and row.mapped_key is None
+    # Unknown rows now carry mapped_key="unknown" instead of None, so the
+    # near-full completeness gate can surface them to the validator.
+    assert any(row.line_text == 'Unknown additional sector - - -' and row.mapped_key == 'unknown'
                for row in result.data_rows)
 
 
@@ -153,8 +157,46 @@ def test_existing_extractor_reads_every_printed_sector_cell_and_period(monkeypat
             expected[period, key] = (page, *values)
     assert len(report.rows) == 40
     assert {(row.period_type, row.sector): (row.page, row.stage2_amount,
-                                          row.stage3_amount, row.ecl_amount)
+                                           row.stage3_amount, row.ecl_amount)
             for row in report.rows} == expected
+
+
+def test_xy_extractor_captures_unknown_sector_rows(monkeypatch):
+    """Rows whose labels don't match any known sector are captured as
+    sector='unknown' with raw_label preserved, instead of being dropped.
+
+    Uses the text-based _extract_section path (no xy stage-column headers)
+    to verify the unknown-row capture without needing a full xy geometry.
+    """
+    from src.audit_reports import loans_by_sector as extractor
+
+    # _page_has_sector_heading returns True for our fake page, so the
+    # extractor will process it.  _extract_three_column_disclosure returns
+    # None so the fallback text parser runs.
+    monkeypatch.setattr(extractor, '_HAS_FITZ', True)
+    monkeypatch.setattr(extractor, '_fitz_page_count', lambda _: 1)
+    monkeypatch.setattr(extractor, '_fitz_page_text', lambda _, page: (
+        "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler\n"
+        "\n"
+        "Tarım 1.000 200 50\n"
+        "Previously undisclosed sector 500 300 100\n"
+        "Toplam 1.500 500 150"
+    ))
+    monkeypatch.setattr(extractor, '_xy_lines', lambda _, page: [])
+    monkeypatch.setattr(extractor, '_page_has_sector_heading', lambda text: True)
+    monkeypatch.setattr(extractor, '_is_legacy_pastdue_table', lambda *_: False)
+    monkeypatch.setattr(extractor, '_extract_three_column_disclosure', lambda _: None)
+
+    report = extractor.extract_from_pdf('unknown_test.pdf', skip_pages=0)
+    unknowns = [r for r in report.rows if r.sector == "unknown"]
+    known = [r for r in report.rows if r.sector != "unknown"]
+    assert len(unknowns) >= 1, f"expected at least 1 unknown row, got {len(unknowns)}"
+    assert unknowns[0].stage2_amount == 500.0
+    assert unknowns[0].stage3_amount == 300.0
+    assert unknowns[0].ecl_amount == 100.0
+    assert unknowns[0].raw_label == "Previously undisclosed sector"
+    # Known sectors are still captured
+    assert any(r.sector == "agri_total" for r in known)
 
 
 @pytest.mark.parametrize('filing', WRAPPED_FILINGS,

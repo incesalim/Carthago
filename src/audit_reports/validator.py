@@ -2915,6 +2915,14 @@ def check_loans_by_sector(rows: list[dict],
     alone cannot be trusted here.
     """
     res = ValidationResult()
+    # Any 'unknown' sector means the extractor found a numeric data row whose
+    # label did not match the known taxonomy.  These must be surfaced so the
+    # taxonomy can be extended — not silently swallowed.
+    unknowns = [r for r in rows if r.get("sector") == "unknown"]
+    if unknowns:
+        res.add_fail("loans_sector_unknown_rows",
+                     f"{len(unknowns)} source row(s) with unrecognized sector labels",
+                     expected=0, actual=len(unknowns))
     cur = [r for r in rows if r.get("period_type") == "current"]
     if not cur:
         res.add_skip()

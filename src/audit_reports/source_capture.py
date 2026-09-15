@@ -385,10 +385,15 @@ def _mapped_key(
     candidates = [*_dynamic_mappings(report, lane), *dynamic_mappings]
     if lane == "loans_by_sector":
         # A short parent label such as Services must never inherit the key of
-        # Educational Services. Unknown or ambiguous labels stay unclassified.
+        # Educational Services.  Unrecognized labels get "unknown" so the
+        # near-full completeness gate surfaces them instead of silently dropping.
         matches = {key for key, candidate in candidates
                    if compact == candidate.replace(" ", "")}
-        return next(iter(matches)) if len(matches) == 1 else None
+        if len(matches) == 1:
+            return next(iter(matches))
+        # This function is only called when is_data=True, so the line IS a
+        # sector data row — label it "unknown" rather than leaving it unmapped.
+        return "unknown"
     for key, candidate in candidates:
         candidate_compact = candidate.replace(" ", "")
         if (candidate_compact in compact
