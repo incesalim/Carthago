@@ -49,7 +49,7 @@ export function GlobalRangeSelector({ compact = false }: { compact?: boolean }) 
   const tx = useText();
   if (compact) return <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
     <span>{tx("Period")}</span>
-    <select aria-label={tx("Chart period")} value={range} onChange={event => setRange(event.target.value as RangeKey)} className="rounded-md border border-border bg-card px-2 py-2 text-[13px] font-medium text-foreground focus-visible:outline-2 focus-visible:outline-primary">
+    <select aria-label={tx("Chart period")} value={range} onChange={event => setRange(event.target.value as RangeKey)} className="rounded-md border border-border bg-card px-2 py-1.5 text-[13px] font-medium text-foreground focus-visible:outline-2 focus-visible:outline-primary">
       {DEFAULT_RANGES.map(value => <option key={value} value={value}>{tx(value)}</option>)}
     </select>
   </label>;

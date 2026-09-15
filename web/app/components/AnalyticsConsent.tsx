@@ -51,24 +51,25 @@ gtag('config', '${measurementId}');`)}
       role="dialog"
       aria-modal="false"
       aria-labelledby="consent-title"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <p id="consent-title" className="text-[12.5px] leading-snug text-foreground">{tx("May we use Google Analytics to see which pages get read? It sets cookies and sends your visit to Google. Everything works the same if you decline — page counts still come from Cloudflare’s analytics, which sets no cookie and keeps no identifier.")}{" "}
+      <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+        <p id="consent-title" className="max-w-[85ch] text-xs leading-snug text-foreground">{tx("May we use Google Analytics to see which pages get read? It sets cookies and sends your visit to Google. Everything works the same if you decline — page counts still come from Cloudflare’s analytics, which sets no cookie and keeps no identifier.")}{" "}
           <Link href="/privacy" className="font-semibold text-primary underline-offset-2 hover:underline">{tx("What we collect")}</Link>
         </p>
         {/* Both choices are one click, same size, same weight — a "decline" that
-            is harder to find than "accept" is not a free choice. */}
+            is harder to find than "accept" is not a free choice. The bar stays
+            one compact row on desktop so it cannot bury the page footer. */}
         <div className="flex shrink-0 gap-2">
           <button
             type="button"
             onClick={() => writeConsent("denied")}
-            className="min-h-11 rounded-md border border-border px-4 text-[12.5px] font-medium text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="min-h-9 rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >{tx("Decline")}</button>
           <button
             type="button"
             onClick={() => writeConsent("granted")}
-            className="min-h-11 rounded-md border border-primary bg-primary px-4 text-[12.5px] font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="min-h-9 rounded-md border border-primary bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >{tx("Accept")}</button>
         </div>
       </div>

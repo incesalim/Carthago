@@ -1,13 +1,13 @@
 /* Sector workspace: shared frame and compact source header. */
 .report { width:100%; min-height:100vh; margin-inline:auto; padding:32px clamp(20px,2.5vw,44px) 40px; background:var(--background); font:15px/1.6 var(--font-sans); }
 .report > * { max-width:1560px; margin-inline:auto; }
-.header { position:relative; padding-bottom:24px; display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.7fr); grid-template-areas:"crumb crumb" "title record" "description observations" "description notes"; column-gap:40px; align-items:start; }
+.header { position:relative; padding-bottom:18px; display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.7fr); grid-template-areas:"crumb crumb" "title record" "description observations" "description notes"; column-gap:40px; align-items:start; }
 .breadcrumb { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12px; font-weight:500; color:var(--muted-foreground); grid-area:crumb; }
 .breadcrumb a { color:var(--primary); }
 .header h1 { font-size:36px; line-height:1.15; font-weight:650; letter-spacing:-.035em; grid-area:title; }
 .description { max-width:76ch; margin-top:10px; color:var(--muted-foreground); font-size:15px; grid-area:description; }
 .record { margin-top:3px; font-size:13px; color:var(--muted-foreground); grid-area:record; }
-.observations { display:flex; flex-wrap:wrap; gap:6px 24px; margin-top:6px; font-size:12px; color:var(--muted-foreground); grid-area:observations; }
+.observations { display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:5px; font-size:12px; color:var(--muted-foreground); grid-area:observations; }
 .observations > div { display:flex; flex-wrap:wrap; gap:8px; }
 .observations strong { color:var(--foreground); font-weight:600; }
 .dataNotes { margin-top:8px; font-size:12px; color:var(--muted-foreground); grid-area:notes; }
@@ -15,13 +15,20 @@
 .dataNotes ul { display:grid; gap:6px; margin-top:10px; max-width:95ch; }
 
 /* Sticky topic navigation and the chart-period control. */
-.toolbar { position:sticky; top:0; z-index:15; display:flex; flex-wrap:wrap; align-items:center; gap:0 20px; padding:0 16px; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 3px 10px color-mix(in srgb,var(--foreground) 3%,transparent); }
-.contents { display:flex; flex:1 1 520px; min-width:0; gap:22px; overflow-x:auto; scrollbar-width:thin; }
-.contents a { flex-shrink:0; padding:14px 0 12px; border-bottom:3px solid transparent; color:var(--muted-foreground); font-size:13px; font-weight:500; text-decoration:none; }
+.toolbar { position:sticky; top:0; z-index:15; display:flex; flex-wrap:wrap; align-items:center; gap:0 16px; padding:0 16px; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 3px 10px color-mix(in srgb,var(--foreground) 3%,transparent); }
+.contentsWrap { position:relative; display:flex; flex:1 1 520px; min-width:0; }
+.contents { display:flex; flex:1 1 auto; min-width:0; gap:22px; overflow-x:auto; scrollbar-width:thin; scroll-padding-inline:16px; }
+.contents a { flex-shrink:0; padding:11px 0 9px; border-bottom:3px solid transparent; color:var(--muted-foreground); font-size:13px; font-weight:500; text-decoration:none; }
 .contents a[aria-current] { color:var(--primary); border-color:var(--primary); font-weight:650; }
 .contents a:hover { color:var(--primary); }
 .contents a:focus-visible,.directory a:focus-visible,.breadcrumb a:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
-.range { flex:0 0 auto; display:flex; align-items:center; margin-left:auto; padding-block:8px; }
+/* Overflow affordance: fades are mounted per side and hidden once that edge is
+   reached, so a clipped tab is always visibly "more that way". */
+.contentsFade { pointer-events:none; position:absolute; inset-block:0; width:28px; transition:opacity .15s; }
+.contentsFade[data-hidden="true"] { opacity:0; }
+.contentsFadeStart { left:0; background:linear-gradient(to right,var(--card),transparent); }
+.contentsFadeEnd { right:0; background:linear-gradient(to left,var(--card),transparent); }
+.range { flex:0 0 auto; display:flex; align-items:center; margin-left:auto; padding-block:6px; }
 .range > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 
 /* Current indicators; the complete assessment follows the first charts. */
@@ -43,6 +50,11 @@
 .report [data-vital-note] { font:13px/1.55 var(--font-sans); color:var(--muted-foreground); }
 .report [data-vital-note] a { margin-inline-start:4px; text-underline-offset:3px; }
 .report [data-vital-observation] { margin-top:9px; padding-top:8px; font:12px/1.5 var(--font-sans); text-transform:none; letter-spacing:0; }
+/* The Key-indicators row keeps one supporting line per figure. The observation
+   contract is consolidated in the header's "Data coverage and definitions"
+   detail (and carried as the card's title), so it does not repeat as a second
+   grey paragraph under every number. */
+.metricsGrid [data-vital-observation] { display:none; }
 
 /* Analytical panels and chapter rhythm. */
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }

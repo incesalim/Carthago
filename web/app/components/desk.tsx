@@ -320,8 +320,28 @@ export function Vital({
   observation?: ObservationMeta;
 }) {
   const tx = useText();
+  // The observation contract as a plain-text tooltip. The Key-indicators row
+  // hides the visible copy (it repeats the header's coverage detail), but the
+  // cadence, date, window and basis stay one hover away on the whole card.
+  const observationTitle = observation
+    ? [
+        cadenceLabel(observation.cadence),
+        observation.role,
+        observation.asOf,
+        observation.window,
+        observation.basis,
+        observation.source,
+      ]
+        .filter((part): part is string => Boolean(part))
+        .map((part) => tx(part))
+        .join(" · ")
+    : "";
   return (
-    <div data-vital className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0">
+    <div
+      data-vital
+      title={observationTitle || undefined}
+      className="min-w-0 border-b border-r border-hair px-4 py-4 max-sm:odd:pl-0 sm:first:pl-0"
+    >
       <div data-vital-label className="text-[11px] font-medium text-muted-foreground">{tx(label)}</div>
       <div data-vital-value className="mt-0.5 font-mono text-[24px] font-semibold tracking-tight text-foreground">
         {tx(value)}
