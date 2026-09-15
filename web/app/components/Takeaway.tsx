@@ -46,10 +46,10 @@ export default function Takeaway({
       <ul className={styles.notes}>
         {data.items.map((it, i) => <li key={i} className={styles.note}>
           {it.label && <h4>{it.href
-            ? <Link href={it.href}>{tx(it.label)}<span aria-hidden="true">↗</span></Link>
+            ? <Link href={it.href}>{tx(it.label)}<span aria-hidden="true">→</span></Link>
             : tx(it.label)}</h4>}
           <p>{tx(it.text)}</p>
-          {!it.label && it.href && <Link className={styles.related} href={it.href}>{tx("Related analysis")}<span aria-hidden="true"> ↗</span></Link>}
+          {!it.label && it.href && <Link className={styles.related} href={it.href}>{tx("Related analysis")}<span aria-hidden="true"> →</span></Link>}
         </li>)}
       </ul>
     </aside>;

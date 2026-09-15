@@ -124,13 +124,15 @@ export function overviewInsights(d: {
     href: "/capital",
   });
 
-  // Earnings (E)
+  // Earnings (E). A falling ROE is a watch, not a win: the report assessment
+  // strips the link arrow from warn-tone items, so a softening ROE loses the
+  // ↗/green valence the level alone (25% nominal) would otherwise imply.
   const roe = last(d.roe);
   const roeD = deltaPp(d.roe);
   items.push({
     label: tx("Return on equity"),
     text: tx("ROE {0} (annualized){1}.", {0: pct(roe), 1: roeD != null ? tx(", {0} {1}pp m/m", {0: roeD >= 0 ? "up" : "down", 1: Math.abs(roeD).toFixed(1)}) : ""}),
-    tone: "neutral",
+    tone: roeD != null && roeD < 0 ? "warn" : "neutral",
     href: "/profitability",
   });
 
@@ -160,10 +162,12 @@ export function overviewInsights(d: {
     });
   }
 
+  // No verdict word here: "profitable" at a 25% nominal print read as a win
+  // while the real return was negative and the ratio was softening. State the
+  // level and let the reader judge — a watch, not a celebration.
   const grow = ay != null && ay >= 0 ? "growing" : "shrinking";
-  const earn = roe != null && roe >= 0 ? "profitable" : "loss-making";
   const headline =
-    tx("As of {0}: the sector is {1} (assets {2} y/y) and {3} (ROE {4}), ", {0: period ?? "—", 1: grow, 2: pct(ay), 3: earn, 4: pct(roe)}) +
+    tx("As of {0}: the sector is {1} (assets {2} y/y); ROE is {3} nominal, ", {0: period ?? "—", 1: grow, 2: pct(ay), 3: pct(roe)}) +
     tx("with NPL at {0} and capital {1} the minimum at {2}.", {0: pct(npl, 2), 1: buffer != null && buffer >= 4 ? "comfortably above" : "above", 2: pct(car)});
 
   return { asOf: period, headline, items };

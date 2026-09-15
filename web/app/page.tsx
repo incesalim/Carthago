@@ -263,6 +263,13 @@ export default async function OverviewPage({
   const nimRange = windowExtremes(sNim, 24);
   const nimLow = nimRange?.min ?? null;
   const nimLowPeriod = nimRange?.minPeriod ?? null;
+  // One NIM story for the page: the KPI note and the period-changes row read the
+  // same trough-to-now sentence, so the two surfaces cannot drift. The fallback
+  // keeps the row non-blank whenever the trough test does not fire.
+  const nimStory =
+    nimLow != null && nimLowPeriod != null && nimNow != null && nimNow - nimLow > 0.5
+      ? tx("recovered from the {0}% trough in {1}", { 0: nimLow.toFixed(1), 1: monthLabel(nimLowPeriod, false) })
+      : tx("within its 24-month range");
   // Fisher, not roe − cpi: at a ~32% CPI the shortcut is ~1.8pp adrift. The base
   // is the 12m AVERAGE because ROE is earned across the year, not at a point —
   // and the surfaces below print which base they used. (series.ts / real-terms.ts)
@@ -307,6 +314,7 @@ export default async function OverviewPage({
     },
     {
       label: "Net interest margin",
+      note: nimStory,
       prev: sNim.at(-2)?.value ?? null,
       curr: nimNow,
       good: "up",
@@ -517,7 +525,7 @@ export default async function OverviewPage({
               {ladder ? (
                 <>
                   {" · "}
-                  {tx("Stage 2 watchlist {0} — not in the NPL ratio", { 0: fmtPct(ladder.stage2Share) })}
+                  {tx("Stage 2 watchlist / not in the NPL ratio ({0})", { 0: ladder.stage2Share.toFixed(2) })}
                 </>
               ) : null}{" "}
               <Go href="/asset-quality">{tx("Asset Quality")}</Go>
@@ -531,9 +539,7 @@ export default async function OverviewPage({
           series={spark(sNim)}
           note={
             <>
-              {tx(nimLow != null && nimLowPeriod != null && nimNow != null && nimNow - nimLow > 0.5
-                ? tx("recovered from the {0}% trough in {1}", { 0: nimLow.toFixed(1), 1: monthLabel(nimLowPeriod, false) })
-                : tx("within its 24-month range"))}{" "}
+              {tx(nimStory)}{" "}
               <Go href="/profitability">{tx("Profitability")}</Go>
             </>
           }
