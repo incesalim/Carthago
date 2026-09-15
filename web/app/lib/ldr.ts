@@ -45,7 +45,11 @@ export interface LdrBasis {
 /** `/deposits` — BDDK's published sector ratio (`financial_ratios`, monthly). */
 export const LDR_PUBLISHED: LdrBasis = {
   label: "Loan / deposit — TL+FC",
-  basis: "BDDK published sector ratio, monthly, all currencies",
+  // Name the table and the population. "all currencies" alone left the reader
+  // unable to tell whether the ratio was the all-banks Table 15 row or a
+  // deposit-banks-only cut, and BDDK publishes both.
+  basis:
+    "BDDK monthly financial-ratios table (Table 15), sector total — all banks including development & investment, TL+FC",
   elsewhere: { href: "/liquidity", what: "TL-only, weekly, public vs private" },
   line: 100,
   rule: "published TL+FC loan/deposit > 100%",

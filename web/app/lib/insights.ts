@@ -1,4 +1,5 @@
 import { createText } from "../../i18n/text";
+import { streak } from "./desk";
 import { VERBS, direction } from "./prose";
 import { seriesFinding } from "./chart-findings";
 import { realRate } from "./real-terms";
@@ -73,28 +74,41 @@ export function overviewInsights(d: {
   car: SeriesPoint[];
   ldr: SeriesPoint[];
   roe: SeriesPoint[];
+  /** Consumer-card, general-purpose and SME loan growth — the lending mix the
+   *  overview links to rising NPLs. Optional so the mobile brief, which does not
+   *  carry these series, keeps the same shape. */
+  cardsYoY?: SeriesPoint[];
+  gplYoY?: SeriesPoint[];
+  smeYoY?: SeriesPoint[];
 }, locale = "en"): TabTakeaway {
   const tx = createText(locale);
   const period = asOf(d.npl) ?? asOf(d.assetsYoY);
   const items: Insight[] = [];
 
-  // Size & growth (A — volume)
+  // Size & growth (A — volume). A loan growth print is nominal and includes the
+  // currency revaluation of the FX book; that is the only honest label for it.
   const ay = last(d.assetsYoY);
   const ly = last(d.loansYoY);
   const dy = last(d.depositsYoY);
   items.push({
     label: tx("Balance-sheet growth"),
-    text: tx("Balance sheet {0} — assets {1} y/y, loans {2}, deposits {3}.", {0: ay != null && ay >= 0 ? "expanding" : "contracting", 1: pct(ay), 2: pct(ly), 3: pct(dy)}),
+    text: tx("Balance sheet {0} — assets {1} y/y, loans {2} nominal (FX included), deposits {3}.", {0: ay != null && ay >= 0 ? "expanding" : "contracting", 1: pct(ay), 2: pct(ly), 3: pct(dy)}),
     tone: "neutral",
     href: "/credit",
   });
 
-  // Asset quality (A)
+  // Asset quality (A). A rising NPL ratio is never "improvement": it gets the
+  // warn tone and the word "rising", with the run length in months.
   const npl = last(d.npl);
   const nplD = deltaPp(d.npl);
+  const nplRun = streak(d.npl, "up");
   items.push({
     label: tx("Asset quality"),
-    text: tx("NPL ratio {0}{1}.", {0: pct(npl, 2), 1: nplD != null ? tx(" ({0} m/m, {1})", {0: ppStr(nplD), 1: nplD > 0.03 ? "creeping up" : nplD < -0.03 ? "easing" : "broadly stable"}) : ""}),
+    text: nplD != null
+      ? nplD > 0.03
+        ? tx("NPL ratio {0} — rising for {1} straight months ({2} m/m).", {0: pct(npl, 2), 1: nplRun, 2: ppStr(nplD)})
+        : tx("NPL ratio {0}{1}.", {0: pct(npl, 2), 1: nplD < -0.03 ? tx(" ({0} m/m, easing)", {0: ppStr(nplD)}) : tx(" ({0} m/m, broadly stable)", {0: ppStr(nplD)})})
+      : tx("NPL ratio {0}.", {0: pct(npl, 2)}),
     tone: nplD != null && nplD > 0.03 ? "warn" : nplD != null && nplD < -0.03 ? "positive" : "neutral",
     href: "/asset-quality",
   });
@@ -127,10 +141,24 @@ export function overviewInsights(d: {
     // TL+FC, because that is what the published ratio measures. The link goes to
     // /liquidity, where the TL-only book is read — a different, hotter number, so
     // the sentence has to say which one it is quoting. See lib/ldr.ts.
-    text: tx("Loan-to-deposit (TL+FC) {0} — funding {1}.", {0: pct(ldr), 1: ldr != null && ldr > 110 ? "stretched" : "comfortable"}),
+    text: tx("Loan-to-deposit (TL+FC, Table 15) {0} — funding {1}.", {0: pct(ldr), 1: ldr != null && ldr > 110 ? "stretched" : "comfortable"}),
     tone: ldr != null && ldr > 120 ? "warn" : "neutral",
     href: "/liquidity",
   });
+
+  // One calm cross-read: the fastest-growing retail and small-business books are
+  // what the rising NPL ratio is made of. A sentence, not a second KPI.
+  const cards = last(d.cardsYoY ?? []);
+  const gpl = last(d.gplYoY ?? []);
+  const sme = last(d.smeYoY ?? []);
+  if (cards != null && gpl != null && sme != null && nplD != null && nplD > 0.03) {
+    items.push({
+      label: tx("Growth vs credit quality"),
+      text: tx("Cards {0}, general-purpose {1} and SME loans {2} y/y are still outgrowing the book while NPLs rise — volume is running ahead of credit quality.", {0: pct(cards), 1: pct(gpl), 2: pct(sme)}),
+      tone: "warn",
+      href: "/asset-quality",
+    });
+  }
 
   const grow = ay != null && ay >= 0 ? "growing" : "shrinking";
   const earn = roe != null && roe >= 0 ? "profitable" : "loss-making";
@@ -203,7 +231,7 @@ export function creditInsights(d: {
   if (y != null) {
     items.push({
       label: tx("Nominal credit growth"),
-      text: tx("Loan growth {0} y/y (nominal){1}.", {0: pct(y), 1: m4 != null ? tx("; the 4-week pace ({0}) says the trend is {1}", {0: pct(m4), 1: pace}) : ""}),
+      text: tx("Loan growth {0} y/y (nominal, FX included){1}.", {0: pct(y), 1: m4 != null ? tx("; the 4-week pace ({0}) says the trend is {1}", {0: pct(m4), 1: pace}) : ""}),
       tone: "neutral",
     });
   }

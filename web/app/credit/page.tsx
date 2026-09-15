@@ -411,7 +411,7 @@ export default async function CreditPage() {
           note={tx(fxAdj13Now != null ? "Exchange-rate valuation effects excluded." : "awaits a 13-week comparison base")}
         />
 <Vital
-          label={tx("Nominal growth, 52w")}
+          label={tx("Nominal growth, 52w (FX included)")}
           value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
           unit="%"
           series={yoySector.slice(-26)}
@@ -836,7 +836,7 @@ export default async function CreditPage() {
 <SectorTrend height={280}
               data={realVsNominal}
               seriesLabels={REAL_TERMS_LABELS}
-              title={tx("Loan Growth YoY — nominal vs real (sector, %)")}
+              title={tx("Loan Growth YoY — nominal vs CPI-deflated (sector, %)")}
               description={tx("The CPI-deflated twin alone — it does not remove the currency effect.")}
               yFormat="pct"
               decimals={1}

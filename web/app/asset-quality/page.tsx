@@ -527,7 +527,7 @@ export default async function AssetQualityPage() {
             }
           />
           <Vital
-            label={tx("NPL stock, real y/y")}
+            label={tx("NPL stock, real y/y — CPI only (FX excluded)")}
             value={stockRealNow != null ? stockRealNow.toFixed(1) : "—"}
             unit="%"
             series={(stockRealYoY as TimeSeriesRow[]).slice(-26)}
@@ -537,16 +537,14 @@ export default async function AssetQualityPage() {
               role: "early-warning",
               asOf: stockRealYoY.at(-1)?.period,
               window: "52w real",
-              basis: "weekly stock; published CPI only",
+              basis: "weekly stock; CPI-deflated only — not the constant-FX credit measure",
             }}
             note={
               stockRealNow != null && loanRealNow != null ? (
                 <>
-                  {tx("bad loans compounding — the loan book grew just ")}
-                  {tx(fmtPct(loanRealNow))}
-                  {tx(" real ·")}{" "}
+                  {tx("bad loans compounding; the loan book grew just {0} real (CPI only, FX excluded)", { 0: fmtPct(loanRealNow) })}{" · "}
                   <Link href="/credit" className="font-semibold text-primary">
-                    {tx("Credit")}
+                    {tx("Credit, real, constant FX")}
                   </Link>
                 </>
               ) : (

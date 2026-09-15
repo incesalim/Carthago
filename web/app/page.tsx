@@ -13,9 +13,12 @@ import {
   totalAssetsYoY,
   totalLoansYoY,
   totalDepositsYoY,
+  weeklySeries,
+  weeklyGrowth,
   evdsSeries,
   BANK_TYPES,
   PRIMARY_BANK_TYPES,
+  WEEKLY_BANK_TYPES,
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { perBankCapital } from "@/app/lib/audit-ratios";
@@ -33,7 +36,9 @@ import {
   windowExtremes,
 } from "@/app/lib/desk";
 import { LDR_PUBLISHED } from "@/app/lib/ldr";
-import { realRate } from "@/app/lib/real-terms";
+import { realRate, cpiYoYByMonth } from "@/app/lib/real-terms";
+import { creditBridge, fxAdjustedGrowth } from "@/app/lib/credit";
+import { stageLadder } from "@/app/lib/credit-risk";
 import {
   ChartFoot,
   Levels,
@@ -128,6 +133,15 @@ const fmtPct = (v: number | null | undefined, d = 2) =>
 const fmtTrn = (v: number | null | undefined) =>
   v == null ? "—" : `₺${(v / 1_000_000).toFixed(2)} trn`;
 
+// Weekly bulletin codes — the constant-FX credit bridge is built on them, the
+// same series /credit uses, so the landing page cannot print a different real
+// loan-growth figure from the Credit tab.
+const KREDI = "krediler";
+const TOTAL_LOANS = "1.0.1";
+const CARDS = "1.0.8";
+const GPL = "1.0.6";
+const SME = "1.0.11";
+
 /** Route link styled for use inside a computed note. */
 const Go = ({ href, children }: { href: string; children: ReactNode }) => (
   <Link href={href} className="font-semibold text-primary">
@@ -170,6 +184,8 @@ export default async function OverviewPage({
     league, usdRaw, cpiRaw, fundingRaw,
     // In-depth scorecard for the selected bank type.
     assets, assetsYoY, loansYoY, depositsYoY, npl, car, nim, ldr, roa, roe,
+    // Weekly credit bridge (constant FX) + the Stage-2 watchlist for the brief.
+    weeklyLoansYoY, tlWeekly, fxWeekly, cardsYoY, gplYoY, smeYoY, usdTryRaw, cpiYoYMap, ladder,
   ] = await Promise.all([
     sectorBalanceSheetStructure(), sectorOperatingNetwork(),
     ratioCar(sector),
@@ -208,6 +224,16 @@ export default async function OverviewPage({
     ratioLdr(bt),
     ratioRoa(bt),
     ratioRoe(bt),
+
+    weeklyGrowth(KREDI, TOTAL_LOANS, "TOTAL", 52, [WEEKLY_BANK_TYPES.SECTOR], 104),
+    weeklySeries(KREDI, TOTAL_LOANS, "TL", [WEEKLY_BANK_TYPES.SECTOR], 156),
+    weeklySeries(KREDI, TOTAL_LOANS, "FX", [WEEKLY_BANK_TYPES.SECTOR], 156),
+    weeklyGrowth(KREDI, CARDS, "TOTAL", 52, [WEEKLY_BANK_TYPES.SECTOR], 104),
+    weeklyGrowth(KREDI, GPL, "TOTAL", 52, [WEEKLY_BANK_TYPES.SECTOR], 104),
+    weeklyGrowth(KREDI, SME, "TOTAL", 52, [WEEKLY_BANK_TYPES.SECTOR], 104),
+    evdsSeries("TP.DK.USD.A", 4),
+    cpiYoYByMonth(),
+    stageLadder(),
   ]);
 
   // ---- the computed backdrop -----------------------------------------------
@@ -234,7 +260,9 @@ export default async function OverviewPage({
   const assetsRealNow = realRate(assetsYoYNow, cpiYoYNow);
   const buffer = carNow != null ? carNow - 12 : null;
   const nplStreak = streak(sNpl, "up");
-  const nimLow = windowExtremes(sNim, 24)?.min ?? null;
+  const nimRange = windowExtremes(sNim, 24);
+  const nimLow = nimRange?.min ?? null;
+  const nimLowPeriod = nimRange?.minPeriod ?? null;
   // Fisher, not roe − cpi: at a ~32% CPI the shortcut is ~1.8pp adrift. The base
   // is the 12m AVERAGE because ROE is earned across the year, not at a point —
   // and the surfaces below print which base they used. (series.ts / real-terms.ts)
@@ -306,12 +334,21 @@ export default async function OverviewPage({
   ];
 
   // ---- transmission ---------------------------------------------------------
-  const loansYoYNow = lastVal(sLoansYoY);
-  // Fisher too, and on the SPOT y/y base — this deflates a y/y growth rate, so
-  // its π must be the y/y one. /credit computes the same quantity this way; the
-  // g−π shortcut here made the landing page disagree with it.
-  const creditReal = realRate(loansYoYNow, cpiYoYNow);
   const usdtryNow = (usdRaw ?? []).at(-1)?.value ?? null;
+
+  // THE real credit number: strip the FX revaluation and CPI, exactly as
+  // /credit does. A CPI-only deflation is a different quantity and is never
+  // called bare "real" — where it appears it carries the CPI-only chip.
+  const usdTryRows = (usdTryRaw as { period_date: string; value: number | null }[])
+    .filter((r): r is { period_date: string; value: number } => r.value != null);
+  const fxAdjSeries = fxAdjustedGrowth(
+    tlWeekly.map((r) => ({ period: r.period, value: r.value })),
+    fxWeekly.map((r) => ({ period: r.period, value: r.value })),
+    usdTryRows,
+  );
+  const bridge = creditBridge(weeklyLoansYoY, fxAdjSeries, cpiYoYMap);
+  const creditRealFx = bridge.realFxAdj;
+  const creditNominalAtReal = bridge.nominalAtReal ?? bridge.nominal;
 
   const transmission: TransmissionItem[] = [];
   if (cpiAvgNow != null) {
@@ -336,30 +373,23 @@ export default async function OverviewPage({
       v: funding.toFixed(1),
       unit: "%",
       effect: (
-        <>{tx("Deposits reprice first —")}{" "}
-          <b>{tx("NIM ")}{tx(nimLow != null ? tx("rebuilt {0}%", {0: nimLow.toFixed(1)}) : "")} →{" "}
-            {tx(fmtPct(nimNow, 1))}
-          </b>{tx("; each policy move feeds the margin with a lag.")}{" "}
+        <>{tx("Deposits reprice first; each policy move feeds the margin with a lag.")}{" "}
           <Go href="/profitability">{tx("Profitability")}</Go>
         </>
       ),
     });
   }
-  if (creditReal != null) {
+  if (creditRealFx != null) {
     transmission.push({
-      k: "Credit, real",
-      v: signedPct(creditReal, 1).replace("%", ""),
+      k: "Credit — real, constant FX",
+      v: signedPct(creditRealFx, 1).replace("%", ""),
       unit: "%",
       effect: (
-        <>{tx("Loan growth ")}{tx(fmtPct(loansYoYNow, 1))}{tx(" nominal, deflated by y/y CPI")}{" "}
-          {tx(fmtPct(cpiYoYNow, 1))} —{" "}
-          <b>
-            {tx(creditReal > 2
-              ? "credit is growing ahead of prices."
-              : creditReal < -2
-                ? "the book is shrinking in real terms."
-                : "growth with prices, not the economy.")}
-          </b>{" "}
+        <>{tx("Loan growth {0} y/y nominal, FX included; after removing currency and price effects the book {1} {2} in real, constant-FX terms.", {
+          0: fmtPct(creditNominalAtReal, 1),
+          1: creditRealFx < 0 ? "shrank" : "grew",
+          2: fmtPct(Math.abs(creditRealFx), 1),
+        })}{" "}
           <Go href="/credit">{tx("Credit")}</Go>
         </>
       ),
@@ -406,6 +436,7 @@ export default async function OverviewPage({
   const pulse = overviewInsights({
     assetsYoY: sAssetsYoY, loansYoY: sLoansYoY, depositsYoY: sDepositsYoY,
     npl: sNpl, car: sCar, ldr: sLdr, roe: sRoe,
+    cardsYoY, gplYoY, smeYoY,
   }, tx.locale);
   const read = await withLlmHeadline("overview", pulse, tx.locale);
   const network = operatingNetworkViews(operatingNetwork);
@@ -477,16 +508,20 @@ export default async function OverviewPage({
           unit="%"
           series={spark(sNpl)}
           note={
-            nplStreak >= 3 ? (
-              <>
-                <em className="not-italic font-semibold text-negative">
-                  {tx(nplStreak)}{tx(" straight rises")}</em>{" "}
-                <Go href="/asset-quality">{tx("Asset Quality")}</Go>
-              </>
-            ) : (
-              <>{tx("broadly stable ")}<Go href="/asset-quality">{tx("Asset Quality")}</Go>
-              </>
-            )
+            <>
+              <em className="not-italic font-semibold text-negative">
+                {nplStreak >= 1
+                  ? tx("{0} straight monthly rises", { 0: nplStreak })
+                  : tx("rising")}
+              </em>
+              {ladder ? (
+                <>
+                  {" · "}
+                  {tx("Stage 2 watchlist {0} — not in the NPL ratio", { 0: fmtPct(ladder.stage2Share) })}
+                </>
+              ) : null}{" "}
+              <Go href="/asset-quality">{tx("Asset Quality")}</Go>
+            </>
           }
         />
 <Vital
@@ -496,9 +531,9 @@ export default async function OverviewPage({
           series={spark(sNim)}
           note={
             <>
-              {tx(nimLow != null && nimNow != null && nimNow - nimLow > 0.5
-                ? tx("rebuilt from {0}%", { 0: nimLow.toFixed(1) })
-                : "cycle margin")}{" "}
+              {tx(nimLow != null && nimLowPeriod != null && nimNow != null && nimNow - nimLow > 0.5
+                ? tx("recovered from the {0}% trough in {1}", { 0: nimLow.toFixed(1), 1: monthLabel(nimLowPeriod, false) })
+                : tx("within its 24-month range"))}{" "}
               <Go href="/profitability">{tx("Profitability")}</Go>
             </>
           }
@@ -513,7 +548,7 @@ export default async function OverviewPage({
             <>
               {tx(ldrNow != null && ldrNow < LDR_PUBLISHED.line
                 ? tx("below the {0}% line", { 0: LDR_PUBLISHED.line })
-                : tx("above the {0}% line", { 0: LDR_PUBLISHED.line }))}{" "}{tx("— published, monthly ")}<Go href="/deposits">{tx("Deposits")}</Go>
+                : tx("above the {0}% line", { 0: LDR_PUBLISHED.line }))}{" "}{tx("— published, monthly, BDDK Table 15, all banks ")}<Go href="/deposits">{tx("Deposits")}</Go>
             </>
           }
         />
@@ -524,7 +559,7 @@ export default async function OverviewPage({
           series={spark(sRoe)}
           decimals={1}
           note={
-            <>{tx("− CPI ≈")}{" "}
+            <>{tx("nominal")}{" · "}{tx("Fisher real")}{" "}
               <em
                 className={
                   roeReal != null && roeReal < 0
@@ -532,7 +567,7 @@ export default async function OverviewPage({
                     : "not-italic font-semibold text-positive"
                 }
               >
-                {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}{tx(" real")}</em>{" "}
+                {tx(roeReal != null ? signedPct(roeReal, 1) : "—")}</em>{" "}
               <Go href="/profitability">{tx("Profitability")}</Go>
             </>
           }
@@ -556,7 +591,7 @@ export default async function OverviewPage({
   </SectorGrid>
   <SectorTrend data={[...sLoansYoY.map(row => ({...row,bank_type_code:"loans"})), ...sDepositsYoY.map(row => ({...row,bank_type_code:"deposits"}))]}
     seriesLabels={{loans:"Loans",deposits:"Deposits"}} title={tx("Loan and deposit growth")}
-    description={tx("Annual growth on the same monthly reporting basis")}
+    description={tx("Annual growth, nominal and FX-included, on the same monthly reporting basis")}
     source={tx("BDDK monthly bulletin · nominal annual growth, including currency effects.")}
     yFormat="pct" height={260} zeroLine />
 </SectorSection>
@@ -577,9 +612,9 @@ export default async function OverviewPage({
     source={<><p>{tx("capital adequacy, %, monthly · target ratio 12% · BDDK")}</p><ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
     yFormat="pct" decimals={1} height={310} />
   <SectorTrend data={loansYoYGroups} seriesLabels={BANK_TYPE_LABELS}
-    title={tx("Loan growth y/y")}
+    title={tx("Loan growth y/y — nominal, FX included")}
     description={tx(seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }, tx.locale))}
-    source={<><p>{tx("loan growth y/y, %, monthly · BDDK monthly bulletin")}</p><ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
+    source={<><p>{tx("loan growth y/y, %, monthly, nominal and FX-included · BDDK monthly bulletin")}</p><ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} /></>}
     yFormat="pct" decimals={1} deltaPeriods={12} deltaLabel="12m" zeroLine height={310} />
   <SectorTrend deltaPeriods={12} deltaLabel="12m" data={nplAllGroups} seriesLabels={BANK_TYPE_LABELS}
     title={tx("NPL ratio")}
@@ -606,7 +641,7 @@ export default async function OverviewPage({
             items={[
               { k: "Total assets", v: fmtTrn(assets.at(-1)?.value) },
               { k: "Assets y/y", v: fmtPct(assetsYoY.at(-1)?.value, 1) },
-              { k: "Loan growth y/y", v: fmtPct(loansYoY.at(-1)?.value, 1) },
+              { k: "Loan growth y/y — nominal, FX incl.", v: fmtPct(loansYoY.at(-1)?.value, 1) },
               { k: "Deposit growth y/y", v: fmtPct(depositsYoY.at(-1)?.value, 1) },
             ]}
           />
