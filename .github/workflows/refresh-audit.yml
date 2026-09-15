@@ -54,6 +54,7 @@ permissions:
 # bulletin/EVDS workflows, so it can run concurrently with them.
 concurrency:
   group: bddk-audit
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -367,22 +368,9 @@ jobs:
         # includes both the new rows and push_to_d1's confirmed digest/row state.
         run: |
           python - <<'PY'
-          import gzip, shutil, sqlite3, pathlib
-          from src.audit_reports import r2_storage
-          db = pathlib.Path("data/bank_audit.db")
-          # VACUUM keeps the snapshot tight before compressing.
-          with sqlite3.connect(str(db)) as c:
-              c.execute("VACUUM")
-          gz = pathlib.Path("data/bank_audit.db.gz")
-          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=6) as d:
-              shutil.copyfileobj(s, d)
-          size = r2_storage.upload_file(gz, "state/bank_audit.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bank_audit.db.gz")
-          # Dated backup so a bad run can't destroy the only copy (keep last 7).
-          from datetime import datetime, timezone
-          date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-          hkey = r2_storage.upload_history(gz, "bank_audit", date_str, keep=7)
-          print(f"Backup → {hkey} (history pruned to last 7)")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bank_audit.db"), "audit")
           PY
 
       - name: Notify on newly acquired reports

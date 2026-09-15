@@ -41,6 +41,7 @@ permissions:
 # runs queue instead of dropping data.
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -137,7 +138,7 @@ jobs:
         # On Saturdays the 168h window in refresh-data.yml re-covers anything
         # missed earlier in the week. INSERT OR REPLACE is idempotent so
         # overlap between the two workflows is harmless.
-        run: python scripts/push_to_d1.py --hours 30
+        run: python scripts/push_to_d1.py --table-set bddk --hours 30
 
       # Positive ping: a weekly and/or monthly bulletin was published AND fetched
       # this run. Quiet when nothing new landed (the before/after diff decides).
@@ -156,16 +157,9 @@ jobs:
         if: steps.refresh.outputs.changed == 'true'
         run: |
           python - <<'PY'
-          from src.audit_reports import r2_storage
-          import gzip, pathlib, shutil, sqlite3
-          db = pathlib.Path("data/bddk_data.db")
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          with sqlite3.connect(db) as conn:
-              conn.execute("VACUUM")
-          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
-              shutil.copyfileobj(src, dst)
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY
 
       - name: Alert on failure

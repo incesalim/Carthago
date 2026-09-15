@@ -7,7 +7,7 @@ def test_every_external_mutation_is_excluded_from_the_refresh_preview():
               ".github/workflows/refresh-audit.yml").read_text(encoding="utf-8")
     steps = source.split("\n      - name: ")[1:]
     mutating = [step for step in steps if any(token in step for token in (
-        "--alert", "scripts/notify.py", "scripts/push_to_d1.py", "upload_file(",
+        "--alert", "scripts/notify.py", "scripts/push_to_d1.py", "publish_snapshot(",
     ))]
     assert len(mutating) == 7
     for step in mutating:

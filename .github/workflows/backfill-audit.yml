@@ -33,6 +33,7 @@ permissions:
 # snapshot). One audit job at a time.
 concurrency:
   group: bddk-audit
+  queue: max
   cancel-in-progress: false
 
 jobs:

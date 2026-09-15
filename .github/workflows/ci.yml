@@ -65,6 +65,12 @@ jobs:
         # (bank_ticker/amount_fc/snake_case/no reserved words/unique number).
         # Stdlib-only. Existing tables are grandfathered.
         run: python scripts/check_schema_naming.py
+      - name: Serving schema contract
+        run: python scripts/check_schema_contract.py
+      - name: Publication ownership and queues
+        run: python scripts/check_publication_contract.py
+      - name: Shared mobile contract and build identity
+        run: python scripts/sync_app_contract.py --check
       - name: No pdfplumber
         # PDF extraction is fitz (PyMuPDF) only (pdfplumber removed 2026-07-15).
         # Blocks any `import pdfplumber` creeping back into src/scripts/tests, or

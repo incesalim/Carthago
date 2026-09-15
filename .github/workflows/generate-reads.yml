@@ -21,6 +21,7 @@ permissions:
 # Share the pipeline lock so a manual run can't collide with a refresh mid-write.
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:

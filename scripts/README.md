@@ -51,7 +51,11 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | Script | Guards | Run by | Class |
 |---|---|---|---|
 | `reconcile_schema.py` | Read-only adoption plan; Actions-only apply of reviewed legacy schema effects. | `deploy-cloudflare.yml` | operational |
+| `check_schema_contract.py` | Publishable staging columns vs a fresh versioned serving schema (read-only), and the actual publisher SQL emitter accepted by a migration-only DB. | `ci.yml` | gate |
+| `check_publication_contract.py` | Real publishers name an explicit table scope, shared writer queues retain pending runs, authoritative snapshots route through `publish_snapshot`, and ingestion applies no serving DDL — checked across workflows, `scripts/` and `src/`. | `ci.yml` | gate |
 | `sync_app_contract.py` | `contracts/app-api-v1.ts` is the single wire contract: regenerates the isolated Next/Metro copies (`--check` in CI) and enforces mobile clientBuild = Android versionCode = iOS buildNumber. | `ci.yml` | gate |
+| `check_release.py` | Exact-40-char release SHA eligibility: successful push CI, still current master (or a previously verified release for rollback). Fails closed before production writes. | release workflow (wiring pending) | gate |
+| `check_release_smoke.py` | Bounded, read-only post-release checks of the landing page, a bank page and both public API envelopes. | release workflow (wiring pending) | gate |
 | `check_scripts_index.py` | THIS index ↔ the scripts that exist, both directions. | `ci.yml` | gate |
 | `check_docs_sync.py` | OPERATIONS/ADMIN/TELEGRAM_BOT name every workflow, secret and env key the code reads. | `ci.yml` | gate |
 | `check_schema_naming.py` | D1 migrations ≥ 0022 follow SCHEMA_CONVENTIONS.md. | `ci.yml` | gate |

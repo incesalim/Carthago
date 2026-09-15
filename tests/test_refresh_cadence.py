@@ -79,7 +79,7 @@ def test_changed_bulletin_runs_build_then_push_once_then_package():
         wf = (REPO / ".github/workflows" / name).read_text(encoding="utf-8")
         build = wf.index("python scripts/build_api_catalog.py")
         push = wf.index("python scripts/push_to_d1.py")
-        package = wf.rindex("gzip.open(gz")
+        package = wf.rindex("publish_snapshot(")
         assert build < push < package
         assert wf.count("python scripts/push_to_d1.py") == 1
 
@@ -87,5 +87,5 @@ def test_changed_bulletin_runs_build_then_push_once_then_package():
 def test_evds_packages_confirmed_push_state_not_the_pre_push_database():
     wf = (REPO / ".github/workflows" / "refresh-evds-daily.yml").read_text(
         encoding="utf-8")
-    assert wf.index("python scripts/push_to_d1.py") < wf.rindex("gzip.open(gz")
+    assert wf.index("python scripts/push_to_d1.py") < wf.rindex("publish_snapshot(")
     assert "--defer-packaging" in wf

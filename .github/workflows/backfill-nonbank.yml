@@ -31,6 +31,7 @@ permissions:
 # can't race this job on the R2 snapshot (they queue behind it).
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -91,28 +92,12 @@ jobs:
         # --only-tables keeps this scoped to the non-bank table.
         run: python scripts/push_to_d1.py --hours 720 --only-tables nonbank_balance_sheet
 
-      - name: VACUUM + gzip snapshot
-        run: |
-          python - <<'PY'
-          import gzip, shutil, sqlite3, pathlib
-          db = pathlib.Path("data/bddk_data.db")
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          c = sqlite3.connect(db)
-          c.execute("VACUUM")
-          c.close()
-          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=9) as d:
-              shutil.copyfileobj(s, d)
-          print(f"{gz.name}: {gz.stat().st_size/1e6:.1f} MB")
-          PY
-
       - name: Upload new SQLite snapshot back to R2
         run: |
           python - <<'PY'
-          from src.audit_reports import r2_storage
-          import pathlib
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY
 
       - name: Alert on failure

@@ -37,6 +37,7 @@ permissions:
 # snapshot. (They are frozen as of 2026-08-01, but the guard is the point.)
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -101,28 +102,13 @@ jobs:
         # changed, minutes ago. Scoped to `loans` so nothing else moves.
         run: python scripts/push_to_d1.py --hours 2 --only-tables loans
 
-      - name: VACUUM + gzip snapshot
-        if: ${{ !inputs.dry_run }}
-        run: |
-          python - <<'PY'
-          import gzip, shutil, sqlite3, pathlib
-          db = pathlib.Path("data/bddk_data.db")
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          c = sqlite3.connect(db); c.execute("VACUUM"); c.close()
-          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=9) as d:
-              shutil.copyfileobj(s, d)
-          print(f"{gz.name}: {gz.stat().st_size/1e6:.1f} MB")
-          PY
-
       # Without this the next pull re-introduces the NULLs and the D1 push is
       # silently undone the next time anything writes the snapshot.
       - name: Upload new SQLite snapshot back to R2
         if: ${{ !inputs.dry_run }}
         run: |
           python - <<'PY'
-          from src.audit_reports import r2_storage
-          import pathlib
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY

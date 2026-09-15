@@ -55,6 +55,7 @@ permissions:
 # write, and a half-written snapshot would produce nonsense verdicts.
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:

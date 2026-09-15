@@ -57,6 +57,7 @@ permissions:
 # Reads the audit snapshot — never race the extraction lane.
 concurrency:
   group: bddk-audit
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -215,20 +216,12 @@ jobs:
           --only-tables analyst_signals,analyst_basis_metadata,analyst_notes
 
       - name: Upload analyst staging state to R2
-        if: always()
+        if: success()
         run: |
           python - <<'PY'
-          import gzip, pathlib, shutil
-          from src.audit_reports import r2_storage
-          db = pathlib.Path("data/analyst.db")
-          if not db.exists():
-              print("no analyst.db to upload")
-              raise SystemExit(0)
-          gz = pathlib.Path("data/analyst.db.gz")
-          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=6) as d:
-              shutil.copyfileobj(s, d)
-          size = r2_storage.upload_file(gz, "state/analyst.db.gz")
-          print(f"uploaded state/analyst.db.gz ({size/1e6:.2f} MB)")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/analyst.db"), "analyst")
           PY
 
       - name: Upload artifacts (signals + basis + memos + sections)

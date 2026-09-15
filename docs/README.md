@@ -26,9 +26,13 @@ Metric definitions live in [METRICS.md](METRICS.md).
 
 ## Audit lane (per-bank BRSA report extraction)
 
+**Active plan:** [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md). The others
+are reference (`AUDIT_PIPELINE`, `AUDIT_EXTRACTION_GUIDE`, `AUDIT_BANK_CATALOG`,
+`MISSING_AUDIT_DATA`) or historical (see *Reference & history* below).
+
 | Doc | What it covers |
 |---|---|
-| [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) | Active complete-document corpus implementation: source identity, independent verification, structured tables/prose, durable storage and admin acceptance. Registered corpus first, then expansion. |
+| [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) | **Active plan** — complete-document corpus implementation: source identity, independent verification, structured tables/prose, durable storage and admin acceptance. Registered corpus first, then expansion. |
 | [AUDIT_PIPELINE.md](AUDIT_PIPELINE.md) | How audit PDFs become D1 rows: the two-lane model, the statement-type registry, the repair playbook. |
 | [AUDIT_EXTRACTION_GUIDE.md](AUDIT_EXTRACTION_GUIDE.md) | Checklist for writing / fixing a statement extractor (understand → identities → extract → validate → evidence → repair). |
 | [AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md) | Auto-generated census of every bank × PDF: format profiles + per-bank filing quirks. |

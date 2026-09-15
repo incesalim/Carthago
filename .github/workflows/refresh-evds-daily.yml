@@ -21,6 +21,7 @@ permissions:
 # on the R2 snapshot when triggered close together (e.g. manual dispatch).
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -88,22 +89,15 @@ jobs:
         # 30h window — covers daily cadence with a 6h safety margin so a
         # late-publishing series doesn't get missed. Idempotent INSERT
         # OR REPLACE on (code, period_date).
-        run: python scripts/push_to_d1.py --hours 30
+        run: python scripts/push_to_d1.py --table-set evds --hours 30
 
       - name: Upload new SQLite snapshot back to R2
         if: steps.refresh.outputs.changed == 'true'
         run: |
           python - <<'PY'
-          from src.audit_reports import r2_storage
-          import gzip, pathlib, shutil, sqlite3
-          db = pathlib.Path("data/bddk_data.db")
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          with sqlite3.connect(db) as conn:
-              conn.execute("VACUUM")
-          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
-              shutil.copyfileobj(src, dst)
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY
 
       - name: Alert on failure

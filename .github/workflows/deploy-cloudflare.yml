@@ -1,34 +1,37 @@
 name: Deploy Cloudflare Workers dashboard
+run-name: Release ${{ github.event.workflow_run.head_sha || inputs.sha || github.sha }}
 
-# Deploys the Next.js dashboard in web/ to Cloudflare Workers via OpenNext,
-# AFTER CI has passed on the same commit. Manually triggerable from the Actions tab.
-#
-# This used to be `on: push` with a `paths:` filter — which meant it raced ci.yml
-# rather than waiting for it. Both fired on the same push, nothing linked them,
-# and `gh api .../branches/master/protection` returned 404 with no rulesets. So a
-# red CI did not stop a deploy, and `wrangler d1 migrations apply --remote` below
-# ran against the live database before a single check had passed. AGENTS.md and
-# web/AGENTS.md both stated "CI gates deploy"; until this change that was false.
-#
-# `workflow_run` is the trigger that actually expresses "after CI, if green".
-#
-# TRADE-OFF, deliberate: workflow_run carries no `paths:` filter, so this now
-# builds on every green CI on master, not only when web/** changed. That costs a
-# few minutes of (free, public-repo) Actions time on Python-only commits. The
-# alternative — reconstructing the changed-file set from the commit range — is
-# fragile across multi-commit pushes, and the failure it risks is a SILENTLY
-# STALE SITE. An extra idempotent deploy is the cheaper mistake, so it is the one
-# this file makes.
+# Build the exact checked commit, then publish under release + audit locks.
+# Manual releases use the same exact-SHA checks; rollback must explicitly name
+# a previously successful verified release and retains the additive schema.
 
 on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
     branches: [master]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Exact checked SHA (empty = selected ref's commit)"
+        type: string
+        default: ""
+      rollback:
+        description: "Explicit rollback to a previously successful verified release"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: carthago-production-release
+  queue: max
+  cancel-in-progress: false
+
+env:
+  RELEASE_SHA: ${{ github.event.workflow_run.head_sha || inputs.sha || github.sha }}
 
 jobs:
   deploy:
@@ -39,6 +42,10 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push')
+    concurrency:
+      group: bddk-audit
+      queue: max
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -51,7 +58,11 @@ jobs:
           # A workflow_run job checks out the DEFAULT branch unless told
           # otherwise — deploy the exact commit CI went green on, not whatever
           # master points at by the time this starts.
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          ref: ${{ env.RELEASE_SHA }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
 
       - name: Setup Node 24
         uses: actions/setup-node@v7
@@ -65,18 +76,45 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Apply D1 schema migrations
+      - name: Build the checked SHA before any production write
+        run: |
+          npx opennextjs-cloudflare build
+          echo "$RELEASE_SHA" > .open-next/release-sha.txt
+
+      - name: Check exact release inside publication locks
+        id: eligible
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROLLBACK: ${{ inputs.rollback || false }}
+        run: |
+          args=(--sha "$RELEASE_SHA")
+          if [ "$ROLLBACK" = "true" ]; then args+=(--rollback); fi
+          python scripts/check_release.py "${args[@]}"
+
+      - name: Reconcile known additive schema changes
+        if: steps.eligible.outputs.eligible == 'true' && !inputs.rollback
+        working-directory: .
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        # Hand-authored, idempotent migrations in web/migrations/ are the schema
-        # source of truth. wrangler applies any not yet recorded in d1_migrations;
-        # the baseline is all IF NOT EXISTS, so it's a no-op on the live DB.
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: python scripts/reconcile_schema.py --apply
+
+      - name: Apply versioned D1 schema migrations
+        if: steps.eligible.outputs.eligible == 'true' && !inputs.rollback
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler d1 migrations apply bddk-data --remote
 
-      - name: Build with OpenNext
-        run: npx opennextjs-cloudflare build
-
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy the verified artifact
+        if: steps.eligible.outputs.eligible == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx opennextjs-cloudflare deploy
+        run: |
+          test "$(cat .open-next/release-sha.txt)" = "$RELEASE_SHA"
+          npx opennextjs-cloudflare deploy
+
+      - name: Check deployed pages and APIs
+        if: steps.eligible.outputs.eligible == 'true'
+        working-directory: .
+        run: python scripts/check_release_smoke.py

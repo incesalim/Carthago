@@ -47,6 +47,7 @@ permissions:
 # manual dispatches can't trample each other's R2 snapshot.
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -161,18 +162,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         # 2h window — the briefing was just inserted so fetched_at is fresh.
-        run: python scripts/push_to_d1.py --hours 2
+        run: python scripts/push_to_d1.py --table-set regulations --hours 2
 
-      - name: Re-gzip + upload snapshot back to R2
+      - name: Verify checkpoint and promote the current snapshot
         run: |
           python - <<'PY'
-          import gzip, shutil, pathlib
-          from src.audit_reports import r2_storage
-          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
-          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
-              shutil.copyfileobj(src, dst)
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY
 
       # This workflow had no failure alert at all, which is the other half of why

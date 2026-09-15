@@ -24,6 +24,7 @@ permissions:
 # workflows on the R2 SQLite snapshot.
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -82,20 +83,13 @@ jobs:
         # currency, snapshot_date) key.
         run: python scripts/push_to_d1.py --hours 30 --only-tables bank_advertised_rates
 
-      # This lane runs the scraper directly rather than scripts/refresh.py (which
-      # is what VACUUMs + re-gzips for the other refresh workflows), so the
-      # snapshot must be re-compressed here — otherwise we'd re-upload the stale
-      # .gz we downloaded and silently drop this run's rows from the snapshot.
-      - name: Re-gzip + upload snapshot back to R2
+      # Shared publication packages current SQLite state after D1 succeeds.
+      - name: Verify checkpoint and promote the current snapshot
         run: |
           python - <<'PY'
-          import gzip, shutil, pathlib
-          from src.audit_reports import r2_storage
-          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
-          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
-              shutil.copyfileobj(src, dst)
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY
 
       - name: Alert on failure

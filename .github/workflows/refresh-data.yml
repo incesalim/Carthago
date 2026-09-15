@@ -17,6 +17,7 @@ permissions:
 # Serialize against the daily EVDS workflow so they can't race on the R2 snapshot.
 concurrency:
   group: bddk-pipeline
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -72,7 +73,7 @@ jobs:
       # R2 snapshot state/bank_audit.db.gz, own concurrency group). This job
       # owns only the BDDK bulletin + EVDS tables now. The bank_audit_* tables
       # still present in this snapshot are frozen (never re-extracted here), so
-      # the push below picks up no fresh audit rows — its time window finds none.
+      # the explicit bulletin table set below excludes audit rows.
 
       - name: Rebuild the public-API series catalog locally
         if: steps.refresh.outputs.changed == 'true'
@@ -90,30 +91,16 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         # 168h (7 days) window — covers the weekly cron interval. Idempotent
         # via INSERT OR REPLACE; re-running overwrites unchanged rows safely.
-        # Covers monthly / weekly / EVDS tables. The bank_audit_* tables are
-        # now owned by refresh-audit.yml (separate DB + snapshot); they sit
-        # frozen in this snapshot, so the time-window filter pushes none.
-        run: python scripts/push_to_d1.py --hours 168
+        # Bulletin-owned tables only; audit rows cannot enter this publication.
+        run: python scripts/push_to_d1.py --table-set bulletin --hours 168
 
-      - name: Upload new SQLite snapshot back to R2 (+ dated backup)
+      - name: Verify checkpoint and promote the current SQLite snapshot
         if: steps.refresh.outputs.changed == 'true'
         run: |
           python - <<'PY'
-          import gzip, pathlib, shutil, sqlite3
-          from datetime import datetime, timezone
-          from src.audit_reports import r2_storage
-          db = pathlib.Path("data/bddk_data.db")
-          gz = pathlib.Path("data/bddk_data.db.gz")
-          with sqlite3.connect(db) as conn:
-              conn.execute("VACUUM")
-          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
-              shutil.copyfileobj(src, dst)
-          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
-          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
-          # Dated backup so a bad run can't destroy the only copy (keep last 7).
-          date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-          hkey = r2_storage.upload_history(gz, "bddk_data", date_str, keep=7)
-          print(f"Backup → {hkey} (history pruned to last 7)")
+          from pathlib import Path
+          from src.pipeline.snapshots import publish_snapshot
+          publish_snapshot(Path("data/bddk_data.db"), "bulletin")
           PY
 
       - name: Alert on failure
