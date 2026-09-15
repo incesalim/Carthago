@@ -21,7 +21,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 _spec = importlib.util.spec_from_file_location(
-    "build_lcr_full", REPO / "scripts" / "build_lcr_full.py")
+    "build_lcr_full", REPO / "scripts" / "graduations" / "build_lcr_full.py")
 L = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(L)
 

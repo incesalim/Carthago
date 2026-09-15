@@ -21,7 +21,7 @@ sys.path.insert(0, str(REPO))
 from src.audit_reports import numbered_template as NT  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
-    "build_leverage_full", REPO / "scripts" / "build_leverage_full.py")
+    "build_leverage_full", REPO / "scripts" / "graduations" / "build_leverage_full.py")
 LV = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(LV)
 
@@ -283,7 +283,7 @@ def test_nsfr_parses_numbers_in_either_printed_convention():
 # --- the RWA overview (OV1) lane, same module -------------------------------
 
 _spec_rwa = importlib.util.spec_from_file_location(
-    "build_rwa_full", REPO / "scripts" / "build_rwa_full.py")
+    "build_rwa_full", REPO / "scripts" / "graduations" / "build_rwa_full.py")
 RW = importlib.util.module_from_spec(_spec_rwa)
 _spec_rwa.loader.exec_module(RW)
 
@@ -359,7 +359,7 @@ def test_rwa_overview_anchored_signatures_and_three_columns(tmp_path):
 # --- the CR4 exposure-class lane: percent COLUMN, shape filter, mint gate ----
 
 _spec_cr4 = importlib.util.spec_from_file_location(
-    "build_exposure_class_full", REPO / "scripts" / "build_exposure_class_full.py")
+    "build_exposure_class_full", REPO / "scripts" / "graduations" / "build_exposure_class_full.py")
 CR = importlib.util.module_from_spec(_spec_cr4)
 _spec_cr4.loader.exec_module(CR)
 
@@ -393,7 +393,7 @@ def test_cr4_percent_column_shape_filter_and_mint_gate(tmp_path):
 # --- the loans-by-type notes family: label registry + identity gate ---------
 
 _spec_lt = importlib.util.spec_from_file_location(
-    "build_loan_type_full", REPO / "scripts" / "build_loan_type_full.py")
+    "build_loan_type_full", REPO / "scripts" / "graduations" / "build_loan_type_full.py")
 LT = importlib.util.module_from_spec(_spec_lt)
 _spec_lt.loader.exec_module(LT)
 
@@ -434,7 +434,7 @@ def test_loan_type_registry_wrap_merge_and_identity_gate(tmp_path):
 # --- the consumer-loans notes family: group/item roles + per-row identity ---
 
 _spec_cl = importlib.util.spec_from_file_location(
-    "build_consumer_loan_full", REPO / "scripts" / "build_consumer_loan_full.py")
+    "build_consumer_loan_full", REPO / "scripts" / "graduations" / "build_consumer_loan_full.py")
 CL = importlib.util.module_from_spec(_spec_cl)
 _spec_cl.loader.exec_module(CL)
 
@@ -549,7 +549,7 @@ def test_consumer_loans_isctr_accruals_column_over_split_blocks(tmp_path):
 # --- the derivatives notes family: context + Σ-instruments gate -------------
 
 _spec_dv = importlib.util.spec_from_file_location(
-    "build_derivative_full", REPO / "scripts" / "build_derivative_full.py")
+    "build_derivative_full", REPO / "scripts" / "graduations" / "build_derivative_full.py")
 DV = importlib.util.module_from_spec(_spec_dv)
 _spec_dv.loader.exec_module(DV)
 
@@ -633,7 +633,7 @@ def test_derivatives_header_rows_glued_forward_and_inline_instruments(tmp_path):
 # --- the securities notes family: signed adjustments + head-or-children -----
 
 _spec_sc = importlib.util.spec_from_file_location(
-    "build_securities_full", REPO / "scripts" / "build_securities_full.py")
+    "build_securities_full", REPO / "scripts" / "graduations" / "build_securities_full.py")
 SC = importlib.util.module_from_spec(_spec_sc)
 _spec_sc.loader.exec_module(SC)
 
@@ -746,7 +746,8 @@ def test_securities_date_row_phantom_columns_glued_movement_other_and_accruals(t
 
 
 def _load(name: str):
-    spec = importlib.util.spec_from_file_location(name, REPO / "scripts" / f"{name}.py")
+    spec = importlib.util.spec_from_file_location(
+        name, REPO / "scripts" / "graduations" / f"{name}.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

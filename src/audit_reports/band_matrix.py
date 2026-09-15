@@ -9,8 +9,8 @@ unlabelled prior-period total column on the right. `column_model` reads
 what it can, completes the gaps from the band set's canonical order, and
 lets the data decide which column is the total.
 
-Shared by scripts/build_deposit_maturity_full.py and
-scripts/build_maturity_gap_full.py; each brings its own `BandSet`.
+Shared by `scripts/graduations/build_deposit_maturity_full.py` and its
+sibling band-matrix graduations; each brings its own `BandSet`.
 """
 from __future__ import annotations
 

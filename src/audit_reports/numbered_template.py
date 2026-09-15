@@ -6,7 +6,7 @@ keeps that number as each row's first cell (or as the label's prefix). So
 `template_row` is the cross-bank, cross-language join key, and the builders
 for these lanes share everything except the template's own facts — its
 signature rows, its row roles, its value-column names and which row is the
-percent. This module is that shared everything; `scripts/build_lcr_full.py`,
+percent. This module is that shared everything; `scripts/graduations/build_lcr_full.py`,
 `build_nsfr_full.py` and `build_leverage_full.py` are thin over it.
 
 What a numbered template's assembly has in common:

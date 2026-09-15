@@ -1,9 +1,10 @@
 """Section structure of a captured filing, from the filing's own numbers.
 
-Shared by `scripts/view_document_capture.py` (the banners and contents box it
-renders) and `scripts/build_document_tables.py` (the section columns of the
-derived per-table lane). One implementation, because two copies of "where does
-Section 4 start" is how the viewer and the queryable lane would drift apart.
+Shared by `scripts/diagnostics/view_document_capture.py` (the banners and
+contents box it renders) and `scripts/graduations/build_document_tables.py` (the
+section columns of the derived per-table lane). One implementation, because two
+copies of "where does Section 4 start" is how the viewer and the queryable lane
+would drift apart.
 
 Input everywhere is the capture ledger's line rows ordered by page then
 line_order — any iterable of tuples whose first three fields are

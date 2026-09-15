@@ -20,7 +20,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 _spec = importlib.util.spec_from_file_location(
-    "build_nsfr_full", REPO / "scripts" / "build_nsfr_full.py")
+    "build_nsfr_full", REPO / "scripts" / "graduations" / "build_nsfr_full.py")
 N = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(N)
 
