@@ -29,7 +29,7 @@ UPDATE bank_audit_statement_types SET section = '2', section_rank = 0
  WHERE key IN ('balance_sheet_assets', 'balance_sheet_liabilities', 'profit_loss',
                'other_comprehensive_income', 'equity_change', 'cash_flow', 'off_balance');
 UPDATE bank_audit_statement_types SET section = '5', section_rank = 1
- WHERE key IN ('credit_quality', 'stages', 'loans_by_sector', 'npl_movement',
+ WHERE key IN ('credit_quality', 'stages', 'loans_by_sector', 'loans_currency', 'npl_movement',
                'free_provision');
 UPDATE bank_audit_statement_types SET section = '4', section_rank = 2
  WHERE key IN ('capital', 'liquidity', 'fx_position', 'repricing');

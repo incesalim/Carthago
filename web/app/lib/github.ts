@@ -113,7 +113,7 @@ export const DISPATCHABLE = new Set<string>([
 export const STATEMENT_TYPES = new Set<string>([
   "balance_sheet_assets", "balance_sheet_liabilities", "profit_loss",
   "other_comprehensive_income", "equity_change", "cash_flow", "off_balance",
-  "credit_quality", "stages", "loans_by_sector", "npl_movement",
+  "credit_quality", "stages", "loans_by_sector", "loans_currency", "npl_movement",
   "capital", "liquidity", "fx_position", "repricing", "profile",
   "audit_opinion", "free_provision",
   // prose is deliberately parked in a local-only database; do not dispatch it
