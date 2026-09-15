@@ -4538,7 +4538,7 @@
   "Deposits reprice first; each policy move feeds the margin with a lag.": "Mevduat önce yeniden fiyatlanır; her politika hamlesi marja gecikmeli yansır.",
   "{0} straight monthly rises": "{0} aydır aralıksız artış",
   "rising": "yükseliyor",
-  "Stage 2 watchlist {0} — not in the NPL ratio": "2. aşama yakın izleme %{0} — NPL oranına girmez",
+  "Stage 2 watchlist {0} — not in the NPL ratio": "2. aşama yakın izleme {0} — NPL oranına girmez",
   "recovered from the {0}% trough in {1}": "{1} dönemindeki %{0} dip seviyesinden toparlandı",
   "within its 24-month range": "24 aylık aralığı içinde",
   "nominal": "nominal",

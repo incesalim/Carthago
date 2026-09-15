@@ -320,9 +320,11 @@ export function Vital({
   observation?: ObservationMeta;
 }) {
   const tx = useText();
-  // The observation contract as a plain-text tooltip. The Key-indicators row
-  // hides the visible copy (it repeats the header's coverage detail), but the
-  // cadence, date, window and basis stay one hover away on the whole card.
+  // The observation contract travels as a plain-text tooltip on the whole card.
+  // It never renders as a second grey paragraph under the sparkline: the KPI
+  // band stays a dense grid of number + supporting line, and cadence, date,
+  // window and basis are one hover away (the header carries the page-level
+  // coverage detail).
   const observationTitle = observation
     ? [
         cadenceLabel(observation.cadence),
@@ -361,11 +363,6 @@ export function Vital({
       )}
       {tx(peer)}
       {note && <div data-vital-note className="mt-1.5 text-[9.5px] leading-snug text-faint">{tx(note)}</div>}
-      {observation && (
-        <div data-vital-observation className="mt-1.5 flex flex-wrap gap-x-1.5 border-t border-hair pt-1 font-mono text-[7.5px] uppercase tracking-[0.05em] text-faint">
-          <ObservationText item={observation} />
-        </div>
-      )}
     </div>
   );
 }

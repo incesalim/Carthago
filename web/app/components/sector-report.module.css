@@ -49,12 +49,10 @@
 .report [data-vital-spark]:has(> div:only-child:empty) { display:none; }
 .report [data-vital-note] { font:13px/1.55 var(--font-sans); color:var(--muted-foreground); }
 .report [data-vital-note] a { margin-inline-start:4px; text-underline-offset:3px; }
-.report [data-vital-observation] { margin-top:9px; padding-top:8px; font:12px/1.5 var(--font-sans); text-transform:none; letter-spacing:0; }
-/* The Key-indicators row keeps one supporting line per figure. The observation
-   contract is consolidated in the header's "Data coverage and definitions"
-   detail (and carried as the card's title), so it does not repeat as a second
-   grey paragraph under every number. */
-.metricsGrid [data-vital-observation] { display:none; }
+/* The key-indicator band keeps one supporting line per figure. The observation
+   contract (cadence, date, window, basis) is consolidated in the header's
+   "Data coverage and definitions" detail and carried as the card's title, so it
+   never repeats as a second grey paragraph under every sparkline. */
 
 /* Analytical panels and chapter rhythm. */
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
@@ -83,7 +81,6 @@
 .sectionBody > [data-vital] [data-vital-value],.report [data-vitals]:has(> [data-vital]:only-child) [data-vital-value] { grid-column:1; grid-row:2; }
 .sectionBody > [data-vital] [data-vital-spark],.report [data-vitals]:has(> [data-vital]:only-child) [data-vital-spark] { grid-column:2; grid-row:1/3; }
 .sectionBody > [data-vital] [data-vital-note],.report [data-vitals]:has(> [data-vital]:only-child) [data-vital-note] { grid-column:3; grid-row:1/3; margin:0; max-width:66ch; }
-.sectionBody > [data-vital] [data-vital-observation] { grid-column:1/-1; }
 .report [data-vitals]:has(> [data-vital]:only-child) { display:block; }
 
 /* Readable typography for shared chart and comparison components. */
@@ -167,7 +164,11 @@
   .header h1 { font-size:32px; }
   .description { font-size:14px; }
   .toolbar { padding-inline:12px; }
-  .contents { gap:20px; }
+  /* Below 800px the topic strip wraps instead of scrolling: every label is
+     fully readable without hover or scroll, and the edge fades switch off
+     (there is no hidden overflow to signal). */
+  .contents { flex-wrap:wrap; overflow-x:visible; gap:2px 20px; }
+  .contents a { padding:9px 0 7px; }
   .metricsGrid,.metricsGrid:has(> [data-vital]:nth-child(6):last-child) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
   .metrics { padding:18px; }
   .report [data-vital-value] { font-size:29px; }
