@@ -250,33 +250,9 @@ def _remote_table_columns(tables: list[str]) -> dict[str, set[str]]:
 
 
 def ensure_d1_schema() -> None:
-    """Create any missing bank_audit_* tables AND columns in remote D1 before
-    clear/push. push_to_d1 only emits INSERT OR REPLACE — never CREATE/ALTER —
-    so a newly-added table won't exist in D1 and the partition-clear's
-    `DELETE FROM <missing>` would error mid-batch (partial delete, no re-push =
-    data loss). The DDL is all CREATE ... IF NOT EXISTS, so applying it is
-    idempotent — but IF NOT EXISTS can't EVOLVE an existing table: a column
-    added to the DDL (rows_fx_position, 2026-06-27) never reached long-lived
-    deployments and the 2026-07-02 override push died mid-flight AFTER its
-    partition clear. So after the DDL pass, diff remote PRAGMA table_info
-    against the DDL's columns and ALTER TABLE ADD COLUMN the gaps (add-only;
-    never drops or retypes; non-constant defaults dropped from the ALTER)."""
-    from src.audit_reports.schema import DDL
-    sql_path = Path(tempfile.gettempdir()) / "d1_audit_schema.sql"
-    sql_path.write_text(DDL, encoding="utf-8")
-    print("[d1] ensuring bank_audit_* schema exists in D1")
-    retry_wrangler(sql_path, "D1 schema ensure")
-    ddl_cols = _ddl_columns()
-    remote = _remote_table_columns(sorted(ddl_cols))
-    alters = missing_column_alters(ddl_cols, remote)
-    if not alters:
-        print("[d1] schema columns in sync")
-        return
-    print(f"[d1] adding {len(alters)} missing column(s) to D1:\n  "
-          + "\n  ".join(alters))
-    alter_path = Path(tempfile.gettempdir()) / "d1_schema_alters.sql"
-    alter_path.write_text("\n".join(alters) + "\n", encoding="utf-8")
-    retry_wrangler(alter_path, "D1 schema column add")
+    """Read-only preflight. Versioned migrations are the sole production DDL writer."""
+    from src.pipeline.schema import assert_remote_schema
+    assert_remote_schema(set(AUDIT_TABLES))
 
 
 def replace_partitions(parts: Sequence[tuple[str, str, str]],
