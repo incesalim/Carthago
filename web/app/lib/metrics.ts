@@ -140,8 +140,18 @@ export const ratioNpl = (bankTypes?: string[]) =>
     bankTypes,
   );
 
-/** Loan-to-Deposit ratio. */
+/** Loan-to-Deposit ratio — BDDK's headline basis, development & investment
+ * banks excluded (METRICS.md App. B §1). Including them mixes project-finance
+ * lending that has no deposit counterpart into the funding ratio. */
 export const ratioLdr = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "Toplam Nakdi Krediler / Toplam Mevduat (Kalkınma ve Yatırım Bankaları Hariç) (%)",
+    bankTypes,
+  );
+
+/** The same Table 15 row with development & investment banks included — a named
+ * secondary on /deposits only, never the headline. */
+export const ratioLdrAll = (bankTypes?: string[]) =>
   getPublishedRatio(
     "Toplam Nakdi Krediler / Toplam Mevduat (%)",
     bankTypes,
