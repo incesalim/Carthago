@@ -168,12 +168,8 @@ def main() -> int:
     # no longer leave this partition deleted with nothing to restore it.
     print(f"[lp] replacing {b} {p} {k} in D1")
     replace_partitions([(b, p, k)], DB, AUDIT_TABLES)
-    with sqlite3.connect(str(DB)) as c:
-        c.execute("VACUUM")
-    with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:
-        shutil.copyfileobj(s, d)
-    size = r2_storage.upload_file(GZ, SNAP)
-    print(f"[lp] uploaded snapshot ({size / 1e6:.1f} MB)")
+    from scripts.audit_d1 import push_snapshot
+    push_snapshot(DB)
     print("[lp] done")
     return 0
 

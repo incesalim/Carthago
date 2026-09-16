@@ -170,3 +170,85 @@ def test_capital_completeness_fails_stay_current_only():
 
     # …but the SAME emptiness on the current row is still a hard fail.
     assert check_capital([dict(bare_prior, period_type="current")]).failed > 0
+
+
+# --- loans_by_sector_replace: stage1_amount must survive a replace ----------
+
+def _lbs_replace(rows, bank="X", period="2024Q4", kind="consolidated"):
+    return {"bank_ticker": bank, "period": period, "kind": kind,
+            "statement": "loans_by_sector_replace", "rows": rows}
+
+
+def test_loans_by_sector_replace_includes_stage1():
+    """A loans_by_sector_replace override must carry stage1_amount through to
+    the INSERT so that 4-column-layout partitions are not silently zeroed."""
+    c = _conn()
+    c.execute(
+        "INSERT INTO bank_audit_loans_by_sector "
+        "(bank_ticker, period, kind, sector, period_type, stage2_amount, "
+        "stage3_amount, ecl_amount) VALUES (?,?,?,?,?,?,?,?)",
+        ("X", "2024Q4", "consolidated", "agriculture", "current", 100, 50, 10))
+    c.commit()
+
+    apply_overrides._apply_one(c, _lbs_replace([
+        {"sector": "agriculture", "period_type": "current",
+         "stage1_amount": 500, "stage2_amount": 110, "stage3_amount": 55,
+         "ecl_amount": 12},
+    ]), unit=UnitContext.canonical())
+
+    row = c.execute(
+        "SELECT stage1_amount, stage2_amount, stage3_amount, ecl_amount "
+        "FROM bank_audit_loans_by_sector WHERE sector='agriculture'"
+    ).fetchone()
+    assert row == (500.0, 110.0, 55.0, 12.0), (
+        f"stage1 must survive the replace, got {row}")
+
+
+def test_loans_by_sector_replace_null_stage1_stays_null():
+    """A replace with no stage1_amount in the row must leave it NULL, not 0."""
+    c = _conn()
+    apply_overrides._apply_one(c, _lbs_replace([
+        {"sector": "services", "period_type": "current",
+         "stage2_amount": 200, "stage3_amount": 80, "ecl_amount": 30},
+    ]), unit=UnitContext.canonical())
+
+    row = c.execute(
+        "SELECT stage1_amount, stage2_amount FROM bank_audit_loans_by_sector"
+    ).fetchone()
+    assert row == (None, 200.0)
+
+
+def test_loans_by_sector_replace_preserves_prior_and_multi_sector():
+    """Replace must wipe the old rows, insert the new set (both period_types
+    and multiple sectors), and carry stage1_amount for every row."""
+    c = _conn()
+    for sec in ("manufacturing", "construction"):
+        c.execute(
+            "INSERT INTO bank_audit_loans_by_sector "
+            "(bank_ticker, period, kind, sector, period_type, stage2_amount) "
+            "VALUES (?,?,?,?,?,?)",
+            ("X", "2024Q4", "consolidated", sec, "current", 999))
+    c.commit()
+
+    apply_overrides._apply_one(c, _lbs_replace([
+        {"sector": "manufacturing", "period_type": "current",
+         "stage1_amount": 300, "stage2_amount": 150, "stage3_amount": 40,
+         "ecl_amount": 8},
+        {"sector": "construction", "period_type": "current",
+         "stage1_amount": 250, "stage2_amount": 90, "stage3_amount": 30,
+         "ecl_amount": 5},
+        {"sector": "manufacturing", "period_type": "prior",
+         "stage1_amount": 280, "stage2_amount": 140, "stage3_amount": 35,
+         "ecl_amount": 7},
+    ]), unit=UnitContext.canonical())
+
+    rows = c.execute(
+        "SELECT sector, stage1_amount, stage2_amount, period_type "
+        "FROM bank_audit_loans_by_sector ORDER BY sector, period_type"
+    ).fetchall()
+    assert len(rows) == 3
+    # construction current
+    assert rows[0] == ("construction", 250.0, 90.0, "current")
+    # manufacturing current + prior (alphabetical: "current" < "prior")
+    assert rows[1] == ("manufacturing", 300.0, 150.0, "current")
+    assert rows[2] == ("manufacturing", 280.0, 140.0, "prior")

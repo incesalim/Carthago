@@ -437,12 +437,15 @@ def main(argv: list[str] | None = None) -> int:
         if not args.apply:
             print("Dry run — no D1 or snapshot writes")
             return 0
+        from scripts.push_to_d1 import preflight_publication
+        preflight_publication(args.db, set(tables), "audit")
         apply_extra_repairs(plans)
         verify_extra_repairs(plans)
         with sqlite3.connect(args.db.resolve().as_uri() + "?mode=ro", uri=True) as conn:
             if plan_extra_repairs(conn, tables, exact_parts):
                 raise RuntimeError("Second comparison still finds remote-extra rows")
-        print("Verified exact D1 equality and a no-op second comparison; snapshot unchanged")
+        push_snapshot(args.db)
+        print("Verified exact D1 equality and a no-op second comparison; snapshot saved")
         return 0
     filters = []
     if args.banks.strip():

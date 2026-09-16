@@ -95,12 +95,8 @@ def main() -> int:
     # One atomic replace of every partition these banks own, instead of a remote
     # clear followed by a separate push (see audit_d1.replace_partitions).
     replace_partitions(_partitions_for(banks), DB, AUDIT_TABLES)
-    with sqlite3.connect(str(DB)) as c:
-        c.execute("VACUUM")
-    with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:
-        shutil.copyfileobj(s, d)
-    size = r2_storage.upload_file(GZ, SNAP)
-    print(f"[push] uploaded snapshot ({size/1e6:.1f} MB) → {SNAP}")
+    from scripts.audit_d1 import push_snapshot
+    push_snapshot(DB)
     print("[push] done")
     return 0
 

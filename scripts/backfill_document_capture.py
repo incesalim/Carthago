@@ -260,17 +260,8 @@ def main() -> int:
 def _upload_ledger(db_path: Path) -> None:
     """Ship the raw ledger to R2 as its own object — never into the audit
     snapshot, which every workflow downloads."""
-    import gzip
-    import shutil
-
-    from src.audit_reports import r2_storage
-
-    gz = db_path.with_suffix(db_path.suffix + ".gz")
-    with open(db_path, "rb") as s, gzip.open(gz, "wb", compresslevel=6) as d:
-        shutil.copyfileobj(s, d)
-    key = "state/bank_audit_capture.db.gz"
-    size = r2_storage.upload_file(gz, key, content_type="application/gzip")
-    print(f"  ledger uploaded ({size / 1e6:.1f} MB) → R2 {key}")
+    from src.pipeline.snapshots import publish_snapshot
+    publish_snapshot(db_path, "capture")
 
 
 if __name__ == "__main__":

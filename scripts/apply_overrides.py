@@ -393,18 +393,19 @@ def _apply_one(conn: sqlite3.Connection, o: dict, *, unit: UnitContext) -> str:
         # YEAR's table. The result isn't a wrong cell — it's a row set spliced
         # from two different years, with the wrong year's Toplam picked by
         # _pick_total's footing heuristic. Only a full replace is honest.
-        # `rows` = [{sector, period_type, stage2_amount, stage3_amount,
-        #            ecl_amount, raw_label}, ...] transcribed from the page.
+        # `rows` = [{sector, period_type, stage1_amount, stage2_amount,
+        #            stage3_amount, ecl_amount, raw_label}, ...] transcribed
+        # from the page.
         conn.execute("DELETE FROM bank_audit_loans_by_sector "
                      "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
         for r in o["rows"]:
             conn.execute(
                 "INSERT INTO bank_audit_loans_by_sector (bank_ticker, period, kind, "
-                "sector, period_type, source_page, stage2_amount, stage3_amount, "
-                "ecl_amount, raw_label) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "sector, period_type, source_page, stage1_amount, stage2_amount, "
+                "stage3_amount, ecl_amount, raw_label) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (b, p, k, r["sector"], r.get("period_type", "current"),
-                 o.get("source_page"), r.get("stage2_amount"), r.get("stage3_amount"),
-                 r.get("ecl_amount"), r.get("raw_label")))
+                 o.get("source_page"), r.get("stage1_amount"), r.get("stage2_amount"),
+                 r.get("stage3_amount"), r.get("ecl_amount"), r.get("raw_label")))
         return f"loans_by_sector replace {b} {p} {k} ({len(o['rows'])} rows)"
     if st == "credit_quality":
         # Upsert ONE section row of bank_audit_credit_quality (keyed by section +
@@ -688,12 +689,8 @@ def main() -> int:
     # the uploaded DB carries the fresh spine too.
     subprocess.run([sys.executable, str(REPO / "scripts" / "sync_audit_expected.py"),
                     "--db", str(DB), "--push"], check=True)
-    with sqlite3.connect(str(DB)) as c:
-        c.execute("VACUUM")
-    with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:
-        shutil.copyfileobj(s, d)
-    size = r2_storage.upload_file(GZ, SNAP)
-    print(f"[ovr] uploaded snapshot ({size/1e6:.1f} MB)")
+    from scripts.audit_d1 import push_snapshot
+    push_snapshot(DB)
     print("[ovr] done")
     return 0
 

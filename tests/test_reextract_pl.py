@@ -42,7 +42,6 @@ def test_main_pushes_roles_only_when_content_changed(tmp_path, monkeypatch, old_
         Path(destination).write_bytes(snapshot if key == repair.SNAP else b"mock PDF")
 
     monkeypatch.setattr(repair.r2_storage, "download_to", download)
-    monkeypatch.setattr(repair.r2_storage, "upload_file", lambda path, key: Path(path).stat().st_size)
     # Enough rows to pass this legacy command's existing row-count guard; only
     # the last row is a semantic anchor. The amount changes in every case while
     # the old role map may be correct, absent, or stale.
@@ -56,6 +55,7 @@ def test_main_pushes_roles_only_when_content_changed(tmp_path, monkeypatch, old_
     monkeypatch.setattr(repair.UnitContext, "for_partition", lambda *args: UnitContext.canonical())
     pushes = []
     monkeypatch.setattr(repair, "replace_partitions", lambda *args: pushes.append(args))
+    monkeypatch.setattr("scripts.audit_d1.push_snapshot", lambda *args, **kwargs: None)
     monkeypatch.setattr(sys, "argv", ["reextract_pl", "--bank", B, "--period", P, "--kind", K])
 
     assert repair.main() == 0

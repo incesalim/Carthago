@@ -47,6 +47,7 @@ def stores(tmp_path, monkeypatch):
         create_table(conn)
     monkeypatch.setattr(repair, "_remote", lambda sql: repair._rows(remote, sql))
     writes, uploads = [], []
+    monkeypatch.setattr("scripts.push_to_d1.preflight_publication", lambda *a: None)
 
     def push(args, check):
         assert check is True
@@ -104,7 +105,8 @@ def test_dry_run_finds_whole_and_partial_loss_without_writes(stores):
     insert(remote, [row()])
     before = path.read_bytes()
     assert repair.main(["--db", str(path), "--tables", TABLE]) == 0
-    assert writes == uploads == []
+    assert writes == []
+    assert uploads == []
     assert path.read_bytes() == before
 
 
@@ -299,7 +301,8 @@ def test_remote_extra_mode_deletes_only_extra_primary_key(stores, monkeypatch):
     args = ["--db", str(path), "--tables", TABLE, "--partitions",
             "AKBNK:2026Q2:unconsolidated", "--remove-remote-extras", "--apply"]
     assert repair.main(args) == 0
-    assert writes == uploads == []
+    assert writes == []
+    assert uploads == [path]
     assert path.read_bytes() == before
     assert len(calls) == 1
     assert "DELETE FROM bank_audit_capital" in calls[0][1]

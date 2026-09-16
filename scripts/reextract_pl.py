@@ -107,12 +107,8 @@ def main() -> int:
         tables.append("bank_audit_pl_roles")
     print(f"[pl] replacing {b} {p} {k} profit_loss in D1")
     replace_partitions([(b, p, k)], DB, tables)
-    with sqlite3.connect(str(DB)) as c:
-        c.execute("VACUUM")
-    with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:
-        shutil.copyfileobj(s, d)
-    size = r2_storage.upload_file(GZ, SNAP)
-    print(f"[pl] uploaded snapshot ({size / 1e6:.1f} MB)")
+    from scripts.audit_d1 import push_snapshot
+    push_snapshot(DB)
     print("[pl] done")
     return 0
 

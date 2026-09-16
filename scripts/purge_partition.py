@@ -135,6 +135,8 @@ def main() -> int:
 
     sql_path = Path(tempfile.gettempdir()) / "d1_purge_partition.sql"
     sql_path.write_text(partition_delete_sql(parts), encoding="utf-8")
+    from scripts.push_to_d1 import preflight_publication
+    preflight_publication(DB, set(AUDIT_TABLES), "audit")
     retry_wrangler(sql_path, f"D1 purge {label}")
     print(f"[purge] cleared {label} in D1 across {len(AUDIT_TABLES)} tables")
 
