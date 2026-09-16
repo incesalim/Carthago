@@ -52,6 +52,9 @@ from src.audit_reports.loans_by_sector import (  # noqa: E402
 from src.audit_reports.loans_currency import (  # noqa: E402
     LoansCurrencyReport, upsert as _upsert_lc,
 )
+from src.audit_reports.risk_profile import (  # noqa: E402
+    RiskProfileReport, upsert as _upsert_riskp,
+)
 from src.audit_reports.bank_profile import upsert_profile as _upsert_bp  # noqa: E402
 from src.audit_reports.audit_opinion import upsert_opinion as _upsert_op  # noqa: E402
 from src.audit_reports.free_provision import upsert_free_provision as _upsert_fp  # noqa: E402
@@ -235,6 +238,8 @@ def _worker(args):
         n = len(getattr(rep, "loans_by_sector", []) or [])
     elif statement == "loans_currency":
         n = len(getattr(rep, "loans_currency", []) or [])
+    elif statement == "risk_profile":
+        n = len(getattr(rep, "risk_profile", []) or [])
     elif statement == "bank_profile":
         bp = getattr(rep, "bank_profile", None)
         n = 0 if (bp is None or bp.is_empty()) else 1
@@ -318,6 +323,10 @@ def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
         report = LoansCurrencyReport(pdf_path=rep.pdf_path,
                                      rows=getattr(rep, "loans_currency", []) or [])
         return _upsert_lc(conn, bank, period, kind, report, unit=unit, commit=False)
+    if statement == "risk_profile":
+        report = RiskProfileReport(pdf_path=rep.pdf_path,
+                                   rows=getattr(rep, "risk_profile", []) or [])
+        return _upsert_riskp(conn, bank, period, kind, report, unit=unit, commit=False)
     if statement == "bank_profile":
         bp = getattr(rep, "bank_profile", None)
         # Mirror the loader's skip-if-empty: don't write an all-NULL row for a bank

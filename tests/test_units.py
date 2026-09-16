@@ -139,9 +139,9 @@ def test_stage_amounts_are_money_but_are_never_scaled_at_write():
         U.money_columns("bank_audit_stages")
 
 
-def test_exactly_thirteen_raw_writers_need_scaling():
-    """14 raw monetary tables + 1 derived = the 15 that carry money."""
-    assert len(U.RAW_MONEY_TABLES) == 14
+def test_exactly_fifteen_raw_writers_need_scaling():
+    """15 raw monetary tables + 1 derived = the 16 that carry money."""
+    assert len(U.RAW_MONEY_TABLES) == 15
     assert len(U.DERIVED_MONEY_TABLES) == 1
     assert U.RAW_MONEY_TABLES | U.DERIVED_MONEY_TABLES == set(U.MONEY_COLUMNS)
 
@@ -187,15 +187,15 @@ def test_factor_one_takes_the_same_path_as_factor_one_thousand():
         {"amount_tl": 3.0, "item_order": 1}
 
 
-def test_fourteen_tables_carry_money_and_eight_carry_none():
-    """14 + 8 = the 22 D1 audit tables. Pinned so adding a table forces
+def test_sixteen_tables_carry_money_and_eight_carry_none():
+    """16 + 8 = the 24 D1 audit tables. Pinned so adding a table forces
     a deliberate classification rather than a silent default to not-money."""
     money = set(U.MONEY_COLUMNS)
     none = {"bank_audit_profile", "bank_audit_opinion",
             "bank_audit_validation", "bank_audit_extractions",
             "bank_audit_pl_roles", "bank_audit_prose",
             "bank_audit_capture_manifest", "bank_audit_document_manifest"}
-    assert len(money) == 15
+    assert len(money) == 16
     assert len(none) == 8
     assert money | none == set(AUDIT_TABLES)
     for t in none:
@@ -922,6 +922,21 @@ def test_writer_loans_currency_reads_back_scaled(tmp_path):
         (5_000.0, 2_000.0, 7, "agriculture")
 
 
+def test_writer_risk_profile_reads_back_scaled(tmp_path):
+    from src.audit_reports.risk_profile import RiskProfileReport, RiskProfileRow, upsert
+    conn = _wdb(tmp_path, "rp")
+    rep = RiskProfileReport(pdf_path="x.pdf", rows=[
+        RiskProfileRow(sector="agriculture", class_1=5.0, class_7=2.0,
+                       tl_amount=4.0, fc_amount=1.0, total=5.0,
+                       period_type="current", page=11, raw_label="Tarım")])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT class_1, class_7, class_2, tl_amount, fc_amount, total, "
+        "source_page, sector FROM bank_audit_risk_profile").fetchone() == \
+        (5_000.0, 2_000.0, None, 4_000.0, 1_000.0, 5_000.0, 11, "agriculture"), \
+        "exposure classes and totals scale; an undisclosed class stays null"
+
+
 def test_writer_npl_movement_reads_back_scaled(tmp_path):
     from src.audit_reports.npl_movement import NplGroupRow, NplMovementReport, upsert
     conn = _wdb(tmp_path, "npl")
@@ -1038,7 +1053,7 @@ def test_writer_free_provision_reads_back_scaled(tmp_path):
 _READ_BACK_COVERED = frozenset({
     "bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_cash_flow",
     "bank_audit_oci", "bank_audit_credit_quality", "bank_audit_loans_by_sector",
-    "bank_audit_loans_currency",
+    "bank_audit_loans_currency", "bank_audit_risk_profile",
     "bank_audit_npl_movement", "bank_audit_capital", "bank_audit_fx_position",
     "bank_audit_repricing", "bank_audit_equity_change",
     "bank_audit_free_provision", "bank_audit_liquidity",

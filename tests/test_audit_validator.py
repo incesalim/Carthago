@@ -1932,6 +1932,107 @@ def test_loans_currency_child_exceeds_parent_fails():
     assert any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)
 
 
+# --- Pillar 3 risk profile by sector -----------------------------------------
+
+def _risk_row(sector, tl, fc, classes=None, period_type="current"):
+    """One risk-profile row. `classes` maps class ordinal → amount; classes not
+    named are absent (undisclosed), matching how the extractor stores nils."""
+    row = {"sector": sector, "period_type": period_type,
+           "tl_amount": tl * 1000, "fc_amount": fc * 1000,
+           "total": (tl + fc) * 1000}
+    for i in range(1, 18):
+        row[f"class_{i}"] = None
+    for i, amount in (classes or {}).items():
+        row[f"class_{i}"] = amount * 1000
+    return row
+
+
+def test_risk_profile_passes():
+    rows = [
+        _risk_row("agri_total", 10, 5, {1: 4, 7: 11}),
+        _risk_row("mfg_total", 20, 10, {7: 30}),
+        _risk_row("construction", 5, 3),
+        _risk_row("svc_total", 30, 15, {8: 45}),
+        _risk_row("other", 5, 2),
+        _risk_row("total", 70, 35, {7: 80, 8: 25}),
+    ]
+    res = v.check_risk_profile(rows)
+    assert res.failed == 0, res.failures
+    assert res.passed > 0
+
+
+def test_risk_profile_row_triplet_fails():
+    rows = [
+        _risk_row("total", 70, 35),
+        {**_risk_row("mfg_total", 20, 10), "total": 999_000.0},
+    ]
+    res = v.check_risk_profile(rows)
+    assert any(f["check"] == "risk_profile_row_triplet" for f in res.failures)
+
+
+def test_risk_profile_full_class_sum_must_foot():
+    # All 17 classes present: their sum is the row's Total, exactly.
+    full = {i: 1 for i in range(1, 18)}
+    rows = [
+        _risk_row("total", 70, 35, full),
+        _risk_row("mfg_total", 20, 10, {**full, 7: 50}),  # Σ=66 ≠ 30
+    ]
+    res = v.check_risk_profile(rows)
+    assert any(f["check"] == "risk_profile_class_sum" for f in res.failures)
+
+
+def test_risk_profile_partial_class_set_is_bounded_not_equal():
+    # Two disclosed classes summing OVER the row total is a misaligned read,
+    # even though the class set is partial and equality must not be demanded.
+    rows = [
+        _risk_row("total", 70, 35),
+        _risk_row("mfg_total", 20, 10, {7: 25, 8: 10}),  # Σ=35 > total 30
+    ]
+    res = v.check_risk_profile(rows)
+    assert any(f["check"] == "risk_profile_class_sum_over_total" for f in res.failures)
+    # The same partial set UNDER the total neither passes nor fails — a nil
+    # class is undisclosed, not zero, so Σ present < total is faithful.
+    ok = [
+        _risk_row("mfg_total", 20, 10, {7: 5, 8: 5}),
+        _risk_row("total", 20, 10),
+    ]
+    res = v.check_risk_profile(ok)
+    assert res.failed == 0, res.failures
+
+
+def test_risk_profile_sector_sum_must_foot_per_column():
+    rows = [
+        _risk_row("agri_total", 10, 5),
+        _risk_row("mfg_total", 20, 10),
+        _risk_row("construction", 5, 3),
+        _risk_row("svc_total", 30, 15),
+        _risk_row("other", 5, 2),
+        _risk_row("total", 999, 35),
+    ]
+    res = v.check_risk_profile(rows)
+    assert any(f["check"] == "risk_profile_total" for f in res.failures)
+
+
+def test_risk_profile_unknown_total_missing_detail_missing_fail():
+    unknown = [_risk_row("unknown", 10, 5), _risk_row("total", 10, 5)]
+    assert any(f["check"] == "risk_profile_unknown_rows"
+               for f in v.check_risk_profile(unknown).failures)
+
+    no_total = [_risk_row("agri_total", 10, 5), _risk_row("mfg_total", 20, 10)]
+    assert any(f["check"] == "risk_profile_total_missing"
+               for f in v.check_risk_profile(no_total).failures)
+
+    no_detail = [_risk_row("total", 70, 35)]
+    assert any(f["check"] == "risk_profile_detail_missing"
+               for f in v.check_risk_profile(no_detail).failures)
+
+
+def test_risk_profile_prior_only_rows_skip():
+    rows = [_risk_row("total", 70, 35, period_type="prior")]
+    res = v.check_risk_profile(rows)
+    assert res.failed == 0 and res.passed == 0
+
+
 def _pl_sub(h, name, amount):
     """Minimal P&L row for the sub-item sum checks — no scaling, unlike the
     module-level `_pl` helper above, which multiplies by 1000."""

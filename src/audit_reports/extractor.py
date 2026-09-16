@@ -355,6 +355,8 @@ class BankReport:
     loans_by_sector: "list" = field(default_factory=list)
     # Sector-level loan exposure — currency split (TL / FC by sector).
     loans_currency: "list" = field(default_factory=list)
+    # Pillar 3 risk profile by sector — 17 exposure classes + TL/FC/Total.
+    risk_profile: "list" = field(default_factory=list)
     # NPL gross-amount roll-forward by BRSA group (III / IV / V).
     npl_movement: "list" = field(default_factory=list)
     # §4 risk-management ratios — full report objects (capital_adequacy.py /
@@ -1563,6 +1565,13 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             rep.loans_currency = _extract_lc(pdf_path).rows
         except Exception:
             rep.loans_currency = []
+    # Pillar 3 risk profile by sector (17 exposure classes + TL/FC/Total).
+    if _want('risk_profile'):
+        try:
+            from .risk_profile import extract_from_pdf as _extract_rp
+            rep.risk_profile = _extract_rp(pdf_path).rows
+        except Exception:
+            rep.risk_profile = []
     # NPL gross-amount roll-forward.
     if _want('npl_movement'):
         try:

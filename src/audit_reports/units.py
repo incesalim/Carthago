@@ -237,6 +237,12 @@ MONEY_COLUMNS: dict[str, frozenset[str]] = {
     "bank_audit_loans_by_sector": frozenset({
         "stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount"}),
     "bank_audit_loans_currency": frozenset({"tl_amount", "fc_amount"}),
+    "bank_audit_risk_profile": frozenset({
+        "class_1", "class_2", "class_3", "class_4", "class_5",
+        "class_6", "class_7", "class_8", "class_9", "class_10",
+        "class_11", "class_12", "class_13", "class_14", "class_15",
+        "class_16", "class_17", "tl_amount", "fc_amount", "total",
+    }),
     "bank_audit_npl_movement": frozenset({
         "opening_balance", "additions", "transfers_in", "transfers_out",
         "collections", "write_offs", "sold", "fx_diff", "accrual_movement", "other_movement", "closing_balance",
@@ -279,6 +285,7 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
         "stage1_coverage", "stage2_coverage", "stage3_coverage"}),
     "bank_audit_loans_by_sector": frozenset({"source_page"}),
     "bank_audit_loans_currency": frozenset({"source_page", "tl_pct", "fc_pct"}),
+    "bank_audit_risk_profile": frozenset({"source_page"}),
     "bank_audit_npl_movement": frozenset({"source_page"}),
     "bank_audit_capital": frozenset({
         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio", "source_page",

@@ -246,6 +246,7 @@ def _store_report(
     from .credit_quality import CreditQualityReport, upsert as _upsert_cq
     from .loans_by_sector import LoansBySectorReport, upsert as _upsert_lbs
     from .loans_currency import LoansCurrencyReport, upsert as _upsert_lc
+    from .risk_profile import RiskProfileReport, upsert as _upsert_riskp
     from .npl_movement import NplMovementReport, upsert as _upsert_nplm
     from .capital_adequacy import CapitalReport, upsert as _upsert_cap
     from .liquidity import LiquidityReport, upsert as _upsert_liq
@@ -262,6 +263,7 @@ def _store_report(
         ('credit_quality',  lambda: CreditQualityReport(pdf_path=pdf_path, rows=getattr(rep, 'credit_quality', []) or []),  _upsert_cq,  False),
         ('loans_by_sector', lambda: LoansBySectorReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_by_sector', []) or []), _upsert_lbs, False),
         ('loans_currency',  lambda: LoansCurrencyReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_currency', []) or []),  _upsert_lc,  False),
+        ('risk_profile',    lambda: RiskProfileReport(pdf_path=pdf_path, rows=getattr(rep, 'risk_profile', []) or []),      _upsert_riskp,  False),
         ('npl_movement',    lambda: NplMovementReport(pdf_path=pdf_path, rows=getattr(rep, 'npl_movement', []) or []),      _upsert_nplm, False),
         # §4 ratios: extract() attaches a full report object; rebuild an empty one
         # if the scan was skipped/failed so the upsert still clears stale rows.
@@ -293,7 +295,7 @@ def _store_report(
         if key in registry.BY_KEY
     }
     _UNIT_AWARE_PERSISTERS = {
-        'credit_quality', 'loans_by_sector', 'loans_currency', 'npl_movement', 'capital',
+        'credit_quality', 'loans_by_sector', 'loans_currency', 'risk_profile', 'npl_movement', 'capital',
         'liquidity', 'fx_position', 'repricing', 'equity_change',
         'free_provision',
     }
@@ -301,7 +303,7 @@ def _store_report(
     # the report transaction, so suppress those commits here; otherwise a later
     # validation/statement failure can leave a half-written partition.
     _COMMIT_AWARE_PERSISTERS = {
-        'credit_quality', 'loans_by_sector', 'loans_currency', 'npl_movement', 'capital',
+        'credit_quality', 'loans_by_sector', 'loans_currency', 'risk_profile', 'npl_movement', 'capital',
         'liquidity', 'fx_position', 'repricing', 'profile', 'audit_opinion',
         'free_provision',
     }

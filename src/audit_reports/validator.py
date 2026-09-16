@@ -3056,6 +3056,105 @@ def check_loans_currency(rows: list[dict]) -> ValidationResult:
 
 
 # ===========================================================================
+# Pillar 3 risk profile by sector validation
+# ===========================================================================
+
+_RISK_CLASS_COLS = tuple(f"class_{i}" for i in range(1, 18))
+
+
+def check_risk_profile(rows: list[dict]) -> ValidationResult:
+    """Pillar 3 risk profile by sector: 17 exposure classes + TL/FC/Total.
+
+    Three identity sets, strongest first:
+      * per row: TL + FC = Total; Σ(17 classes) = Total when the full class set
+        was read. A PARTIAL class set is only bounded: classes are non-negative
+        exposures, so Σ disclosed classes > Total is a misaligned column read —
+        the x-position nearest-number heuristic's characteristic failure — not a
+        rounding artifact, and equality must not be demanded of absent classes
+        (a nil cell is undisclosed, not zero).
+      * across rows: Σ top-level sectors = the total row, per money column —
+        the same machinery as loans_by_sector / loans_currency.
+      * child ≤ parent on every money column (merged-label corruption).
+    """
+    res = ValidationResult()
+    unknowns = [r for r in rows if r.get("sector") == "unknown"]
+    if unknowns:
+        res.add_fail("risk_profile_unknown_rows",
+                     f"{len(unknowns)} source row(s) with unrecognized sector labels",
+                     expected=0, actual=len(unknowns))
+    cur = [r for r in rows if r.get("period_type") == "current"]
+    if not cur:
+        res.add_skip()
+        return res
+
+    for r in cur:
+        tl, fc, tot = r.get("tl_amount"), r.get("fc_amount"), r.get("total")
+        if tl is None or fc is None or tot is None:
+            res.add_skip()
+        elif abs((tl + fc) - tot) <= _tol(tot, base=1000.0, rel=0.005):
+            res.add_pass()
+        else:
+            res.add_fail("risk_profile_row_triplet",
+                         f"{r.get('sector')}: TL + FC ≠ Total",
+                         expected=tot, actual=tl + fc)
+        if tot is not None:
+            present = [v for v in (r.get(c) for c in _RISK_CLASS_COLS)
+                       if v is not None]
+            tol = _tol(tot, base=1000.0, rel=0.005)
+            if len(present) == len(_RISK_CLASS_COLS):
+                if abs(sum(present) - tot) <= tol:
+                    res.add_pass()
+                else:
+                    res.add_fail("risk_profile_class_sum",
+                                 f"{r.get('sector')}: Σ 17 classes ≠ Total",
+                                 expected=tot, actual=sum(present))
+            elif len(present) >= 2 and sum(present) > tot + tol:
+                res.add_fail("risk_profile_class_sum_over_total",
+                             f"{r.get('sector')}: Σ disclosed classes > Total",
+                             expected=tot, actual=sum(present))
+
+    total_row = next((r for r in cur if r.get("sector") == "total"), None)
+    sectors = [r for r in cur if r.get("sector") and r.get("sector") != "total"]
+    if total_row is None:
+        if sectors:
+            res.add_fail("risk_profile_total_missing",
+                         "TOTAL row dropped (sector rows present)", expected=0.0, actual=0.0)
+        else:
+            res.add_skip()
+        return res
+    top_rows = _resolved_top_level(cur)
+    if not top_rows:
+        res.add_fail("risk_profile_detail_missing",
+                     "sector detail dropped (total present, no sector rows)",
+                     expected=0.0, actual=0.0)
+        return res
+    _check_sector_child_le_parent(cur, res, cols=("tl_amount", "fc_amount", "total"))
+    any_check = False
+    for col in ("tl_amount", "fc_amount", "total"):
+        tot_val = total_row.get(col)
+        if tot_val is None:
+            res.add_skip()
+            continue
+        col_vals = [r.get(col) for r in top_rows if r.get(col) is not None]
+        if not col_vals:
+            res.add_skip()
+            continue
+        sector_sum = sum(col_vals)
+        tol = _tol(abs(tot_val), base=1000.0, rel=0.005)
+        if abs(sector_sum - tot_val) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("risk_profile_total", f"{col}: Σ top-level sectors ≠ total",
+                         expected=tot_val, actual=sector_sum)
+        any_check = True
+    if not any_check:
+        res.add_fail("risk_profile_columns_missing",
+                     "no checkable amount column (total or sector cols all NULL)",
+                     expected=0.0, actual=0.0)
+    return res
+
+
+# ===========================================================================
 # Cash flow statement validation
 # ===========================================================================
 
