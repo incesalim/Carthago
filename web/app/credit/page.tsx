@@ -590,7 +590,6 @@ export default async function CreditPage() {
             ) : undefined
           }
         />
-<SectorGrid>
             <SectorTrend mode="groups"
               data={consYoYLong}
               deltaPeriods={13}
@@ -606,22 +605,6 @@ export default async function CreditPage() {
               decimals={1}
               zeroLine
               plain height={142} />
-            <SectorTrend height={390}
-              data={cards.flatMap(
-                (r: { period: string; retail: number | null; corporate: number | null }) => {
-                  const out: TimeSeriesRow[] = [];
-                  if (r.retail != null) out.push({ period: r.period, bank_type_code: "RETAIL", value: r.retail });
-                  if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
-                  return out;
-                },
-              )}
-              seriesLabels={{ RETAIL: "Retail Cards", CORPORATE: "Corporate Cards" }}
-              title={tx("Credit Cards — Retail vs Corporate (Level · monthly)")}
-              yFormat="bn"
-              decimals={0}
-              plain
-            />
-          </SectorGrid>
 <SectorGrid>
 <StackedArea
               data={consMix}
@@ -640,15 +623,30 @@ export default async function CreditPage() {
             />
 </SectorGrid>
 <SectorGrid>
+            <SectorTrend height={390}
+              data={cards.flatMap(
+                (r: { period: string; retail: number | null; corporate: number | null }) => {
+                  const out: TimeSeriesRow[] = [];
+                  if (r.retail != null) out.push({ period: r.period, bank_type_code: "RETAIL", value: r.retail });
+                  if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
+                  return out;
+                },
+              )}
+              seriesLabels={{ RETAIL: "Retail Cards", CORPORATE: "Corporate Cards" }}
+              title={tx("Credit Cards — Retail vs Corporate (Level · monthly)")}
+              yFormat="bn"
+              decimals={0}
+              plain
+            />
 <StackedArea data={instalmentMix} series={[{key: "INSTALMENTS", label: "Instalment balances"}, {key: "NON_INSTALMENTS", label: "Non-instalment balances"}]}
   title={tx("Retail card balances by instalment structure")} percentStack height={280} plain
   description={tx("Weekly balances · each observation represents total retail card credit")}
   source={tx("Source: BDDK weekly bulletin, retail cards. Non-instalment balances are not a measure of arrears or interest-bearing debt; balances are not spending flows.")} />
+</SectorGrid>
 <SectorTrend data={overdrafts} seriesLabels={{CONSUMER: "Consumer overdrafts", COMMERCIAL: "Commercial instalment overdrafts"}}
   title={tx("Overdraft balances")} yFormat="bn" decimals={0} height={280} plain
   description={tx("Consumer overdrafts and overdrafts within commercial instalment loans")}
   source={tx("Source: BDDK weekly bulletin. Overdrafts are already included in loan aggregates and must not be added again. Nominal balance growth does not measure borrower numbers, real growth or credit quality.")} />
-</SectorGrid>
 </SectorSection>
 <SectorSection id="sme" title={tx("SME loans")} description={tx(smeContrib
               ? tx("{0} of the headline. SME is a SUBSET of the commercial book, not a peer — the two lines below are not additive.", { 0: signedPp(smeContrib.pp, 1) })

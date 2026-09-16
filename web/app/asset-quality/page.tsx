@@ -705,6 +705,21 @@ export default async function AssetQualityPage() {
             <Movers from="52w ago" to="Now" rows={moverRows} />
           </SectorPanel>
         </SectorGrid>
+          <SmallMultiplesTrend
+            data={consumerTrend}
+            seriesLabels={{
+              HOUSING: "Housing",
+              AUTO: "Auto",
+              GPL: "Gen. Purpose",
+              CARDS: "Retail Cards",
+            }}
+            title={tx("Consumer NPL Ratio by Product (%)")}
+            yFormat="pct"
+            decimals={2}
+            plain
+            columns={2}
+            height={165}
+          />
         <SectorGrid columns={2} ratio="balanced">
           <StackedArea
             data={cMix.map((r) => ({
@@ -727,22 +742,6 @@ export default async function AssetQualityPage() {
             plain
             height={390}
           />
-          <SmallMultiplesTrend
-            data={consumerTrend}
-            seriesLabels={{
-              HOUSING: "Housing",
-              AUTO: "Auto",
-              GPL: "Gen. Purpose",
-              CARDS: "Retail Cards",
-            }}
-            title={tx("Consumer NPL Ratio by Product (%)")}
-            yFormat="pct"
-            decimals={2}
-            plain
-            columns={2}
-            height={165}
-          />
-        </SectorGrid>
         <SectorTrend
           data={commercialTrend}
           seriesLabels={{
@@ -788,6 +787,7 @@ export default async function AssetQualityPage() {
             </>
           }
         />
+        </SectorGrid>
       </SectorSection>
 <SectorSection id="sector-risk" title={tx("Manufacturing credit risk")}
   description={tx("The distribution of non-performing loans across manufacturing subsectors.")}>
