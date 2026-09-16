@@ -41,11 +41,15 @@ make them.
 - Hairlines, not boxes or cards-with-shadows.
 
 ## Wire contract
-`../contracts/app-api-v1.ts` is canonical. Run `python ../scripts/sync_app_contract.py`
+`../contracts/app-api-v1.ts` and `../contracts/compatibility-state.ts` (the
+pure launch decision) are canonical. Run `python ../scripts/sync_app_contract.py`
 after edits; CI checks the generated Next/Metro copies and native build numbers.
 Validate both network and cached payloads, preserving null and zero. The uncached
 launch/foreground handshake gates screens; offline mode requires compatible
-cached data and shows its age. Compatibility tests run with the web Vitest suite.
+cached data and shows its age. Compatibility tests run with the web Vitest suite
+against the WEB copy — nothing imports across a package boundary, because
+Vitest's transform resolves tsconfig per file and mobile's tsconfig extends
+expo (installed only in the mobile job).
 
 ## Checks
 ```

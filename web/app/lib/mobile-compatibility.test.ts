@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { negotiate } from "../../../mobile/src/api/compatibility-state";
+import { negotiate } from "./compatibility-state.generated";
 import type { Handshake } from "./app-api-contract.generated";
 
 const handshake: Handshake = { name: "Carthago Mobile API", version: 1, minSupportedClient: 1, web: "https://carthago.app", screens: {} };
