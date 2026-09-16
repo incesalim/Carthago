@@ -22,7 +22,7 @@ import {
   appApiDisabled,
   disabledResponse,
   errorResponse,
-  jsonResponse,
+  appResponse,
 } from "../_shared";
 
 export { OPTIONS } from "../_shared";
@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     .slice(0, limit)
     .map(wire);
 
-  return jsonResponse({
+  return appResponse("news", {
     source,
     count: items.length,
     items,

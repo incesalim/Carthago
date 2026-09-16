@@ -44,7 +44,7 @@ const SERIES: { key: string; label: string; decimals: number; zeroLine?: boolean
 export default function EconomyScreen() {
   const { colors, space } = useTheme();
   const { data, loading, refreshing, error, cachedAt, refresh } =
-    useResource<Economy>("economy", endpoints.economy());
+    useResource<Economy>(endpoints.economy());
 
   const [selected, setSelected] = useState("cpiYoY");
   const [scrub, setScrub] = useState<ScrubPoint | null>(null);

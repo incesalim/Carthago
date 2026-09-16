@@ -18,7 +18,7 @@
  * roughly ten times the size for pixels nobody can see.
  */
 import { getEconomyData, type Point } from "@/app/lib/economy";
-import { appApiDisabled, disabledResponse, jsonResponse } from "../_shared";
+import { appApiDisabled, disabledResponse, appResponse } from "../_shared";
 
 export { OPTIONS } from "../_shared";
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ export async function GET() {
 
   const latest = (rows: Point[]) => rows.at(-1)?.value ?? null;
 
-  return jsonResponse({
+  return appResponse("economy", {
     // The band at the top of the screen — one figure each, no chart.
     headline: {
       gdpGrowth: latest(d.gdpGrowth),

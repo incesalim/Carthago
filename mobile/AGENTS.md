@@ -21,7 +21,7 @@ make them.
 - `src/app/` — expo-router routes. `(tabs)/` is the four-tab shell; `banks/[ticker].tsx`
   is the stack detail screen. Route files hold their own screen component.
 - `src/api/` — `client.ts` (fetch + timeout + typed `ApiError`), `types.ts` (wire
-  shapes, hand-mirrored from the route handlers), `use-resource.ts` (the one data
+  shapes re-exported from the generated shared contract), `use-resource.ts` (the one data
   hook: stale-while-revalidate over AsyncStorage).
 - `src/components/` — `ui.tsx` (Desk primitives: Text/Label/Figure/Hairline/Row/
   Section), `screen.tsx` (scroll shell, header, loading/error/stale states),
@@ -39,6 +39,13 @@ make them.
   zero are different facts.
 - Blue (`colors.primary`) is links and routes ONLY.
 - Hairlines, not boxes or cards-with-shadows.
+
+## Wire contract
+`../contracts/app-api-v1.ts` is canonical. Run `python ../scripts/sync_app_contract.py`
+after edits; CI checks the generated Next/Metro copies and native build numbers.
+Validate both network and cached payloads, preserving null and zero. The uncached
+launch/foreground handshake gates screens; offline mode requires compatible
+cached data and shows its age. Compatibility tests run with the web Vitest suite.
 
 ## Checks
 ```

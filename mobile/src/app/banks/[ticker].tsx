@@ -33,7 +33,6 @@ export default function BankScreen() {
 
   const upper = (ticker ?? "").toUpperCase();
   const { data, loading, refreshing, error, cachedAt, refresh } = useResource<BankDetail>(
-    `bank:${upper}`,
     endpoints.bank(upper),
   );
 

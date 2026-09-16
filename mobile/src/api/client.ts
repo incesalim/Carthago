@@ -13,6 +13,7 @@
  *      host is compiled in.
  */
 import Constants from "expo-constants";
+import { decodeResponse } from "./contract.generated";
 
 /**
  * API host. `EXPO_PUBLIC_API_BASE` overrides it for local work — point a
@@ -53,6 +54,7 @@ export async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   // against a dead screen.
   const onAbort = () => controller.abort();
   signal?.addEventListener("abort", onAbort);
+  if (signal?.aborted) controller.abort();
 
   try {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -63,7 +65,7 @@ export async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
       // the client keeps serving the old payload for up to an hour with nothing
       // on screen to say so. Cost an hour once already. Production keeps the
       // cache; `__DEV__` always goes to the origin.
-      cache: __DEV__ ? "no-store" : "default",
+      cache: __DEV__ || path === "/api/app/v1" ? "no-store" : "default",
     });
 
     if (!res.ok) {
@@ -80,7 +82,11 @@ export async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
       throw new ApiError(message, res.status);
     }
 
-    return (await res.json()) as T;
+    try {
+      return decodeResponse<T>(path, await res.json());
+    } catch {
+      throw new ApiError("Carthago returned incompatible data. Please try again later.", 502);
+    }
   } catch (err) {
     if (err instanceof ApiError) throw err;
     // AbortError covers both the timeout and an explicit cancel. Either way the

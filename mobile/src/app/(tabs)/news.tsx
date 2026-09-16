@@ -38,10 +38,9 @@ export default function NewsScreen() {
   const { colors, space } = useTheme();
   const [source, setSource] = useState<string>("all");
 
-  // The key includes the filter, so each tab gets its own cache entry and
+  // The path includes the filter, so each tab gets its own cache entry and
   // switching back is instant rather than a refetch.
   const { data, loading, refreshing, error, cachedAt, refresh } = useResource<NewsFeed>(
-    `news:${source}`,
     endpoints.news(source, 50),
   );
 

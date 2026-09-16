@@ -1,3 +1,4 @@
+import type { ScorecardMetric } from "@/app/lib/app-api-contract.generated";
 /**
  * GET /api/app/v1/banks/{ticker} — one bank.
  *
@@ -22,7 +23,7 @@ import {
   appApiDisabled,
   disabledResponse,
   errorResponse,
-  jsonResponse,
+  appResponse,
 } from "../../_shared";
 
 export { OPTIONS } from "../../_shared";
@@ -79,7 +80,7 @@ export async function GET(
   const defs = new Map(METRIC_DEFS.map((d) => [d.key, d]));
   const trend = history.slice(-TREND_QUARTERS);
 
-  const scorecard = HEADLINE.map((key) => {
+  const scorecard = HEADLINE.map((key): ScorecardMetric => {
     const d = defs.get(key);
     return {
       key,
@@ -100,7 +101,7 @@ export async function GET(
 
   const period = latest?.period ?? summary?.latest_period ?? null;
 
-  return jsonResponse({
+  return appResponse("bank", {
     ticker,
     name: BANK_NAMES[ticker],
     type: BANK_TYPE_BY_TICKER[ticker] ?? null,

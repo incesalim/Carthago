@@ -25,7 +25,7 @@ import {
   isPeerExcluded,
 } from "@/app/lib/bank_names";
 import { heatmapPanel, latestCommonPeriod } from "@/app/lib/heatmap";
-import { appApiDisabled, disabledResponse, jsonResponse } from "../_shared";
+import { appApiDisabled, disabledResponse, appResponse } from "../_shared";
 
 export { OPTIONS } from "../_shared";
 export const dynamic = "force-dynamic";
@@ -93,7 +93,7 @@ export async function GET() {
     })
     .sort((a, b) => (b.totalAssets ?? -Infinity) - (a.totalAssets ?? -Infinity));
 
-  return jsonResponse({
+  return appResponse("banks", {
     period,
     count: rows.length,
     // The client ranks and colour-scales off `peers`; `count` is the universe.

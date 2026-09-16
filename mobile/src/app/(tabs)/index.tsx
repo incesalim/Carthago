@@ -32,7 +32,7 @@ import { useTheme } from "../../theme";
 export default function OverviewScreen() {
   const { colors, space } = useTheme();
   const { data, loading, refreshing, error, cachedAt, refresh } =
-    useResource<Overview>("overview", endpoints.overview());
+    useResource<Overview>(endpoints.overview());
 
   if (loading && !data) return <Screen><Loading /></Screen>;
   if (!data) {

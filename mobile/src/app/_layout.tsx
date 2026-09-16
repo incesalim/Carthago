@@ -23,6 +23,7 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { CompatibilityGate } from "../api/compatibility";
 import { ThemeProvider } from "../theme";
 import { dark, light } from "../theme/tokens";
 
@@ -54,6 +55,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <StatusBar style={isDark ? "light" : "dark"} />
+        <CompatibilityGate>
         <Stack
           screenOptions={{
             headerShadowVisible: false,
@@ -70,6 +72,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="banks/[ticker]" options={{ title: "" }} />
         </Stack>
+        </CompatibilityGate>
       </ThemeProvider>
     </SafeAreaProvider>
   );

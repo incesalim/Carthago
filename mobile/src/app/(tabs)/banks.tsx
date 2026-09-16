@@ -25,7 +25,7 @@ export default function BanksScreen() {
   const { colors, font, space, type } = useTheme();
   const insets = useSafeAreaInsets();
   const { data, loading, refreshing, error, cachedAt, refresh } =
-    useResource<BankList>("banks", endpoints.banks());
+    useResource<BankList>(endpoints.banks());
 
   const [query, setQuery] = useState("");
   // Keeps typing responsive while the (long) list re-filters behind it.

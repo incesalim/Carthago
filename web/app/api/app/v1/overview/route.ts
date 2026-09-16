@@ -1,3 +1,4 @@
+import type { Vital, Mover, Flag } from "@/app/lib/app-api-contract.generated";
 /**
  * GET /api/app/v1/overview — the home screen.
  *
@@ -48,7 +49,7 @@ import { realRate } from "@/app/lib/real-terms";
 import {
   appApiDisabled,
   disabledResponse,
-  jsonResponse,
+  appResponse,
   wireSeries,
 } from "../_shared";
 
@@ -141,7 +142,7 @@ export async function GET() {
   const roePeak = windowExtremes(roe, 13);
 
   // ---- vitals ---------------------------------------------------------------
-  const vitals = [
+  const vitals: Vital[] = [
     { key: "car", label: "Capital adequacy", value: carNow, unit: "%", decimals: 1,
       series: wireSeries(car), change12: change12(car), good: "up" },
     { key: "npl", label: "NPL ratio", value: nplNow, unit: "%", decimals: 2,
@@ -157,7 +158,7 @@ export async function GET() {
   ];
 
   // ---- movers (last month → this month) -------------------------------------
-  const movers = [
+  const movers: Mover[] = [
     { key: "roe", label: "ROE, ann.", prev: roe.at(-2)?.value ?? null, curr: roeNow,
       decimals: 1, good: "up",
       note: roePeak && roeNow != null && roePeak.max - roeNow > 1
@@ -201,13 +202,13 @@ export async function GET() {
       key: "usdtry", label: "USD/TRY", value: usdtry, unit: null, decimals: 2,
       effect: { metric: "fx_deposit_share", href: "/deposits" },
     },
-  ].filter(Boolean);
+  ].filter((item) => item !== false);
 
   // ---- flags: the rule is part of the payload -------------------------------
   // The website prints the rule under each flag (DESIGN.md — automation
   // honesty). The app does too, so the rule travels with the flag rather than
   // being duplicated as a client-side string that can fall out of sync.
-  const flags = [
+  const flags: Flag[] = [
     { code: "real-roe", active: roeReal != null && roeReal < 0,
       rule: "(1+roe)/(1+cpi_12m_avg) − 1 < 0",
       operands: { roe: roeNow, cpi: cpiAvgNow, real: roeReal } },
@@ -239,7 +240,7 @@ export async function GET() {
     assetsYoY, loansYoY, depositsYoY, npl, car, ldr, roe,
   });
 
-  return jsonResponse({
+  return appResponse("overview", {
     record: {
       period: npl.at(-1)?.period ?? null,
       label: monthLabel(npl.at(-1)?.period),
