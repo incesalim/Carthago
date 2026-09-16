@@ -16,7 +16,6 @@ export default defineConfig({
       compilerOptions: {
         target: "ES2017",
         jsx: "react-jsx",
-        esModuleInterop: true,
       },
     },
   },
