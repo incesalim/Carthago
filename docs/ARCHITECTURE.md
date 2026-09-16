@@ -422,15 +422,20 @@ incident, and reusing it would black out every installed app at the same moment.
 
 ### Wire compatibility and launch
 
-`contracts/app-api-v1.ts` owns types and runtime validation; `sync_app_contract.py`
-generates isolated copies for Next and Metro. Producers validate successful
-responses, and the client validates network and cached payloads. Additive fields
-are accepted; missing fields, incompatible units, and non-finite figures fail.
-The launch/foreground handshake is uncached. Unsupported builds show an update
-screen. Offline use requires a previously compatible handshake plus a validated
-saved screen; saved figures carry their fetch time. Cache keys and envelopes
-include the API origin and contract version. No valid cache means unavailable,
-and a malformed response or server error is not treated as an offline success.
+`contracts/app-api-v1.ts` owns types and runtime validation, and
+`contracts/compatibility-state.ts` owns the pure launch decision; 
+`sync_app_contract.py` generates isolated copies for Next and Metro with the
+import specifier rewritten per target. Nothing imports across a package
+boundary — Vitest's transform resolves tsconfig per file in native code, and
+mobile's tsconfig extends `expo`, installed only in the mobile CI job. Producers
+validate successful responses, and the client validates network and cached
+payloads. Additive fields are accepted; missing fields, incompatible units, and
+non-finite figures fail. The launch/foreground handshake is uncached.
+Unsupported builds show an update screen. Offline use requires a previously
+compatible handshake plus a validated saved screen; saved figures carry their
+fetch time. Cache keys and envelopes include the API origin and contract
+version. No valid cache means unavailable, and a malformed response or server
+error is not treated as an offline success.
 
 ### The invariant that matters
 

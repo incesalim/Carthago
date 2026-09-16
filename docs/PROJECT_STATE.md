@@ -1,5 +1,31 @@
 # Project State
 
+## Release train live; wire-contract fix; risk_profile in D1 (2026-09-16)
+
+The 2026-09-16 session committed and pushed everything that was sitting in
+the working tree (mobile wire contract, sector chart pass, audit repair
+hardening, the risk_profile lane, the recovered ceo-temp-web layout stash)
+and the release train ran live for the first time with the new safeguards:
+two pushes with red CI had their Deploys correctly **skipped**, and the
+green `b78dd4ee` deployed with migration `0054_risk_profile.sql` applied to
+D1 and the release smoke (overview, Akbank, public API metadata, mobile
+handshake) passing — the exact behaviour the 2026-09-06 entry said remained
+to be observed.
+
+One CI-only bug surfaced and was fixed: the web compatibility suite imported
+`negotiate()` from `../../mobile/src/api`, and Vitest 4's native
+(rolldown/oxc) transform resolves tsconfig per file — mobile's tsconfig
+extends `expo`, installed only in the mobile CI job, so the web job died
+with `TSCONFIG_ERROR` while staying green on any machine with mobile deps
+present. `contracts/compatibility-state.ts` is now canonical alongside
+`app-api-v1.ts`, `sync_app_contract.py` generates package-local copies with
+the import specifier rewritten per target, and nothing imports across a
+package boundary. Investigation note:
+`docs/knowledge/2026-09-16-vitest-cross-package-tsconfig.md`.
+
+The risk_profile entry below is unchanged except that its migration is now
+APPLIED to live D1 (still zero rows).
+
 ## Pillar 3 risk profile lane — wired, not yet populated (2026-09-16)
 
 `bank_audit_risk_profile` (17 standardised-approach exposure classes + TL/FC/
@@ -774,7 +800,7 @@ including `registered-base-refresh-independent-reconciliation.json`,
 `period-header-cloud-independent-verification.json`.
 
 
-## Architecture safeguards (2026-09-06; local implementation, rollout pending)
+## Architecture safeguards (2026-09-06; rolled out 2026-09-15/16, first live pass observed)
 
 The working tree now implements exact-SHA release checks, build-before-migration
 ordering, serialized release/audit locks and retained ingestion queues. Serving
@@ -794,7 +820,8 @@ build, and iOS/Android Metro exports. Scoped Python lint and web/mobile checks
 pass; full-root lint still reports pre-existing `PY` names in scratch scripts.
 The separately added `build-document-corpus.yml` is now published and has passed
 sample runs; the live workflow-state gate passes. Live queue/release behavior
-for this release work remains to be observed after rollout. Operating and
+was observed on 2026-09-16 (see the top entry): red-CI deploys skipped, the
+green exact-SHA release applied migration 0054 and passed smoke. Operating and
 recovery procedures are in OPERATIONS; implementation evidence is in
 `docs/knowledge/architecture-implementation-plan-2026-09-06.md`.
 
