@@ -2,7 +2,7 @@
 .body { width: 100%; max-width: none; container-type: inline-size; }
 .layout { display: grid; gap: 24px; min-width: 0; }
 .histories { min-width: 0; }
-.plot { height: var(--sector-plot-height, 340px); min-width: 0; }
+.plot { height: var(--sector-chart-height, var(--sector-plot-height, 340px)); min-width: 0; }
 .rail { min-width: 0; border-top: 1px solid var(--border); padding-top: 18px; }
 .railHeading { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; align-items: baseline; margin-bottom: 9px; font-size: 13px; line-height: 1.5; color: var(--muted-foreground); }
 .railHeading > :first-child { font-weight: 600; color: var(--foreground); }
@@ -32,7 +32,7 @@
 .facet { min-width: 0; }
 .facetTitle { display: flex; gap: 9px; align-items: center; font-size: 14px; line-height: 1.5; font-weight: 600; color: var(--foreground); text-align: left; cursor: pointer; }
 .facetTitle[aria-pressed="true"] { text-decoration: underline; text-underline-offset: 4px; }
-.facetPlot { height: 192px; margin-top: 4px; }
+.facetPlot { height: var(--sector-chart-facet-height, 192px); margin-top: 4px; }
 .tooltip { max-width: min(360px, 85vw); padding: 12px 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 20px #00000012; font-size: 14px; line-height: 1.5; color: var(--foreground); }
 .tooltipDate { margin-bottom: 7px; font-weight: 600; }
 .tooltipRow { display: flex; gap: 8px; align-items: baseline; }
@@ -54,15 +54,12 @@
 @container (min-width: 900px) {
   .layout:not([data-compact]) { grid-template-columns: minmax(0, 1fr) minmax(270px, .38fr); gap: 28px; }
   .layout:not([data-compact]) .rail { border-top: 0; border-left: 1px solid var(--border); padding-top: 3px; padding-left: 24px; }
-  .plot { height: var(--sector-plot-height, 360px); }
 }
-@container (min-width: 1250px) {
+@container (min-width: 1100px) {
   .layout[data-sector-trend-mode="groups"] { grid-template-columns: minmax(0, 1fr) 300px; }
   .layout[data-sector-trend-mode="groups"] .facets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @container (max-width: 420px) {
-  .plot { height: 300px; }
-  .facetPlot { height: 200px; }
   .entryValue { font-size: 16px; }
   .references { font-size: 12px; }
 }

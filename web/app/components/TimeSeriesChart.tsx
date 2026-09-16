@@ -152,30 +152,11 @@ export default function TimeSeriesChart({
       ? (v: string) => v.slice(0, 7)
       : (v: string) => v;
 
-  // Hero-vs-context is opt-in here (no auto "Sector" — see header comment) and
-  // only with end-labels on, so the mobile legend keeps distinct colours.
+  // Keep the same series colours in direct labels, readouts and mobile legends.
   const directLabels = labelsOn && !readout;
-  const heroMode = (directLabels || readout) && hero != null && labels.length > 1;
-
-  const lineColor = (label: string, i: number): string =>
-    heroMode
-      ? label === hero
-        ? t.hero
-        : readout
-          ? seriesColor(t, label, labels.filter(l => l !== hero).indexOf(label) + 1)
-        : active === label
-          ? t.contextActive
-          : t.context
-      : seriesColor(t, label, i);
-
-  const labelInk = (label: string): string =>
-    heroMode
-      ? label === hero
-        ? t.hero
-        : active === label
-          ? t.contextActive
-          : t.inkMuted
-      : seriesColor(t, label, labels.indexOf(label));
+  const heroMode = hero != null && labels.length > 1;
+  const lineColor = (label: string, i: number): string => seriesColor(t, label, i);
+  const labelInk = (): string => t.inkMuted;
 
   const valueOnly = labels.length === 1;
   const labelWidth = estimateEndLabelWidth(
@@ -202,7 +183,7 @@ export default function TimeSeriesChart({
         return { key: label, name: tx(label), value: latest ? fmt(latest.value, decimals) : "—", color: lineColor(label, i), asOf: latest?.period, lagged: latest != null && latest.index < data.length - 1 };
       })} active={active} pinned={pinned} onHover={setHovered} onPin={label => setPinned(p => p === label ? null : label)} />}
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
-      <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
+      <div data-chart-plot="history" style={{ height: `var(--sector-chart-height, ${height}px)` }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%" onResize={handleResize}>
           <LineChart
             data={data}
@@ -216,7 +197,7 @@ export default function TimeSeriesChart({
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
             <XAxis
               dataKey="period_date"
-              tick={{ fontSize: 11, fill: t.axis }}
+              tick={{ fontSize: 14, fill: t.axis }}
               minTickGap={40}
               tickFormatter={(v) => tx(fmtTick(String(v)))}
               axisLine={{ stroke: t.grid }}
@@ -224,7 +205,7 @@ export default function TimeSeriesChart({
             />
             <YAxis
               width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 11, fill: t.axis }}
+              tick={{ fontSize: 14, fill: t.axis }}
               tickFormatter={(v) => fmt(v, 0)}
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
@@ -247,7 +228,7 @@ export default function TimeSeriesChart({
             />
             {!labelsOn && !readout && (
               <Legend
-                wrapperStyle={{ fontSize: 11 }}
+                wrapperStyle={{ fontSize: 14 }}
                 content={({ payload }) => (
                   <ul
                     style={{

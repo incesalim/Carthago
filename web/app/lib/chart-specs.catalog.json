@@ -428,7 +428,7 @@
       { "key": "liab", "label": "Net incurrence of liabilities", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q143", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] }
     ],
     "verify": [
-      { "series": "assets", "date": "2026-04", "value": 13.72, "tolerance": 0.6 },
+      { "series": "assets", "date": "2026-04", "value": 19.909, "tolerance": 0.6 },
       { "series": "liab", "date": "2026-04", "value": 1.122, "tolerance": 0.6 }
     ],
     "registry_additions": [

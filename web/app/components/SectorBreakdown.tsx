@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { ChartCard } from "./ui/chart-card";
 import { ChartData } from "./ui/chart-csv";
-import { useChartTheme } from "@/app/lib/chart-theme";
+import { seriesColor, useChartTheme } from "@/app/lib/chart-theme";
 import type { FormatKind } from "@/app/lib/chart-format";
 import { useChartFormat } from "@/i18n/use-chart-format";
 import { useText } from "@/i18n/use-text";
@@ -58,7 +58,7 @@ export default function SectorBreakdown({
   const max = Math.max(...allValues, maxValue ?? 0, 0);
   const extent = max - min || 1;
   const zero = -min / extent * 100;
-  const color = (i: number) => theme.palette[i % theme.palette.length];
+  const color = (i: number) => seriesColor(theme, series[i].key, i, series[i].label);
   const selectedRow = data.find(row => row.id === selected);
   const available = allValues.length > 0;
   const unit = format === "bn" || format === "trn" ? tx("million TL") : format === "pct" ? "%" : "";

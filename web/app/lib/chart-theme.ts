@@ -13,6 +13,7 @@
  * commit, or tooltips/end-dot rings drift off the card surface.
  */
 import { useTheme } from "next-themes";
+import { chartSeriesIndex, chartSeriesTone } from "./chart-series";
 
 export interface ChartTheme {
   /** Active theme — use this instead of sniffing palette[0] for a light check. */
@@ -52,7 +53,7 @@ export interface ChartTheme {
 // time, so the exporter can't re-theme React; it substitutes DARK → LIGHT instead.
 export const LIGHT: ChartTheme = {
   mode: "light",
-  palette: ["#2B4E7E", "#4E79B8", "#8FA8C8", "#B98514", "#7A5C8A", "#A0A7AE"],
+  palette: ["#2B4E7E", "#4E79B8", "#397C85", "#B98514", "#7A5C8A", "#707D8B"],
   grid: "#ECEDE8",
   axis: "#6A6E73",       // = --faint: these are tick LABELS, i.e. text
   cursor: "rgba(43,78,126,0.06)",
@@ -65,14 +66,14 @@ export const LIGHT: ChartTheme = {
   context: "#C0C8D1",
   contextActive: "#454D57",
   inkMuted: "#50565E",   // = --muted-foreground
-  negative: "#C24847",
+  negative: "#A93F3E",
   positive: "#16714D",
-  warning: "#B98514",
+  warning: "#825D0E",
 };
 
 export const DARK: ChartTheme = {
   mode: "dark",
-  palette: ["#7FA3D8", "#9BB4D8", "#C1CEDE", "#D9A83F", "#B092C0", "#8B939C"],
+  palette: ["#7FA3D8", "#9BB4D8", "#82BFC4", "#D9A83F", "#B092C0", "#A4AFBD"],
   grid: "#1F252C",
   axis: "#838A93",       // = --faint (dark)
   cursor: "rgba(127,163,216,0.10)",
@@ -96,51 +97,16 @@ export function useChartTheme(): ChartTheme {
   return resolvedTheme === "dark" ? DARK : LIGHT;
 }
 
-/**
- * Fixed palette slot per BDDK bank-type code, so each group keeps ONE colour
- * across every chart regardless of which subset a given chart renders (e.g.
- * Private was previously slot 3 on the full chart but slot 1 on a 3-series
- * chart). Sector — the aggregate — takes the neutral grey; the five groups get
- * distinct hues.
- */
-const BANK_TYPE_COLOR_INDEX: Record<string, number> = {
-  "10001": 0, // Sector — navy emphasis (the aggregate the eye should track)
-  "10006": 1, // State
-  "10005": 2, // Private
-  "10007": 3, // Foreign
-  "10003": 4, // Participation
-  "10004": 5, // Dev & Inv — gray
-};
-
-/**
- * Fixed slots for the /digital tab's synthetic acquisition series, so a series
- * keeps one colour across the tab's line, share and by-method charts. Without
- * this, `branch` lands on slot 0 (maroon) in the by-method stack but slot 1
- * (navy) in the digital-vs-branch line/share — the same word in two colours.
- * Here the remote (digital) side reads warm (maroon/orange/purple) and branch
- * reads navy — the navy the line/share charts already use.
- */
-const DIGITAL_SERIES_COLOR_INDEX: Record<string, number> = {
-  digital: 0, // remote/digital aggregate — maroon
-  branch: 1, // branch (non-digital) — navy, everywhere
-  remote_rep: 0, // largest remote method — shares the digital maroon
-  remote_courier: 3, // orange
-  bulk: 4, // purple
-};
-
-/**
- * Stroke colour for a series. Known bank-type codes (and the /digital tab's
- * acquisition keys) map to their fixed slot; any other key (synthetic segment
- * codes, EVDS labels) falls back to its positional index, which is stable
- * within a single chart.
- */
+/** Resolve stable semantic identities; labels disambiguate bulletin codes. */
 export function seriesColor(
   t: ChartTheme,
   key: string,
   fallbackIndex: number,
+  label?: string,
 ): string {
-  const idx =
-    BANK_TYPE_COLOR_INDEX[key] ?? DIGITAL_SERIES_COLOR_INDEX[key] ?? fallbackIndex;
+  const tone = chartSeriesTone(key, label);
+  if (tone) return t[tone];
+  const idx = chartSeriesIndex(key, fallbackIndex, label);
   return t.palette[idx % t.palette.length];
 }
 

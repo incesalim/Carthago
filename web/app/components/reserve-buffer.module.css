@@ -1,0 +1,20 @@
+.body { width: 100%; min-width: 0; container-type: inline-size; }
+.readout { margin-bottom: 16px; }
+.readoutHeading { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 10px; font-size: 12px; line-height: 1.5; color: var(--muted-foreground); }
+.values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; margin: 0; }
+.value { min-width: 0; }
+.value dt { display: flex; gap: 8px; align-items: center; font-size: 14px; line-height: 1.4; color: var(--foreground); }
+.swatch { display: inline-block; flex: 0 0 18px; width: 18px; border-top: 2px solid; }
+.value dd { margin: 4px 0 0 26px; font-family: var(--font-sans), ui-sans-serif, sans-serif; font-size: 24px; line-height: 1.4; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--foreground); white-space: nowrap; }
+.plot { min-width: 0; }
+.tooltip { max-width: min(360px, 85vw); padding: 12px 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 20px #00000012; font-family: var(--font-sans), ui-sans-serif, sans-serif; font-size: 14px; line-height: 1.5; color: var(--foreground); }
+.tooltipDate { margin-bottom: 7px; font-weight: 600; }
+.tooltipRow { display: flex; gap: 8px; align-items: center; }
+.tooltipRow > span:nth-child(2) { flex: 1; }
+.tooltipRow strong { margin-left: 12px; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@container (max-width: 540px) {
+  .values { grid-template-columns: 1fr; gap: 8px; }
+  .value { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .value dd { margin: 0; font-size: 20px; }
+}

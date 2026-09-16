@@ -53,6 +53,7 @@ export default function EngineBars({
 }) {
   const tx = useText();
   const t = useChartTheme();
+  const colors = { worth: t.palette[1], profit: t.hero };
   const tt = tooltipStyles(t);
   const { filtered } = useRangeFilter(data, (r) => r.period);
   const fmt = (v: number) => tx("₺{0} trn", {0: v.toFixed(2)});
@@ -66,10 +67,10 @@ export default function EngineBars({
         ])}
       />
       <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[14px] text-muted-foreground">
-        <span className="flex items-center gap-2"><i aria-hidden className="h-2.5 w-2.5" style={{ background: t.hero }} />{tx("The free deposits, priced at the paid rate")}</span>
-        <span className="flex items-center gap-2"><i aria-hidden className="h-2.5 w-2.5" style={{ background: t.palette[3] }} />{tx("Sector net profit")}</span>
+        <span className="flex items-center gap-2"><i aria-hidden className="h-2.5 w-2.5" style={{ background: colors.worth }} />{tx("The free deposits, priced at the paid rate")}</span>
+        <span className="flex items-center gap-2"><i aria-hidden className="h-2.5 w-2.5" style={{ background: colors.profit }} />{tx("Sector net profit")}</span>
       </div>
-      <div style={{ height }}>
+      <div data-chart-plot="history" style={{ height: `var(--sector-chart-height, ${height}px)` }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={filtered}
@@ -99,15 +100,13 @@ export default function EngineBars({
             <Bar
               dataKey="worth"
               name={tx("The free deposits, priced at the paid rate")}
-              fill={t.hero}
-              fillOpacity={0.9}
+              fill={colors.worth}
               isAnimationActive={false}
             />
             <Bar
               dataKey="profit"
               name={tx("Sector net profit")}
-              fill={t.palette[3]}
-              fillOpacity={0.9}
+              fill={colors.profit}
               isAnimationActive={false}
             />
           </BarChart>

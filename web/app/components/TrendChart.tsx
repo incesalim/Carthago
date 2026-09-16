@@ -180,33 +180,13 @@ export default function TrendChart({
   const fmt = formatters[yFormat];
   const lastIdx = wide.length - 1;
 
-  // Hero-vs-context applies only with end-labels on (grey lines without
-  // labels would leave the mobile legend with five identical swatches).
-  const heroKey =
-    hero ?? codes.find((c) => seriesLabels[c] === "Sector") ?? null;
+  // Emphasis changes line weight; series identity stays stable at every width.
+  const heroKey = hero ?? codes.find((c) => seriesLabels[c] === "Sector") ?? null;
   const directLabels = labelsOn && !readout;
-  const heroMode = (directLabels || readout) && heroKey != null && codes.length > 1;
-
+  const heroMode = heroKey != null && codes.length > 1;
   const lineColor = (code: string, i: number): string =>
-    heroMode
-      ? code === heroKey
-        ? t.hero
-        : readout
-          ? seriesColor(t, code, codes.filter(c => c !== heroKey).indexOf(code) + 1)
-        : active === code
-          ? t.contextActive
-          : t.context
-      : seriesColor(t, code, i);
-
-  // Label-name ink: hero navy / muted for context / the series colour.
-  const labelInk = (code: string): string =>
-    heroMode
-      ? code === heroKey
-        ? t.hero
-        : active === code
-          ? t.contextActive
-          : t.inkMuted
-      : seriesColor(t, code, codes.indexOf(code));
+    seriesColor(t, code, i, seriesLabels[code]);
+  const labelInk = (): string => t.inkMuted;
 
   const valueOnly = codes.length === 1;
   const labelWidth = estimateEndLabelWidth(
@@ -235,7 +215,7 @@ export default function TrendChart({
         return { key: code, name: tx(seriesLabels[code]), value: latest ? fmt(latest.value, decimals) : "—", color: lineColor(code, i), asOf: latest?.period, lagged: latest != null && latest.index < lastIdx };
       })} active={active} pinned={pinned} onHover={setHovered} onPin={code => setPinned(p => p === code ? null : code)} />}
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
-      <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
+      <div data-chart-plot="history" style={{ height: `var(--sector-chart-height, ${height}px)` }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%" onResize={handleResize}>
           <ComposedChart
             data={wide}
@@ -251,7 +231,7 @@ export default function TrendChart({
             <XAxis
               dataKey="period"
               tickFormatter={(value) => tx(String(value))}
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: readout ? "var(--font-geist-sans), sans-serif" : "var(--font-geist-mono), monospace" }}
+              tick={{ fontSize: 14, fill: t.axis, fontFamily: "var(--font-sans), sans-serif" }}
               tickMargin={6}
               minTickGap={readout ? 65 : 30}
               axisLine={false}
@@ -259,7 +239,7 @@ export default function TrendChart({
             />
             <YAxis
               width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
+              tick={{ fontSize: 14, fill: t.axis, fontFamily: "var(--font-sans), sans-serif" }}
               tickFormatter={(v) => fmt(v, 0)}
               axisLine={false}
               tickLine={false}
@@ -285,7 +265,7 @@ export default function TrendChart({
                 verticalAlign="bottom"
                 align="center"
                 layout="horizontal"
-                wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                wrapperStyle={{ fontSize: 14, paddingTop: 4 }}
                 content={({ payload }) => {
                   // Recharts 3 auto-sorts the legend alphabetically; render it
                   // ourselves so it follows BANK_GROUP_ORDER.
@@ -351,7 +331,7 @@ export default function TrendChart({
               ? (() => {
                   // Lone series → a soft area fill under a primary line.
                   const code = codes[0];
-                  const color = seriesColor(t, code, 0);
+                  const color = seriesColor(t, code, 0, seriesLabels[code]);
                   const gid = `trend-area-${code.replace(/[^a-z0-9]/gi, "")}`;
                   return (
                     <>

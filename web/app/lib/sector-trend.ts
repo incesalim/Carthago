@@ -1,4 +1,5 @@
 /** Presentation-only transforms for sector charts. Source rows stay untouched. */
+import { chartSeriesIndex } from "./chart-series";
 export interface SectorTrendPoint {
   period: string;
   bank_type_code: string;
@@ -12,7 +13,7 @@ export interface SectorTrendReference {
 
 export type SectorTrendRow = { period: string; [key: string]: string | number | null };
 
-const GROUP_ORDER = ["Sector", "State", "Domestic", "Private", "Foreign", "Participation", "Dev & Inv"];
+const GROUP_ORDER = ["Sector", "State", "Public", "Domestic", "Private", "Foreign", "Participation", "Dev & Inv"];
 
 export function sectorSeriesCodes(data: SectorTrendPoint[], labels: Record<string, string>) {
   const codes = [...new Set([...Object.keys(labels), ...data.map((row) => row.bank_type_code)])];
@@ -95,9 +96,5 @@ export function sectorTrendScale(
 
 /** Plot marks for weekly/monthly ownership groups share semantic colours. */
 export function sectorPaletteIndex(label: string, fallback: number): number {
-  const mapping: Record<string, number> = {
-    Sector: 0, State: 1, Domestic: 2, Private: 2, Foreign: 3,
-    Participation: 4, "Dev & Inv": 5,
-  };
-  return mapping[label] ?? fallback;
+  return chartSeriesIndex(label, fallback);
 }

@@ -16,6 +16,8 @@
  * reference line makes the negative stretch legible.
  */
 import { useText } from "@/i18n/use-text";
+import { useChartFormat } from "@/i18n/use-chart-format";
+import { formatDateLabel } from "@/i18n/format";
 import {
   Area,
   CartesianGrid,
@@ -29,8 +31,6 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { NearestSeriesTooltip } from "@/app/components/nearest-hover";
-import { EndLabelLayer, estimateEndLabelWidth } from "@/app/components/chart-end-labels";
 import {
   useChartTheme,
   crosshairCursor,
@@ -39,17 +39,20 @@ import {
 } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { useRangeFilter } from "@/app/lib/use-date-range";
+import styles from "./reserve-buffer.module.css";
 
 // The point shape and the arithmetic behind it live in lib/reserves.ts, so
 // /liquidity and /economy draw the same three levels from one derivation.
 export type { BufferPoint } from "@/app/lib/reserves";
 import { type BufferPoint } from "@/app/lib/reserves";
 
-const LABELS: Record<string, string> = {
-  gross: "Gross",
-  net: "Net",
-  own: "CBRT's own",
+const KEYS = ["gross", "net", "own"] as const;
+const LABELS: Record<(typeof KEYS)[number], string> = {
+  gross: "Gross reserves",
+  net: "Net reserves",
+  own: "Net excl. swaps",
 };
+const SANS = "var(--font-sans), ui-sans-serif, sans-serif";
 
 export default function ReserveBuffer({
   data,
@@ -66,10 +69,8 @@ export default function ReserveBuffer({
 }) {
   const tx = useText();
   const t = useChartTheme();
+  const format = useChartFormat();
   const { filtered } = useRangeFilter(data, (r) => r.period);
-  // The swap band + the CBRT's-own line take the plum from the categorical ramp
-  // (--chart-5): distinct from the navy hero without inventing a colour.
-  const PLUM = t.palette[4];
 
   // Range areas: Recharts draws a band when the value is a [lo, hi] tuple.
   const rows = filtered.map((r) => ({
@@ -78,49 +79,59 @@ export default function ReserveBuffer({
     swapBand: [r.own, r.net] as [number, number],
   }));
 
-  const fmt = (v: number) => `$${v.toFixed(1)}bn`;
-  const keys = ["gross", "net", "own"];
+  const fmt = (v: number) => tx(`$${format.raw(v, 1)}bn`);
   const lastRow = rows.at(-1);
-  const labelWidth = estimateEndLabelWidth(
-    lastRow
-      ? keys.map((k) => ({ name: LABELS[k], value: fmt(lastRow[k as "gross"]) }))
-      : [],
-  );
 
   const ink: Record<string, string> = {
-    gross: t.context,
-    net: t.hero,
-    own: PLUM,
+    gross: t.contextActive,
+    net: t.palette[1],
+    own: t.hero,
   };
 
   return (
-    <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)}>
+    <ChartCard plain title={tx(title)} description={tx(description)} source={tx(source)} bodyClassName={styles.body}>
       <ChartData
         table={wideToTable(
           rows,
           { key: "period", label: "Week" },
-          keys.map((k) => ({ key: k, label: LABELS[k] })),
+          KEYS.map((k) => ({ key: k, label: LABELS[k] })),
         )}
       />
-      <div style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className={styles.readout} aria-label={tx("Latest values")}>
+        <div className={styles.readoutHeading}>
+          <span>{tx("Latest values")}</span>
+          <span>{lastRow ? formatDateLabel(lastRow.period, tx.locale) : "—"}</span>
+        </div>
+        <dl className={styles.values}>
+          {KEYS.map((key) => <div key={key} className={styles.value}>
+            <dt><span className={styles.swatch} style={{ borderColor: ink[key], borderTopStyle: key === "gross" ? "dashed" : "solid" }} />{tx(LABELS[key])}</dt>
+            <dd>{lastRow && Number.isFinite(lastRow[key]) ? fmt(lastRow[key]) : "—"}</dd>
+          </div>)}
+        </dl>
+      </div>
+      <div data-chart-plot="history" className={styles.plot} style={{ height: `var(--sector-chart-height, ${height}px)` }}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <ComposedChart
             data={rows}
-            margin={{ top: 10, right: labelWidth, left: PLOT_MARGIN_LEFT, bottom: 8 }}
+            margin={{ top: 10, right: 16, left: PLOT_MARGIN_LEFT, bottom: 8 }}
+            accessibilityLayer
           >
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
-              tickMargin={6}
-              minTickGap={40}
+              tick={{ fontSize: 14, fill: t.inkMuted, fontFamily: SANS }}
+              tickFormatter={(period) => formatDateLabel(String(period).slice(0, 7), tx.locale)}
+              tickMargin={10}
+              minTickGap={60}
+              interval="preserveStartEnd"
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
-              tickFormatter={(v) => `${v}`}
+              tick={{ fontSize: 14, fill: t.inkMuted, fontFamily: SANS }}
+              tickFormatter={(v) => format.raw(Number(v), 0)}
+              tickMargin={8}
               axisLine={false}
               tickLine={false}
             />
@@ -128,23 +139,27 @@ export default function ReserveBuffer({
             <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />
             <Tooltip
               cursor={crosshairCursor(t)}
-              content={(p) => (
-                <NearestSeriesTooltip
-                  active={p.active}
-                  payload={p.payload?.filter((s) => keys.includes(String(s.dataKey)))}
-                  label={tx(p.label)}
-                  coordinate={p.coordinate}
-                  formatValue={(v) => fmt(v)}
-                />
-              )}
+              content={({ active, label, payload }) => {
+                if (!active || !payload?.length) return null;
+                const point = payload[0]?.payload as BufferPoint | undefined;
+                if (!point) return null;
+                return <div className={styles.tooltip}>
+                  <div className={styles.tooltipDate}>{formatDateLabel(String(label ?? ""), tx.locale)}</div>
+                  {KEYS.map((key) => <div key={key} className={styles.tooltipRow}>
+                    <span className={styles.swatch} style={{ borderColor: ink[key], borderTopStyle: key === "gross" ? "dashed" : "solid" }} />
+                    <span>{tx(LABELS[key])}</span>
+                    <strong>{Number.isFinite(point[key]) ? fmt(point[key]) : "—"}</strong>
+                  </div>)}
+                </div>;
+              }}
             />
             {/* Gap 1: gross → net = the BANKS' own FX, held at the CBRT. */}
             <Area
               dataKey="banksBand"
               name={tx("Banks' required reserves")}
               stroke="none"
-              fill={t.context}
-              fillOpacity={0.35}
+              fill={ink.gross}
+              fillOpacity={0.1}
               isAnimationActive={false}
               activeDot={false}
             />
@@ -153,38 +168,28 @@ export default function ReserveBuffer({
               dataKey="swapBand"
               name={tx("Swapped in")}
               stroke="none"
-              fill={PLUM}
-              fillOpacity={0.3}
+              fill={ink.net}
+              fillOpacity={0.1}
               isAnimationActive={false}
               activeDot={false}
             />
-            {keys.map((k) => (
+            {KEYS.map((k) => (
               <Line
                 key={k}
                 type="monotone"
                 dataKey={k}
                 name={tx(LABELS[k])}
                 stroke={ink[k]}
-                strokeWidth={k === "net" ? 2.5 : 1.75}
+                strokeWidth={2}
+                strokeDasharray={k === "gross" ? "6 4" : undefined}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 dot={false}
-                activeDot={false}
+                activeDot={{ r: 3.5, fill: ink[k], stroke: t.tooltipBg, strokeWidth: 1.5 }}
+                connectNulls={false}
                 isAnimationActive={false}
               />
             ))}
-            {/* EndLabelLayer reads scalar series only — hand it the three lines,
-                not the two [lo, hi] range bands. */}
-            <EndLabelLayer
-              rows={filtered}
-              periodKey="period"
-              keys={keys}
-              labelFor={(k) => LABELS[k]}
-              colorFor={(k) => (k === "gross" ? t.inkMuted : ink[k])}
-              lineColorFor={(k) => ink[k]}
-              formatValue={fmt}
-              heroKey="net"
-            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

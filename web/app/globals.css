@@ -78,13 +78,13 @@
   --heat-neg: #C24847;
   --heat-neutral: #A0A7AE;
 
-  /* Categorical chart palette — navy-led, cool spread + one amber. */
+  /* Categorical identities — navy, blue, teal, amber, plum and slate. */
   --chart-1: #2B4E7E;   /* navy — sector / hero */
   --chart-2: #4E79B8;
-  --chart-3: #8FA8C8;
+  --chart-3: #397C85;
   --chart-4: #B98514;   /* amber */
   --chart-5: #7A5C8A;   /* muted plum */
-  --chart-6: #A0A7AE;   /* gray */
+  --chart-6: #707D8B;   /* slate — visible line contrast */
 }
 
 .dark {
@@ -131,10 +131,10 @@
 
   --chart-1: #7FA3D8;   /* navy hero (lightened) */
   --chart-2: #9BB4D8;
-  --chart-3: #C1CEDE;
+  --chart-3: #82BFC4;
   --chart-4: #D9A83F;
   --chart-5: #B092C0;
-  --chart-6: #8B939C;
+  --chart-6: #A4AFBD;
 }
 
 @theme inline {

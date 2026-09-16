@@ -25,6 +25,7 @@ import { useChartFormat } from "@/i18n/use-chart-format";
 import { useText } from "@/i18n/use-text";
 import {
   crosshairCursor,
+  seriesColor,
   tooltipStyles,
   useChartTheme,
   PLOT_MARGIN_LEFT,
@@ -102,7 +103,8 @@ export default function SmallMultiplesTrend({
     const i = GROUP_ORDER.indexOf(seriesLabels[code]);
     return i === -1 ? Number.MAX_SAFE_INTEGER : i;
   };
-  const codes = Object.keys(seriesLabels).sort((a, b) => rank(a) - rank(b));
+  const originalCodes = Object.keys(seriesLabels);
+  const codes = [...originalCodes].sort((a, b) => rank(a) - rank(b));
   const grouped = groupSmallMultipleRows(filtered, codes);
 
   const values = grouped.flatMap((group) => group.rows.flatMap((row) => row.value == null ? [] : [row.value]));
@@ -142,7 +144,7 @@ export default function SmallMultiplesTrend({
           const prior = group.rows.at(-1 - deltaPeriods);
           const delta = current?.value != null && prior?.value != null ? current.value - prior.value : null;
           const isSector = seriesLabels[group.code] === "Sector";
-          const color = isSector ? t.hero : t.contextActive;
+          const color = seriesColor(t, group.code, originalCodes.indexOf(group.code), seriesLabels[group.code]);
           return (
             <section
               key={group.code}
@@ -163,7 +165,7 @@ export default function SmallMultiplesTrend({
                   </div>
                 </div>
               </div>
-              <div style={{ height }}>
+              <div data-chart-plot="facet" style={{ height: `var(--sector-chart-height, ${height}px)` }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={group.rows} margin={{ top: 7, right: 5, bottom: 4, left: PLOT_MARGIN_LEFT }}>
                     <CartesianGrid vertical={false} stroke={t.grid} />
@@ -172,7 +174,7 @@ export default function SmallMultiplesTrend({
                       interval="preserveStartEnd"
                       minTickGap={55}
                       tickFormatter={(value) => tx(String(value).slice(0, 7))}
-                      tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-sans), sans-serif" }}
+                      tick={{ fontSize: 12, fill: t.axis, fontFamily: "var(--font-geist-sans), sans-serif" }}
                       tickMargin={5}
                       axisLine={false}
                       tickLine={false}
@@ -182,7 +184,7 @@ export default function SmallMultiplesTrend({
                       width={Y_AXIS_WIDTH}
                       tickCount={3}
                       tickFormatter={(value) => fmt(Number(value), 0)}
-                      tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-sans), sans-serif" }}
+                      tick={{ fontSize: 12, fill: t.axis, fontFamily: "var(--font-geist-sans), sans-serif" }}
                       axisLine={false}
                       tickLine={false}
                     />

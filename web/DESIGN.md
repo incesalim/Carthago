@@ -63,8 +63,8 @@ do all the work; nothing is decorated.
 | `--primary` (links only) | `#2757A8` | `#7FA3D8` |
 | `--data` / chart hero | `#2B4E7E` | `#7FA3D8` |
 | `--context` (the non-hero mark) | `#C0C8D1` | `#4A525C` |
-| `--positive` / `--negative` | `#187A53` / `#BC4645` | `#4FB98A` / `#E0716B` |
-| `--warning` (thresholds) | `#8E660F` | `#D9A83F` |
+| `--positive` / `--negative` | `#16714D` / `#A93F3E` | `#4FB98A` / `#E0716B` |
+| `--warning` (thresholds) | `#825D0E` | `#D9A83F` |
 
 **LOCKSTEP RULE:** `app/lib/chart-theme.ts` mirrors these values in JS (Recharts
 can't read CSS vars). Any token change lands in both files in the same commit.
@@ -86,8 +86,15 @@ colour**: the amber chip at 3.27:1 keeps its coloured border and takes ink for
 the word. Marks answer to a different rule (3:1, WCAG 1.4.11) and are left
 alone.
 
-Charts: hero navy + grey context (`--context`), direct end-labels via
-`chart-end-labels.tsx`, hairline grid, no legend boxes.
+Charts use stable entity colours from `chart-series.ts`, resolved through
+`seriesColor()` in `chart-theme.ts`. Sector/navy, public/blue, domestic-private/teal,
+foreign/amber, participation/plum and development-investment/slate retain their
+identity across weekly/monthly sources, chart types and viewport widths. A hero
+changes line weight, not entity colour. Reserve levels have their own hierarchy:
+gross/slate dashed, net/blue, net excluding swaps/navy; pale fills describe the
+gaps, never replace a measurable outline. Stage 2/watchlist uses warning, and
+Stage 3/NPL uses negative. Series names use neutral text ink with coloured marks.
+The six categorical tokens also mirror `mobile/src/theme/tokens.ts`.
 
 **Every chart with a time axis drops a hover crosshair** — one vertical hairline
 at the hovered date (`crosshairCursor(t)` from `chart-theme.ts`), so the reader
@@ -108,6 +115,18 @@ edge), both from `chart-theme.ts`. Never hand a value y-axis a hard-coded width:
 "₺1,234 bn" and "0%" do not need the same room, and the guess is wrong for one of
 them. A CATEGORY y-axis (BarByBank's bank names) is content, not scale furniture —
 it keeps its own explicit width.
+
+### Sector chart dimensions
+
+The sector workspace sets one plot-height contract: full-width histories 320px,
+comparison-grid histories 280px, narrow charts (container up to 540px) 260px,
+and individual small-multiple panels 180px. Shared wrappers consume
+`--sector-chart-height` through `data-chart-plot="history"` or `"facet"`; outside
+sector pages their existing height prop is the fallback. Legends/readouts and
+source notes stay outside the fixed plot so wrapped text does not shrink data.
+Four-series facets get a full-width card rather than a tall half-width card
+beside a single plot. Categorical rows, waterfalls and sparklines retain the
+space their marks need; the history-height rule does not apply to them.
 
 ## Choosing the mark (read this BEFORE adding a chart)
 
@@ -134,9 +153,11 @@ take on trust. Pick the form from the question, then check it against these.
   strip (per group, zero-centred) beside the level, with the 4w/13w columns that
   say whether one week is noise.
 - **Colour follows the entity, never the code table.** One group, one colour, on
-  weekly and monthly charts alike. (Live bug: the weekly bulletin re-uses the
-  bank-type codes with different meanings, so `seriesColor()` currently paints
-  State in Dev & Inv's grey — see the register's design debt.)
+  weekly and monthly charts alike. Pass the original English label to
+  `seriesColor()` when resolving bulletin codes: weekly and monthly codes can
+  mean different groups. Resolve fallback positions before range filtering.
+  Consumer products, maturity brackets and currency groups follow this same
+  registry in bars, stacks, line histories and small multiples.
 - **Values live beside the mark, not on top of it.** Prefer a readout rail —
   a fixed column, populated at rest, updated on hover — to a floating tooltip
   that occludes the bands it describes and takes its numbers away on blur.

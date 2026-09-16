@@ -250,7 +250,7 @@ export default function NimComponentsChart({
 
   return (
     <>
-    <div style={{ height }}>
+    <div data-chart-plot="history" style={{ height: `var(--sector-chart-height, ${height}px)` }}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={data}

@@ -39,7 +39,7 @@ export default function SectorBalanceBridge({ rows, title, description, source, 
           <div className="min-w-0 text-sm leading-snug">{tx(row.label)}</div>
           <div className={styles.bridgePlot}>
             <span className="absolute inset-y-[-6px] border-l border-dashed border-muted-foreground/50" style={{ left: `${place(0)}%` }} />
-            <span className={`absolute top-1 h-5 rounded-sm ${row.total ? "bg-primary" : row.value < 0 ? "bg-negative/70" : "bg-primary/55"}`}
+            <span className={`absolute top-1 h-5 rounded-sm ${row.value < 0 ? "bg-negative" : "bg-data"}`}
               style={{ left: `${place(Math.min(row.from, row.to))}%`, width: `${Math.abs(row.to - row.from) / span * 100}%`, minWidth: row.value === 0 ? 0 : 1 }} />
           </div>
           <div className={styles.bridgeValue}>{fmt.bn(row.value, 1)}</div>

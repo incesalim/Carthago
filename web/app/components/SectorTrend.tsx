@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   CartesianGrid, Line, LineChart, ReferenceArea, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -8,12 +8,12 @@ import {
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
 import { type ChartAnnotation } from "@/app/components/chart-end-labels";
-import { crosshairCursor, PLOT_MARGIN_LEFT, useChartTheme, Y_AXIS_WIDTH } from "@/app/lib/chart-theme";
+import { crosshairCursor, PLOT_MARGIN_LEFT, seriesColor, useChartTheme, Y_AXIS_WIDTH } from "@/app/lib/chart-theme";
 import { type FormatKind } from "@/app/lib/chart-format";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 import {
-  pivotSectorTrend, sectorLatestValues, sectorPaletteIndex, sectorSeriesCodes,
+  pivotSectorTrend, sectorLatestValues, sectorSeriesCodes,
   sectorTrendScale, type SectorTrendPoint, type SectorTrendReference,
 } from "@/app/lib/sector-trend";
 import { useChartFormat } from "@/i18n/use-chart-format";
@@ -87,8 +87,7 @@ export default function SectorTrend({
   const [pinned, setPinned] = useState<string | null>(null);
   const selected = hovered ?? pinned;
   const name = (code: string) => tx(seriesLabels[code] ?? code);
-  const color = (code: string) => code === heroCode ? theme.hero
-    : theme.palette[sectorPaletteIndex(seriesLabels[code] ?? code, codes.indexOf(code)) % theme.palette.length];
+  const color = (code: string) => seriesColor(theme, code, codes.indexOf(code), seriesLabels[code]);
   const toggle = (code: string) => setPinned((previous) => previous === code ? null : code);
   const finiteValues = latest.filter((entry) => entry.value != null);
   const railEntries = groups ? [...latest].sort((a, b) => {
@@ -185,9 +184,9 @@ export default function SectorTrend({
                 onFocus={() => setHovered(code)} onBlur={() => setHovered(null)} onClick={() => toggle(code)}>
                 <span className={styles.keyMark} style={{ background: color(code) }} />{name(code)}
               </button>
-              <div className={styles.facetPlot}>{plot([code], true)}</div>
+              <div className={styles.facetPlot} data-chart-plot="facet" style={{ height: "var(--sector-chart-height, 180px)" }}>{plot([code], true)}</div>
             </section>)}
-          </div> : <div className={styles.plot} style={height ? { "--sector-plot-height": `${Math.max(height, 280)}px` } as CSSProperties : undefined}>{plot(codes)}</div>}
+          </div> : <div className={styles.plot} data-chart-plot="history" style={{ height: `var(--sector-chart-height, ${height ?? 320}px)` }}>{plot(codes)}</div>}
         </div>
         <aside className={styles.rail} aria-label={tx("Latest values")}>
           <div className={styles.railHeading}>

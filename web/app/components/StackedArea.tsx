@@ -19,11 +19,11 @@
 
 import { useChartFormat } from "@/i18n/use-chart-format";
 import { useText } from "@/i18n/use-text";
+import { formatDateLabel } from "@/i18n/format";
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -65,15 +65,9 @@ interface Props {
   height?: number;
   /** Render as percent stack (each point sums to 100%). */
   percentStack?: boolean;
-  /** Colour each series by its key via `seriesColor` (matches TrendChart /
-   *  BopFlowChart) instead of the warm/cool layering order. Use when the same
-   *  series also appears as a line on the page so colours stay consistent. */
+  /** Retained for callers; all stacks now use stable series identities. */
   colorKeys?: boolean;
 }
-
-// Stacked areas read best when the brand red leads but warm/cool alternate.
-const ORDER = [0, 3, 2, 1, 4, 5];
-
 
 export default function StackedArea({
   data,
@@ -86,7 +80,6 @@ export default function StackedArea({
   decimals = 1,
   height = 320,
   percentStack = false,
-  colorKeys = false,
 }: Props) {
   const tx = useText();
   const t = useChartTheme();
@@ -113,10 +106,10 @@ export default function StackedArea({
   );
   const shown = visible.length > 0 ? visible : series;
 
-  const colorAt = (i: number) =>
-    colorKeys
-      ? seriesColor(t, shown[i].key, i)
-      : t.palette[ORDER[i % ORDER.length] % t.palette.length];
+  // Resolve against the authored series before the selected range hides empty
+  // components. The same entity keeps its line/bar/area colour at every range.
+  const colorAt = (i: number) => seriesColor(t, shown[i].key,
+    series.findIndex(s => s.key === shown[i].key), shown[i].label);
 
   const renderTooltip = ({
     active,
@@ -185,70 +178,37 @@ export default function StackedArea({
       <ChartData
         table={wideToTable(filtered, { key: "period", label: "Period" }, shown)}
       />
-      <div style={{ height }}>
+      <ul style={{ display: "flex", flexWrap: "wrap", gap: "8px 20px", listStyle: "none", margin: "0 0 16px", padding: 0, fontSize: 14 }}>
+        {shown.map((s, i) => (
+          <li key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: t.axis }}>
+            <span aria-hidden style={{ width: 10, height: 10, flex: "none", background: colorAt(i) }} />
+            {tx(s.label)}
+          </li>
+        ))}
+      </ul>
+      <div data-chart-plot="history" style={{ height: `var(--sector-chart-height, ${height}px)` }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={filtered} stackOffset={percentStack ? "expand" : "none"}
-                     margin={{ top: 10, right: 20, left: PLOT_MARGIN_LEFT, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+                     margin={{ top: 10, right: 20, left: PLOT_MARGIN_LEFT, bottom: 4 }}>
+            <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
-              tickFormatter={(value) => tx(String(value))}
-              tick={{ fontSize: 11, fill: t.axis }}
-              minTickGap={30}
-              axisLine={{ stroke: t.grid }}
-              tickLine={{ stroke: t.grid }}
+              tickFormatter={(value) => formatDateLabel(String(value).slice(0, 7), tx.locale)}
+              tick={{ fontSize: 14, fill: t.axis }}
+              minTickGap={52}
+              axisLine={false}
+              tickLine={false}
             />
             <YAxis
               width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 11, fill: t.axis }}
+              tick={{ fontSize: 14, fill: t.axis }}
               tickFormatter={(v) =>
-                percentStack ? `${(v * 100).toFixed(0)}%` : fmt(v, 0)
+                percentStack ? formatters.pct(v * 100, 0) : fmt(v, 0)
               }
-              axisLine={{ stroke: t.grid }}
-              tickLine={{ stroke: t.grid }}
+              axisLine={false}
+              tickLine={false}
             />
             <Tooltip cursor={crosshairCursor(t)} content={renderTooltip} />
-            <Legend
-              wrapperStyle={{ fontSize: 11 }}
-              content={() => (
-                // Render straight from `shown` so the legend order matches the
-                // stack (bottom→top); Recharts otherwise reorders it.
-                <ul
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                    gap: "2px 14px",
-                    listStyle: "none",
-                    margin: 0,
-                    padding: 0,
-                  }}
-                >
-                  {shown.map((s, i) => (
-                    <li
-                      key={s.key}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        color: t.axis,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: 11,
-                          height: 11,
-                          borderRadius: 2,
-                          background: colorAt(i),
-                        }}
-                      />
-                      {tx(s.label)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            />
             {shown.map((s, i) => (
               <Area
                 key={s.key}
@@ -256,9 +216,10 @@ export default function StackedArea({
                 dataKey={s.key}
                 name={tx(s.label)}
                 stackId="1"
-                stroke={colorAt(i)}
+                stroke={t.tooltipBg}
+                strokeWidth={1.5}
                 fill={colorAt(i)}
-                fillOpacity={0.55}
+                fillOpacity={1}
                 isAnimationActive={false}
               />
             ))}

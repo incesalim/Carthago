@@ -1,5 +1,5 @@
 /* Sector workspace: shared frame and compact source header. */
-.report { width:100%; min-height:100vh; margin-inline:auto; padding:32px clamp(20px,2.5vw,44px) 40px; background:var(--background); font:15px/1.6 var(--font-sans); }
+.report { --sector-chart-height:320px; --sector-chart-facet-height:180px; width:100%; min-height:100vh; margin-inline:auto; padding:32px clamp(20px,2.5vw,44px) 40px; background:var(--background); font:15px/1.6 var(--font-sans); }
 .report > * { max-width:1560px; margin-inline:auto; }
 .header { position:relative; padding-bottom:18px; display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.7fr); grid-template-areas:"crumb crumb" "title record" "description observations" "description notes"; column-gap:40px; align-items:start; }
 .breadcrumb { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12px; font-weight:500; color:var(--muted-foreground); grid-area:crumb; }
@@ -49,11 +49,11 @@
    never repeats as a second grey paragraph under every sparkline. */
 
 /* Analytical panels and chapter rhythm. */
-.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
+.grid { --sector-chart-height:280px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
 .grid[data-columns="3"] { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .grid[data-ratio="wide-left"] { grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); }
 .grid[data-ratio="wide-right"] { grid-template-columns:minmax(0,1fr) minmax(0,1.55fr); }
-.grid[data-columns="1"] { grid-template-columns:minmax(0,1fr); }
+.grid[data-columns="1"] { --sector-chart-height:320px; grid-template-columns:minmax(0,1fr); }
 .grid > * { min-width:0; margin-top:0; }
 .panel,.report [data-chart-card] { padding:22px; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:none; min-width:0; }
 .panelHeader { margin-bottom:20px; }
@@ -89,7 +89,10 @@
 .report [data-chart-source] details { margin-top:8px; }
 .report [data-chart-source] summary { cursor:pointer; color:var(--primary); font-weight:500; }
 .report [data-chart-body] { max-width:none; container-type:inline-size; container-name:chart; }
-.report [data-chart-body]:not(:has([data-sector-trend-mode])) :global(.recharts-cartesian-axis-tick-value) { font-family:var(--font-sans); font-size:12px; }
+/* Plot viewports share dimensions; legends, notes and categorical rows remain content-sized. */
+.report [data-chart-plot="facet"] { --sector-chart-height:var(--sector-chart-facet-height); }
+.report [data-chart-body] :global(.recharts-cartesian-axis-tick-value) { font-family:var(--font-sans); font-size:14px; }
+.report [data-chart-plot="facet"] :global(.recharts-cartesian-axis-tick-value) { font-size:12px; }
 .report [data-chart-row]:not(:has(> div:nth-child(2))) { display:block; }
 .report [data-chart-row] > div:last-child { align-self:start; }
 .report [data-sector-pair] [data-chart-row],.report [data-chart-source] [data-chart-row] { display:block; }
@@ -105,7 +108,6 @@
 .report [data-small-multiples] > section > div:first-child > div:first-child { font-size:14px; line-height:1.5; }
 .report [data-small-multiples] > section > div:first-child > div:last-child > div:first-child { font:600 19px/1.5 var(--font-sans); }
 .report [data-small-multiples] > section > div:first-child > div:last-child > div:last-child { font:12px/1.5 var(--font-sans); text-transform:none; letter-spacing:0; }
-.report [data-small-multiples] > section > div:last-child { min-height:170px; }
 .report [data-sector-section] p:global(.font-mono),.report [data-cadence-band] > div:first-child > span { font:12px/1.6 var(--font-sans); text-transform:none; letter-spacing:0; }
 .report [data-cadence-band] { margin-top:0; }
 
@@ -134,10 +136,13 @@
 .footer a { color:var(--primary); }
 
 /* Chart containers and viewport breakpoints. */
-@container chart (min-width:500px) {
+@container chart (max-width:539px) {
+  .report [data-chart-plot="history"] { --sector-chart-height:260px; }
+}
+@container chart (min-width:540px) {
   .report [data-small-multiples] { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
-@container chart (min-width:900px) {
+@container chart (min-width:1100px) {
   .report [data-small-multiples][data-columns="3"] { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
 @media (min-width:1600px) {

@@ -64,7 +64,7 @@ export const light: Palette = {
   positive: "#16714D",
   negative: "#A93F3E",
   warning: "#825D0E",
-  chart: ["#2B4E7E", "#4E79B8", "#8FA8C8", "#B98514", "#7A5C8A", "#A0A7AE"],
+  chart: ["#2B4E7E", "#4E79B8", "#397C85", "#B98514", "#7A5C8A", "#707D8B"],
 };
 
 export const dark: Palette = {
@@ -83,7 +83,7 @@ export const dark: Palette = {
   positive: "#4FB98A",
   negative: "#E0716B",
   warning: "#D9A83F",
-  chart: ["#7FA3D8", "#9BB4D8", "#C1CEDE", "#D9A83F", "#B092C0", "#8B939C"],
+  chart: ["#7FA3D8", "#9BB4D8", "#82BFC4", "#D9A83F", "#B092C0", "#A4AFBD"],
 };
 
 /**
