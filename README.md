@@ -36,6 +36,25 @@ Two data layers cohabit in D1:
    (2022-Q1 → 2026-Q2, season in progress — 1,093 extractions as of
    2026-08-13), ~98% of sector by assets. PDFs live in R2.
 
+## Start here
+
+| If you want to… | Go to |
+|---|---|
+| Understand the whole system | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| See what's in the database right now | [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) |
+| Run, backfill or repair something | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) |
+| Find a script | [`scripts/README.md`](scripts/README.md) |
+| Know the rules before touching code | [`AGENTS.md`](AGENTS.md) |
+| Work on the dashboard / mobile app | [`web/AGENTS.md`](web/AGENTS.md) · [`mobile/AGENTS.md`](mobile/AGENTS.md) |
+| See what's in `data/` | [`data/README.md`](data/README.md) |
+| Browse every doc | [`docs/README.md`](docs/README.md) |
+
+Subsystems: **`src/`** is the Python ingestion + extraction code (BDDK/EVDS
+scrapers, TBB, per-bank BRSA PDF extraction). **`scripts/`** holds the CLI
+entry points, backfills and the `check_*.py` CI gates. **`web/`** is the
+Next.js dashboard; **`mobile/`** the Expo app. **`docs/`** is the canonical
+documentation; **`docs/knowledge/`** is internal working notes (gitignored).
+
 ## Quick start
 
 Production runs in GitHub Actions on a schedule — local installation is

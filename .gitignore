@@ -116,6 +116,13 @@ logs/**/*.log
 data/_*.log
 data/_tmp_*.pdf
 
+# One-off pipeline scratch in data/ — underscore-prefixed run dirs, emitted D1
+# SQL dumps and candidate listings never belong in the repo (nothing matching
+# is tracked; regenerate rather than commit).
+data/_*/
+data/*.sql
+data/*.candidates.json
+
 # Environment variables
 .env
 .env.local
@@ -129,6 +136,14 @@ Thumbs.db
 *.temp
 temp/
 tmp/
+# Root-level scratch scripts (ad-hoc probes; relocate into tmp/, never commit)
+/tmp_*.py
+/scratch_*.py
+# Local test/lint caches (some self-ignore, but pin them repo-wide)
+.pytest_cache/
+.ruff_cache/
+# One-off generated outputs (reviewed tables, gates artifacts); local only
+/output/
 
 # Chrome driver
 chromedriver

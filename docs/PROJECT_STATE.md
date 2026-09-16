@@ -1,5 +1,40 @@
 # Project State
 
+## Pillar 3 risk profile lane — wired, not yet populated (2026-09-16)
+
+`bank_audit_risk_profile` (17 standardised-approach exposure classes + TL/FC/
+Total per sector row, same taxonomy as loans_by_sector) is registered as a §5
+annual-only narrow lane and wired end to end: extractor (`src/audit_reports/
+risk_profile.py`, x-position header alignment with a text fallback), local
+schema, D1 migration 0054, migration-0030 section backfill, units money
+columns with a read-back test, `fetch_recent` routing, `reextract_statement`
+support with the workflow/UI allowlist, and a first validator (`check_risk_
+profile`: TL+FC=Total per row, Σ classes = Total when the full set was read
+and a partial set may not exceed it, Σ top-level sectors = the total row,
+child ≤ parent, unknown sector rows fail). **Zero partitions extracted so
+far** — the table is empty in D1 until the next annual refresh or a deliberate
+backfill populates it; the coverage spine will mark it missing until then,
+which is the honest state. The wide-lane counterpart on the sector template
+(`bank_audit_sector_full`, local-only) already reads this table's shape and is
+the cross-check candidate once rows exist.
+
+## Sector chart consistency (2026-09-14)
+
+The eight sector routes share stable series colours across line histories,
+composition stacks, categorical breakdowns and small multiples. English entity
+labels disambiguate weekly/monthly bank-group codes; range filtering and mobile
+layouts retain those identities. The categorical palette uses readable teal and
+slate for domestic-private and development-investment groups, in lockstep with
+CSS and mobile tokens. Stage 2/watchlist and Stage 3/NPL retain semantic warning
+and negative colours.
+
+Sector history plots use shared 320px full-width / 280px comparison / 260px narrow
+heights and 180px facet plots, with readouts outside the fixed plot. Reserve
+levels now use a labelled latest-value row, distinct outlines and restrained gap
+fills. Consumer-credit and consumer-NPL facets have full-width comparison cards.
+The underlying series, calculations, sources and exports are preserved.
+
+
 ## Sector report analytical coverage (2026-09-14)
 
 The eight sector reports use the Garanti BBVA sector-outlook framework and the
@@ -23,7 +58,6 @@ incomplete identities stay unavailable, and monthly profit de-cumulation
 preserves missing periods. No schema or ingestion change is needed. Source
 mappings, deliberately deferred experiments and verification evidence are in
 `docs/knowledge/2026-09-14-sector-analytics/` and its linked route investigations.
-
 
 ## NPL comparative cells and signed reclassifications (2026-09-14)
 
@@ -111,7 +145,6 @@ one-, two- or three-column note layout. Charts and query calculations are unchan
 numeric guards still use the original headline and note text. Other dashboard
 routes keep their existing Takeaway styles. Signals remain admin-only. Design
 and verification evidence: `docs/knowledge/2026-09-13-sector-assessment/`.
-
 
 ## Sector-loan cells, comparatives and source validation (2026-09-13)
 
@@ -741,7 +774,32 @@ including `registered-base-refresh-independent-reconciliation.json`,
 `period-header-cloud-independent-verification.json`.
 
 
+## Architecture safeguards (2026-09-06; local implementation, rollout pending)
+
+The working tree now implements exact-SHA release checks, build-before-migration
+ordering, serialized release/audit locks and retained ingestion queues. Serving
+schema changes come only from versioned migrations; 0047 supplies the two missing
+extraction counters, with narrowly verified legacy adoption. Publishers require
+explicit table ownership and read-only schema preflights. Supported snapshot
+writers share verified candidate/committed checkpoints with unique run history.
+Mobile now has a generated runtime contract, an uncached compatibility gate and
+validated cache entries keyed by API origin and contract version.
+
+Read-only D1 metadata captured on 2026-09-06 matches the migration-built serving
+schema physically; the existing counters require only a 0047 migration-ledger
+adoption. All six current mobile API responses pass the new validators. No D1/R2
+write, workflow dispatch, deployment, commit or push was performed for this work.
+Local verification passed 2,017 Python tests, 679 web tests, the production web
+build, and iOS/Android Metro exports. Scoped Python lint and web/mobile checks
+pass; full-root lint still reports pre-existing `PY` names in scratch scripts.
+The separately added `build-document-corpus.yml` is now published and has passed
+sample runs; the live workflow-state gate passes. Live queue/release behavior
+for this release work remains to be observed after rollout. Operating and
+recovery procedures are in OPERATIONS; implementation evidence is in
+`docs/knowledge/architecture-implementation-plan-2026-09-06.md`.
+
 ## Data coverage in D1
+
 
 **Anomaly repair (2026-08-31–2026-09-01; completed):** The current-code
 snapshot quality report fell from 431 findings to 45. Scoped source-reviewed
@@ -2984,7 +3042,11 @@ balances; all `macro`/monthly). Signed-stacked-bar charts via the new
 `BopFlowChart`; the Şekil 10 financing identity (CA ≡ net foreign inv. +
 reserves − net errors) and every figure were verified to the report's
 Apr-2026 summary table. Five `economy.bop_*` chart-specs anchor daily
-verification. See [METRICS.md](METRICS.md) §14. The same page also carries a
+verification. The `economy.bop_currency_deposits_12m` assets anchor was
+re-baselined 2026-08-30 (13.72 → 19.909bn at 2026-04): TCMB revised the
+`TP.ODEAYRSUNUM6.Q138` provisional history after that report vintage (D1
+matches live EVDS; the other 13 bop verify points still pass unanchored-drift
+free). See [METRICS.md](METRICS.md) §14. The same page also carries a
 **Foreign Portfolio Flows — Weekly** section (data layer
 `web/app/lib/portfolio-flows.ts`): non-residents' weekly net equity/GDDS
 transactions + holdings off **4 new weekly TCMB series** (`TP.MKNETHAR.M7/M8/M1/M2`,

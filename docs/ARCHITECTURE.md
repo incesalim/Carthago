@@ -97,6 +97,21 @@ archive members and captured editions. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUME
 | **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc + vitest on every PR |
 | **Schema migrations** | `web/migrations/` | hand-authored, version-controlled; applied via `wrangler d1 migrations apply` on deploy |
 
+## Publication boundaries
+
+`web/migrations/` is the only serving-schema authority. Ingestion retains local
+schema initialization but performs only read-only serving compatibility checks;
+it cannot create or alter D1 tables. `reconcile_schema.py` has an exact allowlist
+for legacy effects of migrations 0045–0047 and refuses conflicting definitions.
+
+`src/pipeline/registry.py` declares bulletin/audit/analyst table ownership. Real
+`push_to_d1.py` calls require a named table set or explicit allowlist, reject
+mixed lanes and mismatched canonical database filenames, and replay only in-scope
+outbox deletes. The content-hash and partition-digest skips still govern writes;
+the cost estimate remains advisory. `check_schema_contract.py` and
+`check_publication_contract.py` enforce these boundaries in CI. Shared writer
+queues retain up to 100 pending runs; serialization does not guarantee FIFO.
+
 ## Workflows
 
 The ingestion workflows split along **two independent storage lanes**, so a
@@ -192,7 +207,7 @@ digital + KAP + TEFAS + Faaliyet franchise:
    pushes the week's rows to D1
    (idempotent via INSERT OR REPLACE; covers `tbb_digital_stats`,
    `kap_ownership` and the `tefas_*` tables too)
-4. VACUUM + re-gzip + upload the snapshot back to R2
+4. Verify a unique committed checkpoint, then promote the current R2 snapshot
 
 ### The satellite lanes — small, scheduled, one table each
 Four crons ride the bulletin lane's snapshot and concurrency group, each writing a
@@ -228,7 +243,7 @@ daily only during filing windows and remains manually dispatchable:
 3. If nothing changed, stop with no D1 or snapshot write
 4. Build stages, revalidate and rebuild the coverage spine locally
 5. One `push_to_d1.py --table-set audit-refresh` batch (registry tables + spine)
-6. VACUUM + re-gzip + upload `state/bank_audit.db.gz` (the snapshot WRITER)
+6. Verify a unique committed checkpoint, then promote `state/bank_audit.db.gz`
 
 `acquire-audit.yml` is now manual-only: an acquisition-only diagnostic for an
 operator who deliberately wants a PDF in R2 without running extraction. Both
@@ -340,17 +355,20 @@ internal identity can detect a unit change; only a cross-period or external anch
 can.**
 
 ### Deploy — `.github/workflows/deploy-cloudflare.yml`
-**After CI passes on the same commit** (`workflow_run` on `CI`, `conclusion ==
-success`, push events on `master`). Applies D1 migrations (`wrangler d1
-migrations apply`), builds the OpenNext bundle, and deploys to Cloudflare
-Workers.
+The exact candidate commit passes push CI, then builds with OpenNext/webpack
+before any production write. One Actions job carries that same `.open-next`
+bundle and SHA through publication; there is no second checkout or rebuild.
+The workflow holds `carthago-production-release` and then `bddk-audit`, both
+with `queue: max` and `cancel-in-progress: false`. After building, the release
+helper checks current master and successful CI for that exact SHA inside the
+locks. Superseded candidates stop before migrations.
 
-Until 2026-08-01 this was `on: push` with a `paths:` filter, which meant it
-*raced* CI rather than waiting for it — no `needs:`, no branch protection, so a
-red CI did not stop a deploy and the D1 migration step ran before any check had
-passed. `workflow_run` carries no path filter, so the deploy now builds on every
-green CI on master rather than only on `web/**` changes: a few minutes of free
-Actions time, traded for never shipping unchecked, and never silently skipping.
+Manual releases use the same checks. An explicit rollback must name a previously
+successful verified release and skips additive migrations. Normal publication
+reconciles reviewed legacy schema effects, applies pending versioned migrations,
+deploys the verified bundle, and checks the overview, Akbank, public API metadata
+and mobile handshake. Smoke failure fails the release; it never automatically
+reverses a schema migration. See OPERATIONS for inputs and recovery.
 
 ### Health check — `.github/workflows/healthcheck.yml`
 Daily 06:00 UTC. Queries D1 freshness per source + audit failure count and
@@ -401,6 +419,18 @@ public API.
 Kill switch: `APP_API_DISABLED=1` on the Worker. **Separate** from
 `PUBLIC_API_DISABLED` on purpose — that one sheds third-party load in an
 incident, and reusing it would black out every installed app at the same moment.
+
+### Wire compatibility and launch
+
+`contracts/app-api-v1.ts` owns types and runtime validation; `sync_app_contract.py`
+generates isolated copies for Next and Metro. Producers validate successful
+responses, and the client validates network and cached payloads. Additive fields
+are accepted; missing fields, incompatible units, and non-finite figures fail.
+The launch/foreground handshake is uncached. Unsupported builds show an update
+screen. Offline use requires a previously compatible handshake plus a validated
+saved screen; saved figures carry their fetch time. Cache keys and envelopes
+include the API origin and contract version. No valid cache means unavailable,
+and a malformed response or server error is not treated as an offline success.
 
 ### The invariant that matters
 
@@ -473,10 +503,15 @@ local-only, not yet merged or pushed).
 Production dashboard reads go to D1, not this snapshot — the R2 copy is
 purely pipeline state.
 
-**Backups & recovery (free):** each run also writes a dated copy
-`state/history/<lane>-YYYYMMDD.db.gz` and keeps the last 7, so a corrupt run
-can't destroy the only snapshot. For the serving DB, D1 **Time Travel** gives a
-7-day point-in-time restore. See [OPERATIONS.md](OPERATIONS.md) → Disaster recovery.
+**Snapshots and recovery:** `src/pipeline/snapshots.py` owns every supported
+bulletin, audit, analyst and raw-capture snapshot upload. Before financial D1
+publication, a candidate checkpoint records the intended SQLite state. A
+successful publication saves a committed checkpoint including confirmed push
+digests. SQLite integrity, compressed SHA-256 and a download verification gate
+promotion of the current key. Unique timestamp/UUID keys preserve multiple runs
+on one day. Retention keeps the latest seven commits and one per latest seven
+distinct days. Unresolved candidates survive failures. Old `state/history/`
+objects remain historical recovery inputs. See OPERATIONS → Disaster recovery.
 
 ## Dashboard read caching
 
