@@ -437,3 +437,23 @@ def test_detected_source_rows_with_no_normalized_rows_fail():
     result = check_source_capture(manifest, actual_row_count=0)
     assert any(failure["check"] == "capture_rows_missed"
                for failure in result.failures)
+
+
+def test_every_capture_lane_has_a_source_table_mapping():
+    """8d7ea514 added loans_currency to TARGET_LANES but not to _TABLE_BY_LANE,
+    so the first refresh after it (2026-09-18) crashed in stored_page_hints
+    with KeyError('loans_currency') and rolled back ANADOLU 2026Q2. A lane in
+    the capture set without a table mapping is always a crash, never a skip —
+    pin the invariant so the next lane addition fails here instead."""
+    import sqlite3
+    from src.audit_reports import schema
+    from src.audit_reports.source_capture import TARGET_LANES, _TABLE_BY_LANE, stored_page_hints
+
+    assert set(TARGET_LANES) <= set(_TABLE_BY_LANE), (
+        f"TARGET_LANES without a _TABLE_BY_LANE entry: "
+        f"{sorted(set(TARGET_LANES) - set(_TABLE_BY_LANE))}")
+    conn = sqlite3.connect(":memory:")
+    schema.init_schema(conn)
+    # The real crash path: hints over the full default lane set.
+    hints = stored_page_hints(conn, "X", "2026Q2", "consolidated")
+    assert set(hints) == set(TARGET_LANES)

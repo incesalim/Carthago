@@ -41,6 +41,7 @@ NEAR_FULL_LANES = frozenset({
 _TABLE_BY_LANE = {
     "equity_change": "bank_audit_equity_change",
     "loans_by_sector": "bank_audit_loans_by_sector",
+    "loans_currency": "bank_audit_loans_currency",
     "npl_movement": "bank_audit_npl_movement",
     "credit_quality": "bank_audit_credit_quality",
     "capital": "bank_audit_capital",
