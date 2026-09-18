@@ -205,3 +205,6 @@ data/analyst_memo_*.md
 # in CI reads them — verified before this rule landed.
 docs/knowledge/
 data/research/
+
+# Local agent session artifacts
+.zcode/
