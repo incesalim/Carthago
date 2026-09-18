@@ -853,13 +853,10 @@ recovery procedures are in OPERATIONS; implementation evidence is in
 
 ## Data coverage in D1
 
+*Archived to `docs/knowledge/2026-09-18-project-state-archive.md` on
+2026-09-18: the completed pre-September incident entries (anomaly/repairs,
+the 2026-08-07 capture-lint series, market-risk/repricing completions).
 
-**Anomaly repair (2026-08-31–2026-09-01; completed):** The current-code
-snapshot quality report fell from 431 findings to 45. Scoped source-reviewed
-repairs covered audit opinion, reserves, capital, NPL, profiles, P&L/OCI,
-equity, cash flow, FX, liquidity, balance sheets and unit corrections. Every
-candidate still had to pass its lane gate; candidates that reproduced a broken
-identity were rolled back rather than filled from a residual.
 
 The 45 retained findings are active disclosure/identity diagnostics, not missing
 bank-list ratios: 6 historical TEB off-balance total/roman gaps; 38 structural
@@ -907,38 +904,6 @@ gates: Stage 3 is 1,164 million TL on 67,051 million TL of loans (NPL 1.74%,
 coverage 71.65%), replacing the corrupt 91.63% NPL. Its reported CAR remains
 10.31%. The current parser already read the source correctly; no new extraction
 rule or absent-to-zero substitution was needed.
-
-**Bank-ratio gaps (2026-08-31; repaired and verified live):**
-ROE gaps in otherwise complete filings came from missing `bank_audit_pl_roles`,
-not missing profit figures. P&L persistence now rebuilds that map immediately
-from the stored statement, and targeted P&L repairs include it in their
-transaction and D1 push without re-stamping unchanged maps. The new manual
-`repair-audit-roles.yml` restores only maps that differ from D1 after verifying
-the underlying P&L agrees with the snapshot. Q2 NPL gaps also exposed two
-million-TL parser assumptions: the Stage-1 admission floor was in thousands of
-TL, and the generic NPL reader required a thousands separator. The floor now
-respects the filing unit; semantically identified closing/net rows accept
-small whole amounts. Repairs remain scoped to affected bank/quarter/lane with
-the existing validation gates. Ziraat Dinamik's TTM ROE/NIM remain unavailable
-without a stored 2025Q2 YTD baseline; absence is not a zero.
-Applied repairs restored 81 role maps across both kinds and 16 banks'
-2026Q2 credit/stage partitions; all unaffected stage records were unchanged.
-Alternatif Bank's date-only NPL closing label now has a contextual source
-mapping: it is accepted only inside the III/IV/V table with three balance
-cells followed by the matching provision row, excluding FX-only tables. The
-traceability gate remains enabled, and that repair passed. Akbank 2026Q1 had
-79 stale labels restored across both kinds, including equity; every amount,
-hierarchy and row order stayed unchanged. Legacy single-P&L repairs also compare role
-content before including the role table in their D1 replacement.
-The final register sweep found a separate Hayat Katılım CAR gap: capital
-text repair joined adjacent one-decimal values (`25.6 23.1`) into one token.
-Only genuinely detached digits now join; the source gives 25.6% unconsolidated
-and 26.6% consolidated CAR. Targeted Q2 repair restored all 12 current/prior
-CAR/CET1/Tier1 ratio cells across both kinds; every other capital field stayed
-unchanged. All repairs passed their existing validation gates in Actions and
-were verified in D1 and the public bank API. At the common 2026Q2 quarter,
-every lending bank now has NPL and CAR; only Ziraat Dinamik lacks TTM ROE/NIM
-because its 2025Q2 baseline is not stored. No absent value was changed to zero.
 
 | Table | Source | Range | Latest |
 |---|---|---|---|
@@ -1098,17 +1063,6 @@ confirmed off each PDF's own cover page: 016 EXIM, 123 HSBC, 132 TAKAS,
 135 ANADOLU, 143 AKTIF, 205 KUVEYT, 206 TFKB, 210 VAKIFK, 211 EMLAK,
 212 HAYATK, 213 TOMK.
 
-**✅ Fleet-wide display audit, 2026-08-17 — the pages agree with D1.** All 38
-bank pages fetched from production and checked against the *same* query
-`bankSummaries()` runs, so a difference would be a display fault rather than a
-difference of definition. Result: 38/38 load, 38/38 print the right "Data
-through" period, **37/38 total assets and 37/38 CAR match D1 exactly**, and the
-one bank whose CAR is NULL in D1 (HAYATK) omits the tile rather than printing
-`0` — the `null` is not `0` rule holding where it matters. A separate
-unit check found **no 1000× errors**: every bank's 2026Q2/2026Q1 total-assets
-ratio sits between 0.92 and 1.21, and every 2026Q2 figure ends in `000`, as a
-milyon→bin conversion should.
-
 Two things the audit turned up, neither a data fault:
 
 - **`/banks/TAKAS` shows none of its own figures.** D1 holds CAR 21.7% and
@@ -1169,16 +1123,6 @@ still identifies the real one), and 28,942 rows to D1. `filing_gap_problem`
 against live D1 now returns **TSKB (18d), ISCTR (13d), EXIM (10d)** and stays
 silent on HSBC and TOMK, which filed three days ago and are inside the grace
 window. That is the whole remaining gap, named.
-
-**The KAP lane could only see 12 of 38 banks (fixed 2026-08-16).** It matched a
-disclosure to a bank on `stockCodes`, which KAP leaves empty for a member with
-no listed shares — so every unlisted bank's filing was dropped before anything
-looked at it. A second pass now matches the member's own title, for financial
-reports only, and the lane sees **35 of 38**. Two supporting facts found on the
-way: `byCriteria` caps a response at **2000 rows** with no flag or continuation
-token (2026-07-20→08-16 returned exactly 2000 against 8,379 counted a day at a
-time), so `fetch` now pages in 3-day slices; and `wrangler d1 execute --command`
-does not survive an embedded newline, which is why `query_d1_rows` flattens.
 
 **⚠️ ANADOLU 2026Q2 unconsolidated was stored 1000× small and was live for
 days (fixed 2026-08-13).** Total assets read **₺0.2bn against ₺212.6bn** the
@@ -1337,16 +1281,6 @@ designed against six banks instead of one. `acquire-audit.yml` now takes a `bank
 dispatch input (`ALL` sentinel) so a run can be scoped away from a bank serving
 the wrong document — which is how TSKB was skipped.
 
-**✅ 2026Q2 IS LIVE — 11 partitions across six banks, normalised (2026-08-05).**
-Run [31028845341](https://github.com/incesalim/Carthago/actions/runs/31028845341),
-`refresh-audit.yml` with `skip_scrape=true` scoped to
-`AKBNK,GARAN,YKBNK,KLNMA,TEB,ENPARA` (TSKB excluded by construction — its Q2
-"filing" is still a KAP cover sheet). All 11 carry `source_unit='milyon'` and
-`success=1`. **The scale is verified against the live rows**: TEB total assets
-₺830.6bn @2026Q1 → **₺875.5bn** @2026Q2 (+5.4%), AKBNK ₺3.64tn → ₺4.01tn
-(+10.1%) — against the pre-fix failure that landed TEB at ₺841m. Migration 0039
-applied by the deploy that preceded it; `source_unit` confirmed present in D1.
-
 **The run's write cost, in the three quantities that were being conflated
 (2026-08-05).** An earlier note here mixed them; these are separate numbers and
 only the last one is spend:
@@ -1366,18 +1300,6 @@ why they never summed to the total; it now prints every table.
 Of that, the Q2 data itself was ~13.7k estimated (BS 7,892 · P&L 2,768 · CF
 1,419 · equity 1,113 · OCI 519). Everything else was three derived tables
 rewritten wholesale on **every** run, and one full rebuild:
-
-**✅ Fixed offline 2026-08-05 — the recurring part.** `upsert_validation`,
-`upsert_pl_roles` and `build_stages` all did an unconditional DELETE+INSERT.
-Each of those tables carries a stamp (`validated_at` / `derived_at` /
-`extracted_at`) that defaults to `CURRENT_TIMESTAMP` and that `push_to_d1`
-windows on — so rewriting an identical row is not free, it is a full re-ship.
-`--skip-unchanged-partitions` could not help: the rows genuinely changed.
-Measured on the real snapshot, a second NOTHING-CHANGED pass re-stamped
-**19,950 validation + 9,439 pl_roles rows; after the fix, 0.** `build_stages`
-also lost its `DELETE FROM bank_audit_stages` — with an incremental insert that
-delete-all would have emptied the table, so the rebuild now owns row lifecycle
-and removes only keys it no longer produces.
 
 **`bank_audit_coverage` per-partition push: ACTIVE — `_COVERAGE_INCREMENTAL`
 enabled 2026-08-06.** (This entry originally recorded the built-but-inactive
@@ -1574,9 +1496,6 @@ Bounded exposure: **4 partitions** carry that fingerprint (a machine-extracted 0
 whose snippet mentions a reversal) — TEB 2026Q1 ×2 and ZIRAATK 2024Q1 ×2, out of
 78 zeros / 580 rows.
 
-**✅ Fixed in the classifier, not by curating the partition (2026-08-06).**
-Curating TEB alone would have left ZIRAATK wrong. Three defects stacked:
-
 1. **`_SUBJ_TR` required the hard final `k`.** Turkish softens it to `ğ` before
    a vowel suffix, and *"serbest karşılı**ğ**ı"* is the form banks use in the
    very sentence that states the stock. The subject never matched, so no stock
@@ -1591,13 +1510,6 @@ holding a provision and cancelling it in full is a legitimate route to a current
 stock of 0 (the override file says so), and a flow veto would lose those. It
 fires only when the none-word sits inside an unclosed parenthetical that opened
 with a prior-period date.
-
-**❌ The parser fix was REVERTED after the full-corpus gate (2026-08-06).**
-Three sentence-level fixes were built — Turkish `k`→`ğ` softening, an
-amount-before-subject pattern tolerating the prior parenthetical, and a
-genitive/direct distinction so *"X serbest karşılı**ğın** Y kısmı iptal edildi"*
-could not read X as the balance. All three worked on their target sentences and
-the second run cleared the ZIRAAT ×11 regression the first one caused.
 
 The corpus run rejected them anyway. **1,061 PDFs, read-only, in Actions: 459
 unchanged, 37 changed, 0 unreadable — and 11 of the movers carried a value the
@@ -1716,8 +1628,6 @@ serves a 14-page KAP cover sheet, not the filing (bad target, not an extractor
 bug); and FIBA 2026Q2 extracted cleanly (`BSA=47 BSL=48`), so unlike its older
 vector-outline filings this one carries a real text layer.
 
-**Both follow-ups are now fixed (2026-08-12).**
-
 The "chronically dead targets" were not dead. All six — AKTIF 2023Q4/2024Q4/
 2025Q4, COLENDI 2025Q4, VAKBN 2025Q4, EXIM 2023Q4 — were present in R2 *and*
 extracted in D1, and every one was a **Q4**. `report_validity` scanned only the
@@ -1765,14 +1675,6 @@ per filing carrying counts and three hashes (`content_hash` text, `shape_hash`
 template-with-values-masked, `grid_hash` block/column/row geometry — the signal a
 lane parser is about to break). Run it with
 `backfill-document-capture.yml`.
-
-**Fleet capture completed locally 2026-08-13 — 1,095/1,095 filings, zero
-failures, 6,219s.** The corpus is **122,583 blocks, 5,418,465 lines, 11,172,412
-cells and 64,608 notes (60,155 linked to the rows carrying their marker —
-93.1%)**. Footprint: **3.09 GB ledger + 2.55 GB JSONL**, with the source PDFs a
-further 2.65 GB when kept (`--pdf-dir`, gitignored at `data/audit_pdfs/`, which
-makes a re-capture a local read instead of a 3.3 GB re-fetch).
-`--jsonl-gzip` cuts the export by ~85% at the cost of plain-text grep.
 
 ⚠️ **Two published estimates were wrong and are superseded by that run.** The
 earlier 162-PDF sample projected ~6.6M cells; the fleet holds **11.2M**, because
@@ -1950,28 +1852,6 @@ figures in columns beside them. What marks a row as narrative is that its
 figures sit INSIDE the sentence — the same inline-versus-channel distinction the
 capture uses. 16 of the 24 were real rows.
 
-**Columns one row could fill (fixed 2026-08-07).** The residue of the dead-column
-prune: a phantom that exactly one row reaches. A single cell is NOT sufficient
-evidence — a footnote-reference column legitimately carries a value on 4 of 38
-rows on TSKB's balance sheet — so the prune fires only where that one cell can
-be shown never to have been a cell: a figure sitting inline in the row's own
-label ("Less than 1 Year" → 1, "II. TMS 8 Uyarınca" → 8, "ayında 1.229 milyar
-TL" → 1.229), or the row's own section numbering ("9.3.", "5.10.2"). Measured
-over the 15-filing set: **single-cell columns 21 → 3**, the three survivors
-being genuinely sparse real values, with blocks, rows and **total cells all
-unchanged** — a pruned column's figure stays captured, it simply stops claiming
-a column it never belonged to. Holdout clean **89.5% → 90.2%**.
-
-**Columns no row could fill (fixed 2026-08-07).** A column is inferred from
-value edges before prose rows are dropped and before cells are matched to it
-within tolerance, so a cluster could survive holding nothing. Most came from a
-figure inside a row label — "Less than 1 Year", "Longer than 5 Years" put a
-bare 1 and 5 in the label region — and Garanti p131 carried two such columns
-8pt apart. 21 of the 30 sat first in their table. Empty columns are now pruned
-after cells are assigned and the survivors reindexed: **dead columns 30 → 0
-with blocks, rows, cells and placed cells all unchanged**, holdout clean
-**88.2% → 89.5%**.
-
 Refusing the edge instead — letting only channel-reached values vote — was
 measured and reverted: it removed 403 columns to kill 12 dead ones, costing 9
 blocks, 139 rows and 1,563 placed cells, because a narrow table sets adjacent
@@ -1980,16 +1860,6 @@ Pruning after the fact cannot lose data, which is why it is the safe form of
 the same idea. A phantom column holding ONE cell still survives as
 `weak_column`; that is the residue.
 
-**A table could take the header of the table above it (fixed 2026-08-07).**
-Garanti stacks four tables on one page, and the reach-back that finds a header
-above a block was finding the PREVIOUS table's as well as its own. Mapped
-together the two produce fragments the plausibility filter discards, so a table
-with a perfectly good header printed one line above it rendered as "c0 c1";
-where both tables carried the same header, the result was a doubled "Current
-Period Current Period". A candidate separated from the block by a line
-belonging to another block is now dropped — a header cannot sit on the far side
-of a different table.
-
 Measured directly over 1,717 blocks with columns rather than by the lint count:
 **5 tables gained a header, 0 lost one, and 113 had a wrong header corrected** —
 "Net Gross Current Period" → "Current Period", "Loans Corporate / Commercial
@@ -1997,14 +1867,6 @@ Loans" → "Corporate / Commercial Loans". `no_column_headers` fell 70 → 65 an
 holdout clean reached **88.2%**, with +0 blocks, rows and cells. The lint sees
 only the 5; the 113 are invisible to it, which is why the direct measure is the
 one to steer by here.
-
-**A label could not wrap over a figureless line (fixed 2026-08-07).** Albaraka's
-exposure classes print a row over three lines — "3 Receivables from" (the row
-number alone) / "administrative units and non-" / "commercial enterprises 68.234
-…". The column-completion walk stops at the first line that carries no figures,
-so the head stayed a labelled row with none and the figures sat under a
-fragment. It now steps over such a line when the line RESUMES the label in lower
-case; an upper-case line is the next row, not this one's continuation.
 
 **The lint disagreed, and the lint was wrong.** `fragment_label` rose 42 → 44
 and clean tables fell by one, because that rule only fires on a SINGLE-line row
@@ -2015,33 +1877,10 @@ instead: labels beginning in lower case fell **342 → 287**, and 57 lines joine
 the rows they belong to, with +0 blocks and +0 cells. Prefer that measure over
 `fragment_label` when judging this class.
 
-**Row 1 of a table could not wrap (fixed 2026-08-07).** A merge is barred from
-starting on a block's first line, because that line is the column header far
-more often than it is a wrapped label. BRSA risk-class tables open straight onto
-a wrapped data row — "1 Receivables from central" / "governments or central
-banks 34.833.367 …" — and because the row number is itself a cell, the cell-less
-wrap branch never saw the line either. Row 1 of every such table lost half its
-label while rows 2..n merged correctly, across Albaraka, ICBC, TEB and Halkbank
-alike. The bar now lifts only when the first line opens with a row marker AND
-the next resumes in lower case, which no header does. `fragment_label` fell
-**50 → 42**, holdout clean **87.6% → 87.9%**, 172 lines regrouped with +0
-blocks, rows and cells; every regrouped block was inspected and none was a
-header.
-
 Still split: a THREE-line wrap whose head holds only the row number
 ("3 Receivables from" / "administrative units and non-" + figures /
 "commercial enterprises"). The middle and tail bind; the number-only head does
 not. Pre-existing, unchanged by this fix.
-
-**A row could take the NEXT row's label (fixed 2026-08-07).** Garanti's
-landscape deposit table prints every long label on its own line above its
-figures — "Public Sector Deposits" / figures / "Commercial Deposits" / figures.
-The rule that binds a wrapped label TAIL printed under a row's figures bound
-each of those labels to the row above, so one logical row carried "Public
-Sector Deposits Commercial Deposits" against Public Sector's figures while
-Commercial's figures were left with no label at all. That is a **mislabelled**
-row, not a missing one — wrong data rather than absent data, and it surfaced
-only as a `row_without_label` count on the orphaned half.
 
 Orthography cannot separate a tail from a new label: a real tail is title-cased
 as often as not ("Financial Assets At Fair Value Through Other" / figures /
@@ -2055,55 +1894,12 @@ stopped reading a date as an amount ("30.09.2023" contains "0.092", so every row
 of an FX-rate table identified by its date read as one that had lost its label).
 Holdout clean **87.2% → 87.6%**, +0 blocks, rows and cells.
 
-**A note that owned no table linked to nothing (fixed 2026-08-07).** Every one
-of the three linking passes was gated on the note having an owning block, so a
-footnote on a page with no table recorded its relationship nowhere — Garanti's
-ratings pages print "(*) Latest date in risk ratings or outlooks" under
-"MOODY'S (October 2025) (*)" with no table anywhere on the page. Ownerless
-notes now link to the lines carrying their marker, **but only for star markers**:
-"(1)" and "(i)" are equally how a filing cites a regulation — Halkbank prints
-"Clause 2, Paragraph (1) and (2) of the Regulation" as ordinary text — so
-linking those would invent a reference the filing never makes. Across the
-12-bank holdout `note_link_missed` fell **44 → 11**, the 11 being exactly the
-non-star citations that must stay unlinked, and notes linked to rows rose
-**716 → 749** with +0 blocks, rows and cells.
-
-**Sideways margin text was being dealt across table rows (fixed 2026-08-07).**
-Garanti prints "The accompanying notes are an integral part of these
-consolidated financial statements" rotated 90° down the left margin of its
-landscape equity statement. Each word sits at its own y, so y-bucketing handed
-one word to each table row: "accompanying VII. Capital Reserves…", "notes XI.
-Profit Distribution", "are 11.2 Transfers to Reserves" — the sentence dealt
-across the table, one card per row. `_sideways_x` now finds such a column by
-which dimension stays CONSTANT down it: every rotated word is one glyph-height
-wide with height proportional to its length (12 words at x=30, all 5.98 wide,
-heights 4.55–31.83), where an upright column is the transpose (roman numerals
-all 9.96 tall, widths 5.25–17.74). The words are pulled out of the row
-clustering but NOT discarded — Albaraka names the row groups of its
-credit-ratings table the same way — each column becoming one line, ordered by
-the writing direction PyMuPDF reports per span, because Garanti's advances down
-the page (0,+1) and Albaraka's up it (0,−1). `fragment_label` fell 56 → 50 and
-holdout clean reached **87.2%**, with +0 blocks and the other twelve filings
-byte-identical.
-
 Two false positives were measured and fixed before shipping, neither visible in
 any lint count: judging each word by its own aspect ratio condemned the roman
 numerals on every contents page (`III.`, `VII.` are narrow enough to be taller
 than wide), and constancy without scale condemned columns of `-` placeholders —
 which is how a BRSA statement prints *not disclosed* — plus real amounts of
 equal digit count (VAKIFK p53 lost 45.400.031, 33.896.880, 81.550.957).
-
-**A numeric header read as a data row (fixed 2026-08-07).** The header test
-asked only whether a line had a figure aligned to a column, on the assumption
-that a header's own figures are dates sitting nowhere near one. A header can be
-numeric by nature: Halkbank names its risk-weight columns "0% 10% 20% 50% 75%
-100%", each printed over the column it labels, and dates its shareholder columns
-"31 December 2025 | 31 December 2024" above the amounts. Both read as data, so
-the tables rendered "c0 c1 c2" with the header one line above the figures. A
-relaxed test (`_aligned_amounts`) now runs as a **last resort**, and header
-figures are admitted as header words there. `no_column_headers` fell **110 → 70**
-on the 12-bank holdout and clean tables **84.3% → 87.1%**, with +0 blocks, rows
-and cells.
 
 Ordering was measured, not assumed. Running the relaxed test *first* answered
 for tables whose caption would have answered better — Garanti p11 went from
@@ -2139,24 +1935,6 @@ measured and reverted**: it cost 30 blocks and 272 rows across eight filings
 (Akbank alone −11 and −72), because the extra edges shift cluster support until
 blocks stop reaching their terminal column. The board table's grid is therefore
 still two columns wide; its text is captured, not placed.
-
-**Narrative was being minted into tables (fixed 2026-08-07).** Turkish prose
-defeats column clustering by being too regular: consecutive sentences opening
-"4 Mart 2003 tarihinde…", "28 Kasım 2006 tarihinde…" put the day at the left
-margin and the year at a near-constant x, because the month names are similar
-widths. Those dates clustered into two clean columns and passed every structural
-test the capture had — the run footed, the rows were long, the figures were
-substantial — so Fibabanka's corporate history was captured as a 4×2 grid of day
-and year fragments. `_every_figure_is_inline` now rejects a block in which every
-figure is reached at word spacing rather than across a column channel; the gap
-to a figure's **left** is the discriminator (88–237pt in a real table against
-2.4–3.0pt in a sentence). Measured over the 12-bank holdout: **55 phantom blocks
-removed of 1,490**, clean tables **81.7% → 84.3%**, with `no_column_headers`
-140→112, `fragment_label` 78→52 and `weak_column` 51→21 falling as a consequence.
-Judging by the word that FOLLOWS a figure was tried first and is wrong — every
-amount in Akbank's FX valuation table is followed by "TL" at word spacing, so
-that version deleted a real 6-row table while every lint count improved. It was
-caught by diffing captured blocks, which is now the check that gates this rule.
 
 **Some filings are legible on screen and unreadable to any extractor (detected
 2026-08-07).** Fibabanka typesets its statements and converts the glyphs to
@@ -2204,22 +1982,6 @@ in the same transaction as facts; validation consumes it immediately. Existing p
 remain grandfathered until the manual `backfill-audit-source-capture.yml` run. That workflow
 does not re-extract or overwrite a single analytical row, which avoids reopening the settled
 BS/P&L and avoids a high-volume D1 raw-row push.
-
-**Market-risk was extracted but never pushed (fixed 2026-07-14).** `refresh-audit.yml`
-— the lane that ingests every new quarter — hand-listed 14 of the 16 audit tables in
-`--only-tables`, omitting `bank_audit_fx_position` and `bank_audit_repricing`. They
-were extracted, validated and written to the R2 snapshot on every run, and silently
-never reached D1: `push_to_d1`'s `--only-tables` was an unvalidated filter, so a
-forgotten table matched nothing and the push still exited 0. D1's market-risk tables
-were therefore frozen at the 2026-06-29 manual backfill (which pushed all 16) while
-every other audit page advanced. **Fixed at the root**: the table list is now derived
-from `src/audit_reports/registry.py`, workflows pass `--table-set audit`, and
-`push_to_d1` hard-errors on a table it cannot sync (`tests/test_audit_tables_sync.py`
-pins it). **Reconciliation CLOSED (verified against remote D1, 2026-07-24)** — the
-2026-07-18/19 lane passes re-pushed both tables: `bank_audit_fx_position` 8,208 rows /
-590 partitions, `bank_audit_repricing` 12,064 rows / 455 partitions, and AKBNK 2026Q1
-(the partition named as absent from D1 entirely) holds its 16 fx rows. Both are now
-**above** the R2 snapshot counts the gap was measured against, so no push is pending.
 
 **fx_position (§4 currency-risk) lane: 21 err + 66 miss → 0/0, then a 79-cell
 false-NEGATIVE sweep → 0/0 — COMPLETE 2026-07-18** (coverage `1022 ok / 28 manual /
@@ -2283,26 +2045,6 @@ report's own "net yabancı para pozisyon" prose). 18 hand-read cells read `manua
 `_SELF_TS_TABLES`). Follow-up: the header-split (ABD Doları/Diğer YP wrap) is an
 extractor gap for DUNYAK/KUVEYT future quarters — a scoped header-line-merge would
 close it. ⚠️ Used `--only-failing`, NEVER `--force` (the market-risk lane's own lesson).
-
-**repricing (§4 interest-rate-risk) lane: 5 err + 26 miss → 0/0 — COMPLETE 2026-07-18**
-(coverage `787 ok / 16 manual / 0 err / 0 miss`). `check_repricing` only checked internal
-footing (both checks skip an absent field), so **70 partitions read green while a whole
-column was dropped** — the extractor never matched the liabilities row (59) or the position/gap
-row (7), mostly the non-standard-bucket banks ZIRAAT/KLNMA stored as `b1..b8`. Added a
-completeness check (`rp_liab_missing`/`rp_gap_missing`, calibrated 66/0-FP); cross-period is
-already clean (0/584). The `b1..b8` fallback was a symptom — footnote markers `(1)`/`(5)`
-matched the number-token regex and inflated the column count. **Six extractor fixes cleared
-~76**: drop footnote markers; add Turkish `Net Pozisyon` (TAKAS ×14 were missing — the locator
-never fired); gate the prior-period flip until the current total is read (ISCTR/ENPARA lost
-their current table to an FX table's "Prior Period" header); borrow a split label row's values
-from the next line (ATBANK); typo-tolerant `Total Liab[a-z]+` (QNBFB "Liabalities"); un-glue a
-fused Faizsiz|Total token (HALKB). **8 overrides**: FIBA ×6 (vector-only, hand-transcribed
-both periods) + 9 source-read residuals (ISCTR source-clipped cell, QNBFB gap missing its
-parens, EXIM/ZIRAATD dropped gap rows, TAKAS ×2 mis-parses, COLENDI ×3 whose wrapped
-"Non-Interest Bearing" header defeats the locator — disclosed, NOT N/A). **1 skip** (`_RP_SKIP`
-ICBCT 2024Q1: gap buckets sum to ₺7k vs printed 0 — source rounding). **All 5 brittleness classes then HARDENED** via x-coordinate column reconstruction gated on
-footing (`_x_columns`/`_page_anchors`/`_row_by_columns`/`_destray`) — 7 of the 15 overrides retired
-(those partitions now come from source, both periods); 0 regression across 10 controls. See [audit-repricing-lane-2026-07-18](knowledge/audit-repricing-lane-2026-07-18.md).
 
 **Prior-block sweep (2026-07-19).** `check_repricing` read the CURRENT period only, so a wrong
 comparative cell was unverifiable by construction (the cross-period anchor compares TOTALS, which
@@ -2429,6 +2171,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-audit.yml` — daily during earnings windows (Jan 20–all February, Mar 1–15, Apr/Jul/Oct 20 through May/Aug/Nov 20) plus manual dispatch. It discovers and validates new PDFs, extracts pending partitions immediately, rebuilds stages/validation/coverage locally, sends one registry-derived audit batch to D1, then uploads the snapshot. A no-change run stops before all writes. Own DB/snapshot/group remain `data/bank_audit.db`, `state/bank_audit.db.gz`, `bddk-audit`; targeted `/admin` re-extraction is unchanged.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → resolve the registry lane → re-extract its source disclosure → rebuild any dependent derived rows → inline-validate the complete relationship gate → push only factually changed tables to D1 → snapshot → refresh coverage. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects a partition when any required non-conditional gate is not a proven pass), `require_passing` (default true — rolls source + derived + validation back together unless the whole gate passes), and `dry_run` (pulls the authoritative snapshot, then performs no D1/R2 writes). No-op tables retain their timestamps and are not pushed. This is the lane used to fix OCI/CF/NPL fleet-wide.
 - `.github/workflows/repair-missing-audit-rows.yml` — manual dispatch, `dry_run=true` by default. Repairs narrowly proven D1 drift from the authoritative R2 audit snapshot without extraction or re-stamping. Missing-row mode accepts only named tables and requires live facts to be an exact subset before replacing affected partitions; remote-extra mode requires exact partition triples and compare-and-deletes only excess full primary keys. Both modes preflight every target, preserve null versus zero and source timestamps, post-verify D1 parity, require a no-op replay, and abort before writes on any source/live conflict. Shares the `bddk-audit` group.
+- `.github/workflows/repair-audit-roles.yml` — manual dispatch, `dry_run=true` by default. Restores missing/stale `bank_audit_pl_roles` after a targeted reload omitted the role map: compares semantic role content with live D1 and replaces only differing role partitions, requiring identical underlying P&L rows first. Shares the `bddk-audit` group.
 - `.github/workflows/audit-triage.yml` — manual dispatch, **read-only**. Diagnoses the failing partitions rather than re-extracting them: `scripts/triage_partitions.py` assigns each a deterministic CAUSE from the PDF (`dropped_cell` / `missing_row` / `column_slip` / `wrapped_cell` / `anchor_miss` / `drawn_page` / `rotated_page` / `wrong_pdf` / `unit_switch` / `source_defect` / `unclassified`), with the page and the printed token behind it; `scripts/watch_cross_period.py` compares each partition to the same bank a quarter earlier. No model is called, no figure is produced, and nothing is written anywhere — no D1, no row update, no snapshot re-upload — so it is unaffected by the write freeze. Reports come back as a build artifact. Engine + taxonomy in `src/audit_reports/triage.py`, pinned by `tests/test_triage.py`; findings in [knowledge/2026-08-02-audit-triage-engine.md](knowledge/2026-08-02-audit-triage-engine.md). First full run over all 212: `column_slip` 61, `dropped_cell` 46, `anchor_miss` 45, `unclassified` 26, `missing_row` 26, `rotated_page` 7, `drawn_page` 1 — and `source_defect` **zero**, so nothing in the corpus currently qualifies as "the filing itself doesn't foot". **Two extractor fixes recorded, neither applied** (they change the extractor, and re-extraction writes rows): `audit_opinion.extract_opinion_from_pdf`'s `max_pages=6` misses the signature on pp7–9 for **43** partitions (6→10 clears all of them), and §4 capital never reads the prior `additional_tier1_capital` column for **9** (EMLAK + QNBFB). The ~114 equity_change failures are grouped but **not** diagnosed — the obvious "missing closing row" theory is refuted at corpus scale (absent from 37% of failing and 36% of passing partitions).
 - `.github/workflows/analyst-daily.yml` — **manual dispatch only, no `schedule:` yet** (the freeze that originally forced artifacts-only has lifted; the workflow now carries a D1 push step gated on its `push` input, off by default — without it, everything leaves as run artifacts). The analyst layer over the audit snapshot: `scripts/analyst/detect.py` runs the deterministic detectors (reporting-unit switch, cross-period restatements — the ones the validators deliberately skip-list get *reported* here with `documented: true` — opinion type/category changes via the bilingual basis-text classifier at 95% non-other coverage, `disc_net`/cons-gap perimeter changes, and the two feasibility-verdict divergences CAR−CET1 and NPL-vs-coverage), stages signals + basis metadata into `data/analyst.db`, then `web/scripts/analyst-run.ts --memo` assembles the 11-section deterministic view (`web/app/lib/analyst/` — coverage mix-vs-erosion decomposition precomputed), writes memos with the free-model chain and drops any paragraph whose figures aren't in the data block it was shown (`unsupportedFigures`). `banks=CALIBRATE` = the ALBRK+SKBNK feasibility pair. Corpus run 2026-08-04: 455 signals in 0.2s — unit-change silent fleet-wide, cross-period 69 (fx anchor reproduces the validator skip-list 7/7 comparable), divergence 287, opinion 67, perimeter 32. Migration `0037_analyst_signals.sql` **applied** — `analyst_signals` (455), `analyst_basis_metadata` (1,050) and `analyst_notes` (2) are live in D1; the cron remains a decision not yet taken. Build plan + as-built corrections: [knowledge/2026-08-04-analyst-build-plan.md](knowledge/2026-08-04-analyst-build-plan.md). Same-day evolution into a **full 13-section research report** (~2,400 words, tables; benchmarked figure-for-figure against an external GARAN deep-research doc): ranked STORY GATES (a deterministic editorial layer — six stories ruled LIVE/DEAD with numeric reasons; the LEAD must headline), precomputed comparisons/growth-%/totals (every hand-derivation the model attempted became a supplied figure), a relation verifier (drops a wrong direction word between two right numbers), named peer table + BDDK sector aggregates, per-stage GROSS ECL expense (sums reproduce disclosed figures), verbatim management commentary from `bank_call_transcripts` (executive turns only, claims-not-data framing), **per-bank stage definitions extracted from the prose corpus** (24/38 banks' own disclosed thresholds, generated module `web/app/lib/analyst/stage-definitions.ts` — the feasibility test's #1 missing dataset), hash-gated regeneration (`data_hash` per note; staging `data/analyst.db` persists via R2 `state/analyst.db.gz`), and `scripts/analyst/score_reports.py` (structure/lead/coverage scoring over run artifacts). Memo lane LLM: PAID `deepseek/deepseek-v4-flash` (user-authorized, Baidu-pinned, seeded) → free OSS fallbacks; nemotron excluded (reasoning-leak).
 - `.github/workflows/analyst-research.yml` — **manual dispatch only, ARTIFACT-ONLY, evaluation phase** (Analyst V2, [ANALYST_V2.md](ANALYST_V2.md)). Scout → typed-tool research loop → deterministic verifier; structured findings with stable evidence ids; abstention first-class; no D1 writes, no schedule, no automatic publishing; V1 (`analyst-daily.yml`) remains the regression baseline. First cold scout run on ALBRK 2025Q1 surfaced the free-provision fingerprint (Other Provisions −6.7bn, Other Operating Income +6.1bn, the −7.7bn equity movement) with zero bank-specific logic.
@@ -2440,7 +2183,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - **Public-API catalog** — not its own workflow: `refresh-data.yml` runs `scripts/build_api_catalog.py` + `push_to_d1.py --only-tables api_series` after every BDDK refresh, so `/api/v1` sees each new period. `api_series` is full-rebuild (no per-row timestamp), so a windowed push skips it — it must be named explicitly. See [API.md](API.md).
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale. Also runs `scripts/verify_chart_spec.py --alert`: re-resolves every reproduced chart in `web/app/lib/chart-specs.catalog.json` against D1 and alerts if a series goes blank (0 rows) or drifts past its `verify[]` anchor. See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md). Third check: `setup_telegram_webhook.py check --alert` asserts the bot webhook still targets the live origin.
 - `.github/workflows/telegram-webhook.yml` — manual only. `set` / `info` / `check` the Q&A bot webhook; lives in CI because the bot token + webhook secret aren't available locally. Run `set` after anything that moves the site origin (e.g. the 2026-07-19 Worker rename to `carthago`, which orphaned the webhook on the dead `workers.dev` host).
-- `.github/workflows/test-openrouter.yml` — manual only, **scratch**. Probes the `OPEN_ROUTER_API` secret (auth → credit budget → DeepSeek model/price list → one number-validated completion) via `scripts/scratch/scratch_test_openrouter.py`. The key was added 2026-07-05 and no lane reads it; this only answers "does it work, and what does DeepSeek cost". Delete both files once the finding lands in `docs/knowledge/` — and with them the `SCRATCH_WORKFLOWS` entry in `scripts/check_pipeline_graph_sync.py` that exempts this lane from the `/pipeline` graph gate (it moves no production data, so it draws no lineage node; a stale exemption fails CI by design).
+
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc + vitest. (Dependency bumps via `dependabot.yml`.)
 
 Schema source of truth: hand-authored migrations in `web/migrations/`, applied
