@@ -631,9 +631,24 @@ def extract_from_r2(
                     counts["fail"] += 1
                     print(f"  [UNIT] {ticker:<8} {period} {kind:<14} {e}", flush=True)
                     continue
-                upsert_report(conn, ticker, period, kind, rep, key,
-                              force=overwrite_correct, unit=unit,
-                              source_pdf_path=path_str)
+                # A store-time refusal — e.g. loans_by_sector's duplicate guard
+                # on a filing whose prose pages parse as sector rows (KLNMA
+                # 2025Q4 cons, 2026-09-18) — is THIS partition's failure, not
+                # the fleet's. Extraction and unit failures are already
+                # per-partition; the store step must be too, or one bad filing
+                # blocks the spine rebuild, revalidation and push for every
+                # other bank. Coverage then shows the partition failing, which
+                # is the honest state, and the systemic alarm still fires if
+                # failures pile up.
+                try:
+                    upsert_report(conn, ticker, period, kind, rep, key,
+                                  force=overwrite_correct, unit=unit,
+                                  source_pdf_path=path_str)
+                except Exception as e:  # noqa: BLE001 — record, never abort the fleet
+                    counts["fail"] += 1
+                    print(f"  [FAIL] {ticker:<8} {period} {kind:<14} store: {e}",
+                          flush=True)
+                    continue
                 invalid[(ticker, period, kind)] = None
                 tag = "OK" if (bsa >= 20 and bsl >= 20 and pl >= 20) else "WARN"
                 counts["ok"] += 1
