@@ -163,3 +163,89 @@ def test_the_query_is_flattened_before_it_reaches_wrangler(monkeypatch):
     healthcheck.query_d1_rows(healthcheck.FILING_GAP_SQL)
     assert "\n" not in seen["cmd"][-1]
     assert "bank_earnings" in seen["cmd"][-1]
+
+
+# --- the coverage spine marker + fleet trend (2026-09-18) --------------------
+#
+# push_to_d1 stamps source_freshness 'audit_spine' on every spine push; the
+# health check alerts when the marker is missing, D1 holds fewer lanes than the
+# registry declares, or the spine has frozen. The trend write is telemetry and
+# must never take the check down.
+
+from datetime import datetime, timedelta, timezone
+
+
+def _spine_row(checked_ago_h=None, declared=20, in_d1=20):
+    checked = (
+        (datetime.now(timezone.utc) - timedelta(hours=checked_ago_h))
+        .strftime("%Y-%m-%d %H:%M:%S")
+        if checked_ago_h is not None else None
+    )
+    return [{"checked_at": checked, "lanes_declared": str(declared) if declared else None,
+             "lanes_in_d1": in_d1}]
+
+
+def test_spine_check_alerts_when_no_marker():
+    assert healthcheck.audit_spine_problem(rows=_spine_row(checked_ago_h=None), registry_lanes=20) \
+        == "Coverage spine: no sync marker — sync_audit_expected has never pushed"
+
+
+def test_spine_check_alerts_on_lane_parity_gap():
+    # The risk_profile blind spot: 20 lanes registered, 19 in D1.
+    msg = healthcheck.audit_spine_problem(rows=_spine_row(checked_ago_h=2, declared=20, in_d1=19),
+                                          registry_lanes=20)
+    assert msg is not None and "D1 holds 19" in msg and "20 lanes" in msg
+
+
+def test_spine_check_alerts_when_the_sync_predates_a_new_lane():
+    # Marker shipped 19 lanes; the registry has since grown to 20 — the last
+    # sync predates the new lane even though D1 matches the marker.
+    msg = healthcheck.audit_spine_problem(rows=_spine_row(checked_ago_h=2, declared=19, in_d1=19),
+                                          registry_lanes=20)
+    assert msg is not None and "last sync shipped 19" in msg
+
+
+def test_spine_check_alerts_when_frozen():
+    msg = healthcheck.audit_spine_problem(
+        rows=_spine_row(checked_ago_h=(healthcheck.SPINE_STALE_DAYS + 2) * 24, declared=20, in_d1=20),
+        registry_lanes=20)
+    assert msg is not None and "last sync" in msg and "d ago" in msg
+
+
+def test_spine_check_is_quiet_when_healthy():
+    assert healthcheck.audit_spine_problem(rows=_spine_row(checked_ago_h=3, declared=20, in_d1=20),
+                                           registry_lanes=20) is None
+
+
+def test_spine_check_never_takes_the_run_down(monkeypatch):
+    def boom(_sql):
+        raise RuntimeError("d1 down")
+    monkeypatch.setattr(healthcheck, "query_d1_rows", boom)
+    assert healthcheck.audit_spine_problem(registry_lanes=20) is None
+
+
+def test_coverage_trend_writes_one_row(monkeypatch):
+    queries, writes = [], []
+
+    def fake_rows(sql):
+        queries.append(" ".join(sql.split()))
+        if "GROUP BY status" in queries[-1]:
+            return [{"status": "ok", "n": 900}, {"status": "error", "n": 41},
+                    {"status": "missing", "n": 12}]
+        return [{"lanes": 20}]
+
+    monkeypatch.setattr(healthcheck, "query_d1_rows", fake_rows)
+    monkeypatch.setattr(healthcheck, "execute_d1", lambda sql: writes.append(sql) or True)
+    healthcheck.write_coverage_trend()
+    assert len(writes) == 1
+    assert writes[0].startswith("INSERT INTO coverage_trend")
+    # columns in declared order: ok, manual, error, missing, not_expected, lanes
+    assert "900, 0, 41, 12, 0, 20" in writes[0]
+
+
+def test_coverage_trend_is_non_fatal(monkeypatch):
+    def boom(_sql):
+        raise RuntimeError("d1 down")
+    monkeypatch.setattr(healthcheck, "query_d1_rows", boom)
+    monkeypatch.setattr(healthcheck, "execute_d1", lambda sql: True)
+    healthcheck.write_coverage_trend()  # must not raise

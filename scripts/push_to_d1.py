@@ -1092,6 +1092,34 @@ def preflight_publication(db: Path, tables: set[str], lane: str) -> None:
     prepare_candidate(db, lane)
 
 
+def stamp_spine_sync(tables: set[str] | None) -> None:
+    """Record a spine-sync completion in D1 (source_freshness, 'audit_spine').
+
+    The admin panel reads this row to say WHEN the coverage spine last reached
+    D1 and whether D1's lane list matches the registry — the two facts that
+    keep a registered-but-never-synced lane visible instead of silently absent
+    (risk_profile sat in exactly that blind spot on 2026-09-16). Stamped here
+    because this script is the single choke point every spine push goes
+    through: refresh-audit's --table-set push and sync_audit_expected --push
+    both land here. Same direct-wrangler pattern as healthcheck's freshness
+    rows; deliberately outside SYNC_TABLES (migration 0028 precedent). A
+    monitoring stamp must never fail a push, so every failure is non-fatal.
+    """
+    if tables is not None and "bank_audit_statement_types" not in tables:
+        return
+    try:
+        from src.audit_reports import registry as _registry
+        from scripts.healthcheck import write_freshness
+        n_lanes = len(_registry.REGISTRY)
+        write_freshness("audit_spine", {
+            "status": "ok",
+            "latest_period": str(n_lanes),
+            "note": f"{n_lanes} registry lanes · spine tables shipped",
+        })
+    except Exception as exc:  # noqa: BLE001
+        print(f"spine-sync stamp skipped: {exc}", file=sys.stderr)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--lane", choices=["bulletin", "audit", "analyst"])
@@ -1444,6 +1472,7 @@ def main() -> int:
     # during generation, --check-only, dry-run, or a failed execute.
     for tbl, parts in stale.items():
         invalidate_partition_state(conn, tbl, parts)
+    stamp_spine_sync(allowed_tables)
     print("D1 push complete")
     return 0
 

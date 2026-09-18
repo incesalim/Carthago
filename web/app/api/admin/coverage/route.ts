@@ -13,6 +13,7 @@ import {
   coverageGrid,
   coverageProblems,
   coverageSummary,
+  coverageVitals,
   statementTypes,
 } from "@/app/lib/coverage";
 
@@ -38,12 +39,13 @@ export async function GET(req: Request) {
   }
 
   if (url.searchParams.get("summary")) {
-    const [types, summary, problems] = await Promise.all([
+    const [types, summary, problems, vitals] = await Promise.all([
       statementTypes(),
       coverageSummary(),
       coverageProblems(),
+      coverageVitals(),
     ]);
-    return Response.json({ types, summary, problems });
+    return Response.json({ types, summary, problems, vitals });
   }
 
   const types = await statementTypes();

@@ -58,6 +58,7 @@ export interface CellDetail {
     checks_failed: number;
     checks_passed: number;
     failed_detail: string | null;
+    validated_at: string | null;
   }[];
   coverage: {
     statement_type: string;
@@ -65,6 +66,14 @@ export interface CellDetail {
     row_count: number;
     is_manual: number;
     pdf_present: number;
+    /** Joined off bank_audit_statement_types so the drawer's per-partition
+     *  strip orders like the matrix and can retarget the drawer to any lane
+     *  (has_validator + validation_gate are what a retargeted gate section
+     *  needs; NULL-joined rows fall back to the end, unlabelled). */
+    label: string | null;
+    sort_order: number | null;
+    has_validator: number | null;
+    validation_gate: string | null;
   }[];
   /** Prose sections for this partition — one entry per resolved Bölüm. Present
    *  only when the prose lane has rows; the drawer omits the block otherwise. */
@@ -97,6 +106,100 @@ export async function statementTypes(): Promise<StatementTypeRow[]> {
   } catch {
     return [];
   }
+}
+
+// --- vitals: spine sync, validation recency, fleet trend ---------------------
+
+export interface SpineVitals {
+  /** When a push last shipped the spine tables (push_to_d1 stamps
+   *  source_freshness 'audit_spine'). Null = never synced. */
+  syncedAt: string | null;
+  /** Registry lane count declared by that sync (the marker's latest_period). */
+  lanesDeclared: number | null;
+  /** Lane rows actually present in D1's statement registry — the parity check
+   *  that keeps a registered-but-never-synced lane visible instead of absent. */
+  lanesInD1: number;
+}
+
+export interface TrendPoint {
+  checked_at: string;
+  ok: number;
+  manual: number;
+  error: number;
+  missing: number;
+  not_expected: number;
+  lanes: number;
+}
+
+export interface CoverageVitals {
+  spine: SpineVitals;
+  lastValidated: string | null;
+  trend: TrendPoint[];
+}
+
+/** Each source degrades independently: a pre-migration D1 (no coverage_trend)
+ *  must not take the spine marker or validation recency down with it. */
+export async function coverageVitals(): Promise<CoverageVitals> {
+  const spine: SpineVitals = { syncedAt: null, lanesDeclared: null, lanesInD1: 0 };
+  let lastValidated: string | null = null;
+  let trend: TrendPoint[] = [];
+  try {
+    const db = await getDB();
+    const marker = await db
+      .prepare(`SELECT checked_at, latest_period FROM source_freshness WHERE source = 'audit_spine'`)
+      .first<{ checked_at: string; latest_period: string | null }>();
+    const lanes = await db
+      .prepare(`SELECT COUNT(*) AS n FROM bank_audit_statement_types`)
+      .first<{ n: number }>();
+    spine.syncedAt = marker?.checked_at ?? null;
+    spine.lanesDeclared = marker?.latest_period ? Number.parseInt(marker.latest_period, 10) : null;
+    spine.lanesInD1 = lanes?.n ?? 0;
+    const v = await db
+      .prepare(`SELECT MAX(validated_at) AS v FROM bank_audit_validation`)
+      .first<{ v: string | null }>();
+    lastValidated = v?.v ?? null;
+    const { results } = await db
+      .prepare(`SELECT checked_at, ok, manual, error, missing, not_expected, lanes
+                FROM coverage_trend ORDER BY checked_at DESC LIMIT 60`)
+      .all<TrendPoint>();
+    trend = results;
+  } catch {
+    // keep whatever resolved before the failing statement
+  }
+  return { spine, lastValidated, trend };
+}
+
+export interface TrendDelta {
+  metric: "error" | "missing";
+  from: number;
+  to: number;
+  days: number;
+}
+
+/** Error/missing movement between the latest snapshot and the oldest snapshot
+ *  at least 6 days older — "over 7d" needs a real baseline, not yesterday's
+ *  noise. Fewer points than that answer nothing and render nothing. Pure, so
+ *  the rendering is testable without D1. */
+export function trendDeltas(trend: TrendPoint[]): TrendDelta[] {
+  if (trend.length < 2) return [];
+  const latest = trend[0];
+  const latestMs = Date.parse(latest.checked_at);
+  if (!Number.isFinite(latestMs)) return [];
+  const baseline = [...trend]
+    .slice(1)
+    .filter((p) => {
+      const ms = Date.parse(p.checked_at);
+      return Number.isFinite(ms) && latestMs - ms >= 6 * 24 * 3600 * 1000;
+    })
+    .pop();
+  if (!baseline) return [];
+  const days = Math.round((latestMs - Date.parse(baseline.checked_at)) / (24 * 3600 * 1000));
+  return (["error", "missing"] as const).map((metric) => ({
+    metric,
+    from: baseline[metric],
+    to: latest[metric],
+    days,
+  }));
 }
 
 /** Every coverage cell for one statement type, plus the distinct bank / period
@@ -215,7 +318,7 @@ export async function coverageCellDetail(
       .first<CellDetail["extraction"]>();
     const { results: validation } = await db
       .prepare(
-        `SELECT statement, checks_failed, checks_passed, failed_detail
+        `SELECT statement, checks_failed, checks_passed, failed_detail, validated_at
          FROM bank_audit_validation
          WHERE bank_ticker = ? AND period = ? AND kind = ?
          ORDER BY statement`,
@@ -224,9 +327,12 @@ export async function coverageCellDetail(
       .all<CellDetail["validation"][number]>();
     const { results: coverage } = await db
       .prepare(
-        `SELECT statement_type, status, row_count, is_manual, pdf_present
-         FROM bank_audit_coverage
-         WHERE bank_ticker = ? AND period = ? AND kind = ?`,
+        `SELECT c.statement_type, c.status, c.row_count, c.is_manual, c.pdf_present,
+                t.label, t.sort_order, t.has_validator, t.validation_gate
+         FROM bank_audit_coverage c
+         LEFT JOIN bank_audit_statement_types t ON t.key = c.statement_type
+         WHERE c.bank_ticker = ? AND c.period = ? AND c.kind = ?
+         ORDER BY t.section_rank, t.sort_order, c.statement_type`,
       )
       .bind(bank, period, kind)
       .all<CellDetail["coverage"][number]>();

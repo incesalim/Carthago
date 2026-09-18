@@ -175,6 +175,20 @@ def monthly_problem(period: str | None, probe=None) -> str | None:
     return f"Monthly bulletin: {f['note']}" if f["status"] == "stale" else None
 
 
+def execute_d1(sql: str) -> bool:
+    """Run one write statement on remote D1. Non-fatal: the table may not exist
+    yet (pre-deploy), or D1 hiccupted — a monitoring write must not take the
+    health check (or a push that stamps a marker) down with it."""
+    cmd = ["npx", "--yes", "wrangler", "d1", "execute", "bddk-data", "--remote", "--command", sql]
+    res = subprocess.run(
+        cmd, cwd=str(WEB), capture_output=True, text=True, shell=os.name == "nt"
+    )
+    if res.returncode != 0:
+        print(f"could not write to D1: {res.stderr[-300:]}", file=sys.stderr)
+        return False
+    return True
+
+
 def write_freshness(source: str, f: dict) -> None:
     """Persist the freshness verdict to remote D1 (source_freshness) for /admin."""
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -182,20 +196,79 @@ def write_freshness(source: str, f: dict) -> None:
     def lit(v) -> str:
         return "NULL" if v is None else "'" + str(v).replace("'", "''") + "'"
 
-    sql = (
+    execute_d1(
         "INSERT OR REPLACE INTO source_freshness "
         "(source, checked_at, status, latest_period, note) VALUES "
         f"({lit(source)}, {lit(now)}, {lit(f['status'])}, "
         f"{lit(f['latest_period'])}, {lit(f['note'])})"
     )
-    cmd = ["npx", "--yes", "wrangler", "d1", "execute", "bddk-data", "--remote", "--command", sql]
-    res = subprocess.run(
-        cmd, cwd=str(WEB), capture_output=True, text=True, shell=os.name == "nt"
-    )
-    if res.returncode != 0:
-        # Non-fatal: the table may not exist yet (pre-deploy), or D1 hiccupped.
-        # The alert still fires; the panel falls back to the schedule estimate.
-        print(f"could not write source_freshness: {res.stderr[-300:]}", file=sys.stderr)
+
+
+# --- the coverage spine --------------------------------------------------------
+#
+# push_to_d1 stamps source_freshness ('audit_spine') every time a push ships the
+# spine tables. Two failure modes are invisible without it: a lane REGISTERED in
+# code but never synced to D1 (risk_profile, 2026-09-16 — the admin matrix simply
+# omitted it), and a refresh-audit lane that has stopped running so the spine is
+# quietly frozen. The panel shows the marker; this check ALERTS on it.
+
+SPINE_STALE_DAYS = 10  # refresh-audit runs most days in filing windows; quiet
+                       # season gaps are weeks, so alert only well past that.
+
+
+def audit_spine_problem(rows: list[dict] | None = None,
+                        registry_lanes: int | None = None) -> str | None:
+    """The alert line (None = healthy) for the coverage spine marker.
+
+    `rows`/`registry_lanes` are injectable for tests; the default path reads
+    remote D1 once and imports the registry the pipeline itself uses."""
+    try:
+        if rows is None:
+            rows = query_d1_rows(
+                "SELECT (SELECT checked_at FROM source_freshness WHERE source = 'audit_spine') "
+                "AS checked_at, (SELECT latest_period FROM source_freshness "
+                "WHERE source = 'audit_spine') AS lanes_declared, "
+                "(SELECT COUNT(*) FROM bank_audit_statement_types) AS lanes_in_d1")
+        if registry_lanes is None:
+            from src.audit_reports import registry
+            registry_lanes = len(registry.REGISTRY)
+        m = rows[0] if rows else {}
+        if not m.get("checked_at"):
+            return "Coverage spine: no sync marker — sync_audit_expected has never pushed"
+        d1 = int(m.get("lanes_in_d1") or 0)
+        declared = int(m.get("lanes_declared") or 0)
+        if d1 < registry_lanes or declared < registry_lanes:
+            return (f"Coverage spine: registry declares {registry_lanes} lanes, "
+                    f"D1 holds {d1} (last sync shipped {declared}) — spine sync pending")
+        age = hours_since(m.get("checked_at"))
+        if age is not None and age > SPINE_STALE_DAYS * 24:
+            return f"Coverage spine: last sync {age / 24:.1f}d ago (limit {SPINE_STALE_DAYS}d)"
+    except Exception as exc:  # noqa: BLE001 — additive monitoring never blocks the rest
+        print(f"spine check skipped: {exc}", file=sys.stderr)
+    return None
+
+
+def write_coverage_trend() -> None:
+    """One snapshot row per run into coverage_trend (migration 0055).
+
+    The admin panel renders error/missing as deltas over days, not just
+    point-in-time counts — 'are we getting cleaner?' was unanswerable before
+    this. Direct wrangler write, deliberately outside SYNC_TABLES (the 0028
+    source_freshness precedent). Non-fatal."""
+    try:
+        counts = {r["status"]: int(r["n"]) for r in query_d1_rows(
+            "SELECT status, COUNT(*) AS n FROM bank_audit_coverage GROUP BY status")}
+        lanes = int(query_d1_rows(
+            "SELECT COUNT(DISTINCT statement_type) AS lanes FROM bank_audit_coverage"
+        )[0]["lanes"])
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        vals = [str(counts.get(s, 0)) for s in ("ok", "manual", "error", "missing", "not_expected")]
+        execute_d1(
+            "INSERT INTO coverage_trend "
+            "(checked_at, ok, manual, error, missing, not_expected, lanes) VALUES "
+            f"('{now}', {', '.join(vals)}, {lanes})")
+    except Exception as exc:  # noqa: BLE001
+        print(f"coverage trend skipped: {exc}", file=sys.stderr)
 
 
 def hours_since(ts: str | None) -> float | None:
@@ -375,6 +448,13 @@ def main() -> int:
     spend = d1_spend_problem()
     if spend:
         problems.append(spend)
+
+    spine = audit_spine_problem()
+    if spine:
+        problems.append(spine)
+
+    # Snapshot regardless of verdicts — the trend needs the quiet days too.
+    write_coverage_trend()
 
     if problems:
         msg = "🟡 BDDK data health:\n- " + "\n- ".join(problems)
