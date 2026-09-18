@@ -136,9 +136,6 @@
     "telegram-webhook.yml": {
       "state": "active"
     },
-    "test-openrouter.yml": {
-      "state": "active"
-    },
     "review-document-origins.yml": {
       "state": "active",
       "reason": "Manual source-byte comparison. Optional publication retains transport and PDF revisions in the private document corpus; it never replaces acquired sources or analytical data."

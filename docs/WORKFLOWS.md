@@ -75,7 +75,6 @@ analytical rows.
 |---|---|
 | `audit-triage.yml` | Deterministic cause per failing partition (evidence attached; no model, no figure) |
 | `audit-extraction-gates.yml` | Fault-inject through the real validators/gates on an ETag-pinned snapshot |
-| `test-openrouter.yml` | Scratch credential probe; writes nothing, reads no data source |
 
 ## Analyst — manual (intended cron wired but off)
 

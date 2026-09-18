@@ -126,7 +126,7 @@ jobs:
           LLM_ALLOW_FALLBACKS: "false"
           # Post the briefing itself to Telegram whenever the LLM actually runs.
           # Absent these, notify() no-ops to stderr — which is what keeps the
-          # scratch DeepSeek bench (test-openrouter.yml) silent.
+          # deleted scratch bench silent.
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}

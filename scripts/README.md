@@ -10,8 +10,6 @@ belongs to, and its **class**:
 - **operational** — run by hand or `/admin` for an ongoing purpose (backfills, repairs).
 - **diagnostic** — inspection / profiling only; in `scripts/diagnostics/` (plus a
   few by-hand tools listed in the lane tables).
-- **scratch** — one-off benches / probes that answered a question; in
-  `scripts/scratch/`. Read-only on production.
 - **archived** — one-off campaign / migration that's done; in `scripts/archive/` for reference.
 
 This index is itself CI-gated: `check_scripts_index.py` fails the build when a
@@ -69,7 +67,7 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | `check_body_freshness.py` | `news_items.body_text` stays fresh enough for the compiled `/regulation` figures. | `healthcheck.yml` | gate |
 | `check_bot_answers.py` | The Q&A bot still answers its pinned eval questions correctly. | `healthcheck.yml` | gate |
 | `check_bot_schema.py` | The bot's schema prompt ↔ the live D1 schema. | `healthcheck.yml` | gate |
-| `check_briefing_facts.py` | The briefing states the hand-verified published figures (checklist in `src/news/briefing_facts.py`) AND every cited release states its bullet's figures (`src/news/briefing_citations.py`) — both shared with the generator's own gates. **Publication gate** since 2026-08-16: `--fail-under 0.75` or any miscited bullet blocks the D1 push + snapshot, keeping last week's verified text live. | `summarize-regulations.yml`; `test-openrouter.yml` | gate |
+| `check_briefing_facts.py` | The briefing states the hand-verified published figures (checklist in `src/news/briefing_facts.py`) AND every cited release states its bullet's figures (`src/news/briefing_citations.py`) — both shared with the generator's own gates. **Publication gate** since 2026-08-16: `--fail-under 0.75` or any miscited bullet blocks the D1 push + snapshot, keeping last week's verified text live. | `summarize-regulations.yml` | gate |
 
 ## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, TKBB, KAP, TEFAS)
 | Script | Purpose | Run by | Class |
@@ -204,28 +202,6 @@ locally → **one** D1 push → snapshot; it stops after discovery when nothing 
 | `backfill_credit_quality.py` | Re-extract the IFRS-9 credit-quality footnote fleet-wide after a fix. | operational backfill |
 | `backfill_npl_history.py` | Re-extract NPL Stage-3 movement history (chunked by period). | operational backfill |
 
-## Scratch (`scripts/scratch/`) — one-off benches + probes
-
-Each answered a specific question and stays as the record of the method. All are
-read-only on production: they pull PDFs into `data/_bench/` and write no D1/R2.
-`test-openrouter.yml` is the only workflow that runs any of them.
-
-| Script | The question it answered |
-|---|---|
-| `scratch_test_openrouter.py` | Does the `OPEN_ROUTER_API` secret work, and what does DeepSeek cost? |
-| `scratch_dump_briefing.py` | Print the newest local `regulation_briefings` row so two providers' output can be compared. |
-| `scratch_bench_unit_detection.py` | Can an LLM read a filing's reporting unit as well as the regex? (No — see PROJECT_STATE.) |
-| `scratch_bench_vision_extract.py` | Can a vision model extract the statements a human had to correct? |
-| `scratch_bench_text_cells.py` | Can a text LLM recover the cells a human had to correct? |
-| `scratch_bench_validator_gate.py` | Would the validators CATCH a wrong LLM figure? (The 79.9% / 52.6% / 38.7% blind-spot measurement.) |
-| `scratch_one_pdf_deepseek.py` | One text PDF, one model, every row checked against what we store. |
-| `scratch_one_hard_row.py` | One page where the deterministic extractor failed — can any model read it? |
-| `scratch_probe_absent_cause.py` | Is the 14% `npl_movement` ceiling real, or a matcher blind spot? |
-| `scratch_probe_retrieval_ceiling.py` | What is the ceiling of the retrieval step, before any model is called? |
-| `scratch_probe_drawn_pages.py` | How much of the corpus is drawn (vector outlines) rather than typed? |
-| `scratch_probe_split_digits.py` | How widespread is digit-splitting in the audit text layer? |
-| `scratch_probe_wrapped_cells.py` | How many hand corrections are the wrapped-cell shape? |
-| `scratch_probe_stale_overrides.py` | Which hand corrections are now obsolete — already fixed by the extractor? |
 
 ## Archived (`scripts/archive/`) — done, kept for reference
 `extract_all_audit_reports.py`, `scrape_all_banks.py` (local-PDF flow, replaced by R2-based

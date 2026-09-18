@@ -89,10 +89,6 @@ _WORKFLOW_DOCS: dict[Path, frozenset[str]] = {
             # Manual one-shot seed of the frozen product-shelf snapshot — same
             # scope as the backfills (in OPERATIONS + PROJECT_STATE), not a cron.
             "build-products.yml",
-            # A scratch credential probe — writes nothing, reads no data source,
-            # and is meant to be deleted. It is in OPERATIONS + PROJECT_STATE
-            # (which inventory *everything*); the architecture has no node for it.
-            "test-openrouter.yml",
         }
     ),
 }

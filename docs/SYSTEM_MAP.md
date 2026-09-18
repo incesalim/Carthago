@@ -125,7 +125,7 @@ buckets:
 | **Extract** | Source bytes → structured rows | `sync_audit_reports.py`, `reextract_statement.py`, `reextract_pl.py`, `backfill_extraction.py`, `backfill_document_capture.py`, `build_document_tables.py`, `scripts/graduations/build_*_full.py` |
 | **Publish** | Local SQLite → D1 / R2 | `push_to_d1.py` (the one D1 writer), `push_from_scratch.py`, `build_api_catalog.py`, `sync_audit_expected.py --push`, `seed_audit_db.py` |
 | **Repair** | Targeted correction of stored rows | `reextract_statement.py`, `purge_partition.py`, `repair_missing_audit_rows.py`, `repair_audit_roles.py`, `repair_loans_zeros.py`, `audit_correct.py`, `apply_overrides.py`, `load_partition.py`, `revalidate_audit_db.py` |
-| **Diagnose** | Read-only inspection; writes nothing | `check_*.py` gates, `healthcheck.py`, `audit_narrow_vs_wide.py`, `triage_partitions.py`, `watch_cross_period.py`, `scripts/diagnostics/*`, `scripts/scratch/*` |
+| **Diagnose** | Read-only inspection; writes nothing | `check_*.py` gates, `healthcheck.py`, `audit_narrow_vs_wide.py`, `triage_partitions.py`, `watch_cross_period.py`, `scripts/diagnostics/*` |
 | **One-off / archive** | Finished campaigns and by-hand generators | `scripts/archive/*`, `generate_presentation.py`, `make_brand_assets.py`, `fetch_bank_logos.py`, `compute_bank_metrics.py` |
 
 **The gates are part of the code, not an afterthought.** `check_*.py` scripts fail
@@ -148,7 +148,7 @@ Grouped by purpose:
 | **Acquire / corpus capture** | dispatch | `acquire-audit`, `build-document-corpus`, `recover-document-corpus`, `review-document-origins`, `capture-related-documents`, `capture-document-edition` |
 | **Backfill** | dispatch | `backfill-audit`, `backfill-audit-source-capture`, `backfill-document-capture`, `backfill-faaliyet`, `backfill-nonbank`, `backfill-tefas`, `build-products`, `measure-free-provision` |
 | **Repair** | dispatch | `reextract-statement`, `repair-audit-roles`, `repair-missing-audit-rows`, `repair-loans-zeros`, `purge-partition` |
-| **Diagnose** | dispatch | `audit-triage`, `audit-extraction-gates`, `test-openrouter` |
+| **Diagnose** | dispatch | `audit-triage`, `audit-extraction-gates` |
 | **Analyst** | dispatch (cron wired, off) | `analyst-daily`, `analyst-research` |
 | **Infrastructure** | cron / CI / dispatch | `ci`, `deploy-cloudflare`, `healthcheck`, `telegram-webhook` |
 

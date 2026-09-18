@@ -44,13 +44,7 @@ _HREF_RE = re.compile(r'href:\s*["\']([^"\']+)["\']')
 # other direction. Exempting is deliberate and temporary: an entry whose
 # workflow no longer exists is itself an error (see stale_exemptions), so the
 # list cannot quietly rot after the scratch lane is deleted.
-SCRATCH_WORKFLOWS = {
-    "test-openrouter.yml": (
-        "manual OpenRouter bench — read-only on production (pulls the R2 "
-        "snapshot, never uploads, never pushes to D1). Delete the exemption "
-        "with the workflow once the provider question is settled."
-    ),
-}
+SCRATCH_WORKFLOWS: dict[str, tuple] = {}
 
 
 def workflow_files() -> set[str]:
