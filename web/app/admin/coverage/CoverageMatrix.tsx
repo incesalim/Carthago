@@ -1,10 +1,14 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { SecHead } from "@/app/components/desk";
 import CoverageDrawer, { type OpenCell } from "./CoverageDrawer";
+import CoverageGrid from "./CoverageGrid";
+import Vitals from "./Vitals";
 import { STATUS_LABEL } from "./status";
+import { type CoverageVitals } from "@/app/lib/coverage";
 
 // Local copy (don't import github.ts into the client bundle). The single-cell
 // re-extract workflow — forces just the clicked (bank, period, kind, statement).
@@ -26,8 +30,6 @@ const STATUS_TONE: Record<string, string> = {
   not_expected: "text-faint",
 };
 
-// No is_core here on purpose — the API sends it, this view has no business
-// reading it (see SECTION_HEAD below).
 interface TypeRow {
   key: string;
   label: string;
@@ -40,23 +42,14 @@ interface TypeRow {
 }
 
 // Lane groups = the report Bölüm each table is printed in (registry.section).
-//
-// This used to group on is_core, which put OCI, changes-in-equity, cash-flow and
-// off-balance under a heading reading "Footnotes & §4". None of them is a
-// footnote: TAS 1 requires OCI, changes-in-equity and cash-flow in a complete set
-// of financial statements, and off-balance ("Nazım Hesaplar") prints on the
-// balance-sheet page. is_core only marks the three lanes whose absence fails the
-// whole extraction — a severity flag, not an accounting taxonomy. Group on
-// `section`; let is_core gate extractions.success and nothing else.
 // Keyed by the bare Bölüm number the registry stores; the § is typography.
+// Group on `section`, never is_core — that is a severity flag (see registry).
 const SECTION_HEAD: Record<string, string> = {
   "2": "Core statements · §2 Financial statements",
   "5": "Notes · §5",
   "4": "Risk & capital · §4",
   "1": "General information · §1",
   "7": "Auditor's report · §7",
-  // '0' is not a Bölüm. Prose is the one lane that spans the filing rather than
-  // sitting in a section, so it carries the section on its ROWS instead.
   "0": "Narrative · §1–§8",
 };
 
@@ -120,42 +113,75 @@ export default function CoverageMatrix() {
   const [types, setTypes] = useState<TypeRow[]>([]);
   const [summary, setSummary] = useState<SummaryRow[]>([]);
   const [problems, setProblems] = useState<ProblemCell[]>([]);
+  const [vitals, setVitals] = useState<CoverageVitals | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [mode, setMode] = useState<Mode>("both");
-  const [selected, setSelected] = useState<string | "all">("all");
-  const [show, setShow] = useState<"error" | "missing" | "both">("error");
-  const [bankQuery, setBankQuery] = useState("");
+  // UI state lives in the URL (BankTypeFilter pattern): a filtered-down view —
+  // "grid, loans_by_sector, cons, errors" — is shareable and back/forward work.
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const view = params.get("view") === "grid" ? "grid" : "summary";
+  const mode: Mode = (["unconsolidated", "consolidated", "both"] as const).includes(
+    params.get("kind") as Mode,
+  )
+    ? (params.get("kind") as Mode)
+    : "both";
+  const selected = params.get("lane") ?? "all";
+  const show = (["error", "missing", "both"] as const).includes(
+    params.get("show") as "error" | "missing" | "both",
+  )
+    ? (params.get("show") as "error" | "missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it to the URL on every keystroke would
+  // re-render per key, so it commits on blur/enter and filters from local state.
+  const [bankQuery, setBankQuery] = useState(params.get("q") ?? "");
+
+  const patchParams = useCallback(
+    (patch: Record<string, string | null>) => {
+      const next = new URLSearchParams(params);
+      for (const [k, v] of Object.entries(patch)) {
+        if (v == null || v === "") next.delete(k);
+        else next.set(k, v);
+      }
+      router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+    },
+    [params, pathname, router],
+  );
 
   const [open, setOpen] = useState<OpenCell | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // One mount-only fetch: the whole spine aggregated server-side (counts + the
-  // error/missing cell list). All filtering below is client-side.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/admin/coverage?summary=1", { cache: "no-store" });
-        const b = (await res.json()) as {
-          types?: TypeRow[];
-          summary?: SummaryRow[];
-          problems?: ProblemCell[];
-        };
-        if (cancelled) return;
-        setTypes(b.types ?? []);
-        setSummary(b.summary ?? []);
-        setProblems(b.problems ?? []);
-      } catch {
-        if (!cancelled) toast.error("Failed to load coverage summary");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  // One fetch of the whole spine aggregated server-side (counts, the error /
+  // missing cell list, and the vitals strip). All filtering below is
+  // client-side; the Refresh action and a dispatched re-extract re-run it.
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/coverage?summary=1", { cache: "no-store" });
+      const b = (await res.json()) as {
+        types?: TypeRow[];
+        summary?: SummaryRow[];
+        problems?: ProblemCell[];
+        vitals?: CoverageVitals;
+      };
+      setTypes(b.types ?? []);
+      setSummary(b.summary ?? []);
+      setProblems(b.problems ?? []);
+      setVitals(b.vitals ?? null);
+    } catch {
+      toast.error("Failed to load coverage summary");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    // load() synchronously flips `loading` — the intended fetch-on-mount
+    // pattern (PipelinePanel does the same).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
 
   const inMode = (k: string) => mode === "both" || k === mode;
 
@@ -228,21 +254,61 @@ export default function CoverageMatrix() {
   const shown = visibleProblems.slice(0, LIST_CAP);
   const overflow = visibleProblems.length - shown.length;
 
+  // The banks carrying most of the current problem set — often one filer's bad
+  // quarter explains half a lane's red. Click filters the list to that bank.
+  const topBanks = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of visibleProblems) m.set(p.bank_ticker, (m.get(p.bank_ticker) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [visibleProblems]);
+
+  // Drawer position within the filtered list — computed, not stored, so filter
+  // changes while the drawer is open keep prev/next honest.
+  const openIdx = open
+    ? visibleProblems.findIndex(
+        (p) =>
+          p.bank_ticker === open.bank && p.period === open.period &&
+          p.kind === open.kind && p.statement_type === open.type,
+      )
+    : -1;
+  const stepProblem = useCallback(
+    (delta: number) => {
+      if (openIdx < 0) return;
+      const next = visibleProblems[openIdx + delta];
+      if (!next) return;
+      openProblem(next);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [openIdx, visibleProblems],
+  );
+
+  function openCellMeta(type: string) {
+    const t = types.find((x) => x.key === type);
+    return {
+      typeLabel: t?.label ?? type,
+      hasValidator: !!t?.has_validator,
+      validationGate: (t?.validation_gate ?? t?.statement ?? type).split(",").filter(Boolean),
+    };
+  }
+
   function openProblem(p: ProblemCell) {
-    const t = types.find((x) => x.key === p.statement_type);
     setOpen({
       bank: p.bank_ticker,
       period: p.period,
       kind: p.kind,
       type: p.statement_type,
-      typeLabel: t?.label ?? p.statement_type,
+      ...openCellMeta(p.statement_type),
       status: p.status,
       pdfPresent: !!p.pdf_present,
-      hasValidator: !!t?.has_validator,
-      validationGate: (t?.validation_gate ?? t?.statement ?? p.statement_type)
-        .split(",")
-        .filter(Boolean),
     });
+  }
+
+  // Lane switch from the drawer's per-partition strip: same bank/period/kind,
+  // retargeted statement. Status comes from the strip's coverage row.
+  function switchLane(type: string, status: string) {
+    setOpen((cur) =>
+      cur ? { ...cur, type, ...openCellMeta(type), status } : cur,
+    );
   }
 
   async function reextract(bank: string, period: string, kind: string, statement: string) {
@@ -268,6 +334,9 @@ export default function CoverageMatrix() {
           description: "Coverage refreshes after the run completes.",
         });
         setOpen(null);
+        // The run itself takes minutes; an early refresh catches the queue
+        // state, and the operator can Refresh again once it lands.
+        setTimeout(() => void load(), 3000);
       } else {
         toast.error(`Couldn't trigger`, { description: body.error ?? `HTTP ${res.status}` });
       }
@@ -300,7 +369,7 @@ export default function CoverageMatrix() {
     return (
       <tr
         key={t.key}
-        onClick={() => setSelected(isSel ? "all" : t.key)}
+        onClick={() => patchParams({ lane: isSel ? null : t.key })}
         className={`cursor-pointer border-t border-hair ${
           isSel ? "bg-foreground/[0.05]" : "hover:bg-hair/60"
         }`}
@@ -328,12 +397,8 @@ export default function CoverageMatrix() {
           <span className="flex items-center gap-1.5">
             <HealthBar rec={rec} />
             {/* The health ✓ requires a validator, not just an absence of
-                complaints. Gated on problems alone it inverted: profile,
-                audit_opinion and free_provision have NO validator — their cells
-                assert only "≥1 row exists" — so they could never report a
-                problem and always earned the tick, while 8 of the 15 lanes that
-                do run validators lost it for finding real defects. Running a
-                validator could only cost you the ✓; having none guaranteed it. */}
+                complaints — a lane with no validator can never fail, so gating
+                on problems alone would hand it a tick by doing nothing. */}
             {t.has_validator && problemN === 0 && (rec.ok ?? 0) + (rec.manual ?? 0) > 0 ? (
               <span className="text-positive">✓</span>
             ) : null}
@@ -389,7 +454,7 @@ export default function CoverageMatrix() {
           {selected !== "all" && (
             <button
               type="button"
-              onClick={() => setSelected("all")}
+              onClick={() => patchParams({ lane: null })}
               className="font-mono text-[9px] uppercase tracking-[0.05em] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
               all lanes
@@ -403,7 +468,7 @@ export default function CoverageMatrix() {
             <button
               key={s}
               type="button"
-              onClick={() => setShow(s)}
+              onClick={() => patchParams({ show: s === "error" ? null : s })}
               className={`${segBtn(show === s)} ${s !== "error" ? "border-l border-border" : ""}`}
             >
               {s}
@@ -415,9 +480,30 @@ export default function CoverageMatrix() {
           type="text"
           value={bankQuery}
           onChange={(e) => setBankQuery(e.target.value)}
+          onBlur={() => patchParams({ q: bankQuery || null })}
+          onKeyDown={(e) => e.key === "Enter" && patchParams({ q: bankQuery || null })}
           placeholder="filter bank — e.g. GARAN, AK"
           className="mt-2 h-7 w-full border-b border-border bg-transparent px-0.5 text-[11.5px] outline-none placeholder:text-faint focus:border-foreground"
         />
+        {topBanks.length > 1 && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-mono text-[9px] uppercase tracking-[0.04em] text-faint">top</span>
+            {topBanks.map(([bank, n]) => (
+              <button
+                key={bank}
+                type="button"
+                onClick={() => {
+                  setBankQuery(bank);
+                  patchParams({ q: bank });
+                }}
+                className="font-mono text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                title={`Filter to ${bank} (${n} cells)`}
+              >
+                {bank} <span className="text-faint">{n}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.04em] text-faint">
           {visibleProblems.length} cell{visibleProblems.length === 1 ? "" : "s"}
           {overflow > 0 ? ` · first ${LIST_CAP}` : ""} · click to inspect / re-extract
@@ -472,23 +558,57 @@ export default function CoverageMatrix() {
     </aside>
   );
 
+  // Vitals strip (spine parity, validation recency, fleet direction) lives in
+  // its own hook-free component — see Vitals.tsx.
+  const vitalsStrip = (
+    <Vitals error={totals.error} missing={totals.missing} vitals={vitals} />
+  );
+
+  const gridLane =
+    selected !== "all" && types.some((t) => t.key === selected)
+      ? selected
+      : (types.find((t) => t.key !== "prose")?.key ?? "");
+  const gridKind: ConcreteKind = mode === "both" ? "consolidated" : mode;
+
   return (
     <>
       <SecHead
         title="Coverage"
         meta="audited §2/§4 · OK / manual / error / missing / n·a"
         action={
-          <div className={SEG}>
-            {(["unconsolidated", "consolidated", "both"] as Mode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className={`${segBtn(mode === m)} ${m !== "unconsolidated" ? "border-l border-border" : ""}`}
-              >
-                {m}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className={SEG}>
+              {(["unconsolidated", "consolidated", "both"] as Mode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => patchParams({ kind: m === "both" ? null : m })}
+                  className={`${segBtn(mode === m)} ${m !== "unconsolidated" ? "border-l border-border" : ""}`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <div className={SEG}>
+              {(["summary", "grid"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => patchParams({ view: v === "summary" ? null : v })}
+                  className={`${segBtn(view === v)} ${v !== "summary" ? "border-l border-border" : ""}`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current disabled:opacity-50"
+            >
+              {loading ? "Refreshing…" : "Refresh"}
+            </button>
           </div>
         }
         className="mb-2"
@@ -499,7 +619,7 @@ export default function CoverageMatrix() {
         certify that every row, column or note in the source table was captured.
       </p>
 
-      {loading ? (
+      {loading && types.length === 0 ? (
         <p className="text-[12px] text-muted-foreground">Loading…</p>
       ) : types.length === 0 ? (
         <p className="text-[12px] text-muted-foreground">
@@ -508,22 +628,64 @@ export default function CoverageMatrix() {
         </p>
       ) : (
         <>
-          <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.04em]">
-            <span className="text-negative">
-              <span className="font-semibold">{totals.error}</span> errors
-            </span>
-            <span className="text-warning">
-              <span className="font-semibold">{totals.missing}</span> missing
-            </span>
-            <span className="text-faint">
-              · click a lane to filter · {KIND_TAG[mode] ?? mode} · ✓ = has validator
-            </span>
-          </p>
-
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-            <div className="min-w-0 flex-1">{summaryTable}</div>
-            {sidebar}
-          </div>
+          {vitalsStrip}
+          {view === "grid" ? (
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+              <div className="min-w-0 flex-1">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <label className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint" htmlFor="cov-grid-lane">
+                    lane
+                  </label>
+                  <select
+                    id="cov-grid-lane"
+                    value={gridLane}
+                    onChange={(e) => patchParams({ lane: e.target.value })}
+                    className="h-6 rounded border border-border bg-transparent px-1.5 font-mono text-[10px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {groups.map((g) => (
+                      <Fragment key={g.section}>
+                        <option disabled value="">
+                          {g.head}
+                        </option>
+                        {g.rows.map((t) => (
+                          <option key={t.key} value={t.key}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </select>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
+                    {KIND_TAG[gridKind]} · bank × period
+                  </span>
+                </div>
+                {gridLane && (
+                  <CoverageGrid
+                    type={gridLane}
+                    typeLabel={labelOf(gridLane)}
+                    kind={gridKind}
+                    onOpen={(cell) =>
+                      setOpen({
+                        bank: cell.bank_ticker,
+                        period: cell.period,
+                        kind: cell.kind,
+                        type: gridLane,
+                        ...openCellMeta(gridLane),
+                        status: cell.status,
+                        pdfPresent: !!cell.pdf_present,
+                      })
+                    }
+                  />
+                )}
+              </div>
+              {sidebar}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+              <div className="min-w-0 flex-1">{summaryTable}</div>
+              {sidebar}
+            </div>
+          )}
         </>
       )}
 
@@ -533,6 +695,10 @@ export default function CoverageMatrix() {
         onClose={() => setOpen(null)}
         onReextract={reextract}
         reextractBusy={busy}
+        onSwitchLane={switchLane}
+        onPrev={openIdx > 0 ? () => stepProblem(-1) : undefined}
+        onNext={openIdx >= 0 && openIdx < visibleProblems.length - 1 ? () => stepProblem(1) : undefined}
+        position={openIdx >= 0 ? `${openIdx + 1} / ${visibleProblems.length}` : undefined}
       />
     </>
   );

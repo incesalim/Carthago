@@ -1,5 +1,31 @@
 # Project State
 
+## Admin coverage monitoring: vitals, grid, trend (2026-09-18)
+
+The /admin coverage panel gained the four things its 2026-09-18 review found
+missing, plus an interaction pass. **Spine visibility**: `push_to_d1` stamps
+`source_freshness ('audit_spine', latest_period = lane count)` on every push
+that ships the spine tables; the Coverage vitals strip renders "spine synced
+Xh ago · N/M lanes in D1" and goes amber on a lane-parity gap, a missing
+marker, or an >8-day-old sync — a registered-but-never-synced lane (the
+risk_profile blind spot) is now stated instead of silently absent.
+`healthcheck.py` alerts on the same three conditions daily
+(`audit_spine_problem`) and snapshots one `coverage_trend` row per run
+(migration 0055, direct wrangler write outside SYNC_TABLES per the 0028
+precedent); the strip renders error/missing deltas ("errors 41→12 (8d)") with
+direction tones. **Validation recency**: the drawer shows each gate's
+`validated_at`, the strip the last validation pass. **Drawer**: the
+per-partition coverage rows (always fetched, never rendered before) are now a
+lane strip that retargets the drawer in place; failure rows show the machine
+check name next to the human node; ←/→ walks the filtered problem list. **New
+views**: a summary|grid toggle revives the bank×period dense grid on the
+existing-but-unreachable `?type=&kind=` endpoint with the STATUS_CELL glyphs;
+all filters live in the URL (shareable, back/forward); top problem banks are
+one-click filterable; a Refresh action and a post-dispatch refetch back the
+"coverage refreshes" toast. A minimal `web/vitest.config.ts` declares the
+`@/` alias — Vitest resolves no tsconfig paths itself, so test-reached
+components with value-level `@/` imports needed it.
+
 ## Release train live; wire-contract fix; risk_profile in D1 (2026-09-16)
 
 The 2026-09-16 session committed and pushed everything that was sitting in

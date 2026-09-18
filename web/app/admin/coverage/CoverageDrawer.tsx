@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Badge, Button } from "@/app/components/ui";
 import { relativeFromIso } from "@/app/lib/format-time";
-import { STATUS_LABEL, STATUS_VARIANT } from "./status";
+import { STATUS_CELL, STATUS_LABEL, STATUS_VARIANT } from "./status";
 import DocumentSourceTables from "../DocumentSourceTables";
 
 export interface OpenCell {
@@ -33,8 +33,19 @@ interface Detail {
     checks_failed: number;
     checks_passed: number;
     failed_detail: string | null;
+    validated_at: string | null;
   }[];
-  coverage: { statement_type: string; status: string; row_count: number; is_manual: number; pdf_present: number }[];
+  coverage: {
+    statement_type: string;
+    status: string;
+    row_count: number;
+    is_manual: number;
+    pdf_present: number;
+    label: string | null;
+    sort_order: number | null;
+    has_validator: number | null;
+    validation_gate: string | null;
+  }[];
   prose: {
     section: number;
     section_role: string;
@@ -81,16 +92,83 @@ function parseFailures(json: string | null): FailRow[] {
 
 const nf = new Intl.NumberFormat("en-US");
 
+/** The per-partition lane strip — pure, fixture-testable without the fetch.
+ *  One line per lane of the SAME (bank, period, kind): status glyph, label,
+ *  row count. Clicking retargets the whole drawer to that lane, so a partition
+ *  can be reviewed end to end without closing it. */
+export interface StripEntry {
+  statement_type: string;
+  status: string;
+  row_count: number;
+  label?: string | null;
+}
+
+export function PartitionStrip({
+  coverage,
+  activeType,
+  onSwitch,
+}: {
+  coverage: StripEntry[];
+  activeType: string;
+  onSwitch: (type: string, status: string) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium text-muted-foreground">This partition</p>
+      <ul className="flex flex-col">
+        {coverage.map((c) => {
+          const sc = STATUS_CELL[c.status] ?? STATUS_CELL.not_expected;
+          const active = c.statement_type === activeType;
+          return (
+            <li key={c.statement_type}>
+              <button
+                type="button"
+                onClick={() => onSwitch(c.statement_type, c.status)}
+                className={`flex w-full items-center gap-2 border-l-2 px-1.5 py-0.5 text-left text-[11.5px] transition-colors ${
+                  active ? "border-foreground bg-foreground/[0.05]" : "border-transparent hover:bg-hair/60"
+                }`}
+              >
+                <span
+                  className={`inline-flex h-4 w-5 shrink-0 items-center justify-center rounded-[3px] font-mono text-[9.5px] font-semibold ${sc.cls}`}
+                  aria-hidden
+                >
+                  {sc.glyph || "·"}
+                </span>
+                <span className={`min-w-0 flex-1 truncate ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                  {c.label ?? c.statement_type}
+                </span>
+                <span className="shrink-0 font-mono text-[10px] tabular-nums text-faint">
+                  {c.row_count > 0 ? `${c.row_count} rows` : ""}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export default function CoverageDrawer({
   open,
   onClose,
   onReextract,
   reextractBusy,
+  onSwitchLane,
+  onPrev,
+  onNext,
+  position,
 }: {
   open: OpenCell | null;
   onClose: () => void;
   onReextract: (bank: string, period: string, kind: string, statement: string) => void;
   reextractBusy: boolean;
+  /** Retarget this drawer to another lane of the SAME partition (the strip). */
+  onSwitchLane: (type: string, status: string) => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+  /** "N / M" within the filtered problem list, when opened from it. */
+  position?: string;
 }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [wide, setWide] = useState(false);
@@ -124,13 +202,17 @@ export default function CoverageDrawer({
 
   const loading = open != null && detail == null;
 
-  // Close on Escape.
+  // Close on Escape; step through the problem list with the arrows.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && onPrev) onPrev();
+      else if (e.key === "ArrowRight" && onNext) onNext();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, onPrev, onNext]);
 
   if (!open) return null;
 
@@ -162,6 +244,12 @@ export default function CoverageDrawer({
               {open.bank} · {open.period} · {open.kind}
             </p>
             <p className="truncate text-xs text-muted-foreground">{open.typeLabel}</p>
+            {(position || onPrev || onNext) && (
+              <p className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
+                {position && <span>{position} in list</span>}
+                <span aria-hidden>← → step</span>
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={STATUS_VARIANT[open.status] ?? "secondary"}>
@@ -174,6 +262,18 @@ export default function CoverageDrawer({
         </div>
 
         <div className="flex flex-col gap-4 p-4 text-sm">
+          {/* This partition, every lane at once — the data was always fetched,
+              never rendered. Clicking a lane retargets the whole drawer (same
+              bank/period/kind), so a partition can be reviewed end to end
+              without closing it. */}
+          {(detail?.coverage?.length ?? 0) > 0 && (
+            <PartitionStrip
+              coverage={detail!.coverage}
+              activeType={open.type}
+              onSwitch={onSwitchLane}
+            />
+          )}
+
           {open.type !== "prose" && <DocumentSourceTables filing={`${open.bank}|${open.period}|${open.kind}`} initialLane={open.type} onRead={() => setWide(true)} />}
           {acquiredNotExtracted && (
             <div className="rounded-md border border-info/40 bg-info/10 p-3 text-xs text-info">
@@ -209,7 +309,7 @@ export default function CoverageDrawer({
                 <dd>
                   {ex.rows_bs_assets ?? "—"} / {ex.rows_bs_liabilities ?? "—"}
                 </dd>
-                <dt className="text-muted-foreground">P&L / off-bs</dt>
+                <dt className="text-muted-foreground">P&amp;L / off-bs</dt>
                 <dd>
                   {ex.rows_profit_loss ?? "—"} / {ex.rows_off_balance ?? "—"}
                 </dd>
@@ -292,9 +392,19 @@ export default function CoverageDrawer({
                   const failures = parseFailures(row?.failed_detail ?? null);
                   return (
                     <div key={gate} className="rounded border border-border px-2 py-1.5">
-                      <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-                        {gate.replace(/_/g, " ")}
-                      </p>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {gate.replace(/_/g, " ")}
+                        </p>
+                        {/* WHEN this verdict was computed — a green frozen since
+                            an old code version and one revalidated under current
+                            code are different facts. */}
+                        {row?.validated_at && (
+                          <p className="shrink-0 font-mono text-[9.5px] text-faint">
+                            validated {relativeFromIso(row.validated_at)}
+                          </p>
+                        )}
+                      </div>
                       {!row ? (
                         <p className="text-xs text-warning">No validation result recorded.</p>
                       ) : row.checks_passed === 0 && row.checks_failed === 0 ? (
@@ -312,7 +422,16 @@ export default function CoverageDrawer({
                               key={i}
                               className="rounded border border-negative/30 bg-negative/5 px-2 py-1 text-xs"
                             >
+                              {/* The machine check name IS the searchable
+                                  identifier; the node is the human location.
+                                  Show both when they differ — node alone hid
+                                  which check actually fired. */}
                               <span className="font-medium">{f.node ?? f.check}</span>
+                              {f.check && f.check !== f.node && (
+                                <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">
+                                  [{f.check}]
+                                </span>
+                              )}
                               {f.expected != null && f.actual != null && (
                                 <span className="text-muted-foreground">
                                   {" "}
@@ -333,6 +452,20 @@ export default function CoverageDrawer({
         </div>
 
         <div className="mt-auto border-t border-border p-4">
+          {/* Triage: walk the filtered problem list without closing. */}
+          {(onPrev || onNext) && (
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <Button variant="outline" size="sm" disabled={!onPrev} onClick={onPrev}>
+                ← prev
+              </Button>
+              <span className="font-mono text-[10px] uppercase tracking-[0.05em] text-faint">
+                {position ?? ""}
+              </span>
+              <Button variant="outline" size="sm" disabled={!onNext} onClick={onNext}>
+                next →
+              </Button>
+            </div>
+          )}
           <Button
             className="w-full"
             size="sm"
