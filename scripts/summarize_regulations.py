@@ -680,7 +680,21 @@ def main() -> int:
                       f"draft; the post-store check will report what is still "
                       f"absent", flush=True)
 
-        dropped = len(bullets) - len(kept)
+        # Gate 4 — a section that lands with zero kept bullets falls back to
+        # last week's verified text, the same doctrine as the contradiction
+        # branch above. The provider can return {"bullets": []} for one section
+        # while every other call succeeds (2026-09-27, deepseek-v4-flash @
+        # Baidu: TL Deposit Share, 16 bullets across the other sections), and
+        # the missing-facts retry never fires for a section with no checklist
+        # facts — without this the section just vanishes and the publication
+        # gate rejects the whole briefing.
+        if not kept and prev_sections.get(name):
+            kept = prev_sections[name]
+            stale_sections.append(name)
+            print(f"[briefing] {name}: EMPTY draft — KEEPING LAST WEEK'S "
+                  f"{len(kept)} bullets", flush=True)
+
+        dropped = max(0, len(bullets) - len(kept))
         print(f"[briefing] {name}: {len(kept)} bullets"
               + (f" via {provider}" if provider else "")
               + (f" ({dropped} leaked dropped)" if dropped else ""), flush=True)
