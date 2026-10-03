@@ -135,11 +135,16 @@ jobs:
           fi
           echo "new=$(cat new_count.txt)" >> "$GITHUB_OUTPUT"
 
-      - name: Refresh coverage spine in D1 (so new PDFs show as "missing")
-        if: steps.scrape.outputs.new != '0'
+      - name: Refresh coverage spine in D1 (always — new PDFs + heartbeat)
         # D1-only full rebuild of bank_audit_expected/_statement_types/_coverage.
         # No R2 snapshot write. With the R2∪profiles universe, freshly-acquired
         # PDFs appear as missing + pdf_present = ready to extract from /admin.
+        # Unconditional since 2026-10-03: outside the quarterly filing windows
+        # no scheduled run ships the spine tables, so the audit_spine freshness
+        # marker ages past its 10d limit and healthcheck alerts daily. A quiet
+        # push is near-free by design (only verdict-moved partitions carry a
+        # fresh validated_at; the push window is 1h), so dispatching this
+        # workflow is also the answer to the staleness alert.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: python scripts/sync_audit_expected.py --db data/bank_audit.db --push
