@@ -1396,6 +1396,15 @@ def main() -> int:
     # rows in D1 exactly as the missing detection did.
     if total_inserts == 0 and total_deletes == 0 and not pending:
         print(f"no new rows in last {args.hours}h — nothing to push")
+        # A spine push that finds nothing to ship has still COMPLETED a sync:
+        # the content-hash skips proved D1 already matches the local spine.
+        # Exiting before the stamp meant every quiet sync_audit_expected
+        # --push (0 coverage rows changed, by design) left audit_spine aging —
+        # healthcheck alerted daily from 2026-09-29 while the spine was
+        # verifiably current (2026-10-03: 0 of 24,066 rows changed, stamp
+        # still Sep 18). Dry-run/check-only must not stamp: they wrote nothing.
+        if not (args.dry_run or args.check_only):
+            stamp_spine_sync(allowed_tables)
         return 0
 
     # Price the push BEFORE running it, and print the number every time — a cost
