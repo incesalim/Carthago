@@ -69,9 +69,20 @@ from src.audit_reports.schema import init_schema     # noqa: E402
 # run after it ships, which is the failure mode we want (loud, once) rather than
 # a silent widening of what the check tolerates.
 RATIO_COLUMNS: dict[str, set[str]] = {
-    "bank_audit_capital": {"cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"},
+    "bank_audit_capital": {
+        "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio",
+        # Buffer disclosures (d4923ee6, 2026-09-07): percent-scale like the
+        # three above, and units.py classifies them NON_MONEY_NUMERIC. Shipping
+        # them without this entry paged a false "1000x too small" on VAKBN's
+        # ~4.06% buffer requirement daily for a week — the test suite now pins
+        # this list against units.py so the next ratio column can't repeat it.
+        "total_buffer_requirement_ratio", "capital_conservation_buffer_ratio",
+        "countercyclical_buffer_ratio", "systemic_buffer_ratio",
+        "cet1_available_buffer_ratio",
+    },
     "bank_audit_liquidity": {"leverage_ratio", "lcr_total", "lcr_fc", "nsfr"},
     "bank_audit_stages": {"stage1_coverage", "stage2_coverage", "stage3_coverage"},
+    "bank_audit_loans_currency": {"tl_pct", "fc_pct"},
 }
 
 # A stored double never lands exactly on an integer after arithmetic, so compare

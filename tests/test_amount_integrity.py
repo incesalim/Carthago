@@ -66,6 +66,29 @@ def test_the_ratio_exclusions_name_columns_that_actually_exist():
         assert not missing, f"RATIO_COLUMNS[{table}] names absent column(s): {missing}"
 
 
+def test_units_non_money_real_columns_are_not_swept():
+    """units.py's NON_MONEY_NUMERIC is verified against stored values, and a
+    REAL column it classifies as a ratio/percent/count must never be swept as
+    a thousands-of-TL amount. The buffer columns shipped 2026-09-07 into
+    units.py but not into RATIO_COLUMNS, and the daily alert paged a false
+    '1000x too small' on VAKBN's ~4.06% buffer requirement for a week before
+    anyone read it as a classification gap."""
+    import sqlite3
+
+    from src.audit_reports.schema import init_schema
+    from src.audit_reports.units import NON_MONEY_NUMERIC
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    for table, cols in NON_MONEY_NUMERIC.items():
+        real_cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")
+                     if (r[2] or "").upper() == "REAL"}
+        swept = real_cols & cols - RATIO_COLUMNS.get(table, set())
+        assert not swept, (
+            f"{table}: units.py classifies {sorted(swept)} as non-money, "
+            f"but check_amount_integrity sweeps them as amounts")
+    conn.close()
+
+
 def test_the_headline_amount_columns_are_swept():
     """Spot-check the ones that carry the numbers the site publishes."""
     swept = set(amount_columns())
