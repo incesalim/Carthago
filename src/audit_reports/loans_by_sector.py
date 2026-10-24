@@ -62,6 +62,7 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("tarım", "agri_total"),
     # --- Manufacturing group ----------------------------------------------
     ("mining and quarrying", "mfg_mining"),
+    ("mining", "mfg_mining"),                          # ISCTR prints the bare word
     ("madencilik ve taşocakçılığı", "mfg_mining"),
     ("madencilik", "mfg_mining"),
     ("production", "mfg_production"),
@@ -69,6 +70,7 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("imalat sanayi", "mfg_production"),
     ("i̇malat sanayi", "mfg_production"),
     ("electricity, gas and water", "mfg_utilities"),
+    ("electricity, gas, and water", "mfg_utilities"),  # ISCTR Oxford comma
     ("electricity, gas, water", "mfg_utilities"),
     ("elektrik, gaz, su", "mfg_utilities"),
     ("elektrik. gaz. su", "mfg_utilities"),
@@ -100,6 +102,7 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("gayrimenkul ve kira. hizm.", "svc_realestate"),
     ("professional services", "svc_professional"),
     ("independent business services", "svc_professional"),  # QNBFB wording
+    ("self-employment services", "svc_professional"),  # ISCTR wording
     ("serbest meslek hizmetleri", "svc_professional"),
     ("educational services", "svc_education"),
     ("education services", "svc_education"),  # YKBNK wording ("Education" not "Educational")
@@ -316,11 +319,30 @@ def _merge_wrapped_labels(lines: list[str]) -> list[str]:
             and not _THREE_NUMS_TAIL.search(cur.strip())
             and len(cur.strip()) <= 80
             and not cur.strip().endswith((".", ":", ";", "."))
+            # A line that is ITSELF a whole taxonomy label is a bare nil row
+            # (KLNMA prints "Madencilik ve Taşocakçılığı" and "Diğer" with no
+            # numbers), not the head of a wrapped label — merging it with the
+            # next row steals that row's amounts under this sector.
+            and cur.strip().lower() not in _LABEL_TO_KEY
         )
         if looks_like_label_head and i + 1 < len(lines):
             nxt = lines[i + 1]
             # Next line must end with 3 numbers to qualify as a wrapped row.
             if _THREE_NUMS_TAIL.search(nxt.strip()):
+                # ISCTR wraps a label around its numbers: "Transportation and"
+                # / "10,197,925 2,262,226 2,426,871" / "Telecommunication".
+                # When the numbers line is bare and the line AFTER it is a
+                # short digit-free tail-half, assemble head + tail + numbers
+                # — but only when that forms a known label, so stray prose
+                # never gets welded into a sector.
+                if (re.fullmatch(r"[\d\s.,()+\-–—]+", nxt.strip())
+                        and i + 2 < len(lines)):
+                    tail = lines[i + 2].strip()
+                    if (tail and not re.search(r"\d", tail) and len(tail) <= 40
+                            and _LABEL_RX.match(cur.strip() + " " + tail)):
+                        out.append(f"{cur.strip()} {tail} {nxt.strip()}")
+                        i += 3
+                        continue
                 merged = cur.strip() + " " + nxt.strip()
                 out.append(merged)
                 i += 2
@@ -466,6 +488,13 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
     s1x, s2x, s3x, ecl_x = _stage_col_x(lines)
     if s2x is None or s3x is None or abs(s2x - s3x) < 8:
         return None
+    # A number only fills a column when it sits inside the column band —
+    # within half the Stage-2→Stage-3 span of its header's right edge, the
+    # same discipline _extract_three_column_disclosure applies. Without the
+    # bound, any digit in prose sharing the page with the table ("31 Aralık
+    # 2025 Tarihi İtibarıyla", a bare page footer "53") is vacuumed into the
+    # nearest column and becomes a fabricated stage amount.
+    tol = abs(s3x - s2x) / 2
     rows: list[SectorRow] = []
     period_type = "current"
     seen_current = False
@@ -503,22 +532,42 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
                 d = abs(x - anchor)
                 if d < bestd and d <= abs(x - other):  # closer to this column than the other
                     best, bestd = v, d
-            return best
+            return best if bestd <= tol else None  # in-band only
 
         s1v = nearest(s1x, s2x) if s1x is not None else None
         s2v = nearest(s2x, s3x)
         s3v = nearest(s3x, s2x)
         eclv = nearest(ecl_x, s3x) if ecl_x is not None else None
+        if s1v is None and s2v is None and s3v is None and eclv is None:
+            # No number fell in any column band: prose or a neighbouring
+            # table on the same page (KLNMA's "Karşılıklar" provision
+            # roll-forward), not a row of this table.
+            continue
+        if sector_key == "unknown" and (s2v is None or s3v is None):
+            # An unmatched label is only a source row when it sits in the
+            # table geometry — BOTH lane columns filled in-band. A sentence
+            # mentioning "(TFRS 9)" lands a lone 9 in one column; stored as
+            # an 'unknown' row it collides on the lane PK and fails
+            # loans_sector_unknown_rows. Genuine unmatched sector rows (a
+            # label the taxonomy missed) still carry all three columns.
+            continue
         rows.append(SectorRow(
             sector=sector_key, stage1_amount=s1v,
             stage2_amount=s2v, stage3_amount=s3v, ecl_amount=eclv,
             period_type=period_type, page=page_idx,
             raw_label=clean[:60],
         ))
+    if not any(r.sector not in ("unknown", "total") for r in rows):
+        # No known sector row survived: the stage anchors were mis-located
+        # (e.g. derived from prose that mentions the stages, so every real
+        # number falls outside the band) — a parse of this page would be
+        # fabricated. Defer to the text parser.
+        return None
     return rows or None
 
 
-def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
+def _extract_section(page_idx: int, text: str,
+                     state: dict | None = None) -> list[SectorRow]:
     """Pull every (sector, n1, n2, n3 [, n4]) tuple from this page's text.
 
     Each sector heading line has the pattern
@@ -531,11 +580,16 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
     A bank that reports current + prior comparatives often does so by
     repeating the entire table twice on the same page (or on adjacent
     pages) with a "Current Period" / "Prior Period" caption between
-    them. We tag rows by whichever caption most-recently preceded them.
+    them. We tag rows by whichever caption most-recently preceded them;
+    `state` carries that caption position across pages, because a
+    comparative on the NEXT page ("Önceki Dönem (31.12.2024)") must not
+    restart at 'current' just because the page did.
     """
+    if state is None:
+        state = {"period_type": "current", "seen_current": False}
     rows: list[SectorRow] = []
-    period_type = "current"
-    seen_current_caption = False
+    period_type = state["period_type"]
+    seen_current_caption = state["seen_current"]
     raw_lines = text.splitlines()
     merged_lines = _merge_wrapped_labels(raw_lines)
     # Detect Stage 1 presence: a header line mentioning Stage 1 / Birinci
@@ -569,6 +623,16 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
         ln_clean = re.sub(r"^\d+(?:\.\d+)*\s+", "", ln_clean)
         # Attempt to locate trailing numbers (3 or 4 depending on Stage 1)
         m_nums = num_pat.search(ln_clean)
+        four = has_stage1
+        if not m_nums and has_stage1:
+            # A page-wide Stage-1 mention (e.g. the provisions roll-forward
+            # under the sector table: "Stage 1 and Stage 2 Provisions …")
+            # must not drop the 3-column sector rows above it. Genuine
+            # 4-column rows still match the 4-number tail — nil cells print
+            # as dashes — so the fallback only rescues rows that would
+            # otherwise be lost.
+            m_nums = _THREE_NUMS_TAIL.search(ln_clean)
+            four = False
         if not m_nums:
             continue
         label_part = ln_clean[: m_nums.start()].strip()
@@ -590,8 +654,15 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
                 sector_key = key
                 break
         if sector_key is None:
+            # A label with digits inside it is not a sector row: the
+            # trailing-numbers heuristic grabbed a neighbouring table's
+            # wider row (KLNMA's provision roll-forward "Karşılıklar
+            # 576.351 61.146 (119.340) - 518.157" leaves two amounts in
+            # the label part). Genuine sector labels carry no digits.
+            if re.search(_NUM_TOKEN, candidate):
+                continue
             sector_key = "unknown"
-        if has_stage1:
+        if four:
             s1 = parse_amount(m_nums.group("s1"))
             n2 = parse_amount(m_nums.group("s2"))
             n3 = parse_amount(m_nums.group("s3"))
@@ -619,6 +690,8 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
                 page=page_idx,
                 raw_label=candidate,
             ))
+    state["period_type"] = period_type
+    state["seen_current"] = seen_current_caption
     return rows
 
 
@@ -838,6 +911,10 @@ def extract_from_pdf(
     xy_rows: list[SectorRow] = []
     txt_rows: list[SectorRow] = []
     captured_pages: set[int] = set()
+    # Caption position for the text parser, threaded across pages so a
+    # comparative table on the page after the current one ("Önceki Dönem
+    # (31.12.2024)") is tagged 'prior' instead of restarting as 'current'.
+    caption_state: dict = {"period_type": "current", "seen_current": False}
     for i in range(skip_pages + 1, n_pages + 1):
         if i in captured_pages:
             continue
@@ -877,29 +954,37 @@ def extract_from_pdf(
             # this page but the sector ROWS are on the next (which has no heading, so
             # it's skipped). If this heading page has stage columns but yielded no
             # rows, retry with the next page's lines appended so they align to this
-            # page's columns.
+            # page's columns. Harvest the continuation page's TEXT only when the
+            # columns really continued there (the xy retry found rows) — otherwise
+            # the next page is an unrelated table (ISCTR's countercyclical country
+            # breakdown) whose 3-number rows would masquerade as sector rows.
             if not xy and i < n_pages:
                 _s1, s2, s3, _ecl = _stage_col_x(lines)
                 if s2 is not None and s3 is not None:
                     # No sector row was found on the heading page. The retry's
                     # rows come from the continuation page and must cite it.
                     xy = _extract_section_xy(i + 1, lines + _xy_lines(pdf_path, i))
-                    txt_rows.extend(_extract_section(i + 1, _fitz_page_text(pdf_path, i)))
+                    if xy:
+                        txt_rows.extend(_extract_section(
+                            i + 1, _fitz_page_text(pdf_path, i), caption_state))
             if xy:
                 xy_rows.extend(xy)
-        txt_rows.extend(_extract_section(i, text))
+        txt_rows.extend(_extract_section(i, text, caption_state))
 
     def _dedupe(rows: list[SectorRow]) -> list[SectorRow]:
-        # Keep the first occurrence of each (sector, period_type) — EXCEPT 'total'
-        # and 'unknown': a page can carry two sector tables (e.g. ICBCT's loans
-        # then a second breakdown), each ending in its own "Toplam", so keep every
-        # total and let _pick_total choose the one that foots with the captured
-        # sectors.  Every 'unknown' row is a distinct unmatched source row that
-        # must not be collapsed — they carry different raw_labels.
+        # Keep the first occurrence of each (sector, period_type) — EXCEPT
+        # 'total': a page can carry two sector tables (e.g. ICBCT's loans
+        # then a second breakdown), each ending in its own "Toplam", so keep
+        # every total and let _pick_total choose the one that foots with the
+        # captured sectors. 'unknown' also collapses to the FIRST per
+        # period_type: the store PK admits exactly one, and the validator
+        # flags its presence (loans_sector_unknown_rows) — keeping the rest
+        # could only abort the whole partition at the store guard, losing
+        # every parsed sector with it.
         seen: set[tuple[str, str]] = set()
         out: list[SectorRow] = []
         for idx, r in enumerate(rows):
-            key = (r.sector, r.period_type, idx) if r.sector in ("total", "unknown") else (r.sector, r.period_type)
+            key = (r.sector, r.period_type, idx) if r.sector == "total" else (r.sector, r.period_type)
             if key in seen:
                 continue
             seen.add(key)
@@ -907,7 +992,30 @@ def extract_from_pdf(
         return _pick_total(out)
 
     xy_d, txt_d = _dedupe(xy_rows), _dedupe(txt_rows)
-    rep.rows = xy_d if (xy_d and _foot_error(xy_d) <= _foot_error(txt_d)) else txt_d
+    if not xy_d or _foot_error(xy_d) > _foot_error(txt_d):
+        # No xy parse, or the columns mis-read the table (footing says so) —
+        # the text parse stands alone, as before.
+        rep.rows = txt_d
+        return rep
+    # xy is the column-exact base, but it only sees pages whose stage headers
+    # it could anchor: a comparative table on the next page (KLNMA prints
+    # "Önceki Dönem (31.12.2024)" under a header band the y-clustering
+    # scrambles) is txt-only, and fields xy failed to anchor come back None.
+    # Merge instead of picking one whole parse: xy wins each (sector, period)
+    # collision, txt fills the rows xy never produced and backfills None
+    # amount fields on shared rows (the two parsers read the same printed
+    # numbers, so backfill only ever completes, never contradicts).
+    by_key: dict[tuple[str, str], SectorRow] = {(r.sector, r.period_type): r for r in xy_d}
+    for r in txt_d:
+        key = (r.sector, r.period_type)
+        base = by_key.get(key)
+        if base is None:
+            by_key[key] = r
+            continue
+        for fld in ("stage1_amount", "stage2_amount", "stage3_amount", "ecl_amount"):
+            if getattr(base, fld) is None and getattr(r, fld) is not None:
+                setattr(base, fld, getattr(r, fld))
+    rep.rows = list(by_key.values())
     return rep
 
 

@@ -232,6 +232,105 @@ def test_wrapped_headers_keep_independent_source_constraints_and_capture(filing)
     assert all(row.mapped_key for row in captured.data_rows)
 
 
+def test_prose_and_neighbouring_tables_never_become_sector_rows(monkeypatch):
+    """KLNMA 2024Q4/2025Q4 shape: the sector note opens with TFRS-9 policy
+    prose and ends in a bare "Diğer" nil row; the NEXT page carries the
+    "Önceki Dönem" comparative stacked above a 5-column provision
+    roll-forward. Prose digits, page footers, the roll-forward and the bare
+    labels must not become rows; the comparative must land as 'prior'."""
+    from src.audit_reports import loans_by_sector as extractor
+
+    # Column anchors: "İkinci Aşama)" ends at x=400, "Üçüncü Aşama)" at 480.
+    header = [(340.0, 370.0, 'İkinci'), (372.0, 400.0, 'Aşama)'),
+              (420.0, 450.0, 'Üçüncü'), (452.0, 480.0, 'Aşama)')]
+
+    def row(label, *nums):
+        x = 400.0
+        toks = [(50.0, 50.0 + 6 * len(label), label)]
+        for n in nums:
+            toks.append((x - len(n) * 4, x, n))
+            x += 80.0
+        return toks
+
+    page1_xy = [
+        header,
+        [(50.0, 165.0, '31 Aralık 2025 Tarihi İtibarıyla'),
+         (170.0, 190.0, '2025')],                              # prose date
+        row('Tarım', '-', '-', '-'),
+        row('Sanayi', '6.464.495', '549.093', '1.082.169'),
+        row('Hizmetler', '514.663', '24.332', '25.824'),
+        [(50.0, 80.0, 'Diğer')],                                 # bare nil row
+        row('Toplam', '6.979.158', '573.425', '1.107.993'),
+        [(300.0, 315.0, '53')],                                  # page footer
+    ]
+    page1_text = "\n".join([
+        "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler:",
+        "Ana Ortaklık Banka Yönetim Kurulu tarafından onaylanmış TFRS 9 Politikası",
+        "Cari Dönem (31.12.2025)",
+        "Tarım - - -",
+        "Sanayi 6.464.495 549.093 1.082.169",
+        "Diğer",
+        "Toplam 6.979.158 573.425 1.107.993",
+    ])
+    page2_text = "\n".join([
+        "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler:",
+        "Önceki Dönem (31.12.2024)",
+        "Tarım - - -",
+        "Karşılıklar 576.351 61.146 (119.340) - 518.157",
+        "Toplam 5.658.418 732.750 1.124.774",
+    ])
+
+    monkeypatch.setattr(extractor, '_HAS_FITZ', True)
+    monkeypatch.setattr(extractor, '_fitz_page_count', lambda _: 2)
+    monkeypatch.setattr(extractor, '_fitz_page_text',
+                        lambda _, page: page1_text if page == 0 else page2_text)
+    monkeypatch.setattr(extractor, '_page_has_sector_heading', lambda text: True)
+    monkeypatch.setattr(extractor, '_is_legacy_pastdue_table', lambda *_: False)
+    monkeypatch.setattr(extractor, '_extract_three_column_disclosure', lambda _: None)
+    monkeypatch.setattr(extractor, '_xy_lines',
+                        lambda _, page: page1_xy if page == 0 else [])
+
+    report = extractor.extract_from_pdf('klnma_shape.pdf', skip_pages=0)
+    by_key = {(r.sector, r.period_type): r for r in report.rows}
+    # No unknowns, no duplicates (the store guard aborts on duplicates).
+    assert all(r.sector != 'unknown' for r in report.rows)
+    assert len(by_key) == len(report.rows)
+    # Prose, footer, bare labels and the roll-forward contributed nothing;
+    # the bare "Diğer" did not steal the Toplam row's amounts.
+    assert 'other' not in {k[0] for k in by_key}
+    assert by_key['total', 'current'].stage2_amount == 6979158.0
+    assert by_key['mfg_total', 'current'].stage2_amount == 6464495.0
+    # The comparative on the next page is tagged prior with its own total.
+    assert by_key['total', 'prior'].stage2_amount == 5658418.0
+    assert ('agri_total', 'prior') in by_key
+
+
+def test_wrapped_label_with_numbers_between_halves_assembles():
+    """ISCTR prints "Transportation and" / "10,197,925 2,262,226 2,426,871" /
+    "Telecommunication" — the numbers sit BETWEEN the label halves."""
+    from src.audit_reports.loans_by_sector import _merge_wrapped_labels
+
+    merged = _merge_wrapped_labels([
+        "Transportation and",
+        "10,197,925 2,262,226 2,426,871",
+        "Telecommunication",
+        "Financial Institutions 417,265 281,631 232,399",
+    ])
+    assert merged == [
+        "Transportation and Telecommunication 10,197,925 2,262,226 2,426,871",
+        "Financial Institutions 417,265 281,631 232,399",
+    ]
+    # A bare taxonomy label is a nil row, never a label-head: it must not
+    # merge with (and steal the amounts of) the row below it.
+    assert _merge_wrapped_labels([
+        "Diğer",
+        "Toplam 6.979.158 573.425 1.107.993",
+    ]) == [
+        "Diğer",
+        "Toplam 6.979.158 573.425 1.107.993",
+    ]
+
+
 def test_turkish_wrapped_ecl_header_is_required_not_inferred_from_three_numbers():
     from src.audit_reports.loans_by_sector import _extract_three_column_disclosure
 
