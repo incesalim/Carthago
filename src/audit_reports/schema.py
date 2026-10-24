@@ -833,6 +833,13 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # Migration 0046: TFKB discloses accrual movements separately from FX.
     ("bank_audit_npl_movement", "accrual_movement", "REAL"),
     ("bank_audit_npl_movement", "other_movement", "REAL"),
+    # Migration 0052 (2026-09-15): Stage 1 in the loans-by-sector lane. The
+    # column is in the CREATE TABLE above, but every working DB is restored
+    # from the R2 snapshot where the table already exists — without this
+    # entry the first upsert dies on "no such column: stage1_amount"
+    # (the INSERT always names the column). Masked until 2026-10-24: KLNMA's
+    # duplicate-unknown abort fired earlier in the same upsert.
+    ("bank_audit_loans_by_sector", "stage1_amount", "REAL"),
     # Native row cells remain in the existing local/R2 source ledger, not D1.
     ("bank_audit_source_lines", "cell_sources_json", "TEXT"),
     # Added 2026-05-14 (commit 6b429d8) alongside the IFRS 9 credit-quality
