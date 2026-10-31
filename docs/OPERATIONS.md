@@ -51,7 +51,7 @@ complete mapping or a passing verdict. `only_failing=true` revalidates selected
 filings even when capture is unchanged. Manifest and validation tables are
 pushed only for partitions where their respective facts changed.
 
-## Refresh preview follow-up boundary (2026-09-13)
+## Refresh preview follow-up boundary (2026-09-13; gate widened 2026-10-31)
 
 `refresh-audit.yml` assigns its run title from `inputs.dry_run`: `(preview)` or
 `(publish)`. `build-document-corpus.yml` checks the stable upstream workflow
@@ -61,7 +61,14 @@ workflow identifier. GitHub's
 `workflow_run` event does not expose the parent's dispatch inputs. Keep these
 two workflow conditions in sync when changing preview behavior; an absent or
 unknown refresh title deliberately does not authorize a publishing follow-up.
-Explicit corpus dispatches keep their own `publish` input. Recovery still
+A `(publish)` refresh that concluded `failure` now also authorizes capture
+(2026-10-31): the systemic alarm re-raises only after extraction, D1 push and
+snapshot have persisted, so such a run's filings are real — but its corpus
+build was skipped twice that night and only healed because a later dispatch
+succeeded. A refresh that crashed for real uploaded nothing new, so sweeping
+it can only re-cover what earlier runs published. `acquire-audit.yml` keeps
+the strict success requirement. Explicit corpus dispatches keep their own
+`publish` input. Recovery still
 selects only published source revisions from capture artifacts and skips
 cancelled/skipped parents.
 
@@ -445,6 +452,12 @@ push and the snapshot upload and destroys work the problem never touched. Both
 `::warning::`, finish every persisting step, and re-raise in a final step so the
 job still goes red and still alerts. **Any other nonzero code is a crash and
 still stops the step immediately** — a half-written DB must never be pushed.
+Since 2026-10-31 the re-raise in `refresh-audit.yml` fires on scheduled runs
+only: on a manual dispatch the operator scoped the targets themselves, the
+alarm ratio is measured over just that scoped batch, and the spurious ❌ alert
+duplicated what the `[FAIL]` lines already said. The `::warning::` stays on
+both paths, and `acquire-audit.yml` (manual-only, diagnostic) still always
+re-raises — a red conclusion is that workflow's result.
 
 The alarm's scrape ratio also counts `pending` in its denominator. A
 `not-a-report` verdict is a *successful* fetch — the PDF downloaded and was

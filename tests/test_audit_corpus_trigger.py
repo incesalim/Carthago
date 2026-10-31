@@ -22,7 +22,10 @@ def test_refresh_publication_signal_is_explicit_and_input_controlled():
     ('workflow_run', 'refresh-audit.yml', 'Refresh audit reports', 'success', 'own', False),
     ('workflow_run', 'refresh-audit.yml', '', 'success', 'own', False),
     ('workflow_run', 'refresh-audit.yml', 'Refresh audit reports (publish)', 'success', 'own', True),
-    ('workflow_run', 'refresh-audit.yml', 'Refresh audit reports (publish)', 'failure', 'own', False),
+    # Widened 2026-10-31: the systemic alarm re-raises only after extraction,
+    # push and snapshot persist, so a publish-titled failure still landed its
+    # filings — dropping the corpus build for them healed only by luck.
+    ('workflow_run', 'refresh-audit.yml', 'Refresh audit reports (publish)', 'failure', 'own', True),
     ('workflow_run', 'refresh-audit.yml', 'Refresh audit reports (publish)', 'cancelled', 'own', False),
     ('workflow_run', 'refresh-audit.yml', 'Refresh audit reports (publish)', 'success', 'fork', False),
     ('workflow_run', 'acquire-audit.yml', 'Acquire audit reports', 'success', 'own', True),

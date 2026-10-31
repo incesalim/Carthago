@@ -374,7 +374,12 @@ jobs:
           PY
 
       - name: Notify on newly acquired reports
-        if: steps.sync.outputs.new != '0' && success() && !inputs.dry_run
+        # `new` counts scrape downloads only. The R2-rescue path for
+        # runner-blocked hosts (local download → wrangler r2 put → extract-only
+        # dispatch) lands real partitions with new=0 — gate on extracted too,
+        # or the rescue that fixed the quarter stays Telegram-silent (it did,
+        # 2026-10-31: 4 partitions pushed, no message).
+        if: (steps.sync.outputs.new != '0' || steps.sync.outputs.extracted != '0') && success() && !inputs.dry_run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -388,8 +393,17 @@ jobs:
       # here, after the D1 push and the snapshot upload, so a scrape problem
       # reports loudly WITHOUT discarding the extraction it did not affect.
       # Placed above "Alert on failure" so that step still fires for it.
+      #
+      # Scheduled runs only (2026-10-31). On a manual dispatch the operator
+      # already knows which targets they scoped to — the re-raise there was a
+      # spurious ❌ Telegram plus a red job whose only news was the blocked
+      # hosts already visible as [FAIL] lines and a ::warning above. The alarm
+      # ratio is also measured over just the scoped batch, so 4 blocked hosts
+      # in a 7-target dispatch read as a 57% fleet-wide break. The corpus
+      # follow-up no longer depends on this conclusion either (see
+      # build-document-corpus.yml), so the dispatch path stays green.
       - name: Fail the job if the sync raised a systemic alarm
-        if: steps.sync.outputs.systemic == 'true'
+        if: steps.sync.outputs.systemic == 'true' && github.event_name == 'schedule'
         run: |
           echo "The sync reported a systemic failure (see its log for the ratio)."
           echo "This run's extraction, D1 push and snapshot upload have already"

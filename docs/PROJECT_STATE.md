@@ -1618,7 +1618,12 @@ ratio counted only `failed + new`, so those four were 100% of a "batch" of four.
 The alarm also exits `EXIT_SYSTEMIC` (8) instead of 1, and both audit workflows
 persist first and re-raise last, so an alarm can never again discard extraction
 it did not affect. `tests/test_sync_systemic_gate.py` pins both halves against
-the real runs' counts.
+the real runs' counts. *(2026-10-31 refinement: `refresh-audit.yml`'s re-raise
+is scheduled runs only — a manual dispatch stays green with the `::warning::`,
+because its scoped-batch ratio duplicates what the operator already knows; and
+`build-document-corpus.yml` now captures from publish-titled refresh runs that
+concluded failure, so an alarm no longer silently drops the corpus build for
+the filings that run landed.)*
 
 Recovery, 2026-08-12: `refresh-audit.yml` with `skip_scrape=true` (no scrape ⇒
 `sc_total` 0 ⇒ gate cannot fire, and no `--force`, so settled partitions were

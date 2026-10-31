@@ -117,11 +117,24 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     # AIA, Python does not. Verify against certifi + the vendored intermediate —
     # full verification, not a bypass. Used by the BdrUyg-sourced banks (TAKAS).
     verify = bddk_verify() if "bddk.org.tr" in url else True
-    try:
-        r = requests.get(url, headers=headers, timeout=120, allow_redirects=True,
-                         verify=verify)
-    except requests.RequestException as e:
-        return None, f"err:{type(e).__name__}"
+    # Transient resets are per-request, not per-host: on 2026-10-31
+    # akbankinvestorrelations.com served AKBNK's consolidated PDF to a runner
+    # ten seconds before resetting the unconsolidated one — twice, costing two
+    # dispatches and a manual R2 rescue. One cheap retry heals that class.
+    # Permanently runner-blocked hosts (denizbank, icbc) fail every attempt
+    # regardless; they cost three tries, nothing more.
+    r = None
+    for attempt in range(3):
+        try:
+            r = requests.get(url, headers=headers, timeout=120,
+                             allow_redirects=True, verify=verify)
+            break
+        except requests.RequestException as e:
+            if attempt == 2:
+                return None, f"err:{type(e).__name__}"
+            time.sleep(5 * (attempt + 1))
+    if r is None:  # pragma: no cover — every loop path returns or breaks
+        return None, "err:unreachable"
     if r.status_code != 200:
         return None, f"http:{r.status_code}"
     body = r.content

@@ -134,14 +134,27 @@ jobs:
     needs: acquire
     # Refresh previews must not turn into automatic publishing capture jobs.
     # Require the upstream publication signal before allocating any R2 workers.
+    #
+    # A publish-titled refresh that concluded 'failure' still counts as that
+    # signal (2026-10-31): the systemic alarm re-raises only AFTER extraction,
+    # D1 push and snapshot have persisted, so the filings such a run landed are
+    # real — but its corpus build was skipped here twice that night and only
+    # healed because a later dispatch happened to succeed. A refresh that
+    # crashed for real uploaded nothing new, so capturing from it can only
+    # re-sweep what earlier runs already published. Capture is idempotent and
+    # reads R2 — accepting 'failure' adds coverage, never partial state.
+    # acquire-audit keeps the strict success requirement: it is a manual
+    # diagnostic whose red conclusion IS its result.
     if: >-
       always() && !cancelled() &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.head_repository.full_name == github.repository &&
-        github.event.workflow_run.conclusion == 'success' &&
-        (github.event.workflow_run.path == '.github/workflows/acquire-audit.yml' ||
+        ((github.event.workflow_run.path == '.github/workflows/acquire-audit.yml' &&
+          github.event.workflow_run.conclusion == 'success') ||
          (github.event.workflow_run.path == '.github/workflows/refresh-audit.yml' &&
-          github.event.workflow_run.display_title == 'Refresh audit reports (publish)'))))
+          github.event.workflow_run.display_title == 'Refresh audit reports (publish)' &&
+          (github.event.workflow_run.conclusion == 'success' ||
+           github.event.workflow_run.conclusion == 'failure')))))
     strategy:
       fail-fast: false
       max-parallel: 4
