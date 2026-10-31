@@ -318,8 +318,7 @@
           "2025Q3": "https://www.sekerbank.com.tr/uploads/438/SKBNK-30092025-consolidated.pdf",
           "2025Q4": "https://www.sekerbank.com.tr/uploads/438/SKBNK-31122025-Consolidated.pdf",
           "2026Q1": "https://www.sekerbank.com.tr/uploads/438/SKBNK-31032026-Consolidated.pdf",
-          "2026Q2": "https://www.sekerbank.com.tr/uploads/438/SKBNK-30062026-Consolidated-062026.pdf",
-          "2026Q3": "https://invalid.invalid/DRILL_dead_target_2026Q3.pdf"
+          "2026Q2": "https://www.sekerbank.com.tr/uploads/438/SKBNK-30062026-Consolidated-062026.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://sekerbank.com.tr/docs/default-source/english_doc/1605unconsolidated.pdf",
@@ -339,8 +338,7 @@
           "2025Q3": "https://www.sekerbank.com.tr/uploads/438/SKBNK-30092025-unconsolidated.pdf",
           "2025Q4": "https://www.sekerbank.com.tr/uploads/438/SKBNK-31122025-Unconsolidated.pdf",
           "2026Q1": "https://www.sekerbank.com.tr/uploads/438/SKBNK-31032026-Unconsolidated.pdf",
-          "2026Q2": "https://www.sekerbank.com.tr/uploads/438/SKBNK-30062026-Unconsolidated-062026.pdf",
-          "2026Q3": "https://invalid.invalid/DRILL_dead_target_2026Q3.pdf"
+          "2026Q2": "https://www.sekerbank.com.tr/uploads/438/SKBNK-30062026-Unconsolidated-062026.pdf"
         }
       }
     },
@@ -790,8 +788,7 @@
           "2025Q3": "https://www.burgan.com.tr/uploads/2025/11/3-rd-quarter-consolidated-report-951d3bde-8275-4058-94ce-3112eb3bf090.pdf",
           "2025Q4": "https://www.burgan.com.tr/uploads/2026/3/konsolide-eng-final-burgan-bank-3112.pdf",
           "2026Q1": "https://www.burgan.com.tr/uploads/2026/5/burgan-bank-31032026-bddk-konsolide.pdf",
-          "2026Q2": "https://www.burgan.com.tr/uploads/2026/8/burgan-bank-30062026-bddk-konsolide.pdf",
-          "2026Q3": "https://invalid.invalid/DRILL_dead_target_2026Q3.pdf"
+          "2026Q2": "https://www.burgan.com.tr/uploads/2026/8/burgan-bank-30062026-bddk-konsolide.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.burgan.com.tr/uploads/2022/6/eng-burgan-bank-31-03-2022-bddksolov4.pdf",
@@ -811,8 +808,7 @@
           "2025Q3": "https://www.burgan.com.tr/uploads/2025/11/3-rd-quarter-unconsolidated-report-76c8bf15-93f1-4f12-9885-da5d7e55d357.pdf",
           "2025Q4": "https://www.burgan.com.tr/uploads/2026/3/solo-eng-burgan-bank-3112.pdf",
           "2026Q1": "https://www.burgan.com.tr/uploads/2026/5/burgan-bank-31032026-bddk-solo.pdf",
-          "2026Q2": "https://www.burgan.com.tr/uploads/2026/8/burgan-bank-30062026-bddk-solo.pdf",
-          "2026Q3": "https://invalid.invalid/DRILL_dead_target_2026Q3.pdf"
+          "2026Q2": "https://www.burgan.com.tr/uploads/2026/8/burgan-bank-30062026-bddk-solo.pdf"
         }
       }
     },
