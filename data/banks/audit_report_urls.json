@@ -1,6 +1,6 @@
 {
   "_doc": "Explicit quarterly BRSA report URLs from bank investor relations and the official BDDK BdrUyg register. Acquisition, retained source bytes and complete-content verification are separate statuses.",
-  "_updated": "2026-09-07",
+  "_updated": "2026-10-31",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -24,7 +24,8 @@
           "2025Q3": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-finansal-raporlar/3c2025_akbank_konsolide_finansal_tablolar_ve_dipnotlar.pdf",
           "2025Q4": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-finansal-raporlar/4c2025_akbank_konsolide_finansal_tablolar_ve_dipnotlar.pdf",
           "2026Q1": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-finansal-raporlar/1c2026_akbank_konsolide_finansal_tablolar_ve_dipnotlar.pdf",
-          "2026Q2": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-finansal-raporlar/2c2026_akbank_konsolide_finansal_tablolar_ve_dipnotlar.pdf"
+          "2026Q2": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-finansal-raporlar/2c2026_akbank_konsolide_finansal_tablolar_ve_dipnotlar.pdf",
+          "2026Q3": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-finansal-raporlar/3c2026_akbank_konsolide_finansal_tablolar_ve_dipnotlar.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.akbankinvestorrelations.com/en/images/pdf/unconsalidated/akbank_en_unconsolidated_1q22.pdf",
@@ -44,7 +45,8 @@
           "2025Q3": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-olmayan-finansal-raporlar/3c2025_akbank_konsolide_olmayan_finansal_tablolar_ve_dipnotlar.pdf",
           "2025Q4": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-olmayan-finansal-raporlar/4c2025_akbank_konsolide_olmayan_finansal_tablolar_ve_dipnotlar.pdf",
           "2026Q1": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-olmayan-finansal-raporlar/1c2026_akbank_konsolide_olmayan_finansal_tablolar_ve_dipnotlar.pdf",
-          "2026Q2": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-olmayan-finansal-raporlar/2c2026_akbank_konsolide_olmayan_finansal_tablolar_ve_dipnotlar.pdf"
+          "2026Q2": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-olmayan-finansal-raporlar/2c2026_akbank_konsolide_olmayan_finansal_tablolar_ve_dipnotlar.pdf",
+          "2026Q3": "https://www.akbankinvestorrelations.com/tr/images/pdf/bddk-konsolide-olmayan-finansal-raporlar/3c2026_akbank_konsolide_olmayan_finansal_tablolar_ve_dipnotlar.pdf"
         }
       }
     },
@@ -202,7 +204,7 @@
     "ICBCT": {
       "name": "ICBC Turkey Bank A.Ş.",
       "ir_page": "https://www.icbc.com.tr/tr/yatirimci-iliskileri/faaliyet-raporlari/Finansal-Bilgiler/132/0/0",
-      "_note": "Filenames contain spaces and Turkish chars. Use proper UTF-8 encoding.",
+      "_note": "Filenames contain spaces and Turkish chars. Use proper UTF-8 encoding. 2026Q3 consolidated NOT bound: on 2026-10-31 the site served the 30.09.2024 consolidated PDF in the 3. Çeyrek 2026 Dipnotlar slot — re-check when they fix it. Solo bound from the \"...Solo FT ve Dipnotları - Final - İmzasız\" file.",
       "urls": {
         "consolidated": {
           "2022Q1": "https://www.icbc.com.tr/tr/images/button/31.03.2022ICBC Turkey Bank A.Ş. Konsolide FT ve Dipnotlar .pdf",
@@ -242,14 +244,15 @@
           "2025Q3": "https://www.icbc.com.tr/tr/images/pdf/ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları 30.09.2025_FİNAL.pdf",
           "2025Q4": "https://www.icbc.com.tr/tr/images/pdf/31.12.2025_ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları Final.pdf",
           "2026Q1": "https://www.icbc.com.tr/tr/images/pdf/31.03.2026 Final_ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları .pdf",
-          "2026Q2": "https://www.icbc.com.tr/tr/images/pdf/2026_30_06_ICBC%20Turkey%20Bank%20A.%C5%9E.%20Solo%20FT%20ve%20Dipnotlar%C4%B1%20Final.pdf"
+          "2026Q2": "https://www.icbc.com.tr/tr/images/pdf/2026_30_06_ICBC%20Turkey%20Bank%20A.%C5%9E.%20Solo%20FT%20ve%20Dipnotlar%C4%B1%20Final.pdf",
+          "2026Q3": "https://www.icbc.com.tr/tr/images/pdf/30.09.2026 ICBC Turkey Bank A.Ş. Solo FT ve Dipnotları - Final - İmzasız.pdf"
         }
       }
     },
     "QNBFB": {
       "name": "QNB Bank A.Ş. (formerly QNB Finansbank)",
       "ir_page": "https://www.qnb.com.tr/en/investor-relations/financial-information",
-      "_note": "Opaque CMS file IDs. Need Referer header. Solo = Bank Only.",
+      "_note": "Opaque CMS file IDs. Referer no longer required as of 2026-10-31 (bare UA GET returns the PDF). Solo = Bank Only.",
       "urls": {
         "consolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3562.vsf",
@@ -269,7 +272,8 @@
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4449.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4547.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4621.vsf",
-          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf"
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf",
+          "2026Q3": "https://www.qnb.com.tr/medium/document-file-4708.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3561.vsf",
@@ -289,7 +293,8 @@
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4422.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4546.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf",
-          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf"
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf",
+          "2026Q3": "https://www.qnb.com.tr/medium/document-file-4707.vsf"
         }
       }
     },
@@ -408,7 +413,8 @@
           "2025Q3": "https://kalkinma.com.tr/uploads/file/1be72520c532f4cef8c43828b771b472-1769415314591.pdf",
           "2025Q4": "https://kalkinma.com.tr/uploads/file/d8b7d8ddeaf7a73b6f65515ad6265571-1770811901317.pdf",
           "2026Q1": "https://kalkinma.com.tr/uploads/file/e5d85e9819e39c32affa4fcbe8cf7feb-1778135739224.pdf",
-          "2026Q2": "https://kalkinma.com.tr/uploads/file/99068d4284910280670e6793d519e7fe-1785321898641.pdf"
+          "2026Q2": "https://kalkinma.com.tr/uploads/file/99068d4284910280670e6793d519e7fe-1785321898641.pdf",
+          "2026Q3": "https://kalkinma.com.tr/uploads/file/c2f49550de1076acb0fb2fcf0c4ae51b-1793107891592.pdf"
         },
         "consolidated": {
           "2022Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-017-KONSOLIDE-2022-03.zip",
@@ -428,7 +434,8 @@
           "2025Q3": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-017-KONSOLIDE-2025-09.zip",
           "2025Q4": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-017-KONSOLIDE-2025-12.zip",
           "2026Q1": "https://kalkinma.com.tr/uploads/file/301d41cf7cd17b6e4dec27efa0d68b5b-1778135732340.pdf",
-          "2026Q2": "https://kalkinma.com.tr/uploads/file/0ac98d192e2c5384f41dcf727280a87a-1785321892727.pdf"
+          "2026Q2": "https://kalkinma.com.tr/uploads/file/0ac98d192e2c5384f41dcf727280a87a-1785321892727.pdf",
+          "2026Q3": "https://kalkinma.com.tr/uploads/file/6aee55530d69c8db67f5b14216d6ac6c-1793107892327.pdf"
         }
       }
     },
@@ -597,7 +604,8 @@
           "2025Q3": "https://www.denizbank.com/medium/document-file-10897.vsf",
           "2025Q4": "https://www.denizbank.com/medium/document-file-11193.vsf",
           "2026Q1": "https://www.denizbank.com/medium/document-file-11464.vsf",
-          "2026Q2": "https://www.denizbank.com/medium/document-file-11775.vsf"
+          "2026Q2": "https://www.denizbank.com/medium/document-file-11775.vsf",
+          "2026Q3": "https://www.denizbank.com/medium/document-file-12054.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.denizbank.com/medium/document-file-6823.vsf",
@@ -617,7 +625,8 @@
           "2025Q3": "https://www.denizbank.com/medium/document-file-10899.vsf",
           "2025Q4": "https://www.denizbank.com/medium/document-file-11195.vsf",
           "2026Q1": "https://www.denizbank.com/medium/document-file-11463.vsf",
-          "2026Q2": "https://www.denizbank.com/medium/document-file-11776.vsf"
+          "2026Q2": "https://www.denizbank.com/medium/document-file-11776.vsf",
+          "2026Q3": "https://www.denizbank.com/medium/document-file-12055.vsf"
         }
       }
     },
@@ -1435,7 +1444,8 @@
           "2025Q3": "https://www.enpara.com/docs/default-source/default-document-library/enpara-bank-30-09-2025-bddk-rapor.pdf?sfvrsn=14b76f8f_3",
           "2025Q4": "https://www.enpara.com/docs/default-source/default-document-library/enpara-bddk-raporu-31-12-2025.pdf?sfvrsn=6ea38254_3",
           "2026Q1": "https://www.enpara.com/docs/default-source/default-document-library/enparabank-bddk-raporu-31-03-2026.pdf?sfvrsn=4c7f9818_3",
-          "2026Q2": "https://www.enpara.com/docs/default-source/default-document-library/enparabank-30-06-2026-bddk-rapor.pdf"
+          "2026Q2": "https://www.enpara.com/docs/default-source/default-document-library/enparabank-30-06-2026-bddk-rapor.pdf",
+          "2026Q3": "https://www.enpara.com/docs/default-source/default-document-library/enparabank-30-09-2026-bddk-rapor.pdf?sfvrsn=dcacb430_3"
         }
       }
     },
