@@ -252,7 +252,7 @@
     "QNBFB": {
       "name": "QNB Bank A.Ş. (formerly QNB Finansbank)",
       "ir_page": "https://www.qnb.com.tr/en/investor-relations/financial-information",
-      "_note": "Opaque CMS file IDs. Referer no longer required as of 2026-10-31 (bare UA GET returns the PDF). Solo = Bank Only.",
+      "_note": "Opaque CMS file IDs. Referer no longer required as of 2026-10-31 (bare UA GET returns the PDF). Solo = Bank Only. 2026Q3 NOT bound: the BRSA section's Sept-30 slots (4707/4708) hold 4-page English convenience translations, not the BDDK-format reports (Q1/Q2 were 108-120pp); re-harvest when the real Turkish BDDK PDFs are posted.",
       "urls": {
         "consolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3562.vsf",
@@ -272,8 +272,7 @@
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4449.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4547.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4621.vsf",
-          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf",
-          "2026Q3": "https://www.qnb.com.tr/medium/document-file-4708.vsf"
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3561.vsf",
@@ -293,8 +292,7 @@
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4422.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4546.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf",
-          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf",
-          "2026Q3": "https://www.qnb.com.tr/medium/document-file-4707.vsf"
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf"
         }
       }
     },
@@ -1409,7 +1407,8 @@
           "2025Q3": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_September_2025_Consolidated_Financial_Report.pdf",
           "2025Q4": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_December_2025_Consolidated_Financial_Report.pdf",
           "2026Q1": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_March_2026_Consolidated_Financial_Report.pdf",
-          "2026Q2": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_June_2026_Consolidated_Financial_Report.pdf"
+          "2026Q2": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_June_2026_Consolidated_Financial_Report.pdf",
+          "2026Q3": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_September_2026_Consolidated_Financial_Report.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_March_2022_Unconsolidated_Financial_Report.pdf",
@@ -1429,7 +1428,8 @@
           "2025Q3": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_September_2025_Unconsolidated_Financial_Report.pdf",
           "2025Q4": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_December_2025_Unconsolidated_Financial_Report.pdf",
           "2026Q1": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_March_2026_Unconsolidated_Financial_Report.pdf",
-          "2026Q2": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_June_2026_Unconsolidated_Financial_Report.pdf"
+          "2026Q2": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_June_2026_Unconsolidated_Financial_Report.pdf",
+          "2026Q3": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_September_2026_Unconsolidated_Financial_Report.pdf"
         }
       }
     },
