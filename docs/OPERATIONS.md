@@ -70,7 +70,13 @@ it can only re-cover what earlier runs published. `acquire-audit.yml` keeps
 the strict success requirement. Explicit corpus dispatches keep their own
 `publish` input. Recovery still
 selects only published source revisions from capture artifacts and skips
-cancelled/skipped parents.
+cancelled/skipped parents. A registered-but-unacquired filing (bound URL, no
+R2 bytes yet — the ordinary gap between a bind and its first fetch, or a
+runner-blocked host awaiting the R2 rescue) is recorded by the sweep as
+`pending_acquisition` and does not fail it (2026-10-31); the loud signal for
+an un-acquired filing stays where the fact lives, in the refresh run's
+`[FAIL]` lines and the healthcheck's published-but-not-acquired alert.
+Operator-scoped local probes keep the loud missing-source failure.
 
 ## Audit validation crashes stop publication (2026-09-13)
 

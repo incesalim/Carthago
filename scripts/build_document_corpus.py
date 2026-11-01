@@ -236,6 +236,19 @@ def main(argv: list[str] | None = None) -> int:
     with tempfile.TemporaryDirectory(prefix="carthago-document-source-") as temp:
         for row in targets:
             filing = Filing(row["bank_ticker"], row["period"], row["kind"])
+            if args.from_r2 and not row["object_keys"] and not row["local_paths"]:
+                # Registered but not acquired: pending, not broken. A bound URL
+                # whose scrape keeps failing is loud where the fact lives — the
+                # refresh run's [FAIL] lines and the healthcheck's
+                # "published but not acquired" alert. Failing here instead made
+                # every corpus sweep during a filing window red on the ordinary
+                # gap between a bind and its first successful fetch (2026-10-31:
+                # a runner-blocked host between bind and R2 rescue). Local,
+                # operator-scoped probes keep the loud failure — there the
+                # filing was named explicitly and silence would hide it.
+                finish(filing, {**filing.as_dict(), "status": "pending_acquisition",
+                                "source_urls": row["source_urls"]})
+                continue
             result = {**filing.as_dict(), "status": "failed"}
             identity, original_key = None, None
             try:
@@ -439,7 +452,9 @@ def main(argv: list[str] | None = None) -> int:
                     temporary_pdf.unlink()
             finish(filing, result)
     failures = sum(r["status"] == "failed" for r in results)
-    print(f"Source preservation: {len(results) - failures}/{len(results)}; "
+    pending = sum(r["status"] == "pending_acquisition" for r in results)
+    print(f"Source preservation: {len(results) - failures - pending}/{len(results)}"
+          f" ({pending} pending acquisition); "
           "semantic verification: not performed")
     return 1 if failures else 0
 

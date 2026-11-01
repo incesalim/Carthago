@@ -1623,7 +1623,11 @@ is scheduled runs only — a manual dispatch stays green with the `::warning::`,
 because its scoped-batch ratio duplicates what the operator already knows; and
 `build-document-corpus.yml` now captures from publish-titled refresh runs that
 concluded failure, so an alarm no longer silently drops the corpus build for
-the filings that run landed.)*
+the filings that run landed; and the corpus sweep records a
+registered-but-unacquired filing as `pending_acquisition` instead of failing
+— the ordinary filing-window gap between a bind and its first fetch must not
+redden a sweep whose loud signal already lives in the refresh `[FAIL]` lines
+and the healthcheck's published-but-not-acquired alert.)*
 
 Recovery, 2026-08-12: `refresh-audit.yml` with `skip_scrape=true` (no scrape ⇒
 `sc_total` 0 ⇒ gate cannot fire, and no `--force`, so settled partitions were

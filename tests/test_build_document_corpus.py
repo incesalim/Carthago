@@ -57,6 +57,25 @@ def test_missing_source_fails_capture_and_remains_in_results(tmp_path):
     assert "Missing" in results[0]["error"]
 
 
+def test_from_r2_registered_but_unacquired_is_pending_not_failure(tmp_path, monkeypatch):
+    """A bound-but-byteless filing must not redden the Actions corpus sweep.
+
+    2026-10-31: four drill targets sat in the registry with no R2 bytes and
+    every capture shard failed on them — the same state a runner-blocked host
+    is in between its bind and the R2 rescue, i.e. an ordinary filing-window
+    gap. The loud signal for an un-acquired filing lives in the refresh run's
+    [FAIL] lines and the healthcheck's "published but not acquired" alert;
+    the corpus sweep records the gap and stays green. The operator-scoped
+    local probe above keeps its loud failure — the filing was named.
+    """
+    from src.audit_reports import r2_storage as r2
+    monkeypatch.setattr(r2, "list_audit_pdfs", lambda: [])
+    assert build.main(_args(tmp_path) + ["--from-r2", "--capture", "--bank", "TEST"]) == 0
+    results = json.loads((tmp_path / "out/capture-results.json").read_text())["filings"]
+    assert [r["status"] for r in results] == ["pending_acquisition"]
+    assert results[0]["source_urls"] == ["https://bank.example/report.pdf"]
+
+
 def test_capture_keeps_source_artifacts_and_never_claims_verified(tmp_path):
     with fitz.open() as doc:
         doc.new_page().insert_text((40, 50), "A complete source sentence.")
