@@ -70,6 +70,25 @@ _STAGE_DISQUALIFY = re.compile(
 _CURRENCY_TOKENS = re.compile(
     r"\b(TP|YP|TL|FC|FX|TRL|LC)\b|\(%\)|%", re.IGNORECASE,
 )
+# Text-fallback gate: the page must name BOTH sides of the currency split —
+# a TL side (TP/TL/TRL/Türk Lirası) and an FC side (YP/FC/FX/LC/Yabancı
+# Para) — for its sector rows to be currency rows at all. KLNMA's
+# credit-risk note prints loans / nonaccrual / provisions by sector with no
+# currency dimension, and matching on sector labels alone vacuumed its
+# figures in as TL/FC pairs (duplicate keys → the whole partition store
+# aborted). The TL side alone is NOT a gate: "(Bin Türk Lirası (TL))" rides
+# in the preamble of every page of every filing.
+_CURRENCY_TL_SIDE = re.compile(
+    r"\bTP\b|\bTL\b|\bTRL\b|türk\s+lirası", re.IGNORECASE,
+)
+_CURRENCY_FC_SIDE = re.compile(
+    r"\bYP\b|\bFC\b|\bFX\b|\bLC\b|yabancı\s+para", re.IGNORECASE,
+)
+
+
+def _page_has_currency_columns(text: str) -> bool:
+    """True when the page names both the TL and FC sides of a currency table."""
+    return bool(_CURRENCY_TL_SIDE.search(text) and _CURRENCY_FC_SIDE.search(text))
 
 
 def _currency_col_x(
@@ -172,10 +191,18 @@ def _currency_col_x(
 def _extract_currency_xy(
     page_idx: int,
     lines: list[list[tuple[float, float, str]]],
+    period_state: dict | None = None,
 ) -> list[CurrencyRow] | None:
     """Column-aware extraction: align each sector row's numbers to the
     TL/FC header columns by x-position. Returns None when currency
-    headers can't be located."""
+    headers can't be located.
+
+    `period_state` carries the current/prior caption state across pages:
+    KLNMA prints the current-period table on one page and the prior-period
+    table on the next, each under its own caption — a page that opens with
+    "Önceki Dönem" and no "Cari Dönem" of its own must not restart at
+    'current' (it produced duplicate sector/period keys and aborted the
+    whole partition store)."""
     cols = _currency_col_x(lines)
     if not cols or len(cols) < 2:
         return None
@@ -190,8 +217,10 @@ def _extract_currency_xy(
     col_lookup = {name: x for name, x in cols}
 
     rows: list[CurrencyRow] = []
-    period_type = "current"
-    seen_current = False
+    if period_state is None:
+        period_state = {"period_type": "current", "seen_current": False}
+    period_type = period_state["period_type"]
+    seen_current = period_state["seen_current"]
 
     for row in lines:
         text = " ".join(t for _, _, t in row).strip()
@@ -200,10 +229,12 @@ def _extract_currency_xy(
         # Period captions
         if re.search(r"\bcurrent\s+period\b|\bcari\s+dönem\b", low):
             period_type, seen_current = "current", True
+            period_state.update(period_type=period_type, seen_current=seen_current)
             continue
         if re.search(r"\bprior\s+period\b|\bönceki\s+dönem\b", low):
             if seen_current:
                 period_type = "prior"
+                period_state.update(period_type=period_type)
             continue
 
         # Clean the label
@@ -227,13 +258,20 @@ def _extract_currency_xy(
         if sector_key is None:
             sector_key = "unknown"
 
+        # A number only fills a column when it sits inside the column band —
+        # within half the TL→FC span of its header's right edge, the same
+        # discipline as the stage lane. Without the bound, a neighbouring
+        # table sharing the page (KLNMA's geographic NPL provisions block)
+        # has its totals vacuumed into the currency columns.
+        tol = abs(fc_x - tl_x) / 2
+
         def nearest(anchor: float, other: float):
             best, bestd = None, 1e9
             for v, x in nums:
                 d = abs(x - anchor)
                 if d < bestd and d <= abs(x - other):
                     best, bestd = v, d
-            return best
+            return best if bestd <= tol else None  # in-band only
 
         tl_val = nearest(tl_x, fc_x)
         fc_val = nearest(fc_x, tl_x)
@@ -247,6 +285,15 @@ def _extract_currency_xy(
             tl_pct_val = nearest(tl_pct_x, fc_x)
         if fc_pct_x is not None and fc_pct_x != fc_x:
             fc_pct_val = nearest(fc_pct_x, tl_x)
+
+        if tl_val is None and fc_val is None and tl_pct_val is None and fc_pct_val is None:
+            # No number fell in any column band: prose or a neighbouring
+            # table on the same page, not a row of this table.
+            continue
+        if sector_key == "unknown" and (tl_val is None or fc_val is None):
+            # An unmatched label is only a source row when it sits in the
+            # table geometry — both currency columns filled in-band.
+            continue
 
         rows.append(CurrencyRow(
             sector=sector_key,
@@ -265,6 +312,7 @@ def _extract_currency_xy(
 def _extract_currency_text(
     page_idx: int,
     text: str,
+    period_state: dict | None = None,
 ) -> list[CurrencyRow]:
     """Fallback text parser: pull (sector, tl, fc) tuples from lines.
 
@@ -272,10 +320,15 @@ def _extract_currency_text(
         <known_sector_label> <tl> <fc>
     or with percentages:
         <known_sector_label> <tl> <tl_pct> <fc> <fc_pct>
+
+    `period_state` carries the caption state across pages, same as the
+    xy parser above (a prior-period table may open its own page).
     """
     rows: list[CurrencyRow] = []
-    period_type = "current"
-    seen_current_caption = False
+    if period_state is None:
+        period_state = {"period_type": "current", "seen_current": False}
+    period_type = period_state["period_type"]
+    seen_current_caption = period_state["seen_current"]
 
     for raw in text.splitlines():
         ln = raw.strip()
@@ -286,10 +339,13 @@ def _extract_currency_text(
         if re.search(r"\bcurrent\s+period\b|\bcari\s+dönem\b", lower):
             period_type = "current"
             seen_current_caption = True
+            period_state.update(period_type=period_type,
+                                seen_current=seen_current_caption)
             continue
         if re.search(r"\bprior\s+period\b|\bönceki\s+dönem\b", lower):
             if seen_current_caption:
                 period_type = "prior"
+                period_state.update(period_type=period_type)
             continue
 
         # Clean label
@@ -359,6 +415,9 @@ def extract_from_pdf(
         return rep
     n_pages = _fitz_page_count(pdf_path) or 0
 
+    # One caption state for the whole filing: the current/prior tables can
+    # span pages (KLNMA), so it must not reset between pages.
+    period_state: dict = {"period_type": "current", "seen_current": False}
     for i in range(skip_pages + 1, n_pages + 1):
         text = _fitz_page_text(pdf_path, i - 1)
         if not _page_has_sector_heading(text):
@@ -369,15 +428,17 @@ def extract_from_pdf(
 
         lines = _xy_lines(pdf_path, i - 1)
         if lines:
-            xy = _extract_currency_xy(i, lines)
+            xy = _extract_currency_xy(i, lines, period_state)
             if xy:
                 rep.rows.extend(xy)
                 continue
 
-        # Fallback: text parser
-        txt = _extract_currency_text(i, text)
-        if txt:
-            rep.rows.extend(txt)
+        # Fallback: text parser — only for pages that name a currency split;
+        # otherwise any sector-labeled numeric line on the page is captured.
+        if _page_has_currency_columns(text):
+            txt = _extract_currency_text(i, text, period_state)
+            if txt:
+                rep.rows.extend(txt)
 
     return rep
 

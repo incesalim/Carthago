@@ -6,6 +6,9 @@ import sqlite3
 from src.audit_reports.loans_currency import (
     CurrencyRow,
     LoansCurrencyReport,
+    _extract_currency_text,
+    _extract_currency_xy,
+    _page_has_currency_columns,
     upsert,
 )
 from src.audit_reports.units import UnitContext
@@ -131,3 +134,84 @@ def test_upsert_rejects_duplicate_sector_period():
         assert False, "should have raised ValueError"
     except ValueError:
         pass
+
+
+# ---------------------------------------------------------------------------
+# Period captions carrying across pages (KLNMA prints the current-period
+# currency table on one page and the prior-period table on the next, each
+# under its own caption — a page that opens with "Önceki Dönem" and no
+# "Cari Dönem" of its own used to restart at 'current' and duplicate keys).
+# ---------------------------------------------------------------------------
+
+def _header_lines():
+    # A minimal TP/YP header band: two tokens ≥30pt apart → tl / fc columns.
+    return [[(60.0, 100.0, "TP"), (260.0, 300.0, "YP")]]
+
+
+def test_xy_prior_period_caption_on_new_page():
+    state = {"period_type": "current", "seen_current": False}
+    page1 = _header_lines() + [
+        [(60.0, 90.0, "Cari Dönem (31.12.2025)")],
+        [(60.0, 90.0, "Tarım"), (95.0, 100.0, "797.877"), (295.0, 300.0, "1.228")],
+    ]
+    rows1 = _extract_currency_xy(91, page1, state)
+    page2 = _header_lines() + [
+        [(60.0, 90.0, "Önceki Dönem (31.12.2024)")],
+        [(60.0, 90.0, "Tarım"), (95.0, 100.0, "732.750"), (295.0, 300.0, "576.351")],
+    ]
+    rows2 = _extract_currency_xy(92, page2, state)
+
+    assert rows1 and rows2
+    assert all(r.period_type == "current" for r in rows1)
+    assert all(r.period_type == "prior" for r in rows2), (
+        "a prior-period table opening its own page must inherit the caption state")
+
+
+def test_xy_out_of_band_numbers_not_vacuumed():
+    state = {"period_type": "current", "seen_current": False}
+    # "Toplam" row of a NEIGHBOURING table: numbers sit far outside both the
+    # tl band (x≈100) and the fc band (x≈300), so nothing fills in-band and
+    # the row must be dropped, not stored with misassigned figures.
+    lines = _header_lines() + [
+        [(60.0, 90.0, "Cari Dönem (31.12.2025)")],
+        [(60.0, 90.0, "Toplam"), (500.0, 540.0, "573.425"), (600.0, 640.0, "518.157")],
+        [(60.0, 90.0, "Tarım"), (95.0, 100.0, "797.877"), (295.0, 300.0, "1.228")],
+    ]
+    rows = _extract_currency_xy(91, lines, state)
+    assert [r.sector for r in rows] == ["agri_total"]
+
+
+def test_text_prior_period_caption_on_new_page():
+    state = {"period_type": "current", "seen_current": False}
+    rows1 = _extract_currency_text(
+        91, "Cari Dönem (31.12.2025)\nTarım 797.877 1.228\n", state)
+    rows2 = _extract_currency_text(
+        92, "Önceki Dönem (31.12.2024)\nTarım 732.750 576.351\n", state)
+
+    assert rows1 and rows2
+    assert all(r.period_type == "current" for r in rows1)
+    assert all(r.period_type == "prior" for r in rows2)
+
+
+# ---------------------------------------------------------------------------
+# Text-fallback gate: a page must name both sides of the currency split for
+# its sector rows to be currency rows at all. KLNMA's credit-risk note
+# (loans / nonaccrual / provisions by sector, no currency dimension) and
+# QNBFB's English prose lines ("FOR THE YEAR ENDED DECEMBER 31 2025") were
+# both captured as TL/FC pairs by label-matching alone.
+# ---------------------------------------------------------------------------
+
+def test_page_has_currency_columns():
+    assert _page_has_currency_columns(
+        "Sektörlere göre kredilerin dağılımı\nTP YP TP YP\nTarım 100 200")
+    assert _page_has_currency_columns(
+        "Loans by sector\nTL FC\nAgriculture 100 200")
+    assert _page_has_currency_columns(
+        "Türk Lirası Yabancı Para\nTarım 100 200")
+    # "(Bin Türk Lirası (TL))" rides in the preamble of every page — the TL
+    # side alone must NOT pass the gate.
+    assert not _page_has_currency_columns(
+        "(Tutarlar aksi belirtilmedikçe Bin Türk Lirası (TL) olarak ifade "
+        "edilmiştir.)\nÖnemli sektörlere göre muhtelif bilgiler\nTarım 797.877 1.228")
+    assert not _page_has_currency_columns(
+        "FOR THE YEAR ENDED DECEMBER 31 2025\nAgriculture 100 200")
