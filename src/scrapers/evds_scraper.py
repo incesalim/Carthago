@@ -58,8 +58,9 @@ SERIES: list[Series] = [
     Series("TP.APIFON2.KOT", "Sterilization Quotation", "cbrt", evds.FREQ_DAILY),
     Series("TP.APIFON2.LIK", "Liquidity Bills",       "cbrt", evds.FREQ_DAILY),
 
-    # Inflation
-    Series("TP.FG.J0",          "CPI (2003=100)",                "inflation", evds.FREQ_MONTHLY),
+    # Inflation. TP.FG.J0 (CPI 2003=100) is NOT ingested: it died at the
+    # Jan-2026 TÜİK rebase and polling stopped 2026-11-07 — TUKFIY2025.GENEL
+    # below carries the full history alone.
     Series("TP.PKAUO.S01.D.U",  "CPI Expectation, Current Year-End", "inflation", evds.FREQ_MONTHLY),
     Series("TP.PKAUO.S01.I.U",  "CPI Expectation, Next Year-End",    "inflation", evds.FREQ_MONTHLY),
     Series("TP.PKAUO.S01.E.U",  "CPI Expectation, 12m ahead",        "inflation", evds.FREQ_MONTHLY),
@@ -93,8 +94,10 @@ SERIES: list[Series] = [
     Series("TP.HPBITABLO4.5", "Households EUR Deposits (USD eq, USD m)", "fx", evds.FREQ_MONTHLY),
     Series("TP.HPBITABLO4.7", "Households Precious Metals (USD m)",      "fx", evds.FREQ_MONTHLY),
 
-    # Real effective exchange rate (real appreciation backdrop)
-    Series("TP.RK.T1.Y", "REER (CPI based, 2003=100)", "fx", evds.FREQ_MONTHLY),
+    # Real effective exchange rate (real appreciation backdrop). EVDS
+    # rebased this series 2003=100 → 2025=100 (2026-11-07 audit); same code,
+    # level scale changed — % derivations unaffected.
+    Series("TP.RK.T1.Y", "REER (CPI based, 2025=100)", "fx", evds.FREQ_MONTHLY),
 
     # Deposit rates by maturity (≤1m through >12m)
     Series("TP.TRY.MT01", "Deposit rate ≤1m",   "rates", evds.FREQ_WEEKLY),
@@ -117,50 +120,63 @@ SERIES: list[Series] = [
 
     # ------------------------------------------------------------------
     # Macro block — feeds the /economy tab (BBVA Türkiye Economic Outlook
-    # adaptation). TP.FG.J0 (CPI 2003=100) died at the Jan-2026 TUIK
-    # rebase; TP.TUKFIY2025.GENEL is the replacement and is backcast to
-    # well before 2018, so it carries the full history alone.
+    # adaptation). CPI rides TP.TUKFIY2025.GENEL alone since the Jan-2026
+    # TÜİK rebase killed TP.FG.J0 (polling of the dead code stopped
+    # 2026-11-07).
     # ------------------------------------------------------------------
     Series("TP.TUKFIY2025.GENEL", "CPI (2025=100)", "inflation", evds.FREQ_MONTHLY),
 
-    # National accounts (TURKSTAT, quarterly)
-    Series("TP.GSYIH26.HY.ZH", "GDP (chain-linked volume index)",    "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH26.HY.CF", "GDP (current prices, TL thousand)",  "macro", evds.FREQ_QUARTERLY),
+    # ------------------------------------------------------------------
+    # National accounts (TURKSTAT, quarterly). Recoded 2026-11-07: EVDS
+    # re-schemed quarterly GDP with the Q2-2026 release and every old
+    # TP.GSYIH*.HY.ZH/.HY.CF/.IFK.ZH code went 400 (site had frozen at
+    # Q1-2026). New scheme: expenditure chain-vol = bie_gsyhhrczinc
+    # (TP.GSYIH20.CY.*), current prices = bie_gsyhhrccar (TP.GSYIH20.BY.*),
+    # production A10 chain-vol = bie_gsyhuretzinc (TP.GSYIH40.IFC.*).
+    # Levels differ from the old scheme only by small backward revisions
+    # (~0.5% at 2026-Q1); CY.P7 imports stay POSITIVE despite the "(Eksi)"
+    # in the EVDS name, so contributions math is unchanged. The old
+    # sectoral-total GVA (TP.GSYIH12.IFK.ZH) has no direct equivalent —
+    # web/app/lib/growth.ts derives GVA = IFC.B1GQ − D21X31.
+    # ------------------------------------------------------------------
+    Series("TP.GSYIH20.CY.B1GQ", "GDP (chain-linked volume index)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH20.BY.B1GQ", "GDP (current prices, TL thousand)", "macro", evds.FREQ_QUARTERLY),
 
     # ------------------------------------------------------------------
     # National-accounts detail — feeds the /economy/economic-growth page
-    # (Albaraka "Ekonomik Büyüme" quarterly report). TUIK 2021-ref-year
-    # chain-linked volume indices (raw/unadjusted); the page computes y/y
-    # from the level (v[t]/v[t-4]-1) and the Şekil 2 growth-contributions.
-    # Codes verified against the report's y/y table. NOTE: EVDS carries only
-    # the top-level expenditure aggregates (not durable/construction detail)
-    # and only the unadjusted production index (the calendar-adjusted variant
-    # TUIK headlines on a few sub-sectors is Excel-only — see METRICS.md §14).
+    # (Albaraka "Ekonomik Büyüme" quarterly report). TUIK chain-linked
+    # volume indices (raw/unadjusted); the page computes y/y from the level
+    # (v[t]/v[t-4]-1) and the Şekil 2 growth-contributions. NOTE: EVDS
+    # carries only the top-level expenditure aggregates (not
+    # durable/construction detail) and only the unadjusted production index
+    # (the calendar-adjusted variant TUIK headlines on a few sub-sectors is
+    # Excel-only — see METRICS.md §14).
     # ------------------------------------------------------------------
-    # Expenditure method (bie_gsyhhyhe)
-    Series("TP.GSYIH20.HY.ZH", "Household Consumption (chain vol.)",         "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH21.HY.ZH", "Government Consumption (chain vol.)",        "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH22.HY.ZH", "Gross Fixed Capital Formation (chain vol.)", "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH24.HY.ZH", "Exports of Goods & Services (chain vol.)",   "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH25.HY.ZH", "Imports of Goods & Services (chain vol.)",   "macro", evds.FREQ_QUARTERLY),
-    # Production method / kind of economic activity (bie_gsyhifkhe)
-    Series("TP.GSYIH01.IFK.ZH", "GVA: Agriculture (chain vol.)",                 "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH02.IFK.ZH", "GVA: Industry (chain vol.)",                    "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH03.IFK.ZH", "GVA: Manufacturing (chain vol.)",               "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH04.IFK.ZH", "GVA: Construction (chain vol.)",                "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH05.IFK.ZH", "GVA: Services (chain vol.)",                    "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH06.IFK.ZH", "GVA: Information & Communication (chain vol.)", "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH07.IFK.ZH", "GVA: Finance & Insurance (chain vol.)",         "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH08.IFK.ZH", "GVA: Real Estate (chain vol.)",                 "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH09.IFK.ZH", "GVA: Professional/Admin/Support (chain vol.)",  "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH10.IFK.ZH", "GVA: Public Admin/Education/Health (chain vol.)", "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH11.IFK.ZH", "GVA: Other Services (chain vol.)",              "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH12.IFK.ZH", "GVA: Sectoral Total (chain vol.)",              "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH13.IFK.ZH", "Taxes less Subsidies (chain vol.)",             "macro", evds.FREQ_QUARTERLY),
-    Series("TP.GSYIH26.IFK.ZH", "GDP at purchaser prices (chain vol., prod.)",   "macro", evds.FREQ_QUARTERLY),
+    # Expenditure method, chain volume (bie_gsyhhrczinc)
+    Series("TP.GSYIH20.CY.P311", "Household Consumption (chain vol.)",         "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH20.CY.P32",  "Government Consumption (chain vol.)",        "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH20.CY.P51G", "Gross Fixed Capital Formation (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH20.CY.P6",   "Exports of Goods & Services (chain vol.)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH20.CY.P7",   "Imports of Goods & Services (chain vol.)",   "macro", evds.FREQ_QUARTERLY),
+    # Production method / kind of activity, A10 aggregation (bie_gsyhuretzinc)
+    Series("TP.GSYIH40.IFC.A",     "GVA: Agriculture (chain vol.)",               "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.BTE",   "GVA: Industry (chain vol.)",                  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.C",     "GVA: Manufacturing (chain vol.)",             "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.F",     "GVA: Construction (chain vol.)",              "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.GTI",   "GVA: Services (chain vol.)",                  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.J",     "GVA: Information & Communication (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.K",     "GVA: Finance & Insurance (chain vol.)",       "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.L",     "GVA: Real Estate (chain vol.)",               "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.MN",    "GVA: Professional/Admin/Support (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.OTQ",   "GVA: Public Admin/Education/Health (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.RTU",   "GVA: Other Services (chain vol.)",            "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.B1GQ",  "GDP at purchaser prices (chain vol., prod.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH40.IFC.D21X31", "Taxes less Subsidies (chain vol.)",         "macro", evds.FREQ_QUARTERLY),
 
-    # Industrial production (TURKSTAT, SA + calendar adjusted, 2021=100)
-    Series("TP.TSANAYMT2021.Y1", "Industrial Production (SA, 2021=100)", "macro", evds.FREQ_MONTHLY),
+    # Industrial production (TURKSTAT, SA + calendar adjusted, 2021=100).
+    # Recoded 2026-11-07: .Y1 froze at Jun-2026 when TÜİK recoded the group;
+    # .BCD is the same "Toplam Sanayi" SA aggregate under its new code.
+    Series("TP.TSANAYMT2021.BCD", "Industrial Production (SA, 2021=100)", "macro", evds.FREQ_MONTHLY),
 
     # Labor market (TURKSTAT, seasonally adjusted, monthly)
     Series("TP.TIG03", "Employed (thousand persons, SA)",        "macro", evds.FREQ_MONTHLY),

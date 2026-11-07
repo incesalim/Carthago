@@ -42,10 +42,10 @@ export * from "@/app/lib/economy-calc";
 
 // EVDS codes used by the tab (all already in D1 via the daily cron).
 const CODES = [
-  // growth & labor
-  "TP.GSYIH26.HY.ZH",   // GDP chain-linked volume index, quarterly
-  "TP.GSYIH26.HY.CF",   // GDP current prices (TL thousand), quarterly
-  "TP.TSANAYMT2021.Y1", // industrial production, SA, 2021=100
+  // growth & labor (GDP/IPI codes recoded 2026-11-07 — see growth.ts header)
+  "TP.GSYIH20.CY.B1GQ",  // GDP chain-linked volume index, quarterly
+  "TP.GSYIH20.BY.B1GQ",  // GDP current prices (TL thousand), quarterly
+  "TP.TSANAYMT2021.BCD", // industrial production, SA, 2021=100
   "TP.TIG03",           // employed (thousand persons, SA)
   "TP.TIG06",           // labour force participation rate (SA %)
   "TP.TIG08",           // unemployment rate (SA %)
@@ -65,7 +65,7 @@ const CODES = [
   // lira & external
   "TP.DK.USD.A",         // USD/TRY, daily
   "TP.DK.EUR.A",         // EUR/TRY, daily
-  "TP.RK.T1.Y",          // REER (CPI based, 2003=100)
+  "TP.RK.T1.Y",          // REER (CPI based, 2025=100 — rebased 2026)
   "TP.ODANA6.Q01",       // current account (USD m)
   "TP.ODANA6.Q31",       // net errors & omissions (USD m)
   "TP.HARICCARIACIK.K8", // CA ex gold (USD m)
@@ -104,7 +104,7 @@ export async function getEconomyData(yearsBack = 8): Promise<EconomyData> {
   // the SAME window rather than the spot rate — a spot conversion of a year of
   // TL output would price four quarters at one day's lira.
   const usdMonthly = monthlyAverage(g("TP.DK.USD.A"));
-  const gdp4q = rolling4qGdp(g("TP.GSYIH26.HY.CF"));
+  const gdp4q = rolling4qGdp(g("TP.GSYIH20.BY.B1GQ"));
   const ca12m = rollingSum(g("TP.ODANA6.Q01"), 12, 1 / 1000);
   const caPctGdp: Point[] = [];
   for (const c of ca12m) {
@@ -126,8 +126,8 @@ export async function getEconomyData(yearsBack = 8): Promise<EconomyData> {
   const scoreYear = cpiYoY.at(-1)?.period_date.slice(0, 4) ?? "";
 
   return {
-    gdpGrowth: pctChange(g("TP.GSYIH26.HY.ZH"), 4),
-    ipGrowth: pctChange(g("TP.TSANAYMT2021.Y1"), 12),
+    gdpGrowth: pctChange(g("TP.GSYIH20.CY.B1GQ"), 4),
+    ipGrowth: pctChange(g("TP.TSANAYMT2021.BCD"), 12),
     unemployment: scaled(g("TP.TIG08"), 1),
     participation: scaled(g("TP.TIG06"), 1),
     employedMn: scaled(g("TP.TIG03"), 1 / 1000),
@@ -155,9 +155,9 @@ export async function getEconomyData(yearsBack = 8): Promise<EconomyData> {
     caExGoldEnergy12m: rollingSum(g("TP.HARICCARIACIK.K10"), 12, 1 / 1000),
     neo12m: rollingSum(g("TP.ODANA6.Q31"), 12, 1 / 1000),
     caPctGdp,
-    budgetPctGdp: pctOfGdp(g("TP.KB.GEN35"), g("TP.GSYIH26.HY.CF")),
-    primaryPctGdp: pctOfGdp(g("TP.KB.GEN34"), g("TP.GSYIH26.HY.CF")),
-    cashPctGdp: pctOfGdp(g("TP.KB.GEN39"), g("TP.GSYIH26.HY.CF")),
+    budgetPctGdp: pctOfGdp(g("TP.KB.GEN35"), g("TP.GSYIH20.BY.B1GQ")),
+    primaryPctGdp: pctOfGdp(g("TP.KB.GEN34"), g("TP.GSYIH20.BY.B1GQ")),
+    cashPctGdp: pctOfGdp(g("TP.KB.GEN39"), g("TP.GSYIH20.BY.B1GQ")),
     // GDP arrives as TL thousand, so ÷1e9 lands in ₺ trillion.
     nominalGdp4q: gdp4q.map((p) => ({ period_date: p.period_date, value: p.value / 1e9 })),
     reserves,

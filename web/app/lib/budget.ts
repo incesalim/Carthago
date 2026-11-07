@@ -48,7 +48,7 @@ const C = {
 // of the deflator (DESIGN.md — "every nominal ₺ level ships with its real twin"),
 // and "tax revenues up 28%" is a real CUT that reads as growth.
 const CPI = "TP.TUKFIY2025.GENEL";
-const GDP_CF = "TP.GSYIH26.HY.CF";
+const GDP_CF = "TP.GSYIH20.BY.B1GQ";
 
 const CODES = [...Object.values(C), CPI, GDP_CF];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

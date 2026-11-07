@@ -887,14 +887,14 @@ Data layer: `web/app/lib/economy.ts`; all series live in `evds_series`
 
 | Block | Code | Series | Freq |
 |---|---|---|---|
-| Growth | `TP.GSYIH26.HY.ZH` | GDP, chain-linked volume index | quarterly |
-| Growth | `TP.GSYIH26.HY.CF` | GDP, current prices (TL thousand) | quarterly |
-| Growth | `TP.TSANAYMT2021.Y1` | Industrial production, SA+cal adj (2021=100) | monthly |
+| Growth | `TP.GSYIH20.CY.B1GQ` | GDP, chain-linked volume index | quarterly |
+| Growth | `TP.GSYIH20.BY.B1GQ` | GDP, current prices (TL thousand) | quarterly |
+| Growth | `TP.TSANAYMT2021.BCD` | Industrial production, SA+cal adj (2021=100) | monthly |
 | Labor | `TP.TIG03` / `TP.TIG06` / `TP.TIG08` | Employed (thousand, SA) / LFP (SA %) / unemployment (SA %) | monthly |
 | Inflation | `TP.TUKFIY2025.GENEL` | CPI (2025=100) | monthly |
 | Inflation | `TP.PKAUO.S01.D.U` / `.I.U` / `.E.U` | CBRT survey CPI expectations (current y-e / next y-e / 12m) | monthly |
 | Policy | `TP.APIFON4` | CBRT effective cost of funding | daily |
-| FX | `TP.DK.USD.A` / `TP.RK.T1.Y` | USD/TRY / REER (CPI, 2003=100) | daily / monthly |
+| FX | `TP.DK.USD.A` / `TP.RK.T1.Y` | USD/TRY / REER (CPI, 2025=100 — rebased 2026) | daily / monthly |
 | External | `TP.ODANA6.Q01` / `Q04` / `Q31` | Current account / goods balance / net errors & omissions (USD m) | monthly |
 | External | `TP.HARICCARIACIK.K8` / `K10` | CA ex gold / ex gold & energy (USD m) | monthly |
 | Fiscal | `TP.KB.GEN34` / `GEN35` / `GEN39` | General budget primary / overall / cash balance (TL thousand) | monthly |
@@ -1002,13 +1002,23 @@ pre-computed %.
 
 | Figure / element | Series / derivation |
 |---|---|
-| KPIs | GDP y/y from `TP.GSYIH26.HY.ZH`; nominal ₺ from `…HY.CF` ÷1e9 (quarter + trailing-4Q) |
-| Şekil 1 GDP growth (y/y) | `TP.GSYIH26.HY.ZH` y/y |
-| Şekil 2 contributions (pp) | derived: `contribᵢ = (realᵢ[t] − realᵢ[t−4]) / GDP_real[t−4] × 100`, imports subtract, **inventories = residual** (GDP y/y − Σ). Components `TP.GSYIH20/21/22/24/25.HY.ZH` |
-| Şekil 3 sectoral (y/y) | `TP.GSYIH01/02/04/05.IFK.ZH` |
-| Şekil 6 government (y/y) | `TP.GSYIH21.HY.ZH` |
-| Production table (14 rows) | `TP.GSYIH01..13.IFK.ZH` |
-| Expenditure table (6 aggregates) | `TP.GSYIH20/21/22/24/25/26.HY.ZH` |
+| KPIs | GDP y/y from `TP.GSYIH20.CY.B1GQ`; nominal ₺ from `…BY.B1GQ` ÷1e9 (quarter + trailing-4Q) |
+| Şekil 1 GDP growth (y/y) | `TP.GSYIH20.CY.B1GQ` y/y |
+| Şekil 2 contributions (pp) | derived: `contribᵢ = (realᵢ[t] − realᵢ[t−4]) / GDP_real[t−4] × 100`, imports subtract, **inventories = residual** (GDP y/y − Σ). Components `TP.GSYIH20.CY.P311/P32/P51G/P6/P7` |
+| Şekil 3 sectoral (y/y) | `TP.GSYIH40.IFC.A/BTE/F/GTI` |
+| Şekil 6 government (y/y) | `TP.GSYIH20.CY.P32` |
+| Production table (14 rows) | `TP.GSYIH40.IFC.*` sectors + taxes `D21X31`; GVA total **derived** = `IFC.B1GQ − D21X31` |
+| Expenditure table (6 aggregates) | `TP.GSYIH20.CY.P311/P32/P51G/P6/P7/B1GQ` |
+
+**2026-11-07 recode:** EVDS re-schemed quarterly GDP with the Q2-2026 release;
+every `TP.GSYIH*.HY.ZH/.HY.CF/.IFK.ZH` code went 400 (the site had silently
+frozen at Q1-2026). The codes above are the replacements — expenditure
+chain-vol `bie_gsyhhrczinc` (`CY.*`), current prices `bie_gsyhhrccar`
+(`BY.*`), production A10 `bie_gsyhuretzinc` (`IFC.*`). Levels differ from the
+old scheme only by small backward revisions (~0.5% at 2026-Q1); `CY.P7`
+imports stay **positive** despite the "(Eksi)" EVDS name, so the
+contributions math is unchanged. The A10 group has no sectoral-total GVA —
+derived as GDP − taxes-less-subsidies (exact identity).
 
 Contributions were validated against the report's cover (consumption +3.4,
 investment +0.8, exports −2.9 pp — exact). Two `economy.growth_*` chart-specs

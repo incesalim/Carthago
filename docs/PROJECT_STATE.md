@@ -2861,17 +2861,25 @@ foreign-flows chart, verified to the press numbers (M7 12-Jun-26 = −117.8 ≙
 
 An **Economic Growth** sub-page (`/economy/economic-growth`, also linked from
 the Economy header) reproduces the Albaraka «Ekonomik Büyüme» quarterly GDP
-report off **19 new TÜİK national-accounts series** (`TP.GSYIH*.HY.ZH`
-expenditure + `*.IFK.ZH` production chain-volume indices, `macro`/quarterly):
-GDP-growth KPIs, Şekil 1 (y/y), the **growth-contributions** decomposition
-(Şekil 2, derived — consumption/investment/exports contributions match the
-cover exactly), Şekil 3 sectoral, Şekil 6 government, and both y/y tables
-(production full; expenditure aggregates). EVDS gaps are flagged in-page and
-in METRICS §14: the q/q **seasonally-adjusted** GDP line, the expenditure
-**detail** (Şekil 4/5 durable/investment breakdowns), and the
-calendar-adjusted production variant live only in TÜİK's Excel — a future
-scraper lane, not yet wired. Two `economy.growth_*` chart-specs anchor
-verification.
+report off **20 TÜİK national-accounts series** (chain-volume indices,
+`macro`/quarterly). **Recoded 2026-11-07:** EVDS re-schemed quarterly GDP
+with the Q2-2026 release and every old `TP.GSYIH*.HY.ZH/.HY.CF/.IFK.ZH`
+code went 400 — the page (and the /economy GDP/IPI KPIs, plus
+`web/app/lib/budget.ts`'s % of GDP denominators) had silently frozen at
+Q1-2026 since ~Sep-2026. Current codes: expenditure `TP.GSYIH20.CY.*`
+(bie_gsyhhrczinc), current prices `TP.GSYIH20.BY.B1GQ` (bie_gsyhhrccar),
+production A10 `TP.GSYIH40.IFC.*` (bie_gsyhuretzinc); sectoral-total GVA is
+derived in `growth.ts` (GDP − taxes `D21X31` — the A10 scheme has no direct
+total). Industrial production moved `TP.TSANAYMT2021.Y1`→`.BCD` (same
+"Toplam Sanayi" SA aggregate; `.Y1` froze at Jun-2026). Old-code rows stay
+in D1 as history; nothing reads them. Şekil 1 (y/y), the
+**growth-contributions** decomposition (Şekil 2, derived — matches the
+report cover), Şekil 3 sectoral, Şekil 6 government, and both y/y tables.
+EVDS gaps are flagged in-page and in METRICS §14: the q/q
+**seasonally-adjusted** GDP line, the expenditure **detail** (Şekil 4/5
+durable/investment breakdowns), and the calendar-adjusted production
+variant live only in TÜİK's Excel — a future scraper lane, not yet wired.
+Two `economy.growth_*` chart-specs anchor verification.
 
 A **Budget** sub-page (`/economy/budget`) reproduces the Albaraka «Bütçe
 Görünümü» monthly report off **23 new `TP.KB.GEL*/GID*` central-government

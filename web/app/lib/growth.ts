@@ -14,6 +14,15 @@
  * (durable/semi/non-durable consumption; construction/machinery/other
  * investment), and the calendar-adjusted variant of the production index
  * (a few sub-sectors differ from the unadjusted figure by up to ~1.5 pp).
+ *
+ * 2026-11-07 recode: EVDS re-schemed quarterly GDP with the Q2-2026 release;
+ * the old TP.GSYIH*.HY.ZH/.IFK.ZH codes 400 now. Current codes are the
+ * expenditure CY.* family (bie_gsyhhrczinc), BY.* current prices
+ * (bie_gsyhhrccar) and the A10 production IFC.* family (bie_gsyhuretzinc).
+ * CY.P7 imports stay positive despite the "(Eksi)" EVDS name. The old
+ * sectoral-total GVA (TP.GSYIH12.IFK.ZH) has no direct equivalent — derived
+ * below as IFC.B1GQ − IFC.D21X31 (exact identity, matches the old series
+ * within backward-revision noise).
  */
 import { evdsMulti, type EvdsRow } from "@/app/lib/metrics";
 import { type Point } from "@/app/lib/economy";
@@ -21,28 +30,31 @@ import { type BarRow } from "@/app/lib/bop";
 import { fmtQuarter } from "@/app/lib/chart-format";
 
 const C = {
-  gdpZH: "TP.GSYIH26.HY.ZH", // GDP chain-vol index (raw)
-  gdpCF: "TP.GSYIH26.HY.CF", // GDP current prices, TL thousand
+  gdpZH: "TP.GSYIH20.CY.B1GQ", // GDP chain-vol index (raw)
+  gdpCF: "TP.GSYIH20.BY.B1GQ", // GDP current prices, TL thousand
   // expenditure aggregates (chain vol.)
-  cons: "TP.GSYIH20.HY.ZH",
-  gov: "TP.GSYIH21.HY.ZH",
-  inv: "TP.GSYIH22.HY.ZH",
-  exp: "TP.GSYIH24.HY.ZH",
-  imp: "TP.GSYIH25.HY.ZH",
-  // production / kind of activity (chain vol.)
-  agri: "TP.GSYIH01.IFK.ZH",
-  industry: "TP.GSYIH02.IFK.ZH",
-  manuf: "TP.GSYIH03.IFK.ZH",
-  constr: "TP.GSYIH04.IFK.ZH",
-  services: "TP.GSYIH05.IFK.ZH",
-  ict: "TP.GSYIH06.IFK.ZH",
-  finance: "TP.GSYIH07.IFK.ZH",
-  realEstate: "TP.GSYIH08.IFK.ZH",
-  professional: "TP.GSYIH09.IFK.ZH",
-  publicAdmin: "TP.GSYIH10.IFK.ZH",
-  otherServ: "TP.GSYIH11.IFK.ZH",
-  gva: "TP.GSYIH12.IFK.ZH",
-  taxes: "TP.GSYIH13.IFK.ZH",
+  cons: "TP.GSYIH20.CY.P311",
+  gov: "TP.GSYIH20.CY.P32",
+  inv: "TP.GSYIH20.CY.P51G",
+  exp: "TP.GSYIH20.CY.P6",
+  imp: "TP.GSYIH20.CY.P7",
+  // production / kind of activity, A10 aggregation (chain vol.)
+  agri: "TP.GSYIH40.IFC.A",
+  industry: "TP.GSYIH40.IFC.BTE",
+  manuf: "TP.GSYIH40.IFC.C",
+  constr: "TP.GSYIH40.IFC.F",
+  services: "TP.GSYIH40.IFC.GTI",
+  ict: "TP.GSYIH40.IFC.J",
+  finance: "TP.GSYIH40.IFC.K",
+  realEstate: "TP.GSYIH40.IFC.L",
+  professional: "TP.GSYIH40.IFC.MN",
+  publicAdmin: "TP.GSYIH40.IFC.OTQ",
+  otherServ: "TP.GSYIH40.IFC.RTU",
+  gdpProd: "TP.GSYIH40.IFC.B1GQ", // GDP, production side
+  taxes: "TP.GSYIH40.IFC.D21X31",
+  // sectoral-total GVA — DERIVED (gdpProd − taxes), not fetched; sentinel
+  // code so the tables can keep referencing it by key.
+  gva: "GVA.DERIVED",
   // TÜİK detail not in EVDS (ingested into evds_series as TUIK.* by src/tuik)
   consDurable: "TUIK.NA.CONS_DURABLE",
   consSemidur: "TUIK.NA.CONS_SEMIDUR",
@@ -53,7 +65,7 @@ const C = {
   gfcfOther: "TUIK.NA.GFCF_OTHER",
 } as const;
 
-const CODES = Object.values(C);
+const CODES = Object.values(C).filter((c) => c !== C.gva);
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -177,6 +189,13 @@ const QTABLE = 6; // columns on the y/y tables (matches the report)
 
 export async function getGrowthData(yearsBack = 10): Promise<GrowthData> {
   const s = await evdsMulti([...CODES], yearsBack);
+  // Sectoral-total GVA = GDP at purchaser prices − taxes less subsidies —
+  // exact identity; the A10 scheme publishes no direct total series.
+  const taxesByPeriod = new Map((s[C.taxes] ?? []).map((r) => [r.period_date, r.value]));
+  s[C.gva] = (s[C.gdpProd] ?? []).flatMap((g) => {
+    const t = taxesByPeriod.get(g.period_date);
+    return t === undefined ? [] : [{ period_date: g.period_date, value: g.value - t }];
+  });
   const gdpY = yoy(s[C.gdpZH] ?? []);
   const cf = s[C.gdpCF] ?? [];
   const latest = gdpY.at(-1)?.period_date ?? "";
