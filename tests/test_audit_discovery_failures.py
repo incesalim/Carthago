@@ -79,6 +79,7 @@ def test_the_failure_reaches_the_workflow_through_the_result_file(tmp_path, monk
         return []
 
     monkeypatch.setattr(M, "discover_targets", boom)
+    monkeypatch.setattr(M, "bddk_registry_targets", lambda *a, **k: [])
     M.DISCOVERY_FAILURES.clear()
     M.scrape_to_r2(workers=1, db_path=None)
     assert M.DISCOVERY_FAILURES == [("VAKIFK", "TimeoutError: connect timeout=60")]
@@ -120,6 +121,7 @@ def _targets_for(monkeypatch, tmp_path, config, discovered):
     cfg.write_text(json.dumps({"banks": config}), encoding="utf-8")
     monkeypatch.setattr(M, "CONFIG", cfg)
     monkeypatch.setattr(M, "discover_targets", lambda t, b: discovered)
+    monkeypatch.setattr(M, "bddk_registry_targets", lambda *a, **k: [])
     seen = []
     monkeypatch.setattr(M, "fetch_pdf_bytes",
                         lambda url, t: (seen.append((t, url)), (None, "stub"))[1])

@@ -41,7 +41,7 @@ it. Everything scheduled runs in **GitHub Actions** — there is no server we ow
   Rates / calendar ─┘   transcripts,     │                          Cloudflare D1 (bddk-data)
                         rates,           │                                    │
   Bank BRSA PDFs ─────▶ release_calendar │                                    ├─▶ web/  Next.js
-  (per-bank, R2)        src/audit_reports┘                                    │     on Workers
+  (IR + BDDK registry)  src/audit_reports┘                                    │     on Workers
                                    │                                           └─▶ mobile/ Expo
                                    │  ── second, independent lane ──               (reads /api/app/v1)
                                    ▼

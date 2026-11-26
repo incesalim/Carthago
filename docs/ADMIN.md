@@ -353,7 +353,8 @@ word/diacritic differences remain visible.
 ### Managing audit reports (the intended workflow)
 
 Audit discovery and extraction run automatically each day during the quarterly filing
-windows. `refresh-audit.yml` takes a valid new PDF all the way from the bank site through R2,
+windows. `refresh-audit.yml` takes a valid new PDF all the way from the bank's site
+or BDDK's registry through R2,
 extraction, validation, one D1 batch and the snapshot. This panel remains the control surface
 for targeted repairs and for manual checks outside those windows.
 
@@ -367,8 +368,8 @@ for targeted repairs and for manual checks outside those windows.
   States, worst → best: **no signal** (nothing anywhere — deliberately *not* "not published";
   unlisted banks may never emit a KAP signal), **results out · audit report pending** (a
   `bank_earnings` KAP `results_filing` row exists for the period but no BRSA PDF is in R2 —
-  the bank released results while the audit report is still unpublished or its URL is missing
-  from `data/banks/audit_report_urls.json`), **acquired / extraction pending or failed**
+  the bank released results while the report is still unpublished, or it is on
+  neither the bank's page nor BDDK's registry as a PDF), **acquired / extraction pending or failed**
   (PDF in R2), **extracted**. The KAP evidence links to the filing. Kind chips mark each of
   unco/cons separately; a failed extraction shows ✕.
 - **Coverage matrix** — a **per-statement-type summary table** plus an **errors & missing
@@ -600,7 +601,7 @@ list mirrors `data/banks/audit_report_urls.json` (`AUDIT_BANKS` in
 `web/app/lib/github.ts`) and is validated server-side in the dispatch route, so
 only a known ticker can ever reach the workflow.
 
-### Auto-discovery
+### Auto-discovery and the registry fallback
 
 Some banks **auto-discover** new quarters straight from their IR page, so you
 just trigger and the newest report is found, scraped, and ingested with no
@@ -613,12 +614,24 @@ learns the URL's quarter-end date encoding and a filename "skeleton" from that
 bank's existing config entries, then matches new links on the page — which picks
 the right document (full report vs tables-only / TR vs EN) and assigns the
 consolidated/unconsolidated kind. It's fail-safe: any error falls back to the
-static config.
+static config. It is also brittle to a renamed file: 2026Q3 was missed for
+three of the thirteen because the filename changed by one token.
 
-The other banks still need a hand-added URL in `audit_report_urls.json` before
-triggering: some are JavaScript-rendered (AKBNK, GARAN, YKBNK, ISCTR, VAKBN,
-ICBCT, ALNTF), some serve opaque file-id URLs with no date (HSBC, KLNMA, ODEA,
-QNBFB), and a few don't validate cleanly yet (AKTIF, BURGAN, KUVEYT, SKBNK).
+The other 25 banks need no hand-added URL. Since 2026-11-27 the scraper also
+reads **BDDK's own registry** (BdrUyg) — the regulator's listing of every
+report filed with it — and downloads whatever neither the config nor discovery
+names (`src/audit_reports/bddk_registry_source.py`; the three sources and
+their precedence are in [OPERATIONS.md](OPERATIONS.md) §Get a newly published
+audit report). They are not on discovery because some are JavaScript-rendered
+(AKBNK, GARAN, YKBNK, ISCTR, VAKBN, ICBCT, ALNTF), some serve opaque file-id
+URLs with no date (HSBC, KLNMA, ODEA, QNBFB), and a few don't validate cleanly
+yet (AKTIF, BURGAN, KUVEYT, SKBNK).
+
+A hand-added URL is now needed only for a report that is neither a PDF in the
+registry nor discoverable on the bank's page — **QNB**, which files Word +
+Excel with the regulator. For 2026Q3 it had uploaded its PDFs without linking
+them from the page; they were found by probing document IDs above the linked
+slots and bound by hand.
 
 **Adding / re-checking a bank:** run `python scripts/diagnostics/validate_discovery.py`
 (uses the config as a test oracle — a bank passes when it reproduces its latest

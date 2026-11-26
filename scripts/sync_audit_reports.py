@@ -6,7 +6,9 @@ PDFs live in R2, extraction happens on the runner's tmpfs.
 
 Pipeline:
   1. Read data/banks/audit_report_urls.json for the canonical list of
-     (ticker, period, kind, url) targets.
+     (ticker, period, kind, url) targets; add what IR-page discovery finds and
+     what BDDK's own registry lists for partitions neither of those targets
+     (src/audit_reports/discovery.py, src/audit_reports/bddk_registry_source.py).
   2. For each target: check if PDF already exists in R2 under
      <ticker_lower>/<TICKER>_<period>_<kind>.pdf. If not, fetch + upload.
   3. List R2 → find PDFs not yet in bank_audit_extractions (success=1).
@@ -46,6 +48,8 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
+from src.audit_reports.bddk_registry_source import (  # noqa: E402
+    BDDK_REGISTRY_FAILURES, bddk_registry_targets, is_bddk_registry_url)
 from src.audit_reports.discovery import DISCOVERY_FAILURES, discover_targets  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
@@ -108,6 +112,14 @@ def _restrict_to_latest_period(rows: list, t_idx: int = 0, p_idx: int = 1) -> li
 # ---------------------------------------------------------------------------
 # Step 1+2: scrape new PDFs into R2
 # ---------------------------------------------------------------------------
+def _strip_java_header(body: bytes) -> bytes:
+    """Drop the 27-byte Java ObjectOutputStream header some CMS wrappers put in
+    front of a PDF. The document behind it is intact."""
+    if body[:4] == b"\xac\xed\x00\x05" and b"%PDF" in body[:64]:
+        return body[body.find(b"%PDF"):]
+    return body
+
+
 def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     """Fetch a URL → return (bytes, note). Handles VAKIFK wrapper + ZIP."""
     headers = dict(UA)
@@ -139,8 +151,7 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
         return None, f"http:{r.status_code}"
     body = r.content
     # VAKIFK CMS bug: PDFs wrapped in 27-byte Java ObjectOutputStream header
-    if body[:4] == b"\xac\xed\x00\x05" and b"%PDF" in body[:64]:
-        body = body[body.find(b"%PDF"):]
+    body = _strip_java_header(body)
     # ZIP-wrapped PDFs (some VAKBN solo files; every BdrUyg download)
     if body[:4] == b"PK\x03\x04":
         try:
@@ -150,11 +161,7 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
         pdf_names = [n for n in zf.namelist() if n.lower().endswith(".pdf")]
         if not pdf_names:
             return None, "no-pdf-in-zip"
-        # A BdrUyg zip bundles the financial report WITH the interim activity
-        # report ("… Aradönem Faaliyet Raporu.pdf"), which carries no statements
-        # and whose name can sort first. Prefer a non-activity PDF.
-        statements = [n for n in pdf_names if "faaliyet" not in n.lower()]
-        body = zf.read((statements or pdf_names)[0])
+        body = _report_member(zf, pdf_names)
     if not body.startswith(b"%PDF"):
         return None, f"not-pdf:{body[:8]!r}"
     return body, "ok"
@@ -299,6 +306,43 @@ def report_validity(body: bytes) -> tuple[bool, str]:
     return True, f"ok:{pages}pp"
 
 
+# Documents a registry zip carries BESIDE the financial report, by filename.
+# Neither is a filing: the interim activity report carries no statements, and
+# the responsibility statement is the executives' one-page signed declaration.
+_ZIP_COMPANIONS = ("faaliyet", "sorumluluk")
+
+
+def _report_member(zf: zipfile.ZipFile, pdf_names: list[str]) -> bytes:
+    """The financial report out of a zip's PDFs.
+
+    Companions are set aside by name first, exactly as the activity report
+    always was. What changed is 2026Q3: ANADOLU's zips gained a
+    "Sorumluluk Beyanı" that sorts ahead of the report, and taking the first
+    remaining PDF handed the whole bank a `too-short:1pp` refusal. With more
+    than one candidate left, the one that IS a report wins — so the next
+    companion nobody has named yet costs nothing either. If none validates,
+    the first candidate is returned untouched and refused by the caller's own
+    validity check, which is where the verdict and its reason belong.
+
+    Each member is unwrapped first. Five of the registry's 2026Q3 zips —
+    DUNYAK, EMLAK (both), EXIM, VAKIFK — hold their PDF behind the same
+    27-byte Java header VAKIFK's own site uses, and the header was being
+    stripped from the download, not from the file inside it.
+    """
+    reports = [n for n in pdf_names
+               if not any(c in n.lower() for c in _ZIP_COMPANIONS)]
+    pick = reports or pdf_names
+    if len(pick) > 1:
+        valid = []
+        for name in pick:
+            data = _strip_java_header(zf.read(name))
+            if report_validity(data)[0]:
+                valid.append((len(data), data))
+        if valid:
+            return max(valid, key=lambda t: t[0])[1]
+    return _strip_java_header(zf.read(pick[0]))
+
+
 def record_pdf_validity(db_path: Path,
                         verdicts: dict[tuple[str, str, str], str | None]) -> int:
     """Persist which R2 objects are not reports, and clear the ones that now are.
@@ -377,7 +421,13 @@ def scrape_to_r2(
     workers: int = 16, only: set[str] | None = None, latest_period: bool = False,
     db_path: Path | None = None,
 ) -> dict[str, int]:
-    """Walk audit_report_urls.json; upload any new PDFs to R2.
+    """Build the target list from three sources; upload any new PDFs to R2.
+
+    The hand-maintained ``audit_report_urls.json`` first, then what IR-page
+    discovery finds, then what BDDK's registry lists for the partitions neither
+    of those names. Each source only adds ``(ticker, period, kind)`` keys no
+    earlier source claimed, so precedence is the config, then the bank's own
+    site, then the regulator's copy.
 
     If ``only`` is given (a set of upper-case tickers), restrict the scrape to
     just those banks. If ``latest_period`` is set, restrict each bank to its
@@ -427,6 +477,16 @@ def scrape_to_r2(
                 continue
             seen.add(key)
             targets.append((ticker, period, kind, url))
+    # The registry fallback: one listing for the whole fleet, read once, naming
+    # only the partitions no source above targets (see bddk_registry_source).
+    # Fail-safe like discovery — an unreadable registry costs this fallback,
+    # never the run — and carried out in BDDK_REGISTRY_FAILURES for the job summary.
+    for ticker, period, kind, url in bddk_registry_targets(
+            cfg["banks"], only=only, skip=set(seen)):
+        if (ticker, period, kind) in seen:
+            continue
+        seen.add((ticker, period, kind))
+        targets.append((ticker, period, kind, url))
     if latest_period:
         targets = _restrict_to_latest_period(targets)
 
@@ -457,6 +517,15 @@ def scrape_to_r2(
             return ticker, period, kind, f"err:r2head:{e}", 0
         body, note = fetch_pdf_bytes(url, ticker)
         if body is None:
+            if note == "no-pdf-in-zip" and is_bddk_registry_url(url):
+                # A registry ROW is not a promise of a PDF: QNB files its copy
+                # as .docx + .xls (2026Q3, both bases). Nothing here can read
+                # that and nothing here controls when a PDF replaces it, so it
+                # is that bank's "not published yet" — pending, looked at again
+                # next run, outside the alarm's numerator. A config-bound zip
+                # keeps the same note as a failure: there the URL is ours, and
+                # a zip with no PDF in it is our mistake.
+                note = f"not-a-report:{note}"
             return ticker, period, kind, note, 0
         # Never replace — or store — one invalid object with another. A source
         # still serving the notification leaves the partition pending, and the
@@ -486,6 +555,12 @@ def scrape_to_r2(
         names = ", ".join(t for t, _ in DISCOVERY_FAILURES)
         print(f"[discover] {len(DISCOVERY_FAILURES)} bank(s) fell back to static "
               f"config after a failed discovery: {names}", flush=True)
+    if BDDK_REGISTRY_FAILURES:
+        # One line, not one per bank: the registry is a single host, so when it
+        # refuses it refuses for the whole fleet.
+        print(f"[bddk-registry] listing unreadable — the registry fallback added "
+              f"nothing this run: {BDDK_REGISTRY_FAILURES[-1]}", file=sys.stderr,
+              flush=True)
     print(f"[scrape] {len(targets)} targets · {workers} parallel · uploading to R2")
     with ThreadPoolExecutor(max_workers=workers) as ex:
         for fut in as_completed(ex.submit(_one, t) for t in targets):
@@ -798,6 +873,9 @@ def main():
                 # count above, exactly like a bank that has not filed.
                 "discovery_failures": [
                     {"bank": t, "reason": r} for t, r in DISCOVERY_FAILURES],
+                # Same channel for the registry fallback: an unreadable listing
+                # is in no scrape count either.
+                "bddk_registry_failures": list(BDDK_REGISTRY_FAILURES),
             }, sort_keys=True),
             encoding="utf-8",
         )

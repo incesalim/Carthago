@@ -19,9 +19,11 @@ staging area). Extraction is **PyMuPDF (`fitz`) only** — see the root
 
 ```
 data/banks/audit_report_urls.json    (URL config — one entry per bank, committed to git)
+bank IR pages                        (auto-discovery, 13 banks — discovery.py)
+BDDK's registry, BdrUyg              (every filing the regulator holds — bddk_registry_source.py)
         │
         ▼   scripts/sync_audit_reports.py
-        │   ├─ downloads new bank IR PDFs (parallel, idempotent)
+        │   ├─ downloads new audit-report PDFs (parallel, idempotent)
         │   ├─ uploads to R2 at <ticker>/<TICKER>_<period>_<kind>.pdf
         │   ├─ lists R2 + diffs against bank_audit_extractions
         │   ├─ downloads pending PDFs to a TemporaryDirectory
@@ -59,16 +61,24 @@ do not trust hardcoded numbers here. Shape:
 ## Adding a new period
 
 When banks file the next quarter's reports (typically late
-April / July / October / February):
+April / July / October / February), there is normally **nothing to do**. The
+scraper names its targets from three sources, each adding only what the ones
+before it do not already have:
 
-1. **Add new URLs** to `data/banks/audit_report_urls.json`. Each IR site
-   renames files unpredictably, so URLs cannot be auto-constructed — visit
-   the bank's IR page, find the new PDFs, copy the direct links.
+1. `data/banks/audit_report_urls.json` — the hand-maintained URLs.
+2. IR-page auto-discovery for the 13 banks in `discovery.DISCOVERY_BANKS`.
+3. BDDK's own registry (`bddk_registry_source.py`) — the regulator's listing of
+   every report filed with it. It covers the whole fleet, including the 25
+   banks discovery does not, and it is why a quarter no longer depends on
+   someone binding each bank's new URL by hand.
 
-2. **That's it.** The audit cron picks up the new entries during the filing
-   window automatically: downloads them to R2, extracts them, pushes to D1.
+A URL is still added by hand when a report is neither discoverable on the
+bank's page nor a PDF in the registry — QNB files Word + Excel with the
+regulator. Read the PDF's cover before binding (the house rule; a slot can
+serve the wrong quarter or a convenience translation), and record the why in
+the bank's `_note`.
 
-To pick up the change immediately, trigger the workflow manually from
+To pick up a change immediately, trigger the workflow manually from
 **GitHub → Actions → Refresh audit reports → Run workflow**.
 
 ## Modules
@@ -85,6 +95,8 @@ To pick up the change immediately, trigger the workflow manually from
 | `loader.py` | Rows → SQLite (idempotent upsert plus the `bank_audit_extractions` log row). |
 | `schema.py` | Local DDL for the `bank_audit_*` tables (serving schema is `web/migrations/`). |
 | `r2_storage.py` | boto3 wrapper around Cloudflare R2 (S3-compatible). |
+| `discovery.py` | New quarters found on a bank's own IR page, matched by filename skeleton against that bank's config entries (13 banks). |
+| `bddk_registry_source.py` | New filings read off BDDK's own registry listing (BdrUyg) for partitions no other source targets — the fleet-wide fallback. |
 
 ## Known edge cases
 

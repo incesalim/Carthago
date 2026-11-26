@@ -247,6 +247,7 @@ def _scrape_one(M, db, monkeypatch, tmp_path):
         encoding="utf-8")
     monkeypatch.setattr(M, "CONFIG", cfg)
     monkeypatch.setattr(M, "discover_targets", lambda *_a, **_k: [])
+    monkeypatch.setattr(M, "bddk_registry_targets", lambda *a, **k: [])
     return M.scrape_to_r2(workers=1, db_path=db)
 
 

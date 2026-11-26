@@ -197,6 +197,11 @@ jobs:
           for f in result.get("discovery_failures", []):
               print(f"::warning title=Discovery fell back to static config::"
                     f"{f['bank']}: {f['reason']}")
+          # The registry fallback is blind from the other side: an unreadable
+          # listing is in no count either, and it is the source that covers the
+          # 25 banks discovery does not.
+          for reason in result.get("bddk_registry_failures", []):
+              print(f"::warning title=BDDK registry fallback unavailable::{reason}")
           PY
 
       - name: Rebuild bank_audit_stages from credit-quality

@@ -16,9 +16,12 @@ snapshot in one run. Both workflows share `bddk-audit`, so manual work never ove
 1. **Pull snapshot, read-only** — download `state/bank_audit.db.gz` → `data/bank_audit.db`
    (first run: `seed_audit_db.py` bootstraps from the bulletin snapshot). Needed only so the
    coverage refresh below has accurate row counts; this job **never re-uploads the snapshot**.
-2. **`sync_audit_reports.py --no-extract`** — discover + scrape any newly published PDFs to R2
-   (`<ticker>/<TICKER>_<period>_<kind>.pdf`), via `audit_report_urls.json` + live
-   `discover_targets()`. No extraction. `--new-count-file` records how many were new.
+2. **`sync_audit_reports.py --no-extract`** — acquire any newly published PDFs to R2
+   (`<ticker>/<TICKER>_<period>_<kind>.pdf`) from three sources, in order:
+   `audit_report_urls.json`, live `discover_targets()` on the banks' IR pages, and
+   BDDK's registry listing for whatever those two do not name
+   (`src/audit_reports/bddk_registry_source.py`). No extraction. `--new-count-file`
+   records how many were new.
 3. **`sync_audit_expected.py --push`** — rebuild the coverage spine so freshly-acquired PDFs
    appear in the matrix as **missing + pdf_present** ("acquired, not yet extracted"). The
    expected universe is `audit_profiles.json` **∪ the R2 PDF list**, so a brand-new quarter

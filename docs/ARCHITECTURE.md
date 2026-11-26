@@ -40,6 +40,12 @@ exact retained origin receipt and indexed by filing/PDF hash without replacing
 the main acquired filing. The admin can select historical observations, related
 archive members and captured editions. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md).
 
+Audit-report PDFs arrive from two places: the banks' IR sites (the URL config
+plus auto-discovery for 13 banks) and, since 2026-11-27, BDDK's own registry of
+filed reports for every partition those do not name
+(`src/audit_reports/bddk_registry_source.py`) — the fleet-wide fallback that
+ended hand-binding a new quarter bank by bank.
+
 ```
               ┌─── BDDK API ────┐    ┌─── Bank IR sites ────┐    ┌─── TCMB EVDS ────┐
               │                 │    │                      │    │                  │

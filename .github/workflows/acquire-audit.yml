@@ -1,8 +1,10 @@
 name: Acquire audit reports
 
 # Audit-report ACQUISITION — a manual acquisition-only diagnostic. Banks
-# publish quarterly BRSA PDFs on their IR sites; this discovers + downloads any
-# new ones to R2 and refreshes the /admin coverage matrix so they appear as
+# publish quarterly BRSA PDFs on their IR sites and file them with BDDK; this
+# acquires any new ones to R2 (URL config, IR-page discovery, then BDDK's
+# registry for whatever those do not name) and refreshes the /admin coverage
+# matrix so they appear as
 # "missing" (acquired, not yet extracted). It does NOT extract; the normal
 # scheduled arrival path is refresh-audit.yml, while this is an operator tool.
 #

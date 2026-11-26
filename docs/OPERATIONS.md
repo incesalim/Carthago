@@ -325,7 +325,7 @@ validation and unchanged-content guards.
 | Manual only | `acquire-audit.yml` | Acquisition-only diagnostic: discover + download new audit PDFs → R2. Scheduled discovery moved to `refresh-audit.yml`, where a new filing is extracted immediately The full-document follow-up inherits manual `bank`/`period` filters; `--bank` accepts comma-separated tickers, while scheduled runs retain the recent-168-hour window. **Always refreshes the coverage spine** (`sync_audit_expected.py --push`, unconditional since 2026-10-03): outside the quarterly filing windows no scheduled run ships the spine tables, so dispatching this workflow is the answer to the daily `audit_spine` staleness alert — a quiet push re-stamps the marker at near-zero row cost. |
 | Sunday 06:00 UTC | `summarize-regulations.yml` | Weekly regulation briefing via Kimi → `regulation_briefings` → D1. **Needs the `KIMI_API_TOKEN` secret** (see Secrets). Runs with `--require-baseline`, so it **fails rather than shipping an ungrounded briefing** (it warned-and-continued for 7 weeks unnoticed — see [regulation_followups.md](regulation_followups.md) §A). Since 2026-08-16 the generator **gates on the hand-verified fact checklist** (`src/news/briefing_facts.py`): bullets asserting a superseded value are stripped deterministically, omitted facts get one pointed retry naming the rule + source (never the value), and `check_briefing_facts.py --fail-under 0.75` is a **publication gate** — a briefing scoring under 75% is not pushed and not snapshotted, D1 keeps last week's verified text, and the run goes red (§E of the followups doc: a 69% briefing once shipped with a Telegram alert as the only trace). **A section whose draft lands empty falls back to last week's verified bullets** (marked "HELD BACK" in the Telegram post) instead of vanishing and failing the gate — observed 2026-09-27 when deepseek-v4-flash returned zero bullets for TL Deposit Share while every other section produced. **Citations are gated the same way** (`src/news/briefing_citations.py`, §F): an id survives only if its body states the bullet's percentages, a figure-bearing bullet left uncited is retried once then dropped, and any miscited bullet in the stored briefing fails the gate like a missing section. **Annual pin:** once a year dispatch it with `baseline_year=YYYY` + `baseline_url=<TCMB "Monetary Policy for YYYY" PDF>` — the ingest must run *here*, between the snapshot pull and upload, because a local run writes a DB production never reads. **Posts the briefing to Telegram** (every section + bullet, split across messages under the 4k cap) whenever the LLM actually runs; silent on unchanged-input weeks. `force=true` regenerates on demand |
 | Sunday 07:30 UTC | `generate-reads.yml` | "The Read" — LLM-rewritten headline per dashboard tab → `read_headlines` → D1. `deepseek-v4-flash` @Baidu (paid) ahead of the free providers, with per-family pacing + magnitude-match number validation; falls back to a deterministic template |
-| Daily in earnings windows + manual/admin | `refresh-audit.yml` | Discover new audit PDFs → R2 → extract pending partitions → rebuild validation + coverage locally → **one** D1 push → snapshot. Filing windows: Jan 20–all February, Mar 1–15, and Apr/Jul/Oct 20 through May/Aug/Nov 20. Quiet checks stop after discovery and write nothing. Manual targeted re-extraction remains available from `/admin`. Runs two **alert-only** checks before the push — `check_audit_quality.py --alert` and, since 2026-08-13, `watch_cross_period.py --alert`, the only check in the pipeline that can see a **reporting-unit** error (every validator argues inside one filing, and a change of denomination scales both sides of each identity). It opens no PDF, writes nothing anywhere, and exits 0 even with no snapshot, so it can never fail a run whose data is already written. Since 2026-08-19 the run also **captures each freshly extracted filing document-scoped** (`backfill_document_capture.py --recent-hours 168` — run-local ledger, discarded; the compact `bank_audit_document_manifest` rides the same D1 push and snapshot) and **reconciles the freshly stored figures against the cells the filing printed** (`check_capture_reconcile.py --alert`, alert-only, exits 0) — the external unit-scale anchor working the same day a filing lands instead of at the next manual fleet backfill. A capture crash raises a job warning and skips; it cannot fail a run whose extraction is already written |
+| Daily in earnings windows + manual/admin | `refresh-audit.yml` | Acquire new audit PDFs (URL config + IR-page discovery + BDDK's registry) → R2 → extract pending partitions → rebuild validation + coverage locally → **one** D1 push → snapshot. Filing windows: Jan 20–all February, Mar 1–15, and Apr/Jul/Oct 20 through May/Aug/Nov 20. Quiet checks stop after discovery and write nothing. Manual targeted re-extraction remains available from `/admin`. Runs two **alert-only** checks before the push — `check_audit_quality.py --alert` and, since 2026-08-13, `watch_cross_period.py --alert`, the only check in the pipeline that can see a **reporting-unit** error (every validator argues inside one filing, and a change of denomination scales both sides of each identity). It opens no PDF, writes nothing anywhere, and exits 0 even with no snapshot, so it can never fail a run whose data is already written. Since 2026-08-19 the run also **captures each freshly extracted filing document-scoped** (`backfill_document_capture.py --recent-hours 168` — run-local ledger, discarded; the compact `bank_audit_document_manifest` rides the same D1 push and snapshot) and **reconciles the freshly stored figures against the cells the filing printed** (`check_capture_reconcile.py --alert`, alert-only, exits 0) — the external unit-scale anchor working the same day a filing lands instead of at the next manual fleet backfill. A capture crash raises a job warning and skips; it cannot fail a run whose extraction is already written |
 | Manual only (eval) | `analyst-research.yml` | **Analyst V2 — agentic discovery over deterministic evidence** ([ANALYST_V2.md](ANALYST_V2.md)): pulls the R2 snapshots + the filing PDF's per-page text, runs the story-agnostic anomaly scout, then a bounded hypothesis-driven research loop over typed read-only tools, deterministic verification of structured findings, and a rendered summary of survivors. **Artifact-only, no D1 writes, no schedule, nothing publishes automatically** — V1 (`analyst-daily.yml`) stays the baseline; publishing waits on the evaluation corpus + explicit human approval. `scout_only=true` runs without any LLM |
 | Manual only (freeze) | `analyst-daily.yml` | The analyst layer: pulls both R2 snapshots, runs the deterministic detectors (`scripts/analyst/detect.py` — unit switches, cross-period restatements, opinion changes, perimeter, CAR−CET1 / NPL-vs-coverage divergences), then generates grounded LLM memos for the requested banks (`web/scripts/analyst-run.ts --memo`, free-model chain, figure guard). Migration `0037_analyst_signals.sql` is **applied**, and a **`push` input (default false)** sends `analyst_signals` + `analyst_basis_metadata` + `analyst_notes` to D1 via `push_to_d1.py --db data/analyst.db`. All three are `_FULL_REBUILD` (derived wholesale each run, so a signal that stops firing must disappear rather than linger) and tiny — ~9,030 billed rows, and the content hash makes an unchanged re-run free. ⚠️ `fired_at` is excluded from that hash: `detect.py` omits the column on INSERT so it takes a fresh `CURRENT_TIMESTAMP` every run, and leaving it in would rebuild the tables daily forever. The daily 07:00 UTC cron is live; `push` stays opt-in per dispatch. `banks=CALIBRATE` runs the ALBRK+SKBNK calibration pair from the feasibility test; Telegram ping on critical signals |
 | Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~5-year TEFAS fund-market history backfill (API cap) — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
@@ -437,13 +437,33 @@ python scripts/push_to_d1.py --db data/bank_audit.db --hours 168 --table-set aud
 ### Get a newly published audit report in (quarterly cadence)
 
 When a bank publishes a new quarterly report (~late April / July /
-October / February):
+October / February), `refresh-audit.yml` builds its download list from three
+sources. Each adds only what the ones before it do not already target:
 
-- **13 banks auto-discover** from their IR page — no edit needed. They are
-  ALBRK, ANADOLU, EMLAK, EXIM, FIBA, HALKB, ING, PASHA, TEB, TFKB, TSKB,
-  VAKIFK, ZIRAAT (`DISCOVERY_BANKS` in `src/audit_reports/discovery.py`).
-- **Every other bank**: add the URL to `data/banks/audit_report_urls.json`
-  — that's the only edit needed.
+1. **The hand-maintained config**, `data/banks/audit_report_urls.json`.
+2. **IR-page auto-discovery** for 13 banks — no edit needed. They are
+   ALBRK, ANADOLU, EMLAK, EXIM, FIBA, HALKB, ING, PASHA, TEB, TFKB, TSKB,
+   VAKIFK, ZIRAAT (`DISCOVERY_BANKS` in `src/audit_reports/discovery.py`).
+3. **BDDK's own registry** (BdrUyg, since 2026-11-27) — the regulator's listing
+   of every report filed with it, one row per filing with SOLO / KONSOLIDE and
+   a download link (`src/audit_reports/bddk_registry_source.py`). It names only
+   partitions no source above targets, so it never replaces a bank's own copy,
+   and it is what covers the 25 banks discovery does not.
+
+**No edit is normally needed.** Bind a URL by hand only when a report is on
+neither the bank's page nor the registry as a PDF — QNB files Word + Excel
+with the registry and for 2026Q3 had uploaded its PDFs without linking them
+from the page (found by probing document IDs above the linked slots).
+
+What the registry proposes goes through the same acquisition guards as any
+other source (`report_validity`, the consolidation-basis check). A registry zip
+is read for what it is rather than trusted to be "a PDF": a member behind the
+27-byte Java header some CMS wrappers add is unwrapped (five of the 2026Q3
+zips), a companion document that sorts ahead of the report is skipped
+(ANADOLU's one-page responsibility statement), and a zip with no PDF in it is
+`pending` (`[PEND] no-pdf-in-zip`), not a failure. An unreadable listing adds
+nothing and raises a `BDDK registry fallback unavailable` job warning — it is
+in no scrape count.
 
 During the filing windows, `refresh-audit.yml` checks daily. A valid new PDF is
 downloaded to R2, extracted, validated, added to the coverage matrix, pushed to
@@ -503,7 +523,7 @@ to download/inspect a PDF without extracting it.
 To enable auto-discovery for more banks, run
 `python scripts/diagnostics/validate_discovery.py` (it checks discovery against
 the config) and add any passing ticker to `DISCOVERY_BANKS`. See
-[ADMIN.md](ADMIN.md) §Auto-discovery.
+[ADMIN.md](ADMIN.md) §Auto-discovery and the registry fallback.
 
 ### Audit source-completeness backfill
 
@@ -1621,6 +1641,15 @@ the column genuinely holds a ratio.
   archive for the class with `--verify-basis`. The basis is read from the PDF's own
   cover/auditor's-report front matter (`classify_report_basis`), so a filing whose
   content genuinely contradicts its filename is caught, not just a bad link.
+- **`BDDK registry fallback unavailable` job warning** — the regulator's listing
+  could not be read this run (`[bddk-registry] listing unreadable` on stderr).
+  The run fell back to the config and IR-page discovery, so a bank that
+  published this quarter may be missing; re-run. `published but not acquired`
+  in the health check is the same fact seen from the other side.
+- **`[PEND] … no-pdf-in-zip` on a registry download** — the bank filed
+  something other than a PDF with the regulator (QNB: Word + Excel). Nothing to
+  fix here: the partition is looked at again next run, and the report has to
+  come from the bank's own page.
 - **D1 push errors `no such column`** — schema drift between local SQLite and D1.
   This should now **self-heal**: `ensure_d1_schema()` (`scripts/audit_d1.py`) has
   been column-aware since 2026-07-03 — it diffs the canonical schema (DDL **plus**

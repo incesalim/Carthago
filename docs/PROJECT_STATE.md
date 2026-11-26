@@ -997,7 +997,10 @@ sitting on published filings for weeks**: DENIZ filed 07-24 and ALNTF 08-04.
 **That backlog is structural, not an oversight.** `DISCOVERY_BANKS` holds 13
 banks; for the other 25 a published filing is invisible until its URL is added
 by hand, and nothing reports that it is missing. Expect to repeat this every
-quarter until discovery covers more of the fleet. Three of the eleven could not
+quarter until discovery covers more of the fleet. *(It did, every quarter
+through 2026Q3. Fixed 2026-11-27 by reading BDDK's own registry as a third
+source — see "Audit acquisition reads BDDK's registry" at the top.)* Three of
+the eleven could not
 have been reached by substituting the date into the bank's own 2026Q1 URL:
 SKBNK appended `-062026`, EMLAK renamed the document
 `_sinirli-denetim-raporu_`, and ODEA's CMS serves an opaque
@@ -1089,7 +1092,8 @@ causes, each fixed:
 1. **Discovery covers 13 of 38 banks**, so for the other 25 a published filing
    is invisible until a URL is hand-added. Nine of the thirteen sat there.
    *Unfixed by design* — widening `DISCOVERY_BANKS` needs per-bank validation —
-   but no longer silent, see (4).
+   but no longer silent, see (4). *(Fixed 2026-11-27 by a third source, BDDK's
+   registry, which needs no per-bank validation.)*
 2. **Three of the thirteen were inside `DISCOVERY_BANKS` and failed anyway.**
    VAKIFK's host answers a Turkish address and times out from the GitHub runner
    (`ConnectTimeout`, in every run log since 08-05); TFKB returned 2 links
@@ -2230,8 +2234,9 @@ was cut 12× for fresher pages at no marginal cost.)* A password-gated `/admin` 
 traffic) is unlocked by the `ADMIN_PASSWORD` Worker secret; optional
 `GITHUB_DISPATCH_TOKEN` enables the trigger buttons and Web-Analytics creds the
 traffic panel. The Pipeline panel's audit card supports a **per-bank,
-latest-period** trigger, and **13 banks auto-discover** new quarters from their
-IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
+latest-period** trigger, and **no bank needs a hand-added URL for a new
+quarter**: 13 auto-discover it from their IR page and, since 2026-11-27, BDDK's
+registry covers the rest — see [ADMIN.md](ADMIN.md) §Auto-discovery and the registry fallback.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
 **Chart-library weight: measured, demonstrated, DEFERRED (2026-07-25).** A bank page

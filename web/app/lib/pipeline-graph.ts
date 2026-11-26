@@ -105,7 +105,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-products", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · product_* (shelf)", sublabel: "product_attributes · bank_products · bank_product_profile · dated snapshots" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
-  { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: `${BANK_COUNT} banks · +13 auto-discover quarters`, statusKey: "audit" },
+  { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: `${BANK_COUNT} banks · IR sites + BDDK registry`, statusKey: "audit" },
 
   // ── Audit lane · ingestion (workflows) ─────────────────────────────────
   { id: "wf-audit-gates", kind: "workflow", layer: "ingestion", lane: "audit", label: "audit extraction gates", sublabel: "manual · isolated faults in a snapshot copy; reports only", workflowFile: "audit-extraction-gates.yml" },

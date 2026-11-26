@@ -142,7 +142,7 @@ export default function FilingSeason({ report }: { report: FilingSeasonReport })
 
       <Group
         title="Results out · audit report pending"
-        hint="An independent KAP results filing exists for the period, but no BRSA PDF has been acquired — usually the report is not on the bank's IR site yet, or its URL is missing from data/banks/audit_report_urls.json."
+        hint="An independent KAP results filing exists for the period, but no BRSA PDF has been acquired — usually the report is not out yet as a PDF: neither on the bank's IR site nor in BDDK's registry."
         banks={group("results_only")}
       />
       <Group

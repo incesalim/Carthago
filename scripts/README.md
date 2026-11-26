@@ -103,7 +103,7 @@ locally → **one** D1 push → snapshot; it stops after discovery when nothing 
 `acquire-audit.yml` is manual-only acquisition without extraction.
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
-| `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 (`--no-extract` = acquire) and/or extract pending → `bank_audit.db`. `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`, `--force`, `--new-count-file`, `--result-file` (machine-readable quiet-run handoff). | `acquire-audit.yml` (manual scrape), `refresh-audit.yml` (scheduled/manual combined path) | pipeline |
+| `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 (`--no-extract` = acquire) and/or extract pending → `bank_audit.db`. Targets come from the URL config, then IR-page auto-discovery, then BDDK's BdrUyg registry for whatever those two do not name (since 2026-11-27). `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`, `--force`, `--new-count-file`, `--result-file` (machine-readable quiet-run handoff). | `acquire-audit.yml` (manual scrape), `refresh-audit.yml` (scheduled/manual combined path) | pipeline |
 | `build_bank_audit_stages.py` | Consolidate credit-quality rows → `bank_audit_stages`. | `refresh-audit.yml` | pipeline |
 | `check_audit_quality.py` | 10 alert-only anomaly families (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl/pl_sign/free-provision); delta-alerts against the R2 baseline. | `refresh-audit.yml`, `backfill-audit.yml`, `reextract-statement.yml` | pipeline |
 | `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | both audit workflows (bootstrap) | pipeline |
