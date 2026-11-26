@@ -252,7 +252,7 @@
     "QNBFB": {
       "name": "QNB Bank A.Ş. (formerly QNB Finansbank)",
       "ir_page": "https://www.qnb.com.tr/en/investor-relations/financial-information",
-      "_note": "Opaque CMS file IDs. Referer no longer required as of 2026-10-31 (bare UA GET returns the PDF). Solo = Bank Only. 2026Q3 NOT bound: the BRSA section's Sept-30 slots (4707/4708) hold 4-page English convenience translations, not the BDDK-format reports (Q1/Q2 were 108-120pp); re-harvest when the real Turkish BDDK PDFs are posted.",
+      "_note": "Opaque CMS file IDs. Referer no longer required as of 2026-10-31 (bare UA GET returns the PDF). Solo = Bank Only. 2026Q3 = 4713/4714: the real BDDK-format reports (114pp / 110pp; both covers read 30 September 2026, bound 2026-11-26). The BRSA section's Sept-30 slots STILL link 4707/4708, which are 4-page English convenience translations: the reports were uploaded to the CMS but never linked from the page, so reading the page cannot find them. QNB also files Word + Excel (no PDF) with BDDK's registry, so the registry fallback cannot supply this bank either. Each quarter this pair is bound by hand, and when the slots hold translations, probe document IDs above them.",
       "urls": {
         "consolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3562.vsf",
@@ -272,7 +272,8 @@
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4449.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4547.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4621.vsf",
-          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf"
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4685.vsf",
+          "2026Q3": "https://www.qnb.com.tr/medium/document-file-4713.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3561.vsf",
@@ -292,7 +293,8 @@
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4422.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4546.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf",
-          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf"
+          "2026Q2": "https://www.qnb.com.tr/medium/document-file-4683.vsf",
+          "2026Q3": "https://www.qnb.com.tr/medium/document-file-4714.vsf"
         }
       }
     },
