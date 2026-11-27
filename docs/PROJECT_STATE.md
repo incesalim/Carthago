@@ -63,7 +63,7 @@ rule or absent-to-zero substitution was needed.
 | Table | Source | Range | Latest |
 |---|---|---|---|
 | `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | BDDK monthly bulletin | 2020-01 → present | 2026-06 |
-| `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag. Nine of the bulletin's ten tables since 2026-11-27: tables 1–7 from 2019-11; table 8 (securities held at banks, market value) and table 9 (FX position) fill from the first refresh after that date, so their history starts there. Values are **million TL** |
+| `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag. Nine of the bulletin's ten tables since 2026-11-27: tables 1–7 from 2019-11; table 8 (securities held at banks, market value) and table 9 (FX position) from 2026-09-04 — the 12 weeks the first run fetched; 9,720 and 720 rows. Values are **million TL** |
 | `nonbank_balance_sheet` | BDDK non-bank monthly bulletin (BultenAylikBdmk) | 2008-01 → present | leasing / factoring / financing, monthly, balance sheet (Million TL); reconciles to FKB sector totals. VYŞ (sparse/variant feed) + savings-finance (not in this bulletin) deferred |
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series. Loan/deposit **rates here are SECTOR-level only** (`TP.KTFTUK`/`TP.KTF17`/`TP.KTF12`/`TP.TRY.MT06`) — the per-bank complement is `bank_advertised_rates` below |
 | `bank_advertised_rates` | doviz.com (loans) + hangikredi (deposits) — public rate-comparison pages | 2026-07-12 → present (accumulating) | weekly (Mon); per-bank **advertised** (posted-to-new-customers) rates — the only per-bank rate source, since EVDS/BDDK publish rates at sector granularity only. Loans = POINT rate, MONTHLY % (consumer/mortgage/vehicle); deposits = min–max BAND, ANNUAL %. Each run appends a dated `snapshot_date` (the sources only expose "today", so history builds forward — rows never deleted). Distinct from the P&L-derived *realized* yield/cost in `heatmap.ts` |
@@ -1471,7 +1471,8 @@ it is the one page whose claims are about us, not about the banks.
 ## Public data API
 
 `/api/v1` — public, unauthenticated, read-only. Serves the **BDDK monthly
-(tables 1–17) + weekly bulletin** aggregates as ~19,800 time series, shaped after
+(tables 1–17) + weekly bulletin** aggregates as ~21,100 time series (21,077
+on 2026-11-27: 17 monthly datasets, 9 weekly), shaped after
 TCMB's **EVDS** (dotted series codes joined with `-`, `DD-MM-YYYY` dates,
 `type=json|csv`). Full reference: **[API.md](API.md)**.
 
@@ -3083,9 +3084,9 @@ The values were always right and the dashboard was never affected: it uses
 weekly values in ratios and growth rates, where the unit cancels. A consumer
 who trusted `unit` was 1,000× short. `WEEKLY_UNIT` is now `million TL`, both
 docs say so and tell pre-2026-11-27 consumers to rescale, and
-`tests/test_weekly_categories.py` pins it. **The correction reaches D1 with
-the next Saturday refresh**, which rebuilds `api_series` (~20k rows, a real
-change); until then the live API still says thousand.
+`tests/test_weekly_categories.py` pins it. **It reached D1 the same evening**,
+with the weekly refresh of 2026-11-27 (dispatch `46061691573`), which rebuilds
+`api_series`: all 3,087 weekly series now read `million TL` on `/api/v1`.
 
 Found by the probe for the item below, not by anything in the repo: no check
 compared a stated unit with a printed one.
@@ -3127,8 +3128,13 @@ zero across the window *because the stock has wound down*, and four of table
 7 — which would have ended each series at its last non-zero week. Zeros are
 data. Empty axes are the only test; table 10 stays out by not being listed.
 
-Both tables fill from the first weekly refresh after this change, so their
-history starts there (~13 weeks at first). Older weeks need the existing
+The first run (dispatch `46061691573`, 2026-11-27 — triggered by hand because
+GitHub was hours behind on the Friday cron) landed 12 weeks of both,
+2026-09-04 → 2026-11-20: 9,720 and 720 rows, and the figures match BDDK's
+page, including its identity assets − liabilities = on-balance-sheet
+position. It measured 3,102 calls in 40 minutes with 0 errors — 44 minutes for
+the refresh step, 47 end to end, inside the 90 — and wrote 209,939 rows to D1,
+most of it the `api_series` rebuild. Older weeks need the existing
 anchor-walking backfill: about 21,600 calls for table 9 alone back to 2019,
 not run. The catalogue is 179 charts; a Friday refresh that scrapes goes from
 ~2,230 to ~3,100 calls, so the job's timeout went from 60 to 90 minutes

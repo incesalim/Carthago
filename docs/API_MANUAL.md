@@ -10,7 +10,7 @@ Base URL — `https://carthago.app/api/v1`
 
 BDDK (Bankacılık Düzenleme ve Denetleme Kurumu — Türkiye's banking regulator)
 publishes the sector's statistics as monthly and weekly bulletin tables. This
-API republishes them as **~19,800 addressable time series** you can pull by URL.
+API republishes them as **~21,100 addressable time series** you can pull by URL.
 
 | | |
 |---|---|
@@ -147,7 +147,7 @@ Three ways to work:
 # 2. Browse one table for one bank group
 /api/v1/serieList?dataset=T01&bankType=10001&limit=200
 
-# 3. Export the ENTIRE catalog (all ~19,800 series, ~3 MB) and grep it locally
+# 3. Export the ENTIRE catalog (all ~21,100 series, ~3 MB) and grep it locally
 /api/v1/serieList?limit=25000&type=csv
 ```
 
@@ -184,14 +184,14 @@ you request it.
 
 ## 6. How the catalog is shaped
 
-~19,800 series sounds like a lot to browse. It isn't — the catalog is only
+~21,100 series sounds like a lot to browse. It isn't — the catalog is only
 **554 distinct lines**, each repeated across bank groups and value columns:
 
 ```
 series  =  line  ×  bank group  ×  value column
 ```
 
-So finding what you want is three small choices, not one search through 19,800
+So finding what you want is three small choices, not one search through 21,100
 things. Pick the line, then vary the last two segments of the code.
 
 | Dataset | Lines | Bank groups | Value columns | Series |
@@ -273,8 +273,8 @@ Weekly (all **million TL**, 2019-11 → current):
 `WFX` is category 7 of the bulletin and `WCUST` category 8 — the same custody
 table at nominal and at market value. Neither is an FX position; the FX
 position is `WFXPOS` (category 9), which publishes a **total column only**.
-Both were added on 2026-11-27 and fill from the first weekly refresh after that
-date, so their histories start there. The bulletin's tenth table, a maturity
+Both were added on 2026-11-27; their histories start 2026-09-04, the twelve
+weeks the first run fetched. The bulletin's tenth table, a maturity
 split, has printed zero for every cell since December 2020 and is not served.
 
 ---

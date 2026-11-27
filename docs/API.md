@@ -23,8 +23,8 @@ GET /api/v1/series?series=BDDK.T01.I001.10001.TOT&startDate=01-01-2024&type=csv
 
 | | |
 |---|---|
-| Series | ~19,800 |
-| Datasets | 24 (17 monthly + 7 weekly) |
+| Series | ~21,100 (21,077 on 2026-11-27) |
+| Datasets | 26 (17 monthly + 9 weekly) |
 | Monthly range | 2020-01 → current |
 | Weekly range | 2019-11 → current |
 | Source | BDDK (Banking Regulation and Supervision Agency of Türkiye) |

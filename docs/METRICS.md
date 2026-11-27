@@ -552,8 +552,8 @@ category 9, which prints a TOTAL column only.
 | 8 | `saklanan_menkul_degerler` | 45 | 8.0.1 Saklanan Menkul Değerler (Piyasa Değeri) — by holder (residents, non-residents; households, insurers, other corporates, banks, other financial) and instrument (government paper, Eurobonds, other) |
 | 9 | `yp_pozisyonu` | 10 | 9.0.11 Bilanço İçi YP Pozisyonu · 9.0.14 Bilanço Dışı YP Pozisyonu · 9.0.17 Net Genel Pozisyon · 9.0.18 Yasal Özkaynak · 9.0.19/20 Dövize Endeksli varlık/yükümlülük |
 
-Categories 8 and 9 were added on 2026-11-27; their history starts with the
-first weekly refresh after that date (the API serves a 13-week window, and
+Categories 8 and 9 were added on 2026-11-27; their history starts 2026-09-04,
+twelve weeks from the first run (the API serves a 13-week window, and
 older weeks need an anchor-walking backfill).
 
 ⚠️ **Not every table prints three columns.** Category 9 has a single TOPLAM
