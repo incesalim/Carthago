@@ -9,8 +9,10 @@ Steps (each can be skipped individually):
   6. KAP ownership-structure refresh (non-critical).
   7. TEFAS fund-market refresh (non-critical).
   8. Faaliyet-raporları franchise refresh — incremental, non-critical.
-  9. VACUUM + gzip to data/bddk_data.db.gz.
- 10. Optional: git add / commit / push the new snapshot.
+  9. Regulation primary record — Official Gazette documents and TCMB's
+     card-rate caps, non-critical.
+ 10. VACUUM + gzip to data/bddk_data.db.gz.
+ 11. Optional: git add / commit / push the new snapshot.
 
 The BIST equity step (Yahoo) was removed 2026-08-01 — Yahoo's terms forbid
 redistribution and prohibit automated access, so both the fetch and the serve
@@ -119,6 +121,9 @@ def main():
                         help="skip the KAP ownership-structure refresh")
     parser.add_argument("--skip-tefas", action="store_true",
                         help="skip the TEFAS fund-market refresh")
+    parser.add_argument("--skip-regulation", action="store_true",
+                        help="skip the regulation primary record (Official Gazette "
+                             "documents, TCMB card-rate caps)")
     parser.add_argument("--skip-faaliyet", action="store_true",
                         help="skip the Faaliyet-raporları franchise refresh")
     parser.add_argument("--skip-tuik", action="store_true",
@@ -217,6 +222,13 @@ def main():
         # creds on a creds-less cron) must not abort the core BDDK refresh.
         _run_step("Faaliyet franchise update",
                    [sys.executable, "scripts/update_faaliyet.py"],
+                   critical=False)
+    if not args.skip_regulation:
+        # What the central bank and the regulator published, dated, from the
+        # primary record. Light: one TCMB page and about a week of Gazette
+        # listings. Non-critical — neither source may abort the core refresh.
+        _run_step("Regulation primary record",
+                   [sys.executable, "scripts/update_regulation.py"],
                    critical=False)
 
     changed = before_digest != file_digest(DB_PATH)

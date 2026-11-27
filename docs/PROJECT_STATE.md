@@ -77,6 +77,8 @@ rule or absent-to-zero substitution was needed.
 | `faaliyet_franchise` | Bank annual reports (Faaliyet Raporu PDFs) | annual (FY ending 31 Dec) | ATM / POS / merchant / customer / card counts (the stats audit reports don't carry; branches & employees stay in `bank_audit_profile`); deterministic regex+coordinate extraction with confidence flags. **⚠️ NOT TRUSTWORTHY — the `/franchise` tab is unpublished (2026-07-12): the extractor samples stray prose numbers, ~75% of non-ATM values are wrong and the confidence flags don't correlate with correctness. Needs a rebuilt extractor + validation gate, NOT more URL curation** |
 | `faaliyet_extractions` | per-PDF extraction ledger for the lane above | — | one row per annual report processed: success flag, rows written, confidence — the lane's audit trail |
 | `tbb_acquisition_stats` | TBB workbooks — remote-vs-branch customer acquisition | monthly | the **TBB** twin of `tkbb_acquisition_stats` above (deposit banks vs participation banks) |
+| `regulation_events` | Resmî Gazete (Official Gazette) — documents whose issuing body, or listing title, names TCMB or BDDK | 2026-11-27 → (fills from the first Saturday refresh) | one row per document: publication date, issuer, instrument, title, link to the document. `summary` is the opening of the document's own text and is **NULL when it has none** — BDDK board decisions are scanned images. No TCMB document appeared in 75 days of issues before this lane was written, so its issuer rule is untested against a live one |
+| `tcmb_card_rate_caps` | TCMB's table of maximum credit-card / overdraft-account interest rates | 2026-01 → current (the page carries the current year) | one row per effective month × currency (`TL`/`FX`) × tier × rate kind (`reference`, `contractual`, `late_payment`); percent per month. The debt-band thresholds are values on the row (`tier_floor_tl`, `tier_ceiling_tl`), read from the header. A cut shows as dated changes: 2026-12-01 lowered all eleven |
 | `regulation_briefings` | BDDK/TCMB regulation text → weekly Kimi summary | weekly (Sun 06:00 UTC cron) | one briefing row per run. **Since 2026-07-13 it no longer supplies any figure on `/regulation`** — the corridor and reserve ratios are compiled from `news_items.body_text` + EVDS and reconciled, so no model-set figure reaches the page. ⚠️ That is now **this lane's own choice**, not a repo-wide rule — "No LLM sets a number" was reversed 2026-08-03 (see AGENTS.md); the briefing's `find_contradictions()` gate and the compiled-figure design stand until this lane decides otherwise. The briefing supplies **editorial coverage only**: the categories the band does not model (licensing, payments, structure). Two categories stay unsourced by design — see [regulation_followups.md](regulation_followups.md) |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q3 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
@@ -2994,6 +2996,49 @@ The new receipt remains unverified live, and no whole report is certified comple
 Dated entries, newest first. Each records what changed, what it was measured
 against, and what it left open. Titles are unchanged from when these sat at
 the top of the file.
+
+### The regulation primary record is a lane (2026-11-27)
+
+Two tables now hold what the rule-makers published, dated, from the primary
+record — the piece the regulation briefing lacked when its own grounding gate
+stopped it on 11-15 and 11-22.
+
+**`tcmb_card_rate_caps`** — the maximum interest TCMB sets for credit-card and
+overdraft-account transactions, from TCMB's own table: one row per effective
+month × currency × debt tier × rate kind, eleven to a month. Read live on
+2026-11-27: 12 months, 132 rows, no blank cell; a second pass wrote nothing.
+The debt-band thresholds are values on each row, not column names, because
+TCMB has moved them (25,000 → 30,000 TL). The page already shows a result:
+every cap fell on 2026-12-01, the contractual rate on a small statement from
+3.25% to 3.08% a month.
+
+**`regulation_events`** — one row per Resmî Gazete document whose issuing body
+names the central bank or the banking regulator. Each Saturday the last nine
+days' listings are read and every document fetched.
+
+**What the source turned out to be, measured over 75 days and 630 documents —
+less than the plan assumed, and it should be planned against as it is:**
+
+- **Central-bank communiqués barely appear.** Three documents named BDDK, all
+  board decisions; none named TCMB. The Gazette's own search filters by
+  institution but answers scripted requests with a 500. So the TCMB issuer
+  rule is **untested against a live document**. It is verified only because
+  the header parser was kept separate from the "is it ours" filter and so
+  runs on any ministry's page — which is how two real defects were found
+  before shipping: the issuing body wraps over two lines, and Word's export
+  metadata was standing above the header.
+- **BDDK board decisions are scanned images.** The PDF has no text layer.
+  Those events carry a title, a date, the instrument inferred from the title
+  and the link, and `summary IS NULL`. The NULL is the fact.
+- A first version of the listing parser accepted only the whole issue's PDF
+  and rejected every real document — it would have stored nothing, quietly.
+  The tests caught it; so did they catch issuer patterns written without
+  ignore-case, which matched no institution written in capitals.
+
+Nothing on the dashboard reads either table, and the briefing does not yet
+cite them: `UNSOURCED_CATEGORIES` still skips its two sections. With this
+source as it is, the text those sections need is not always to be had from
+the Gazette — TCMB's own legislation pages are the likely next source.
 
 ### A money-market rate and the credit-conditions survey are ingested (2026-11-27)
 

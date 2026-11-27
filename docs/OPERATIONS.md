@@ -318,7 +318,7 @@ validation and unchanged-content guards.
 | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS **daily/workday series only** (FX, policy/funding rates, sterilization, …) → D1. Weekly/monthly/quarterly series are polled by Saturday's full refresh. A run with no changed observation performs no D1 or R2 write |
 | Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
 | First + last 5 days 13:00 UTC; Fri 13:30/15:30 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins only. The 13:00 runs probe the **monthly** bulletin around month-end; the Friday runs bracket the **weekly** publication window. The redundant Saturday 02:00 run is gone because `refresh-data.yml` follows at 03:00. A byte-stable SQLite result skips VACUUM, gzip, D1 and R2 entirely |
-| Saturday 03:00 UTC | `refresh-data.yml` | Full weekly catch-up: monthly + weekly BDDK, every EVDS cadence, TBB/TKBB/KAP/TEFAS/Faaliyet → one incremental D1 handoff + snapshot only when something changed |
+| Saturday 03:00 UTC | `refresh-data.yml` | Full weekly catch-up: monthly + weekly BDDK, every EVDS cadence, TBB/TKBB/KAP/TEFAS/Faaliyet, the regulation primary record (`regulation_events`, `tcmb_card_rate_caps`) → one incremental D1 handoff + snapshot only when something changed |
 | Saturday 06:00 UTC | `refresh-presentations-weekly.yml` | `update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group). Tier-1 results filings ride `refresh-news-daily.yml` instead |
 | Monday 06:00 UTC | `refresh-advertised-rates.yml` | `src.rates.scraper` → `bank_advertised_rates` → D1 (`--only-tables=bank_advertised_rates`). Per-bank **advertised** (posted-to-new-customers) loan + deposit rates scraped from doviz.com (loans) and hangikredi (deposits) — the only per-bank rate source; EVDS/BDDK publish rates at sector level only. Each run appends a dated `snapshot_date`, so history accretes (the sources only expose "today"). Bulletin lane (`bddk-pipeline` group) |
 | 1st of month 06:00 UTC | `refresh-calendar.yml` | `src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published calendar (MPC decisions + minutes + Inflation Report + Financial Stability Report) so the **Ahead** strips fill themselves — retires the hand-typed `MPC_DATES` (now a render-time fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser. Bulletin lane (`bddk-pipeline` group) |
@@ -698,6 +698,56 @@ The `kap_ownership` table must exist in D1 first (migration
 rows can be years old if the structure hasn't changed; in the non-listed grid
 variant some banks enter the ratio into the TL column too (Ziraat reports
 `share_tl` = 100), so treat `ratio_pct` as authoritative there.
+
+### Regulation primary record (weekly)
+
+The weekly Saturday `refresh-data.yml` cron refreshes two tables (a
+non-critical step in `refresh.py` → `scripts/update_regulation.py`; the two
+single-purpose daily workflows pass `--skip-regulation`). Both write only rows
+that are new or changed, so a quiet run writes nothing.
+
+**`tcmb_card_rate_caps`** — the maximum interest TCMB sets for credit-card and
+overdraft-account transactions, from [TCMB's own
+table](https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Istatistikler/Bankacilik+Verileri/Kredi_Karti_Islemlerinde_Uygulanacak_Azami_Faiz_Oranlari):
+one row per effective month × currency × debt tier × rate kind. The page
+carries the current year (twelve rows in 2026). The debt-band thresholds
+(30,000 and 180,000 TL) are **values** on each row, read from the header, not
+column names — TCMB has moved them before. A data row with a different number
+of cells raises instead of assigning a rate to the wrong kind.
+
+**`regulation_events`** — one row per document the central bank or the banking
+regulator published in the Resmî Gazete. Each Saturday the last nine days'
+listings are read; every document is fetched (HTML, or PDF through PyMuPDF)
+and kept when its issuing body — or, when it has no text, its listing title —
+names TCMB or BDDK. `event_date` is the Gazette's publication date.
+
+What that source does and does not give, measured 2026-11-27 over 75 days
+(74 issues, 630 documents):
+
+- **Central-bank communiqués are rare there.** Three documents named BDDK —
+  all board decisions — and none named TCMB. The issuer rule for a TCMB
+  document is therefore **untested against a live one**; it is verified on
+  real pages only because the header parser runs on any ministry's document.
+- **BDDK board decisions are scanned images.** The PDF has no text layer, so
+  those events carry a title, a date, the instrument inferred from the title
+  and the link — and `summary IS NULL`. That NULL is the fact; it is never an
+  empty string.
+- Supplementary ("mükerrer") issues are separate listings and are not read.
+
+Run it by hand:
+
+```bash
+python scripts/update_regulation.py                  # both sources, last 9 days
+python scripts/update_regulation.py --days 30        # a longer Gazette window
+python scripts/update_regulation.py --skip-gazette   # the card-rate table only
+```
+
+Both sources failing exits non-zero; one failing is reported and the other
+still runs. Migration `0056_regulation_events.sql` must be applied before the
+first push (it rides the `web/**` deploy that ships it). Nothing on the
+dashboard reads either table yet, and the weekly regulation briefing does not
+yet cite them — `UNSOURCED_CATEGORIES` in `scripts/summarize_regulations.py`
+still skips its capital-adequacy and credit-card sections.
 
 ### TEFAS fund market (daily + one-time backfill)
 

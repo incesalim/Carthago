@@ -71,7 +71,7 @@ jobs:
         run: |
           python scripts/refresh.py \
             --skip-monthly --skip-weekly --skip-nonbank --skip-tbb --skip-tkbb \
-            --skip-kap --skip-tefas --skip-faaliyet --skip-tuik \
+            --skip-kap --skip-tefas --skip-faaliyet --skip-tuik --skip-regulation \
             --evds-frequencies daily --change-file refresh_changed.txt \
             --defer-packaging
           echo "changed=$(cat refresh_changed.txt)" >> "$GITHUB_OUTPUT"

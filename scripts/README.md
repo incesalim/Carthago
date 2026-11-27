@@ -84,6 +84,7 @@ Four more gates live in the lane tables (`check_pipeline_graph_sync`,
 | `update_tkbb_acquisition.py` | TKBB monthly remote-vs-branch acquisition (rolling 12-month window, accumulated) → `tkbb_acquisition_stats`. | `refresh.py` | pipeline |
 | `update_tuik.py` | TÜİK veriportali Excel detail (GDP expenditure, PPI MIG) → `evds_series` as `TUIK.*` codes. | `refresh.py` | pipeline |
 | `update_faaliyet.py` | Bank annual-report (faaliyet) franchise stats → `faaliyet_franchise`; `--backfill`. | `refresh.py`; `backfill-faaliyet.yml` | pipeline |
+| `update_regulation.py` | Regulation primary record → `regulation_events` (TCMB/BDDK documents in the Resmî Gazete, dated, with the document link) and `tcmb_card_rate_caps` (TCMB's effective-dated card-rate caps); compares before writing. | `refresh.py` | pipeline |
 | `update_presentations.py` | IR investor-presentation decks (static URLs + auto-discovery) → `bank_earnings`. | `refresh-presentations-weekly.yml` | pipeline |
 | `update_transcripts.py` | Earnings-call transcripts (8 listed banks with English calls) → `bank_call_transcripts`; `--json-dir` writes inspection dumps. | `refresh-transcripts-weekly.yml` (manual, no cron yet) | pipeline |
 | `notify_new_bddk.py` | Positive Telegram ping when a weekly/monthly BDDK period newly lands; quiet otherwise. | `refresh-bddk-bulletins.yml` | pipeline |

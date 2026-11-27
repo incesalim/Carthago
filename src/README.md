@@ -22,6 +22,7 @@ tables; a thin CLI in `../scripts/` drives it. For the pipeline shape see
 | [`transcripts/`](transcripts/) | Earnings-call transcripts | `update_transcripts.py` | `bank_call_transcripts` |
 | [`faaliyet/`](faaliyet/) | Annual-report franchise stats | `update_faaliyet.py` | `faaliyet_franchise`, `faaliyet_extractions` |
 | [`nonbank/`](nonbank/) | Non-bank monthly bulletin | `update_nonbank.py` | `nonbank_balance_sheet` |
+| [`regulation/`](regulation/) | Regulation primary record: Official Gazette documents and TCMB's card-rate caps | `update_regulation.py` | `regulation_events`, `tcmb_card_rate_caps` |
 | [`rates/`](rates/) | Posted loan/deposit rates | `python -m src.rates.scraper` | `bank_advertised_rates` |
 | [`release_calendar/`](release_calendar/) | TCMB release calendar | `python -m src.release_calendar.scraper` | `release_calendar` |
 | [`products/`](products/) | Product-shelf benchmark | `python -m src.products.build` | `product_attributes`, `bank_products`, `bank_product_profile` |

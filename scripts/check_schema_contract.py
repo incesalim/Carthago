@@ -21,6 +21,7 @@ def check() -> list[str]:
             ("src.analyst.schema", "init_analyst_schema"),
             ("src.tbb.schema", "init_schema"), ("src.tbb.schema", "init_acquisition_schema"),
             ("src.transcripts.schema", "init_schema"), ("src.release_calendar.schema", "init_schema"),
+            ("src.regulation.schema", "init_schema"),
             ("src.scrapers.evds_scraper", "init_schema"), ("src.scrapers.weekly_api_scraper", "ensure_schema"),
             ("scripts.build_api_catalog", "ensure_schema"),
         ]:

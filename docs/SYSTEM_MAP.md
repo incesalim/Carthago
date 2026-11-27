@@ -98,6 +98,7 @@ One package per lane. A package holds the source client/parser/extractor; its
 | `src/transcripts/` | Earnings-call transcripts | `bank_call_transcripts` | `update_transcripts.py` |
 | `src/faaliyet/` | Annual-report (Faaliyet) franchise stats | `faaliyet_franchise`, `faaliyet_extractions` | `update_faaliyet.py` |
 | `src/nonbank/` | BDDK non-bank monthly bulletin (leasing/factoring/financing) | `nonbank_balance_sheet` | `update_nonbank.py` |
+| `src/regulation/` | Regulation primary record: the central bank's and the regulator's Official Gazette documents; TCMB's effective-dated card-rate caps | `regulation_events`, `tcmb_card_rate_caps` | `update_regulation.py` |
 | `src/rates/` | Posted loan/deposit rates (the only per-bank rate source) | `bank_advertised_rates` | `python -m src.rates.scraper` |
 | `src/release_calendar/` | TCMB release calendar (MPC, reports) | `release_calendar` | `python -m src.release_calendar.scraper` |
 | `src/products/` | Product-shelf benchmark | `product_attributes`, `bank_products`, `bank_product_profile` | `python -m src.products.build` |
