@@ -1,5 +1,93 @@
 # Project State
 
+## Audit acquisition reads BDDK's registry (2026-11-27)
+
+**2026Q3 is complete in D1: 38 of 38 banks, 68 partitions, every extraction
+successful** — from 14 banks the day before. The run that closed it
+(`refresh-audit.yml` dispatch `45897084707`) acquired 44 reports and extracted
+45 partitions with 0 failures — the 45th is a standing retry, TAKAS 2022Q1 —
+and wrote 75,286 rows to D1 in one batch: the new partitions and their coverage
+rows, nothing re-stamped. The same-day reconcile found 0 errors across the 44,
+and the cross-period watch reported no reporting-unit change. Every lane that
+publishes interim periods holds 2026Q3 (read from D1): balance sheet 11,887
+rows across 68 partitions, P&L 4,287, cash flow 2,882, equity change 2,200 (66
+partitions), OCI 1,052, repricing 714 (51 — participation banks omit it), credit
+quality 642, FX position 544, NPL movement 288 (67), opinion (65 partitions),
+profile (63), free provision (16).
+
+**What was wrong.** The scraper's targets were the hand-maintained URL config
+plus IR-page discovery for 13 banks, so 24 banks had no Q3 target at all. All
+24 had filed, and BDDK's own registry listed every filing — for up to 30 days —
+while each daily run printed `new=0` and exited green. Discovery missed three
+more whose only change was the filename (ANADOLU dropped `as`, PASHA dropped
+`tr`, VAKIFK gained a `(1)`).
+
+**The fix — a third target source.** `scrape_to_r2` reads the registry listing
+once per run (`src/audit_reports/bddk_registry_source.py`) and adds every
+(bank, period, basis) the config and discovery do not name. Precedence is the
+config, then the bank's own page, then the regulator's copy; it only adds. The
+census taken before shipping found no untargeted registry partition older than
+2026Q3, so it backfills nothing. An unreadable listing adds nothing and raises
+a `BDDK registry fallback unavailable` job warning.
+
+Reading the registry for real needed three fixes in `fetch_pdf_bytes`, each
+pinned by `tests/test_bddk_registry_source.py`:
+
+- five zips (DUNYAK, EMLAK ×2, EXIM, VAKIFK) hold the PDF behind the 27-byte
+  Java header already stripped for VAKIFK's own site — it was being stripped
+  from the download, not from the member inside the zip;
+- ANADOLU's zips gained a one-page "Sorumluluk Beyanı" that sorts ahead of the
+  report: companions are set aside by name and, of what remains, the member
+  that is a report wins;
+- a zip with no PDF in it is `pending`, not a failure — QNB files `.docx` +
+  `.xls` with the regulator, so the registry can never supply it.
+
+**QNB is the one bank still bound by hand.** Its real 2026Q3 reports were on
+its CMS, uploaded and never linked from the BRSA section (which still points at
+4-page English convenience translations): `document-file-4713` (114pp,
+consolidated) and `-4714` (110pp, unconsolidated), covers read 30 Eylül 2026.
+Found by probing document IDs above the linked slots; recorded in the bank's
+`_note`.
+
+**What the quarter's validation says, none of it caused by the source.** The
+banks loaded today carry the same kinds of flags as the 14 that arrived in
+October.
+
+- `loans_currency` fails `capture_rows_missed` on 67 of 68 partitions — for 1
+  to 202 rows each, typically tens (GARAN consolidated: 202) — while its
+  arithmetic checks pass 10/10 everywhere. **That is a defect in the check, not
+  the data.** The
+  lane's capture anchors accept any page holding "sektor"/"sector",
+  "kredi"/"loan" and a two-letter fragment such as `tl`, `yp`, `tp`, `fc`,
+  matched against space-stripped text — true of nearly every page in a filing —
+  so balance-sheet and policy pages are captured and their numeric lines counted
+  as missed. The lane dates from 2026-09-15, after 2026Q2 was captured, which is
+  why it shows at scale this quarter; the two 2026Q2 partitions that carry a
+  manifest for it fail the same way. Both loans lanes are `annual_only`, so nothing
+  is published from them for an interim quarter and the flag is noise today —
+  but it will meet the lane's first real publication when the 2026Q4 reports
+  arrive. **Unfixed.**
+- `npl_movement` fails identity checks on 45 of 68 partitions — the same count
+  as 2026Q2, though only 31 filings are common to both.
+- `free_provision` flags 12 partitions, ten of them "auditor qualified over a
+  free provision but none was extracted", plus an EMLAK prior-field mismatch.
+  Not investigated here.
+- `fx_position` fails on the same ten filings as 2026Q2 plus TOMK unconsolidated.
+- Five of today's filings fail a few checks on a core statement: ATBANK
+  consolidated (liabilities, 1 of 90), ODEA unconsolidated (P&L, 2 of 12), TAKAS
+  unconsolidated (assets 2 of 97, capital 1 of 18), YKBNK consolidated (assets,
+  2 of 97) and unconsolidated (assets 4 of 97, liabilities 1 of 88).
+
+**Also changed: the filing window now runs through month-end.** `refresh-audit.yml`
+used to stop on the 20th of the month after the deadline month, and 2026Q3 filed
+straight past it — ANADOLU on the last scheduled day, QNB's reports still
+unlinked six days later — with nothing left to look until January. The May/Aug/Nov
+cron now runs `1-31`, and `/admin`'s filing-season panel mirrors it. It is still
+a window rather than year-round: one day costs about 28 minutes across nine jobs,
+because the corpus and text-recovery follow-ups run on every completed refresh,
+quiet or not, and year-round would add about 215 such days. Going year-round
+wants those follow-ups gated on a refresh that actually changed something first.
+
 ## Admin coverage monitoring: vitals, grid, trend (2026-09-18)
 
 The /admin coverage panel gained the four things its 2026-09-18 review found
@@ -923,19 +1011,20 @@ rule or absent-to-zero substitution was needed.
 | `faaliyet_extractions` | per-PDF extraction ledger for the lane above | — | one row per annual report processed: success flag, rows written, confidence — the lane's audit trail |
 | `tbb_acquisition_stats` | TBB workbooks — remote-vs-branch customer acquisition | monthly | the **TBB** twin of `tkbb_acquisition_stats` above (deposit banks vs participation banks) |
 | `regulation_briefings` | BDDK/TCMB regulation text → weekly Kimi summary | weekly (Sun 06:00 UTC cron) | one briefing row per run. **Since 2026-07-13 it no longer supplies any figure on `/regulation`** — the corridor and reserve ratios are compiled from `news_items.body_text` + EVDS and reconciled, so no model-set figure reaches the page. ⚠️ That is now **this lane's own choice**, not a repo-wide rule — "No LLM sets a number" was reversed 2026-08-03 (see AGENTS.md); the briefing's `find_contradictions()` gate and the compiled-figure design stand until this lane decides otherwise. The briefing supplies **editorial coverage only**: the categories the band does not model (licensing, payments, structure). Two categories stay unsourced by design — see [regulation_followups.md](regulation_followups.md) |
-| `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
+| `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q3 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_pl_roles` | **derived** — `validator.pl_roles()`, rebuilt from stored rows beside the validation (no re-extraction) | same | **which P&L row IS the period-net / gross / the two opex lines, under THAT filer's own roman numbering.** Exists because BRSA ordinals are NOT fixed: the compressed template some participation banks file puts net-operating at XII and period-net at XXIV, not XIII/XXV. A SQL consumer that hardcodes an ordinal reads the wrong LINE — `heatmap.ts` did, and reported DUNYAK's net profit as **0** for six quarters (`COALESCE(XXV., XIX.)` fell through to XIX = discontinued-ops income, nil) while summing net operating *profit* into opex on 9. Consumers **join this table**; the resolution stays in Python, which has the Turkish fold SQL's ASCII-only `UPPER()` lacks. 9,437 rows / 9 roles |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
-| `bank_audit_free_provision` | BRSA PDFs, auditor's report + "Other provisions" note | 2022-Q1 → 2026-Q1 | **the free provision (serbest karşılık)** — discretionary reserve behind the ALBRK case. Classifier (`free_provision.py`) + **111 hand-transcribed overrides** (`data/free_provision_overrides.json`, read from full auditor qualifications; 0 = fully-cancelled/'Yoktur'/not-published). **581 rows / 503 holding / 78 zero.** Guarded both by the per-partition `free_provision` validator (range + prior-chain + audit-opinion recall/precision cross-check) and the corpus alert layer, which share the same opinion-subject matcher: **anomalies 114→4** — 2 are genuine (ISCTR free provision under a clean opinion), 2 an EMLAK-2026Q1 prior-field residual. Re-extract delete-then-insert; overrides win outright. An empty row remains N/A only when the opinion supplies no contradictory evidence. |
-| `bank_audit_opinion` | BRSA PDFs, auditor's report (front matter) | 2022-Q1 → 2026-Q1 | **the auditor's verdict** — `opinion_type` clean/qualified/adverse/disclaimer + `is_modified` flag + the "Basis for Qualified…" paragraph + firm + audit-vs-review. Deterministic text classifier (`src/audit_reports/audit_opinion.py`), EN+TR / audit+review. Built + **backfilled 2026-07-15**: 976 rows / 38 banks in D1, **552 modified (57%) / 424 clean** — the free-provision practice behind the ALBRK Q1 case is sector-wide (PwC/EY/KPMG all qualify over it; state banks also over bond reclassifications). Basis paragraph captured for 545/552 modified. Per-partition validation requires the auditor and, for modified opinions, the ISA 705 basis paragraph; targeted backfill remains available through `reextract-statement.yml`. |
+| `bank_audit_free_provision` | BRSA PDFs, auditor's report + "Other provisions" note | 2022-Q1 → 2026-Q3 | **the free provision (serbest karşılık)** — discretionary reserve behind the ALBRK case. Classifier (`free_provision.py`) + **111 hand-transcribed overrides** (`data/free_provision_overrides.json`, read from full auditor qualifications; 0 = fully-cancelled/'Yoktur'/not-published). **581 rows / 503 holding / 78 zero.** Guarded both by the per-partition `free_provision` validator (range + prior-chain + audit-opinion recall/precision cross-check) and the corpus alert layer, which share the same opinion-subject matcher: **anomalies 114→4** — 2 are genuine (ISCTR free provision under a clean opinion), 2 an EMLAK-2026Q1 prior-field residual. Re-extract delete-then-insert; overrides win outright. An empty row remains N/A only when the opinion supplies no contradictory evidence. |
+| `bank_audit_opinion` | BRSA PDFs, auditor's report (front matter) | 2022-Q1 → 2026-Q3 | **the auditor's verdict** — `opinion_type` clean/qualified/adverse/disclaimer + `is_modified` flag + the "Basis for Qualified…" paragraph + firm + audit-vs-review. Deterministic text classifier (`src/audit_reports/audit_opinion.py`), EN+TR / audit+review. Built + **backfilled 2026-07-15**: 976 rows / 38 banks in D1, **552 modified (57%) / 424 clean** — the free-provision practice behind the ALBRK Q1 case is sector-wide (PwC/EY/KPMG all qualify over it; state banks also over bond reclassifications). Basis paragraph captured for 545/552 modified. Per-partition validation requires the auditor and, for modified opinions, the ISA 705 basis paragraph; targeted backfill remains available through `reextract-statement.yml`. |
 | `bank_audit_prose` | BRSA PDFs, **all sections** | **backfilled LOCALLY 2026-08-04** — 1,060 partitions / 38 banks / 2022Q1→2026Q2, **369,007 rows, 165M chars**, in `data/bank_audit_prose.db` (gitignored, 298 MB). **NOT in D1** — the 2026-08-01 freeze has since lifted; pushing the historical corpus is a decision not yet taken (merge + push recipe in OPERATIONS.md). 1,014/1,061 partitions pass `check_prose` (95.6%); the 47 failures are GARAN ×32 (§1 has no anchor of any kind), YKBNK ×8 and 7 singles, all the same family: a section resolves but yields no rows, so contiguity flags it | **the narrative** — every prose block in the filing as an item row: `section` (the printed Bölüm) + `section_role` (what it IS) + `heading`/`heading_path` + `item_order` + page span + `lang` + `text`. The first lane whose rows are sentences, not figures. Deterministic, fitz-only, **no model** (`src/audit_reports/prose.py`). Tables are excluded *geometrically* — a table row's tokens share x-positions with the rows above and below, a sentence quoting a figure does not — and running headers by line-frequency. §6/§7 **swap** between annual and interim filings and the section count is 6/7/8 depending on the bank, so `section_role` (read off each filing's own declared title) is what queries must join on, never the number. Local corpus 162 filings: median 368 rows / 157k chars per filing. Validator `check_prose` checks the **sectioning** (count, contiguity, order, the four required roles, and that the filing ends on the auditor's/activity section) — transcription itself has no arithmetic identity |
 | `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.7k rows) | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
 | `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.8k rows) | LCR (total/FC), NSFR, leverage ratio, per period_type |
 | `bank_audit_fx_position` | BRSA PDFs, §4 currency-risk footnote | same — **backfilled 2026-06-29 (7,143 rows / 31 banks → 2026Q1)** | FX net open position per currency (EUR/USD/OTHER/TOTAL) × period_type; net_position = net_on + net_off (~99% coverage). Powers `/market-risk`. D1 reconciled 2026-07-24 (8,208 rows / 590 partitions) — see the note below |
 | `bank_audit_repricing` | BRSA PDFs, §4 interest-rate-risk footnote | same — **backfilled 2026-06-29 (10,364 rows / 24 banks → 2026Q1)** | Repricing gap per bucket (lt_1m…gt_5y/non_sensitive/total) × period_type (~81% coverage; participation banks omit → validated N/A). D1 reconciled 2026-07-24 (12,064 rows / 455 partitions) |
-| `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
+| `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q3 | per-bank; per-lane pass rates in the validation-status table below |
+| `bank_audit_loans_by_sector`, `bank_audit_loans_currency` | BRSA PDFs, §5 loans note | **annual only** (`annual_only=True` in `src/audit_reports/registry.py`) — D1 holds `2022-Q4 → 2025-Q4` for the sector split (63 partitions at 2025Q4) and **no row yet** for the currency split, whose lane dates from 2026-09-15 and first publishes with 2026Q4 | Interim quarters are never published from these two lanes, so a missing interim partition here is by design. The currency split's completeness check over-selects pages and fails on nearly every partition it is computed for — see the block at the top |
 | `bank_audit_source_lines` | BRSA PDFs, bounded disclosure pages for 8 completeness-targeted lanes | **schema + automatic capture complete 2026-08-07; historical population pending the manual backfill** | Local/R2 snapshot only, never D1: every PyMuPDF-reconstructed physical line + printed numeric tokens + `mapped_key`. Near-full lanes (`equity_change`, `loans_by_sector`, `npl_movement`) treat an unmapped numeric data row as validation failure; selected-summary lanes retain the deliberately omitted detail for inspection without redefining their analytical schemas. |
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
 | `bank_audit_document_pages/_blocks/_lines/_cells/_notes` | BRSA PDFs, **every page** | **schema + engine complete 2026-08-07; fleet captured locally 2026-08-13 (1,095/1,095 — see the capture section below)** | Local only, in its own `data/bank_audit_capture.db` (like `bank_audit_prose.db`) — **never D1, never the audit snapshot**. Document-scoped, not lane-scoped: every table the filing prints, including ones no parser targets. Rows→`_lines` (with `role` ∈ data/heading/footnote/paragraph/furniture and `logical_row` grouping wrapped labels), columns→`_blocks.col_x` (right-edge clusters, so headers that wrap or letter-space don't matter), cells→`_cells` (`col_index` + parsed `value`), notes→`_notes` (marker, full wrapped text, and `linked_lines_json` — the rows printing that marker). `/Rotate 90` pages go through `page.rotation_matrix`, so the landscape 17-column equity statement reads as rows. Writes no analytical row, so it is safe over the settled BS/P&L. Per-partition JSONL mirror in `data/audit_capture/` |
@@ -2181,7 +2270,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-transcripts-weekly.yml` — **manual dispatch only, no `schedule:` yet.** `scripts/update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts for the 8 listed banks that hold an English call) → optionally D1 (`--only-tables=bank_call_transcripts`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. The missing cron dates from the 2026-08-01 freeze (`gh workflow disable` leaves no trace in git, so a workflow shipped with a schedule is born **enabled** — dispatch-only was the inert-by-construction choice). The freeze has since lifted; the absent cron and the `push: false` default are now simply a decision nobody has taken. Add `schedule: "0 7 * * 6"` and flip `push` to turn the lane on; a run without `push` ingests and re-uploads the snapshot without touching D1. Inputs use an explicit `ALL`/`NONE` bank sentinel (a blank dispatch input arrives as the default, not empty). Apply migration 0036 (via a `web/**` deploy) before the first push.
 - `.github/workflows/refresh-advertised-rates.yml` — Mon 06:00 UTC. `python -m src.rates.scraper` → `bank_advertised_rates` → D1 (`--only-tables=bank_advertised_rates`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot (re-gzips it explicitly — this lane doesn't run `refresh.py`, which is what VACUUMs+gzips for the other refresh workflows). Migration 0023 applies via the `web/**` deploy that ships it.
 - `.github/workflows/refresh-calendar.yml` — 1st of month 06:00 UTC. `python -m src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published "MPC Meeting and Reports Calendar" (rate decisions + minutes + Inflation Report + Financial Stability Report). The web analysis pages no longer render release calendars (removed 2026-09-02); the table remains live for the app overview API and operational freshness checks. The lane retired the hand-typed `MPC_DATES` (now a derivation fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser — same `www.tcmb.gov.tr` host the news lane scrapes. Bulletin lane (`bddk-pipeline` group), re-gzips the snapshot explicitly. Migration 0025 applies via the `web/**` deploy that ships it.
-- `.github/workflows/refresh-audit.yml` — daily during earnings windows (Jan 20–all February, Mar 1–15, Apr/Jul/Oct 20 through May/Aug/Nov 20) plus manual dispatch. It discovers and validates new PDFs, extracts pending partitions immediately, rebuilds stages/validation/coverage locally, sends one registry-derived audit batch to D1, then uploads the snapshot. A no-change run stops before all writes. Own DB/snapshot/group remain `data/bank_audit.db`, `state/bank_audit.db.gz`, `bddk-audit`; targeted `/admin` re-extraction is unchanged.
+- `.github/workflows/refresh-audit.yml` — daily during earnings windows (Jan 20–all February, Mar 1–15, Apr/Jul/Oct 20 through the end of May/Aug/Nov since 2026-11-27) plus manual dispatch. It acquires and validates new PDFs (URL config, IR-page discovery, then BDDK's registry), extracts pending partitions immediately, rebuilds stages/validation/coverage locally, sends one registry-derived audit batch to D1, then uploads the snapshot. A no-change run stops before all writes. Own DB/snapshot/group remain `data/bank_audit.db`, `state/bank_audit.db.gz`, `bddk-audit`; targeted `/admin` re-extraction is unchanged.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → resolve the registry lane → re-extract its source disclosure → rebuild any dependent derived rows → inline-validate the complete relationship gate → push only factually changed tables to D1 → snapshot → refresh coverage. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects a partition when any required non-conditional gate is not a proven pass), `require_passing` (default true — rolls source + derived + validation back together unless the whole gate passes), and `dry_run` (pulls the authoritative snapshot, then performs no D1/R2 writes). No-op tables retain their timestamps and are not pushed. This is the lane used to fix OCI/CF/NPL fleet-wide.
 - `.github/workflows/repair-missing-audit-rows.yml` — manual dispatch, `dry_run=true` by default. Repairs narrowly proven D1 drift from the authoritative R2 audit snapshot without extraction or re-stamping. Missing-row mode accepts only named tables and requires live facts to be an exact subset before replacing affected partitions; remote-extra mode requires exact partition triples and compare-and-deletes only excess full primary keys. Both modes preflight every target, preserve null versus zero and source timestamps, post-verify D1 parity, require a no-op replay, and abort before writes on any source/live conflict. Shares the `bddk-audit` group.
 - `.github/workflows/repair-audit-roles.yml` — manual dispatch, `dry_run=true` by default. Restores missing/stale `bank_audit_pl_roles` after a targeted reload omitted the role map: compares semantic role content with live D1 and replaces only differing role partitions, requiring identical underlying P&L rows first. Shares the `bddk-audit` group.
