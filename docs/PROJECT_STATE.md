@@ -1,5 +1,34 @@
 # Project State
 
+## A money-market rate and the credit-conditions survey are ingested (2026-11-27)
+
+Two EVDS additions, each read from upstream before it was listed — 42 codes,
+no duplicates, latest observations 2026-Q3 and 2026-11-26:
+
+- **BIST overnight repo rate** (`TP.AOFOBAP`, business days): where the
+  market's overnight print sits against the policy corridor, which is itself
+  a one-week repo rate. Polled by the daily EVDS run.
+- **Bank Loans Tendency Survey** (`bie_bkea`, quarterly): TCMB's survey of
+  banks — 41 of its 128 series. Standards, pricing terms and demand for
+  corporate and consumer lending, the drivers behind them, the next-quarter
+  outlook, and banks' own funding conditions. Polled by the Saturday run.
+
+Neither is charted yet. For the survey that is deliberate: which direction is
+positive is stated in TCMB's report table, not in the EVDS metadata, so the
+stored labels name the question and assert no direction —
+`tests/test_evds_series_registry.py` keeps them neutral. Read the convention
+off the report before drawing or describing a value as tightening or easing.
+
+**The sovereign curve was not added, and the reason is a finding.** EVDS
+publishes no 2-, 5- or 10-year government yield. Its government-paper group
+(`bie_pydibs`) is 4,254 per-issue series — an indicative value and a coupon
+rate for every GDDS and lease certificate — and a sample does not establish
+what the value is (10.92 on 2026-10-01 for a two-year with a 15.03% coupon).
+A curve would be a model fitted to those: benchmark selection, rollover as
+issues mature, a price-to-yield convention. There is no independent published
+figure in the repo to verify one against, so it is a design task with a
+verification anchor to find first, not an ingestion.
+
 ## The public API labelled every weekly series 1,000× too small (2026-11-27)
 
 `/api/v1/series` returned sector TL loans of **18,523,337.66** on 2026-11-06

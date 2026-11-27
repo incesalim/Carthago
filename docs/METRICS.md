@@ -438,6 +438,39 @@ All %, weekly flow.
 | Total EUR Deposit rate | `TP.EUR.MT06` |
 | Savings-only: `TP.USDTAS.MT06`, `TP.EURTAS.MT06`; Commercial-only: `.TIC.` variant | |
 
+### BIST Overnight Repo Rate (business days, `bie_onrepofbap`)
+| Label | EVDS code | Notes |
+|---|---|---|
+| BIST Overnight Repo Rate (weighted avg) | `TP.AOFOBAP` | Percent. The weighted-average rate on Borsa İstanbul's repo / reverse-repo market, since 27-12-2018. Polled by the daily EVDS run. |
+
+The policy rate is itself a one-week repo rate (`TP.PY.P02.1H`), so this is
+the market's overnight print against the corridor (`TP.PY.P01.ON` …
+`TP.PY.P02.ON`). The group's volume series (`TP.IHBAP`) is not ingested: EVDS
+states no unit for it. Added 2026-11-27; ingested, not yet charted.
+
+### Bank Loans Tendency Survey (quarterly, `bie_bkea`)
+TCMB's quarterly survey of banks. Each series is a **net percentage of banks**
+for the past three months, or the same question asked about the next three.
+The survey has 128 series (`TP.BKEA.S001`–`S128`); 41 are ingested, since
+2026-11-27, polled by the Saturday run:
+
+| Block | Codes | What it asks |
+|---|---|---|
+| Corporate standards | `S001` overall · `S002` SME · `S003` large firms · `S006` TL · `S007` FX | how credit standards changed |
+| What drove standards | `S009` market funding access · `S010` liquidity position · `S011` other banks' competition · `S015` industry / firm outlook | which factors contributed |
+| Corporate terms | `S017` margin on average loans · `S018` margin on riskier loans · `S020` collateral | how terms changed |
+| Corporate demand | `S024` overall · `S025` SME · `S026` large firms · `S029` TL · `S030` FX · driver `S032` inventory & working capital | how loan demand changed |
+| Corporate outlook | `S042` standards · `S049` demand | expected over the next three months |
+| Consumer standards | `S056` housing · `S057` vehicle · `S058` other consumer; drivers `S059` funding costs & balance sheet, `S063` housing-market expectations | for household loans |
+| Consumer terms | margins `S064`/`S065` housing, `S076`/`S077` vehicle, `S087`/`S088` other; `S067` housing loan-to-collateral ratio | how terms changed |
+| Consumer demand | `S092` housing · `S093` vehicle · `S094` other; outlook `S117` housing standards, `S120` housing demand | household loan demand |
+| Banks' own funding | `S123`/`S124` domestic, past / next · `S125`/`S126` external, past / next | how funding conditions changed |
+
+⚠️ **Sign convention is not in the metadata.** The labels stored in
+`evds_series.label` name the question and do not say which direction is
+positive. Read it off TCMB's own survey table before charting or describing a
+value as tightening or easing. Ingested, not yet charted.
+
 ### CPI & inflation derived
 - `TP.FG.J0` — Consumer Price Index (2003=100, monthly). Raw index value.
 - `cpi_yoy[m] = CPI[m] / CPI[m−12] − 1`

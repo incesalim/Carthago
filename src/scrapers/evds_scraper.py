@@ -342,6 +342,72 @@ SERIES: list[Series] = [
     Series("TP.MKNETHAR.M8", "Non-residents Net GDDS Transactions (weekly, USD m)",   "macro", evds.FREQ_WEEKLY),
     Series("TP.MKNETHAR.M1", "Non-residents Equity Holdings (stock, USD m)",          "macro", evds.FREQ_WEEKLY),
     Series("TP.MKNETHAR.M2", "Non-residents GDDS Holdings (stock, USD m)",            "macro", evds.FREQ_WEEKLY),
+
+    # ------------------------------------------------------------------
+    # Money-market funding (Borsa İstanbul's repo market), added 2026-11-27.
+    # bie_onrepofbap: the weighted-average overnight repo rate, business days
+    # since 27-12-2018. The policy rate IS a one-week repo rate, so where the
+    # overnight market print sits against the corridor is the day's liquidity
+    # signal (35.7-37.9% in the week to 26-11-2026). The group's volume series
+    # (TP.IHBAP) is left out: EVDS states no unit for it.
+    # ------------------------------------------------------------------
+    Series("TP.AOFOBAP", "BIST Overnight Repo Rate (weighted avg)", "rates", evds.FREQ_WORKDAY),
+
+    # ------------------------------------------------------------------
+    # Bank Loans Tendency Survey (TCMB, quarterly, bie_bkea), added 2026-11-27.
+    # Each series is a net percentage of banks over the past three months, or
+    # an expectation for the next three. The survey has 128; these are the
+    # headline standards, pricing terms and demand for corporate and consumer
+    # lending, the factors most often used to explain them, and banks' own
+    # funding conditions. Labels name the question and stay neutral on sign:
+    # which direction is positive is stated in TCMB's report table, not in the
+    # series metadata, and must be read off it before anything charts these.
+    # Latest observation at ingestion: 2026-Q3. Not yet charted.
+    # ------------------------------------------------------------------
+    # Corporate (SME = Küçük ve Orta Ölçekli İşletmeler)
+    Series("TP.BKEA.S001", "BLTS: corporate credit standards, overall (net % of banks)",       "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S002", "BLTS: corporate credit standards, SME (net % of banks)",           "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S003", "BLTS: corporate credit standards, large firms (net % of banks)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S006", "BLTS: corporate credit standards, TL loans (net % of banks)",      "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S007", "BLTS: corporate credit standards, FX loans (net % of banks)",      "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S009", "BLTS: standards driver - access to money & bond market funding",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S010", "BLTS: standards driver - liquidity position",                      "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S011", "BLTS: standards driver - competition from other banks",            "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S015", "BLTS: standards driver - industry or firm outlook",                "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S017", "BLTS: corporate terms - margin on average loans (net % of banks)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S018", "BLTS: corporate terms - margin on riskier loans (net % of banks)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S020", "BLTS: corporate terms - collateral requirement (net % of banks)",  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S024", "BLTS: corporate loan demand, overall (net % of banks)",            "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S025", "BLTS: corporate loan demand, SME (net % of banks)",                "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S026", "BLTS: corporate loan demand, large firms (net % of banks)",        "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S029", "BLTS: corporate loan demand, TL loans (net % of banks)",           "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S030", "BLTS: corporate loan demand, FX loans (net % of banks)",           "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S032", "BLTS: demand driver - inventory & working capital",                "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S042", "BLTS: corporate standards expected next 3 months, overall",        "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S049", "BLTS: corporate demand expected next 3 months, overall",           "macro", evds.FREQ_QUARTERLY),
+    # Consumer
+    Series("TP.BKEA.S056", "BLTS: housing credit standards (net % of banks)",                  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S057", "BLTS: vehicle credit standards (net % of banks)",                  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S058", "BLTS: other consumer credit standards (net % of banks)",           "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S059", "BLTS: housing standards driver - funding costs & balance sheet",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S063", "BLTS: housing standards driver - housing market expectations",     "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S064", "BLTS: housing terms - margin on average loans (net % of banks)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S065", "BLTS: housing terms - margin on riskier loans (net % of banks)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S067", "BLTS: housing terms - loan-to-collateral ratio (net % of banks)",  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S076", "BLTS: vehicle terms - margin on average loans (net % of banks)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S077", "BLTS: vehicle terms - margin on riskier loans (net % of banks)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S087", "BLTS: other consumer terms - margin on average loans (net %)",     "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S088", "BLTS: other consumer terms - margin on riskier loans (net %)",     "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S092", "BLTS: housing loan demand (net % of banks)",                      "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S093", "BLTS: vehicle loan demand (net % of banks)",                      "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S094", "BLTS: other consumer loan demand (net % of banks)",                "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S117", "BLTS: housing standards expected next 3 months",                   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S120", "BLTS: housing demand expected next 3 months",                     "macro", evds.FREQ_QUARTERLY),
+    # Banks' own funding conditions
+    Series("TP.BKEA.S123", "BLTS: domestic funding conditions, past 3 months (net % of banks)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S124", "BLTS: domestic funding conditions, next 3 months (net % of banks)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S125", "BLTS: external funding conditions, past 3 months (net % of banks)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.BKEA.S126", "BLTS: external funding conditions, next 3 months (net % of banks)", "macro", evds.FREQ_QUARTERLY),
 ]
 
 
