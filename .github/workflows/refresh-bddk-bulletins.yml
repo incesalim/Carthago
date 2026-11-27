@@ -48,7 +48,11 @@ jobs:
   refresh:
     name: BDDK bulletins → SQLite → D1
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 90, not the 60 it carried until 2026-11-27. A Friday run that actually
+    # scrapes measured 35–39 minutes at 2,232 calls; tables 8 and 9 of the
+    # weekly bulletin add ~870 (weekly_api_scraper.CATEGORY_NAMES), so ~50.
+    # A job killed at the timeout pushes nothing and uploads no snapshot.
+    timeout-minutes: 90
     env:
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}

@@ -1,5 +1,71 @@
 # Project State
 
+## The public API labelled every weekly series 1,000× too small (2026-11-27)
+
+`/api/v1/series` returned sector TL loans of **18,523,337.66** on 2026-11-06
+with `"unit": "thousand TL"` — 18.5 billion lira, against 18.5 trillion. BDDK
+prints the weekly bulletin in million TL (`Birim: Milyon TL` on its tables),
+the scraper's own docstring said so, and `build_api_catalog.WEEKLY_UNIT` said
+`thousand TL`. Every one of the ~2,200 weekly series carried it from the API's
+launch, and `API.md` / `API_MANUAL.md` repeated it — next to a worked example
+(`51,760,765` is 51.76 trillion) that only made sense in millions.
+
+The values were always right and the dashboard was never affected: it uses
+weekly values in ratios and growth rates, where the unit cancels. A consumer
+who trusted `unit` was 1,000× short. `WEEKLY_UNIT` is now `million TL`, both
+docs say so and tell pre-2026-11-27 consumers to rescale, and
+`tests/test_weekly_categories.py` pins it. **The correction reaches D1 with
+the next Saturday refresh**, which rebuilds `api_series` (~20k rows, a real
+change); until then the live API still says thousand.
+
+Found by the probe for the item below, not by anything in the repo: no check
+compared a stated unit with a printed one.
+
+## Two more tables of the weekly bulletin are read (2026-11-27)
+
+The bulletin has ten tables; the scraper read seven. A probe of the whole id
+space on 2026-11-27 (1,300 calls, no rate limiting) found what the other three
+hold:
+
+- **Table 8 — securities held at banks, market value**
+  (`saklanan_menkul_degerler`): 45 charts by holder (residents and
+  non-residents; households, insurers, other corporates, banks, other
+  financial) and instrument (government paper, Eurobonds, other), in TL / FX /
+  total. Table 7, already read, is the same custody table at nominal value.
+- **Table 9 — FX position** (`yp_pozisyonu`): 10 charts — on- and
+  off-balance-sheet position, assets and liabilities on each, the **net
+  general position**, **regulatory capital**, and FX-indexed assets and
+  liabilities. Ids `9.0.1`–`9.0.10` are the same rows under a retired
+  numbering (empty axes, last data 06.01.2023); the live ones are
+  `9.0.11`–`9.0.20`.
+- **Table 10 — the maturity split: not read.** Every cell has been `0.0`
+  since 11.12.2020.
+
+Two rules came out of it. **Not every table prints three columns**: table 9
+has a single TOPLAM column, and asked for `sutun` 1 or 2 it answers with a
+real title and a full series of `0.0` — "this leg does not exist", not a
+disclosed zero. `columns_for()` is the rule and both the refresh loop and the
+backfill use it; fetching all three would have written two rows of invented
+zeros for every real one. **The catalogue is measured**: `update_weekly.py`
+now probes every table in `CATEGORY_NAMES` (200 ids, stopping after 40 empty
+in a row — the old bound of 59 was assumed, and table 8 prints 45) and
+regenerates a local cache that predates a table.
+
+**A rule that was tried and removed.** The first probe kept only charts with
+a non-zero value, to keep table 10 out. Run against BDDK it retired five
+charts of the tables already read — `4.0.12`, FX-protected deposits, now
+zero across the window *because the stock has wound down*, and four of table
+7 — which would have ended each series at its last non-zero week. Zeros are
+data. Empty axes are the only test; table 10 stays out by not being listed.
+
+Both tables fill from the first weekly refresh after this change, so their
+history starts there (~13 weeks at first). Older weeks need the existing
+anchor-walking backfill: about 21,600 calls for table 9 alone back to 2019,
+not run. The catalogue is 179 charts; a Friday refresh that scrapes goes from
+~2,230 to ~3,100 calls, so the job's timeout went from 60 to 90 minutes
+(measured 35–39 before). Nothing on the dashboard reads the new tables yet;
+the sector's monthly FX position was already on `/market-risk`.
+
 ## Eight chart anchors re-based after upstream revisions (2026-11-27)
 
 `verify_chart_spec.py --alert` had reported `62 pass · 2 fail` every day from
@@ -1039,7 +1105,7 @@ rule or absent-to-zero substitution was needed.
 | Table | Source | Range | Latest |
 |---|---|---|---|
 | `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | BDDK monthly bulletin | 2020-01 → present | 2026-06 |
-| `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag |
+| `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag. Nine of the bulletin's ten tables since 2026-11-27: tables 1–7 from 2019-11; table 8 (securities held at banks, market value) and table 9 (FX position) fill from the first refresh after that date, so their history starts there. Values are **million TL** |
 | `nonbank_balance_sheet` | BDDK non-bank monthly bulletin (BultenAylikBdmk) | 2008-01 → present | leasing / factoring / financing, monthly, balance sheet (Million TL); reconciles to FKB sector totals. VYŞ (sparse/variant feed) + savings-finance (not in this bulletin) deferred |
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series. Loan/deposit **rates here are SECTOR-level only** (`TP.KTFTUK`/`TP.KTF17`/`TP.KTF12`/`TP.TRY.MT06`) — the per-bank complement is `bank_advertised_rates` below |
 | `bank_advertised_rates` | doviz.com (loans) + hangikredi (deposits) — public rate-comparison pages | 2026-07-12 → present (accumulating) | weekly (Mon); per-bank **advertised** (posted-to-new-customers) rates — the only per-bank rate source, since EVDS/BDDK publish rates at sector granularity only. Loans = POINT rate, MONTHLY % (consumer/mortgage/vehicle); deposits = min–max BAND, ANNUAL %. Each run appends a dated `snapshot_date` (the sources only expose "today", so history builds forward — rows never deleted). Distinct from the P&L-derived *realized* yield/cost in `heatmap.ts` |

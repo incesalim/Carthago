@@ -113,12 +113,21 @@ WEEKLY_DATASETS: dict[str, str] = {
     "bilanco_disi": "WOBS",
     "diger_bilanco": "WBAL",
     "yp_pozisyon_saklama": "WFX",
+    "saklanan_menkul_degerler": "WCUST",
+    "yp_pozisyonu": "WFXPOS",
 }
 # weekly_series.currency IS the value leg (not a reporting basis, unlike the
 # monthly tables), so it maps onto the same TL/FX/TOT tokens used everywhere.
 WEEKLY_COLS: dict[str, str] = {"TL": "TL", "FX": "FX", "TOT": "TOTAL"}
 
-WEEKLY_UNIT = "thousand TL"
+# Million TL, as BDDK prints the weekly bulletin ("Birim: Milyon TL" on its
+# tables). This said "thousand TL" from the API's launch until 2026-11-27, and
+# every weekly series carried it: /api/v1/series returned sector TL loans of
+# 18,523,337.66 on 2026-11-06 as "thousand TL" — 18.5 billion lira, against
+# 18.5 trillion. A reader who trusted `unit` was 1000x short on all ~2,200
+# weekly series. The dashboard was never affected: it uses weekly values in
+# ratios and growth rates, where the unit cancels.
+WEEKLY_UNIT = "million TL"
 
 # The monthly tables carry a `currency` dimension that is a PRESENTATION basis,
 # not a value leg: the USD rows are the identical figures divided by one month's

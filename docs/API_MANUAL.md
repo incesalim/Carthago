@@ -256,7 +256,7 @@ BDDK's bulletin says they mean.
 | `T16` | Other Information | **count** | 70 |
 | `T17` | Foreign Branch Ratios | **percentage** | 30 |
 
-Weekly (all **thousand TL**, 2019-11 → current):
+Weekly (all **million TL**, 2019-11 → current):
 
 | Code | Section | Series |
 |---|---|---|
@@ -266,7 +266,16 @@ Weekly (all **thousand TL**, 2019-11 → current):
 | `WNPL` | Non-performing loans (takipteki alacaklar) | 216 |
 | `WOBS` | Off-balance sheet (bilanço dışı) | 72 |
 | `WBAL` | Other balance sheet (diğer bilanço) | 288 |
-| `WFX` | FX position & custody (YP pozisyon/saklama) | 810 |
+| `WFX` | Securities held at banks, nominal value (saklanan menkul değerler) | 810 |
+| `WCUST` | Securities held at banks, market value — by holder and instrument | 810 |
+| `WFXPOS` | FX position: on and off balance sheet, net general position, regulatory capital | 60 |
+
+`WFX` is category 7 of the bulletin and `WCUST` category 8 — the same custody
+table at nominal and at market value. Neither is an FX position; the FX
+position is `WFXPOS` (category 9), which publishes a **total column only**.
+Both were added on 2026-11-27 and fill from the first weekly refresh after that
+date, so their histories start there. The bulletin's tenth table, a maturity
+split, has printed zero for every cell since December 2020 and is not served.
 
 ---
 
@@ -316,8 +325,14 @@ foreign-currency leg, and the total. Some datasets add their own:
 
 **Units differ per series — read `unit`, never assume.** Most monthly tables are
 million TL, but table 5 is *thousand* TL, ratios are percent, table 16 is a
-count, and all weekly data is thousand TL. In million TL, `51,760,765` is
+count, and all weekly data is **million** TL. In million TL, `51,760,765` is
 **51.76 trillion TL**.
+
+⚠️ Until 2026-11-27 every weekly series was labelled `thousand TL`. That was
+wrong by a factor of 1,000: sector TL loans of 18,523,337.66 on 2026-11-06 are
+18.5 trillion lira, not 18.5 billion. If you consumed weekly series before that
+date and trusted `unit`, re-scale by 1,000. The values themselves were always
+right; only the label was wrong.
 
 **Monthly dates are period ENDS.** `2026-04-30` is the April figure. These are
 **stocks** (a balance at that date), not flows — except table 2, the income

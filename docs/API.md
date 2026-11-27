@@ -260,7 +260,8 @@ RULES
   BDDK monthly figure is a month-end stock, not something that happened on the 1st.
 - **Units vary by series.** Read `unit` from `/serieList`. Monthly tables are
   mostly `million TL`, table 5 is `thousand TL`, ratios are `percentage`, table
-  16 is `count`, weekly is `thousand TL`. Never assume.
+  16 is `count`, weekly is `million TL`. Never assume. (Until 2026-11-27 every
+  weekly series was labelled `thousand TL` — wrong by a factor of 1,000.)
 - **`null` means BDDK filed no figure** for that period. It does not mean zero.
 - **CORS** is open (`*`). The data is public and there are no credentials.
 - **Caching** — responses carry `Cache-Control: max-age=3600`. Data moves monthly

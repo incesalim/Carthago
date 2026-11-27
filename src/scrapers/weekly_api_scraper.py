@@ -15,6 +15,11 @@ Design notes:
 - Dates return as D.MM.YYYY or DD.MM.YYYY strings; parser handles both.
 - Sanity check per value: 0 < abs(v) < 1e10 (i.e. < 10 trillion M TL)
   to catch silent corruption. Out-of-range values are logged, not stored.
+- The bulletin has ten tables. Seven were read until 2026-11-27; categories 8
+  (securities held at banks, market value) and 9 (FX position) were added
+  then. Category 10, the maturity split, has printed 0.0 for every cell since
+  11.12.2020 and is left out of CATEGORY_NAMES. Not every table prints all
+  three currency columns: `COLUMNS_BY_CATEGORY`.
 """
 
 from __future__ import annotations
@@ -68,8 +73,23 @@ CATEGORY_NAMES = {
     4: "mevduat",               # Deposits
     5: "diger_bilanco",         # Other balance-sheet
     6: "bilanco_disi",          # Off-balance
-    7: "yp_pozisyon_saklama",   # FX pos / custodial securities
+    7: "yp_pozisyon_saklama",   # FX pos / custodial securities (nominal)
+    8: "saklanan_menkul_degerler",  # Securities held at banks, market value
+    9: "yp_pozisyonu",          # FX position, on and off balance sheet
 }
+
+# Which sutun (currency columns) each table actually prints. The default is all
+# three (TL, FX, TOTAL). Category 9 has a single TOPLAM column: asked for sutun
+# 1 or 2 it answers with a real title and a full series of 0.0, which is "this
+# leg does not exist", not a disclosed zero — fetching it would have written
+# two rows of invented zeros for every real one.
+COLUMNS_BY_CATEGORY: dict[int, tuple[int, ...]] = {9: (3,)}
+DEFAULT_COLUMNS = (1, 2, 3)
+
+
+def columns_for(category: int) -> tuple[int, ...]:
+    """The currency columns to fetch for a weekly-bulletin category."""
+    return COLUMNS_BY_CATEGORY.get(int(category), DEFAULT_COLUMNS)
 
 # Bank codes we actually need weekly (dashboard primary set, in MONTHLY scheme)
 # 10001 Sector + 10003 Private Deposit + 10004 State Deposit + 10005 Foreign
@@ -364,25 +384,33 @@ class BDDKWeeklyAPIScraper:
         start: datetime.date,
         end: datetime.date,
         bank_codes_weekly: Iterable[str] = None,
-        sutuns: Iterable[int] = (1, 2, 3),
+        sutuns: Iterable[int] | None = None,
     ) -> None:
+        """Walk 13-week anchors back through [start .. end].
+
+        `sutuns` overrides the columns for every category; left None, each
+        category gets the columns it prints (`columns_for`).
+        """
         bank_codes_weekly = list(bank_codes_weekly or PRIMARY_WEEKLY_CODES)
         anchors = self.plan_anchors(start, end)
         all_items = [(cat, cid, name) for cat, items in catalogue.items()
                      for (cid, name) in items]
-        total_units = len(all_items) * len(bank_codes_weekly) * len(sutuns) * len(anchors)
+        per_item = [tuple(sutuns) if sutuns is not None else columns_for(cat)
+                    for cat, _cid, _name in all_items]
+        total_units = len(anchors) * len(bank_codes_weekly) * sum(len(c) for c in per_item)
         done = 0
         t_start = time.time()
         print(f"BACKFILL {total_units:,} API calls "
               f"({len(all_items)} items × {len(bank_codes_weekly)} banks × "
-              f"{len(sutuns)} sutun × {len(anchors)} anchors)", flush=True)
+              f"{total_units // max(1, len(anchors) * len(bank_codes_weekly))} columns avg × "
+              f"{len(anchors)} anchors)", flush=True)
 
         for anchor in anchors:
             tarih = to_api_date(anchor)
-            for (cat, cid, _) in all_items:
+            for (cat, cid, _), cols in zip(all_items, per_item):
                 category_slug = CATEGORY_NAMES.get(int(cat), f"cat{cat}")
                 for taraf in bank_codes_weekly:
-                    for sutun in sutuns:
+                    for sutun in cols:
                         self.fetch_and_store(cid, category_slug, tarih, sutun, taraf)
                         done += 1
                         time.sleep(REQUEST_PAUSE)

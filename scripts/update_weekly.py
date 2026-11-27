@@ -23,53 +23,98 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.scrapers.weekly_api_scraper import (          # noqa: E402
-    BDDKWeeklyAPIScraper, PRIMARY_WEEKLY_CODES, CATEGORY_NAMES,
+    BDDKWeeklyAPIScraper, PRIMARY_WEEKLY_CODES, CATEGORY_NAMES, HEADERS, URL,
+    columns_for,
 )
 from src.scrapers._http import bddk_verify             # noqa: E402
 
 DB_PATH = ROOT / "data" / "bddk_data.db"
 CATALOGUE_FILE = ROOT / "scripts" / "_weekly_catalogue.json"
 
+# How far to look for charts in a table. The bulletin's largest prints 45; the
+# old bound of 59 was assumed, not measured, and a 46th chart in that table
+# would have been invisible. A table is closed after this many empty ids in a
+# row, which is what keeps the probe from walking to the bound every run.
+PROBE_ITEM_LIMIT = 200
+PROBE_MISS_STOP = 40
 
-def _ensure_catalogue() -> dict:
-    """Regenerate the catalogue file if missing (scraper probe)."""
-    if CATALOGUE_FILE.exists():
-        raw = json.loads(CATALOGUE_FILE.read_text(encoding="utf-8"))
-        return {int(k): [(c, n) for c, n in v] for k, v in raw.items()}
 
-    # Regenerate by probing
-    print("Catalogue missing — probing BDDK …", flush=True)
+def _chart_is_live(d: dict) -> bool:
+    """True for anything that returns dates. Zeros are data.
+
+    An undefined id and a retired id — 9.0.1 … 9.0.10 are the pre-2023
+    numbering of the FX-position rows — both come back with empty axes, and
+    that is the whole test. A chart returning twelve zeros is NOT excluded:
+    FX-protected deposits (4.0.12) are zero across the current window because
+    the stock has wound down, and a first version of this probe dropped it and
+    four charts of table 7 with it, which would have ended each series at its
+    last non-zero week instead of showing the decline.
+
+    The tenth table (the maturity split, all zero since 11.12.2020) is kept out
+    by not being in CATEGORY_NAMES, not by a rule here.
+    """
+    return bool(d.get("XEkseni"))
+
+
+def _probe_catalogue() -> dict:
+    """Ask BDDK which charts each table prints, today."""
     import requests
-    H = {"User-Agent": "Mozilla/5.0", "X-Requested-With": "XMLHttpRequest",
-         "Referer": "https://www.bddk.org.tr/BultenHaftalik"}
-    URL = "https://www.bddk.org.tr/BultenHaftalik/tr/Home/KiyaslamaJsonGetir"
-
-    catalogue = {}
+    catalogue: dict = {}
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    session.verify = bddk_verify()
     anchor = datetime.today().strftime("%d.%m.%Y")
-    for cat in range(1, 8):
+    for cat in CATEGORY_NAMES:
         catalogue[cat] = []
-        for item in range(1, 60):
+        misses = 0
+        for item in range(1, PROBE_ITEM_LIMIT + 1):
             cid = f"{cat}.0.{item}"
             payload = {"dil": "tr", "tarih": anchor, "id": cid,
                        "parabirimi": "TRY", "sutun": "3",
                        "tarafKodu": "10001", "gun": "90"}
             try:
-                r = requests.post(URL, headers=H, data=payload, timeout=10,
-                                  verify=bddk_verify())
-                d = r.json()
-                if d.get("XEkseni"):
-                    name = d.get("Baslik", "").split(" (TRY)")[0].strip()
-                    catalogue[cat].append((cid, name))
+                r = session.post(URL, data=payload, timeout=10)
+                live = _chart_is_live(r.json())
             except Exception:
-                pass
+                live = False
+            if live:
+                misses = 0
+                d = r.json()
+                name = d.get("Baslik", "").split(" (TRY)")[0].strip()
+                catalogue[cat].append((cid, name))
+            else:
+                misses += 1
+                if misses >= PROBE_MISS_STOP:
+                    break
+            time.sleep(0.2)
+    return catalogue
 
+
+def _ensure_catalogue() -> dict:
+    """The catalogue of live charts per table, probing BDDK when needed.
+
+    The file is a local cache and nothing more: a fresh checkout (every CI
+    run) has none and probes. A file that predates a table is regenerated
+    rather than trusted — adding categories 8 and 9 would otherwise have
+    changed nothing on a machine that already held the seven.
+    """
+    if CATALOGUE_FILE.exists():
+        try:
+            raw = json.loads(CATALOGUE_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raw = None
+        if raw is not None and set(raw) == {str(c) for c in CATEGORY_NAMES}:
+            return {int(k): [(c, n) for c, n in v] for k, v in raw.items()}
+
+    print("Catalogue missing or stale — probing BDDK …", flush=True)
+    catalogue = _probe_catalogue()
     CATALOGUE_FILE.write_text(
         json.dumps({str(k): v for k, v in catalogue.items()},
                    ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"Catalogue saved with {sum(len(v) for v in catalogue.values())} items.",
-          flush=True)
+    print(f"Catalogue saved with {sum(len(v) for v in catalogue.values())} items "
+          f"across {len(catalogue)} tables.", flush=True)
     return catalogue
 
 
@@ -83,14 +128,14 @@ def _latest_week_in_db(scraper) -> str | None:
 def _latest_week_on_api(anchor_tarih: str) -> str | None:
     """One probe call to see the newest available Friday on BDDK."""
     import requests
-    H = {"User-Agent": "Mozilla/5.0", "X-Requested-With": "XMLHttpRequest",
-         "Referer": "https://www.bddk.org.tr/BultenHaftalik"}
+    session = requests.Session()
+    session.headers.update(HEADERS)
     payload = {"dil": "tr", "tarih": anchor_tarih, "id": "1.0.1",
                "parabirimi": "TRY", "sutun": "3",
                "tarafKodu": "10001", "gun": "90"}
-    r = requests.post(
-        "https://www.bddk.org.tr/BultenHaftalik/tr/Home/KiyaslamaJsonGetir",
-        headers=H, data=payload, timeout=20, verify=bddk_verify(),
+    r = session.post(
+        URL,
+        data=payload, timeout=20, verify=bddk_verify(),
     )
     xs = r.json().get("XEkseni", [])
     if not xs:
@@ -126,17 +171,18 @@ def main():
         all_items = [(cat, cid, name) for cat, items in catalogue.items()
                      for (cid, name) in items]
 
-        total = len(all_items) * len(PRIMARY_WEEKLY_CODES) * 3
+        total = (sum(len(columns_for(int(cat))) for cat, _c, _n in all_items)
+                 * len(PRIMARY_WEEKLY_CODES))
         print(f"Refreshing latest 13 weeks — {total:,} calls "
-              f"({len(all_items)} items × {len(PRIMARY_WEEKLY_CODES)} banks × 3 sutun)",
-              flush=True)
+              f"({len(all_items)} items × {len(PRIMARY_WEEKLY_CODES)} banks × "
+              f"1-3 sutun)", flush=True)
 
         done = 0
         t0 = time.time()
         for (cat, cid, _) in all_items:
             slug = CATEGORY_NAMES.get(int(cat), f"cat{cat}")
             for taraf in PRIMARY_WEEKLY_CODES:
-                for sutun in (1, 2, 3):
+                for sutun in columns_for(int(cat)):
                     scraper.fetch_and_store(cid, slug, tarih, sutun, taraf)
                     done += 1
                     time.sleep(0.5)

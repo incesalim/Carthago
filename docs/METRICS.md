@@ -502,11 +502,12 @@ deposit — Participation's whole asset base is only 4.7, so `10004` can't be
 Participation), `10003` = 7.0, `10005` = 5.4, `10006` = 2.1, `10007` = 1.9; these
 sum to the sector (25.9).
 
-### Item catalogue (124 items across 7 categories)
-Chart IDs follow `{category}.0.{item}` format. Each item is available for
-all 6 primary bank types (10001 + 10003–10007) × 3 currencies (TL/FX/TOTAL).
+### Item catalogue (179 charts across 9 categories)
+Chart IDs follow `{category}.0.{item}` format. Each item is available for the
+6 primary bank types (10001 + 10003–10007) × 3 currencies (TL/FX/TOTAL) — except
+category 9, which prints a TOTAL column only.
 
-| Category | Slug | Items | Examples |
+| Category | Slug | Charts | Examples |
 |---|---|---|---|
 | 1 | `krediler` | 22 | 1.0.1 Toplam Krediler · 1.0.3 Tüketici · 1.0.4 Konut · 1.0.5 Taşıt · 1.0.6 İhtiyaç · 1.0.8 Bireysel Kredi Kartları · 1.0.11 KOBİ (Bilgi) · 1.0.12 Ticari ve Diğer · 1.0.22 Döv. Endeksli |
 | 2 | `takipteki_alacaklar` | 12 | 2.0.1 Takipteki Alacaklar · 2.0.2 Tüketici NPL · 2.0.3 Kart NPL · 2.0.4 KOBİ NPL · 2.0.5 Ticari NPL |
@@ -514,10 +515,33 @@ all 6 primary bank types (10001 + 10003–10007) × 3 currencies (TL/FX/TOTAL).
 | 4 | `mevduat` | 12 | 4.0.1 Mevduat total · 4.0.3 Vadesiz · 4.0.4 Vadeli · 4.0.12 KKM |
 | 5 | `diger_bilanco` | 16 | 5.0.1 Nakit · 5.0.2 CBRT · 5.0.4 Zorunlu Karşılıklar · 5.0.9 Bankalara Borçlar · 5.0.12 İhraç Menkul Kıymetler |
 | 6 | `bilanco_disi` | 4 | 6.0.1 Gayrinakdi Krediler · 6.0.3 Türev Finansal Araçlar |
-| 7 | `yp_pozisyon_saklama` | 45 | 7.0.1–7.0.45 Saklanan Menkul Değerler (custodial) |
+| 7 | `yp_pozisyon_saklama` | 45 | 7.0.1–7.0.45 Saklanan Menkul Değerler, nominal (custodial securities) |
+| 8 | `saklanan_menkul_degerler` | 45 | 8.0.1 Saklanan Menkul Değerler (Piyasa Değeri) — by holder (residents, non-residents; households, insurers, other corporates, banks, other financial) and instrument (government paper, Eurobonds, other) |
+| 9 | `yp_pozisyonu` | 10 | 9.0.11 Bilanço İçi YP Pozisyonu · 9.0.14 Bilanço Dışı YP Pozisyonu · 9.0.17 Net Genel Pozisyon · 9.0.18 Yasal Özkaynak · 9.0.19/20 Dövize Endeksli varlık/yükümlülük |
 
-Full catalogue persisted at `scripts/_weekly_catalogue.json` (gitignored — regenerated
-locally by `scripts/update_weekly.py`).
+Categories 8 and 9 were added on 2026-11-27; their history starts with the
+first weekly refresh after that date (the API serves a 13-week window, and
+older weeks need an anchor-walking backfill).
+
+⚠️ **Not every table prints three columns.** Category 9 has a single TOPLAM
+column. Asked for `sutun` 1 or 2 it answers with a real title and a full series
+of `0.0` — "this leg does not exist", not a disclosed zero. `columns_for()` in
+the scraper is the rule; the refresh loop and the backfill both use it.
+
+⚠️ **The catalogue is measured, not listed.** `scripts/update_weekly.py` probes
+BDDK for the charts each table prints and keeps every id that returns dates.
+Two ids look alive and are not: an undefined id (placeholder title, empty
+axes) and a retired id (`9.0.1`–`9.0.10`, the pre-2023 numbering of the
+FX-position rows: real title, empty axes). A local catalogue file that
+predates a table is regenerated rather than trusted. A chart returning zeros
+**is** kept: the first version of the probe dropped all-zero charts and
+retired 4.0.12 (KKM, now zero across the window because the stock has wound
+down) with four charts of table 7, which would have ended each series at its
+last non-zero week. Category 10, the maturity split (all zero since
+11.12.2020), is left out by not being in `CATEGORY_NAMES`.
+
+Identities inside category 9, exact on BDDK's page (20.11.2026):
+`9.0.11 = 9.0.12 − 9.0.13`, `9.0.17 = 9.0.11 + 9.0.14`.
 
 ### Helper functions
 
