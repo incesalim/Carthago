@@ -339,7 +339,7 @@ validation and unchanged-content guards.
 | Manual only | `backfill-faaliyet.yml` | Fleet backfill of the Faaliyet-raporu franchise lane (branches / personnel from annual-report PDFs) → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` |
 | Manual only | `build-products.yml` | Loads the frozen **product-shelf** benchmark (`data/product_benchmark/*.json` + `src/products/labels_en.py` + `profiles_en.json`) via `src.products.build` → `product_attributes` / `bank_products` / `bank_product_profile` → D1 (`--only-tables=product_attributes,bank_products,bank_product_profile`) + snapshot. Deterministic and idempotent (loads committed JSONs, not a scrape); re-run for the same `snapshot_date` replaces its rows. Powers `/products`. Runs the `0034` DDL against remote D1 first (`CREATE … IF NOT EXISTS`), so it is safe to dispatch independently of deploy. NOT the refresh automation (that lane is designed but not built — see [knowledge/turkish-bank-product-benchmark-2026-07-22.md](knowledge/turkish-bank-product-benchmark-2026-07-22.md) §5). Bulletin lane (`bddk-pipeline` group) |
 | Manual only | `refresh-transcripts-weekly.yml` | `update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts for the 8 listed banks that hold an English call) → optional D1 push (`--only-tables=bank_call_transcripts`) + snapshot. Bulletin lane (`bddk-pipeline` group). **Carries no `schedule:` on purpose** — the freeze is enforced by `gh workflow disable`, which is invisible in git, so a new workflow shipped with a cron would be born enabled and become the one lane writing to D1 during it. The `push` input therefore defaults to **false**: a run ingests and re-uploads the snapshot but does not touch D1 unless asked. When the freeze lifts, add `schedule: "0 7 * * 6"` (Sat 07:00 UTC, after `refresh-presentations-weekly`) and flip `push` to true. Inputs: `banks` (ALL/NONE sentinel — a blank dispatch input arrives as the default, not empty), `refresh` (refetch stored quarters; parser changes only), `push`. Source rate-limits at ~70 pages, so the fetcher backs off on 429 and paces at 3s |
-| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + **filing-season gap** (`filing_gap_problem`) + **coverage-spine check** (`audit_spine_problem` — alerts when the `audit_spine` sync marker is missing, D1 holds fewer lanes than the registry declares, or the spine is >10d frozen) + **coverage-trend snapshot** (`write_coverage_trend` — one `coverage_trend` row per run, migration 0055, read by /admin for error/missing deltas) + `verify_chart_spec.py` + `check_amount_integrity.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted/unacquired |
+| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + **filing-season gap** (`filing_gap_problem` — KAP results filings **and BDDK's own registry** against what the lane holds; **red, and fails the run**, once a filing is ≥10 days unheld) + **coverage-spine check** (`audit_spine_problem` — alerts when the `audit_spine` sync marker is missing, D1 holds fewer lanes than the registry declares, or the spine is >10d frozen) + **coverage-trend snapshot** (`write_coverage_trend` — one `coverage_trend` row per run, migration 0055, read by /admin for error/missing deltas) + `verify_chart_spec.py` + `check_amount_integrity.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted/unacquired |
 | Manual only | `telegram-webhook.yml` | Register (`set`) / inspect (`info`) / verify (`check`) the Q&A bot webhook. Lives in CI because `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` aren't available locally. Run `set` after anything that moves the site origin — notably a **Worker rename**, which changes the `workers.dev` hostname and silently orphans the webhook |
 | After CI passes on `master` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
@@ -1257,15 +1257,30 @@ minimal-deps health-check job can import it.
    green through 2026Q2 while thirteen banks published filings the audit lane
    never fetched — `new=0 changed=False` is indistinguishable from a quarter in
    which nobody filed. The check that closes this is a **comparison between two
-   lanes**, not a threshold on one: `healthcheck.filing_gap_problem` joins KAP's
-   `results_filing` in `bank_earnings` against `bank_audit_extractions` for the
-   newest period anyone has filed, and names any bank that filed ≥
-   `FILING_GAP_GRACE_DAYS` (4) ago and is still missing. The grace exists
-   because KAP genuinely precedes a bank's own IR page — TEB filed 07-23 and its
-   PDF appeared 07-26 — so a zero-grace version would fire on every bank every
-   quarter and get muted. **When you add a lane that acquires documents from
-   third parties, ask what would tell you it stopped acquiring**; the answer is
-   usually a second, independent signal of what *should* exist.
+   lanes**, not a threshold on one: `healthcheck.filing_gap_problem` sets two
+   accounts of what *should* exist against `bank_audit_extractions` and names
+   every bank that is still missing. The first is KAP's `results_filing` in
+   `bank_earnings`, for the newest period anyone has filed. The second, since
+   2026-11-27, is **BDDK's own registry** (`BdrUyg`, read through
+   `document_origin_listing.fetch_listing`) for its newest period. KAP is a
+   proxy and the registry is complete by construction: three of the 38 banks
+   never file on KAP, and through 2026Q3 the KAP diff reported 17 gaps against
+   24 reports the regulator held. A registry row carries the reporting period,
+   not the day of receipt, so it is aged from the quarter's first KAP filing and
+   tagged `registry` in the alert line. The grace (`FILING_GAP_GRACE_DAYS`, 4)
+   exists because KAP genuinely precedes a bank's own IR page — TEB filed 07-23
+   and its PDF appeared 07-26 — so a zero-grace version would fire on every bank
+   every quarter and get muted. Past the grace the line is amber. Once any
+   filing is ≥ `FILING_GAP_RED_DAYS` (10) old it is **red, leads the message and
+   fails the run** — 2026Q3 sat amber for three weeks under the same heading as
+   "TEFAS funds: stale" while 24 banks, 46% of the sector's assets, had no
+   acquisition target. (The steps after the health check in `healthcheck.yml`
+   run on `if: always()`, so a red run still verifies charts and the bot.) An
+   unreadable registry leaves the KAP half standing and prints
+   `registry filing-gap check unavailable`. **When you add a lane that acquires
+   documents from third parties, ask what would tell you it stopped
+   acquiring**; the answer is usually a second, independent signal of what
+   *should* exist.
 
    ⚠️ **This class is the flat daily baseline, not the overage.** Together the
    first measured weekly + TEFAS fixes took ~1.7M/month off a ~14.6M/month quiet
@@ -1645,7 +1660,10 @@ the column genuinely holds a ratio.
   could not be read this run (`[bddk-registry] listing unreadable` on stderr).
   The run fell back to the config and IR-page discovery, so a bank that
   published this quarter may be missing; re-run. `published but not acquired`
-  in the health check is the same fact seen from the other side.
+  in the health check is the same fact seen from the other side — and since
+  2026-11-27 the health check reads that listing itself, so a registry row the
+  lane does not hold is named there even when the bank never files on KAP. It
+  is amber past 4 days and **red (the run fails) past 10**.
 - **`[PEND] … no-pdf-in-zip` on a registry download** — the bank filed
   something other than a PDF with the regulator (QNB: Word + Excel). Nothing to
   fix here: the partition is looked at again next run, and the report has to

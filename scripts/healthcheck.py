@@ -61,10 +61,15 @@ THRESHOLDS = [
     ("evds", "EVDS rates/FX", 120),
     ("news", "News", 48),
     # Checked on the latest DATA date (not downloaded_at, which refreshes even
-    # when TEFAS publishes nothing) so publishing breaks are caught. 120h
-    # survives normal long weekends; multi-day religious holidays (Kurban)
-    # may fire one benign alert.
-    ("tefas", "TEFAS funds", 120),
+    # when TEFAS publishes nothing) so publishing breaks are caught. 240h, not
+    # the 120h it carried until 2026-11-27. That limit was written for a daily
+    # fetch, but since the 2026-08-07 cadence change only the Saturday
+    # `refresh-data` run fetches TEFAS (both daily workflows pass
+    # `--skip-tefas`). A Friday data date is 8.1d old when the next Saturday
+    # run starts, so a 5-day limit fired every Wed–Fri — 6.7d on 2026-11-26 —
+    # whatever the pipeline did. 10 days fires on the Monday after a missed
+    # Saturday run, and on nothing else.
+    ("tefas", "TEFAS funds", 240),
 ]
 AUDIT_FAILED_ALERT = 25  # baseline known-partial extractions is ~20
 
@@ -335,6 +340,14 @@ def query_d1_rows(sql: str) -> list[dict]:
 # fire on every bank every quarter and get muted.
 FILING_GAP_GRACE_DAYS = 4
 
+# Amber is "worth a look"; this is "the quarter is incomplete and nothing is on
+# its way". 2026Q3 was amber for three weeks — 17 banks on 11-16, the oldest 20
+# days, under the same heading as "TEFAS funds: stale" — and every run exited
+# green while 24 banks, 46% of the sector's assets, had no acquisition target
+# at all. Inside a filing window refresh-audit runs daily, so a filing this old
+# is not waiting for a cron: the acquisition path has failed on it.
+FILING_GAP_RED_DAYS = 10
+
 FILING_GAP_SQL = """
 SELECT e.ticker AS ticker, e.period AS period,
        MIN(substr(e.event_date, 1, 10)) AS filed_on
@@ -348,6 +361,95 @@ GROUP BY e.ticker, e.period
 ORDER BY filed_on, ticker
 """
 
+# The registry carries the reporting period, not the day the regulator received
+# the report, so a registry-only row is aged from the quarter's first KAP
+# filing — the earliest evidence that the quarter's filings have begun.
+FIRST_FILED_SQL = (
+    "SELECT period, MIN(substr(event_date, 1, 10)) AS filed_on "
+    "FROM bank_earnings WHERE kind = 'results_filing' GROUP BY period")
+
+
+def registry_gap_rows(kap_rows: list[dict]) -> list[dict]:
+    """Gap rows for the filings BDDK's own registry lists that the lane holds.
+
+    KAP's results filings are a proxy for "published": three of the 38 banks
+    never file there, and through 2026Q3 the KAP diff could name only the
+    banks that do — 17 on 11-16, against 24 reports the regulator held. The
+    registry (BdrUyg) is complete by construction: one row per report the
+    regulator received. Only its newest period is read, and only for banks the
+    KAP half did not already name.
+
+    Silent when the listing is unreadable — the KAP half still runs, and
+    refresh-audit warns on its own unreadable listing.
+    """
+    try:
+        from src.audit_reports import document_origin_listing as listing
+        body, _ = listing.fetch_listing()
+        names = json.loads(listing.NAMES_PATH.read_text(encoding="utf-8"))["banks"]
+        by_name = {listing._literal(name): ticker for ticker, name in names.items()}
+        newest, tickers = None, set()
+        for _ordinal, texts, _links in listing._listed_rows(body):
+            if len(texts) != 5 or not texts[1].isdigit() or texts[2] not in ("3", "6", "9", "12"):
+                continue
+            ticker = by_name.get(texts[0])
+            if ticker is None:
+                continue
+            period = f"{texts[1]}Q{int(texts[2]) // 3}"
+            if newest is None or period > newest:
+                newest, tickers = period, {ticker}
+            elif period == newest:
+                tickers.add(ticker)
+        if newest is None:
+            return []
+        held = {r["ticker"] for r in query_d1_rows(
+            "SELECT DISTINCT bank_ticker AS ticker FROM bank_audit_extractions "
+            f"WHERE success = 1 AND period = '{newest}'")}
+        named = {(r.get("ticker"), r.get("period")) for r in kap_rows}
+        first = {r["period"]: r["filed_on"] for r in query_d1_rows(FIRST_FILED_SQL)}
+        return [{"ticker": t, "period": newest, "filed_on": first.get(newest),
+                 "source": "registry"}
+                for t in sorted(tickers - held) if (t, newest) not in named]
+    except Exception as e:                                   # noqa: BLE001
+        print(f"registry filing-gap check unavailable: {e}", file=sys.stderr)
+        return []
+
+
+def load_filing_gap_rows() -> list[dict]:
+    """Every filing a source says exists that the lane holds no extraction of.
+
+    Never raises — a check that takes the health-check down teaches you to
+    ignore the health check.
+    """
+    try:
+        rows = query_d1_rows(FILING_GAP_SQL)
+    except Exception as e:                                   # noqa: BLE001
+        print(f"filing-gap check unavailable: {e}", file=sys.stderr)
+        return []
+    return rows + registry_gap_rows(rows)
+
+
+def _aged_gaps(rows: list[dict], today: date) -> list[tuple[str, int | None, str]]:
+    """(ticker, age in days or None, source) for every overdue filing, oldest
+    first.
+
+    A KAP row with no usable date is dropped. A registry row keeps its place
+    undated: the regulator holds a report we do not, and that is worth a line
+    even when nothing dates it — it just can never be the red one.
+    """
+    aged = []
+    for r in rows:
+        try:
+            age = (today - date.fromisoformat(r.get("filed_on"))).days
+        except (TypeError, ValueError):
+            if r.get("source") != "registry":
+                continue
+            age = None
+        if age is not None and age < FILING_GAP_GRACE_DAYS:
+            continue
+        aged.append((r.get("ticker"), age, r.get("source", "kap")))
+    aged.sort(key=lambda t: -(t[1] if t[1] is not None else -1))
+    return aged
+
 
 def filing_gap_problem(rows: list[dict] | None = None,
                        today: date | None = None) -> str | None:
@@ -357,30 +459,31 @@ def filing_gap_problem(rows: list[dict] | None = None,
     that takes the health-check down teaches you to ignore the health check.
     """
     if rows is None:
-        try:
-            rows = query_d1_rows(FILING_GAP_SQL)
-        except Exception as e:                                   # noqa: BLE001
-            print(f"filing-gap check unavailable: {e}", file=sys.stderr)
-            return None
+        rows = load_filing_gap_rows()
     today = today or datetime.now(timezone.utc).date()
-    overdue = []
-    for r in rows:
-        filed_on = r.get("filed_on")
-        if not filed_on:
-            continue
-        try:
-            age = (today - date.fromisoformat(filed_on)).days
-        except ValueError:
-            continue
-        if age >= FILING_GAP_GRACE_DAYS:
-            overdue.append((r.get("ticker"), age))
+    overdue = _aged_gaps(rows, today)
     if not overdue:
         return None
     period = rows[0].get("period", "?")
-    overdue.sort(key=lambda t: -t[1])
-    listed = ", ".join(f"{t} ({a}d)" for t, a in overdue)
+
+    def _named(t: str, a: int | None, s: str) -> str:
+        if a is None:
+            return f"{t} (undated, {s})"
+        return f"{t} ({a}d, {s})" if s == "registry" else f"{t} ({a}d)"
+
+    listed = ", ".join(_named(t, a, s) for t, a, s in overdue)
     return (f"{period} published but not acquired: {len(overdue)} bank(s) — "
             f"{listed}")
+
+
+def filing_gap_red(rows: list[dict] | None = None,
+                   today: date | None = None) -> bool:
+    """True once any filing has waited FILING_GAP_RED_DAYS unheld."""
+    if rows is None:
+        rows = load_filing_gap_rows()
+    today = today or datetime.now(timezone.utc).date()
+    return any(a is not None and a >= FILING_GAP_RED_DAYS
+               for _t, a, _s in _aged_gaps(rows, today))
 
 
 def d1_spend_problem(used: int | None = None) -> str | None:
@@ -420,6 +523,10 @@ def main() -> int:
         return 0
 
     problems: list[str] = []
+    # The one tier that fails the run. Every other line here is a freshness or
+    # budget warning; this is data absent outright, and on 2026Q3 it sat for
+    # three weeks in the amber list where it was indistinguishable from them.
+    critical: list[str] = []
 
     # Monthly bulletin — ask BDDK (one probe), record the verdict for /admin, and
     # alert only if a published month is missing.
@@ -441,9 +548,10 @@ def main() -> int:
     if failed > AUDIT_FAILED_ALERT:
         problems.append(f"Audit extractions failing: {failed} (baseline ~20)")
 
-    gap = filing_gap_problem()
+    gap_rows = load_filing_gap_rows()
+    gap = filing_gap_problem(gap_rows)
     if gap:
-        problems.append(gap)
+        (critical if filing_gap_red(gap_rows) else problems).append(gap)
 
     spend = d1_spend_problem()
     if spend:
@@ -456,13 +564,16 @@ def main() -> int:
     # Snapshot regardless of verdicts — the trend needs the quiet days too.
     write_coverage_trend()
 
-    if problems:
-        msg = "🟡 BDDK data health:\n- " + "\n- ".join(problems)
+    if critical or problems:
+        # Red leads the message and fails the run, so it is also red in Actions.
+        # The steps after this one all run on `if: always()`.
+        level = "🔴" if critical else "🟡"
+        msg = f"{level} BDDK data health:\n- " + "\n- ".join(critical + problems)
         notify(msg)
         print(msg)
     else:
         print("✅ all sources fresh; audit extractions nominal")
-    return 0
+    return 1 if critical else 0
 
 
 if __name__ == "__main__":

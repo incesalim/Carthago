@@ -1,5 +1,34 @@
 # Project State
 
+## The daily health check has a red tier and reads the regulator's registry (2026-11-27)
+
+**The 2026Q3 gap below was reported, at the wrong volume.** From the end of
+October the daily health check printed `2026Q3 published but not acquired: N
+bank(s)` under `🟡 BDDK data health` — 17 banks on 11-16, the oldest 20 days —
+on the same line as `TEFAS funds: stale`, and every run exited green. Nothing
+in the check could say that this one mattered.
+
+- **Red.** A filing that has gone ≥ `FILING_GAP_RED_DAYS` (10) unheld now leads
+  the message as `🔴 BDDK data health` and **fails the run** (`main` returns 1;
+  the steps after it in `healthcheck.yml` run on `if: always()`). The quarter's
+  first KAP filing was 10-23, so 2026Q3 would have gone red on 11-02.
+- **The registry as the second census.** `filing_gap_problem` read KAP's
+  `results_filing` alone, which can only name banks that file on KAP: three of
+  the 38 never do, and it said 17 against the 24 reports the regulator held.
+  `registry_gap_rows` now reads BDDK's listing for its newest period and names
+  every bank the lane holds no extraction of, tagged `registry`. The listing
+  carries the reporting period, not the day of receipt, so those rows are aged
+  from the quarter's first KAP filing, and an undated one is listed but can
+  never be the red one. An unreadable registry leaves the KAP half standing.
+  First live read: 7,744 listing rows, 38 banks listed for 2026Q3, 38 held, no
+  gap on either side.
+- **TEFAS was a structural false alarm.** Only the Saturday `refresh-data` run
+  fetches TEFAS since the 2026-08-07 cadence change, so a Friday data date is
+  8.1 days old when the next run starts — against a 120h limit. It went amber
+  every Wed–Fri (6.7 days on 11-26) whatever the pipeline did. The limit is
+  240h: it fires on the Monday after a missed Saturday run and on nothing else.
+  The lane itself was not moved.
+
 ## Audit acquisition reads BDDK's registry (2026-11-27)
 
 **2026Q3 is complete in D1: 38 of 38 banks, 68 partitions, every extraction
