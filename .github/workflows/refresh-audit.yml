@@ -18,14 +18,18 @@ run-name: ${{ inputs.dry_run && 'Refresh audit reports (preview)' || 'Refresh au
 # of tables (bank_audit_*) with idempotent INSERT OR REPLACE.
 #
 # When to run:
-#   - Daily in the filing windows: late Jan/Apr/Jul/Oct through the following
-#     reporting-deadline month (plus early March for annual consolidated reports).
+#   - Daily in the filing windows: late Jan/Apr/Jul/Oct through the END of the
+#     following reporting-deadline month (plus early March for annual
+#     consolidated reports). That window used to close on the 20th. 2026Q3
+#     showed the tail it cut off: ANADOLU filed on the last scheduled day and
+#     QNB's reports were still unlinked six days later, with nothing left to
+#     look until January.
 #   - Manually from the /admin panel or Actions for targeted repairs.
 on:
   schedule:
     - cron: "0 4 20-31 1,4,7,10 *"
     - cron: "0 4 1-29 2 *"
-    - cron: "0 4 1-20 5,8,11 *"
+    - cron: "0 4 1-31 5,8,11 *"
     - cron: "0 4 1-15 3 *"
   workflow_dispatch:
     inputs:

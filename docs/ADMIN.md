@@ -362,7 +362,7 @@ for targeted repairs and for manual checks outside those windows.
   one level above the matrix: per bank, has the **in-window quarter** been published, and in
   what form? Read-time derivation, no new table or workflow. The tracked window mirrors
   `refresh-audit.yml`'s schedule (Q4: Jan 20 → Mar 15; Q1/Q2/Q3: the 20th of month+1 → the
-  20th of month+2); between windows the panel keeps showing the last opened one. Each bank's
+  end of month+2); between windows the panel keeps showing the last opened one. Each bank's
   expected filing shape (unconsolidated/consolidated) comes from its **prior-period**
   `bank_audit_expected` rows, so a bank that has filed nothing this quarter still appears.
   States, worst → best: **no signal** (nothing anywhere — deliberately *not* "not published";

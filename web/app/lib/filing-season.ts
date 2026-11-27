@@ -16,8 +16,9 @@
  *
  * The window model mirrors refresh-audit.yml's schedule: Q4 files Jan 20–Mar 15
  * (annual consolidated runs late), Q1/Q2/Q3 file the 20th of month+1 through
- * the 20th of month+2. Between windows the tracker keeps showing the most
- * recently opened window so late filers stay visible.
+ * the END of month+2 (May 31, Aug 31, Nov 30 — the last days the cron fires;
+ * it stopped on the 20th until 2026-11-27). Between windows the tracker keeps
+ * showing the most recently opened window so late filers stay visible.
  */
 import { getDB } from "./db";
 
@@ -66,9 +67,9 @@ interface WindowSpec {
 function windowsOpeningIn(y: number): WindowSpec[] {
   return [
     { period: `${y - 1}Q4`, opens: Date.UTC(y, 0, 20), closes: Date.UTC(y, 2, 15) },
-    { period: `${y}Q1`, opens: Date.UTC(y, 3, 20), closes: Date.UTC(y, 4, 20) },
-    { period: `${y}Q2`, opens: Date.UTC(y, 6, 20), closes: Date.UTC(y, 7, 20) },
-    { period: `${y}Q3`, opens: Date.UTC(y, 9, 20), closes: Date.UTC(y, 10, 20) },
+    { period: `${y}Q1`, opens: Date.UTC(y, 3, 20), closes: Date.UTC(y, 4, 31) },
+    { period: `${y}Q2`, opens: Date.UTC(y, 6, 20), closes: Date.UTC(y, 7, 31) },
+    { period: `${y}Q3`, opens: Date.UTC(y, 9, 20), closes: Date.UTC(y, 10, 30) },
   ];
 }
 

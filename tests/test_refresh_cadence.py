@@ -61,7 +61,9 @@ def test_audit_is_scheduled_only_in_filing_windows_and_acquire_is_manual():
         encoding="utf-8")
     assert 'cron: "0 4 20-31 1,4,7,10 *"' in refresh
     assert 'cron: "0 4 1-29 2 *"' in refresh
-    assert 'cron: "0 4 1-20 5,8,11 *"' in refresh
+    # Through month-end since 2026-11-27: the window used to close on the 20th
+    # and 2026Q3 filed straight past it (ANADOLU on the last scheduled day).
+    assert 'cron: "0 4 1-31 5,8,11 *"' in refresh
     assert 'cron: "0 4 1-15 3 *"' in refresh
     assert "  schedule:" not in acquire
 

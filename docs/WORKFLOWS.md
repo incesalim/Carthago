@@ -22,7 +22,7 @@ dispatching operations.
 | `refresh-bddk-bulletins.yml` | first/last 5 days 13:00; Fri 13:30 + 15:30 | BDDK bulletins only (`--skip-evds`, no audit). Probes monthly at month edges, weekly on Friday |
 | `refresh-evds-daily.yml` | Sun–Fri 05:00 | EVDS **daily/workday** series only (FX, policy/funding, sterilization) |
 | `refresh-news-daily.yml` | Daily 04:00 | `sync_news.py` → `news_items`, `news_item_banks` |
-| `refresh-audit.yml` | filing-window crons (Jan/Apr/Jul/Oct 20–31; Feb 1–29; May/Aug/Nov 1–20; Mar 1–15) | Acquire → extract → derive/validate/build coverage → **one** D1 batch → snapshot. Quiet runs write nothing |
+| `refresh-audit.yml` | filing-window crons (Jan/Apr/Jul/Oct 20–31; Feb 1–29; May/Aug/Nov 1–month-end; Mar 1–15) | Acquire (URL config + IR-page discovery + BDDK's registry) → extract → derive/validate/build coverage → **one** D1 batch → snapshot. Quiet runs write nothing |
 | `refresh-advertised-rates.yml` | Mon 06:00 | `python -m src.rates.scraper` → `bank_advertised_rates` |
 | `refresh-calendar.yml` | 1st 06:00 | `python -m src.release_calendar.scraper` → `release_calendar` |
 | `refresh-presentations-weekly.yml` | Sat 06:00 | `update_presentations.py` → `bank_earnings` |

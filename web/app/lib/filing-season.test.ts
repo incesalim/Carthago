@@ -15,8 +15,17 @@ describe("trackingWindow", () => {
     expect(w.priorPeriod).toBe("2026Q1");
     expect(w.open).toBe(true);
     expect(w.opensISO).toBe("2026-07-20");
-    expect(w.closesISO).toBe("2026-08-20");
+    expect(w.closesISO).toBe("2026-08-31");
     expect(w.dayOfWindow).toBe(19);
+  });
+
+  it("runs Q1/Q2/Q3 through the END of month+2, like refresh-audit.yml's cron", () => {
+    // The window used to close on the 20th and 2026Q3 filed straight past it.
+    expect(trackingWindow(at("2026-08-20")).open).toBe(true);
+    expect(trackingWindow(at("2026-08-31")).open).toBe(true);
+    expect(trackingWindow(at("2026-09-01")).open).toBe(false);
+    expect(trackingWindow(at("2026-11-30")).open).toBe(true);
+    expect(trackingWindow(at("2026-12-01")).open).toBe(false);
   });
 
   it("keeps showing the last opened window between seasons", () => {
