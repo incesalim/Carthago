@@ -177,6 +177,7 @@ export default async function MethodologyPage() {
               href="mailto:incesalim10@gmail.com"
               className="font-semibold text-primary underline-offset-2 hover:underline"
             >{tx("incesalim10@gmail.com")}</a>{tx(". Fixes land in the public repository with the reasoning attached, and the dated change history is part of it.")}</p>
+          <p className="mt-2.5"><b className="font-semibold">{tx("One disagreement is not a bug.")}</b>{" "}{tx("A monthly figure is kept as the regulator first published it. BDDK revises earlier months after the fact, and a revision does not replace what is stored here, so a recent month can differ slightly from the bulletin on the regulator’s own site. The differences measured so far are small, and keeping the first publication is a decision rather than an oversight.")}</p>
         </Section>
       </div>
 

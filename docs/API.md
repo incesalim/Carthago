@@ -263,6 +263,10 @@ RULES
   16 is `count`, weekly is `million TL`. Never assume. (Until 2026-11-27 every
   weekly series was labelled `thousand TL` — wrong by a factor of 1,000.)
 - **`null` means BDDK filed no figure** for that period. It does not mean zero.
+- **Monthly figures are as first published.** BDDK revises earlier months after
+  the fact and a revision does not replace the stored observation, so a recent
+  month can differ slightly from the bulletin on BDDK's own site. The pipeline
+  ingests each month once (`scripts/update_monthly.py`).
 - **CORS** is open (`*`). The data is public and there are no credentials.
 - **Caching** — responses carry `Cache-Control: max-age=3600`. Data moves monthly
   or weekly; an hour of staleness is invisible.

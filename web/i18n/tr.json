@@ -1787,6 +1787,8 @@
   "Hypothesis ledger": "Hipotez kaydı",
   "ies": "",
   "If a figure here disagrees with a filing, that is a bug and worth reporting:": "Buradaki bir rakam raporla uyuşmuyorsa hata olarak bildirin:",
+  "One disagreement is not a bug.": "Her uyuşmazlık hata değildir.",
+  "A monthly figure is kept as the regulator first published it. BDDK revises earlier months after the fact, and a revision does not replace what is stored here, so a recent month can differ slightly from the bulletin on the regulator’s own site. The differences measured so far are small, and keeping the first publication is a decision rather than an oversight.": "Aylık rakamlar düzenleyici kurumun ilk yayımladığı haliyle saklanır. BDDK önceki ayları sonradan revize eder ve bir revizyon burada saklanan rakamın yerini almaz; bu nedenle güncel bir ay, düzenleyici kurumun kendi sitesindeki bültenden küçük ölçüde farklı olabilir. Bugüne kadar ölçülen farklar küçüktür ve ilk yayımı saklamak bir gözden kaçma değil, verilmiş bir karardır.",
   "If the watchlist migrates": "Yakın izlemedeki krediler takibe geçerse",
   "If you decline analytics, this site sets": "Analitiği reddederseniz bu site",
   "If you use the Telegram question-and-answer bot, that is a separate surface with its own handling, and more is retained there than on the website:": "Telegram soru-cevap botu ayrı bir hizmettir ve web sitesinden daha fazla veri tutar:",
