@@ -1,1081 +1,10 @@
 # Project State
 
-## A money-market rate and the credit-conditions survey are ingested (2026-11-27)
-
-Two EVDS additions, each read from upstream before it was listed — 42 codes,
-no duplicates, latest observations 2026-Q3 and 2026-11-26:
-
-- **BIST overnight repo rate** (`TP.AOFOBAP`, business days): where the
-  market's overnight print sits against the policy corridor, which is itself
-  a one-week repo rate. Polled by the daily EVDS run.
-- **Bank Loans Tendency Survey** (`bie_bkea`, quarterly): TCMB's survey of
-  banks — 41 of its 128 series. Standards, pricing terms and demand for
-  corporate and consumer lending, the drivers behind them, the next-quarter
-  outlook, and banks' own funding conditions. Polled by the Saturday run.
-
-Neither is charted yet. For the survey that is deliberate: which direction is
-positive is stated in TCMB's report table, not in the EVDS metadata, so the
-stored labels name the question and assert no direction —
-`tests/test_evds_series_registry.py` keeps them neutral. Read the convention
-off the report before drawing or describing a value as tightening or easing.
-
-**The sovereign curve was not added, and the reason is a finding.** EVDS
-publishes no 2-, 5- or 10-year government yield. Its government-paper group
-(`bie_pydibs`) is 4,254 per-issue series — an indicative value and a coupon
-rate for every GDDS and lease certificate — and a sample does not establish
-what the value is (10.92 on 2026-10-01 for a two-year with a 15.03% coupon).
-A curve would be a model fitted to those: benchmark selection, rollover as
-issues mature, a price-to-yield convention. There is no independent published
-figure in the repo to verify one against, so it is a design task with a
-verification anchor to find first, not an ingestion.
-
-## The public API labelled every weekly series 1,000× too small (2026-11-27)
-
-`/api/v1/series` returned sector TL loans of **18,523,337.66** on 2026-11-06
-with `"unit": "thousand TL"` — 18.5 billion lira, against 18.5 trillion. BDDK
-prints the weekly bulletin in million TL (`Birim: Milyon TL` on its tables),
-the scraper's own docstring said so, and `build_api_catalog.WEEKLY_UNIT` said
-`thousand TL`. Every one of the ~2,200 weekly series carried it from the API's
-launch, and `API.md` / `API_MANUAL.md` repeated it — next to a worked example
-(`51,760,765` is 51.76 trillion) that only made sense in millions.
-
-The values were always right and the dashboard was never affected: it uses
-weekly values in ratios and growth rates, where the unit cancels. A consumer
-who trusted `unit` was 1,000× short. `WEEKLY_UNIT` is now `million TL`, both
-docs say so and tell pre-2026-11-27 consumers to rescale, and
-`tests/test_weekly_categories.py` pins it. **The correction reaches D1 with
-the next Saturday refresh**, which rebuilds `api_series` (~20k rows, a real
-change); until then the live API still says thousand.
-
-Found by the probe for the item below, not by anything in the repo: no check
-compared a stated unit with a printed one.
-
-## Two more tables of the weekly bulletin are read (2026-11-27)
-
-The bulletin has ten tables; the scraper read seven. A probe of the whole id
-space on 2026-11-27 (1,300 calls, no rate limiting) found what the other three
-hold:
-
-- **Table 8 — securities held at banks, market value**
-  (`saklanan_menkul_degerler`): 45 charts by holder (residents and
-  non-residents; households, insurers, other corporates, banks, other
-  financial) and instrument (government paper, Eurobonds, other), in TL / FX /
-  total. Table 7, already read, is the same custody table at nominal value.
-- **Table 9 — FX position** (`yp_pozisyonu`): 10 charts — on- and
-  off-balance-sheet position, assets and liabilities on each, the **net
-  general position**, **regulatory capital**, and FX-indexed assets and
-  liabilities. Ids `9.0.1`–`9.0.10` are the same rows under a retired
-  numbering (empty axes, last data 06.01.2023); the live ones are
-  `9.0.11`–`9.0.20`.
-- **Table 10 — the maturity split: not read.** Every cell has been `0.0`
-  since 11.12.2020.
-
-Two rules came out of it. **Not every table prints three columns**: table 9
-has a single TOPLAM column, and asked for `sutun` 1 or 2 it answers with a
-real title and a full series of `0.0` — "this leg does not exist", not a
-disclosed zero. `columns_for()` is the rule and both the refresh loop and the
-backfill use it; fetching all three would have written two rows of invented
-zeros for every real one. **The catalogue is measured**: `update_weekly.py`
-now probes every table in `CATEGORY_NAMES` (200 ids, stopping after 40 empty
-in a row — the old bound of 59 was assumed, and table 8 prints 45) and
-regenerates a local cache that predates a table.
-
-**A rule that was tried and removed.** The first probe kept only charts with
-a non-zero value, to keep table 10 out. Run against BDDK it retired five
-charts of the tables already read — `4.0.12`, FX-protected deposits, now
-zero across the window *because the stock has wound down*, and four of table
-7 — which would have ended each series at its last non-zero week. Zeros are
-data. Empty axes are the only test; table 10 stays out by not being listed.
-
-Both tables fill from the first weekly refresh after this change, so their
-history starts there (~13 weeks at first). Older weeks need the existing
-anchor-walking backfill: about 21,600 calls for table 9 alone back to 2019,
-not run. The catalogue is 179 charts; a Friday refresh that scrapes goes from
-~2,230 to ~3,100 calls, so the job's timeout went from 60 to 90 minutes
-(measured 35–39 before). Nothing on the dashboard reads the new tables yet;
-the sector's monthly FX position was already on `/market-risk`.
-
-## Eight chart anchors re-based after upstream revisions (2026-11-27)
-
-`verify_chart_spec.py --alert` had reported `62 pass · 2 fail` every day from
-10-19 and `59 pass · 5 fail` from 11-14, all on April-2026 anchors transcribed
-from Albaraka's monthly reports: the Treasury's December-2025 budget rows were
-revised in October and TCMB re-released its balance-of-payments series on
-11-14. The stored data was right — a fresh EVDS read matched D1 on all 144
-underlying cells — and the anchors were what was old. Every anchor in the
-three affected specs was recomputed from that upstream read, three of them
-while still inside tolerance. The catalog's `source.note` records which
-revision, when, and what the report printed before it, and the procedure is
-in `REPRODUCING_CHARTS.md`. Rolling-12-month anchors will drift again the
-next time a month inside their window is revised.
-
-## The daily health check has a red tier and reads the regulator's registry (2026-11-27)
-
-**The 2026Q3 gap below was reported, at the wrong volume.** From the end of
-October the daily health check printed `2026Q3 published but not acquired: N
-bank(s)` under `🟡 BDDK data health` — 17 banks on 11-16, the oldest 20 days —
-on the same line as `TEFAS funds: stale`, and every run exited green. Nothing
-in the check could say that this one mattered.
-
-- **Red.** A filing that has gone ≥ `FILING_GAP_RED_DAYS` (10) unheld now leads
-  the message as `🔴 BDDK data health` and **fails the run** (`main` returns 1;
-  the steps after it in `healthcheck.yml` run on `if: always()`). The quarter's
-  first KAP filing was 10-23, so 2026Q3 would have gone red on 11-02.
-- **The registry as the second census.** `filing_gap_problem` read KAP's
-  `results_filing` alone, which can only name banks that file on KAP: three of
-  the 38 never do, and it said 17 against the 24 reports the regulator held.
-  `registry_gap_rows` now reads BDDK's listing for its newest period and names
-  every bank the lane holds no extraction of, tagged `registry`. The listing
-  carries the reporting period, not the day of receipt, so those rows are aged
-  from the quarter's first KAP filing, and an undated one is listed but can
-  never be the red one. An unreadable registry leaves the KAP half standing.
-  First live read: 7,744 listing rows, 38 banks listed for 2026Q3, 38 held, no
-  gap on either side.
-- **TEFAS was a structural false alarm.** Only the Saturday `refresh-data` run
-  fetches TEFAS since the 2026-08-07 cadence change, so a Friday data date is
-  8.1 days old when the next run starts — against a 120h limit. It went amber
-  every Wed–Fri (6.7 days on 11-26) whatever the pipeline did. The limit is
-  240h: it fires on the Monday after a missed Saturday run and on nothing else.
-  The lane itself was not moved.
-
-## Audit acquisition reads BDDK's registry (2026-11-27)
-
-**2026Q3 is complete in D1: 38 of 38 banks, 68 partitions, every extraction
-successful** — from 14 banks the day before. The run that closed it
-(`refresh-audit.yml` dispatch `45897084707`) acquired 44 reports and extracted
-45 partitions with 0 failures — the 45th is a standing retry, TAKAS 2022Q1 —
-and wrote 75,286 rows to D1 in one batch: the new partitions and their coverage
-rows, nothing re-stamped. The same-day reconcile found 0 errors across the 44,
-and the cross-period watch reported no reporting-unit change. Every lane that
-publishes interim periods holds 2026Q3 (read from D1): balance sheet 11,887
-rows across 68 partitions, P&L 4,287, cash flow 2,882, equity change 2,200 (66
-partitions), OCI 1,052, repricing 714 (51 — participation banks omit it), credit
-quality 642, FX position 544, NPL movement 288 (67), opinion (65 partitions),
-profile (63), free provision (16).
-
-**What was wrong.** The scraper's targets were the hand-maintained URL config
-plus IR-page discovery for 13 banks, so 24 banks had no Q3 target at all. All
-24 had filed, and BDDK's own registry listed every filing — for up to 30 days —
-while each daily run printed `new=0` and exited green. Discovery missed three
-more whose only change was the filename (ANADOLU dropped `as`, PASHA dropped
-`tr`, VAKIFK gained a `(1)`).
-
-**The fix — a third target source.** `scrape_to_r2` reads the registry listing
-once per run (`src/audit_reports/bddk_registry_source.py`) and adds every
-(bank, period, basis) the config and discovery do not name. Precedence is the
-config, then the bank's own page, then the regulator's copy; it only adds. The
-census taken before shipping found no untargeted registry partition older than
-2026Q3, so it backfills nothing. An unreadable listing adds nothing and raises
-a `BDDK registry fallback unavailable` job warning.
-
-Reading the registry for real needed three fixes in `fetch_pdf_bytes`, each
-pinned by `tests/test_bddk_registry_source.py`:
-
-- five zips (DUNYAK, EMLAK ×2, EXIM, VAKIFK) hold the PDF behind the 27-byte
-  Java header already stripped for VAKIFK's own site — it was being stripped
-  from the download, not from the member inside the zip;
-- ANADOLU's zips gained a one-page "Sorumluluk Beyanı" that sorts ahead of the
-  report: companions are set aside by name and, of what remains, the member
-  that is a report wins;
-- a zip with no PDF in it is `pending`, not a failure — QNB files `.docx` +
-  `.xls` with the regulator, so the registry can never supply it.
-
-**QNB is the one bank still bound by hand.** Its real 2026Q3 reports were on
-its CMS, uploaded and never linked from the BRSA section (which still points at
-4-page English convenience translations): `document-file-4713` (114pp,
-consolidated) and `-4714` (110pp, unconsolidated), covers read 30 Eylül 2026.
-Found by probing document IDs above the linked slots; recorded in the bank's
-`_note`.
-
-**What the quarter's validation says, none of it caused by the source.** The
-banks loaded today carry the same kinds of flags as the 14 that arrived in
-October.
-
-- `loans_currency` fails `capture_rows_missed` on 67 of 68 partitions — for 1
-  to 202 rows each, typically tens (GARAN consolidated: 202) — while its
-  arithmetic checks pass 10/10 everywhere. **That is a defect in the check, not
-  the data.** The
-  lane's capture anchors accept any page holding "sektor"/"sector",
-  "kredi"/"loan" and a two-letter fragment such as `tl`, `yp`, `tp`, `fc`,
-  matched against space-stripped text — true of nearly every page in a filing —
-  so balance-sheet and policy pages are captured and their numeric lines counted
-  as missed. The lane dates from 2026-09-15, after 2026Q2 was captured, which is
-  why it shows at scale this quarter; the two 2026Q2 partitions that carry a
-  manifest for it fail the same way. Both loans lanes are `annual_only`, so nothing
-  is published from them for an interim quarter and the flag is noise today —
-  but it will meet the lane's first real publication when the 2026Q4 reports
-  arrive. **Unfixed.**
-- `npl_movement` fails identity checks on 45 of 68 partitions — the same count
-  as 2026Q2, though only 31 filings are common to both.
-- `free_provision` flags 12 partitions, ten of them "auditor qualified over a
-  free provision but none was extracted", plus an EMLAK prior-field mismatch.
-  Not investigated here.
-- `fx_position` fails on the same ten filings as 2026Q2 plus TOMK unconsolidated.
-- Five of today's filings fail a few checks on a core statement: ATBANK
-  consolidated (liabilities, 1 of 90), ODEA unconsolidated (P&L, 2 of 12), TAKAS
-  unconsolidated (assets 2 of 97, capital 1 of 18), YKBNK consolidated (assets,
-  2 of 97) and unconsolidated (assets 4 of 97, liabilities 1 of 88).
-
-**Also changed: the filing window now runs through month-end.** `refresh-audit.yml`
-used to stop on the 20th of the month after the deadline month, and 2026Q3 filed
-straight past it — ANADOLU on the last scheduled day, QNB's reports still
-unlinked six days later — with nothing left to look until January. The May/Aug/Nov
-cron now runs `1-31`, and `/admin`'s filing-season panel mirrors it. It is still
-a window rather than year-round: one day costs about 28 minutes across nine jobs,
-because the corpus and text-recovery follow-ups run on every completed refresh,
-quiet or not, and year-round would add about 215 such days. Going year-round
-wants those follow-ups gated on a refresh that actually changed something first.
-
-## Admin coverage monitoring: vitals, grid, trend (2026-09-18)
-
-The /admin coverage panel gained the four things its 2026-09-18 review found
-missing, plus an interaction pass. **Spine visibility**: `push_to_d1` stamps
-`source_freshness ('audit_spine', latest_period = lane count)` on every push
-that ships the spine tables; the Coverage vitals strip renders "spine synced
-Xh ago · N/M lanes in D1" and goes amber on a lane-parity gap, a missing
-marker, or an >8-day-old sync — a registered-but-never-synced lane (the
-risk_profile blind spot) is now stated instead of silently absent.
-`healthcheck.py` alerts on the same three conditions daily
-(`audit_spine_problem`) and snapshots one `coverage_trend` row per run
-(migration 0055, direct wrangler write outside SYNC_TABLES per the 0028
-precedent); the strip renders error/missing deltas ("errors 41→12 (8d)") with
-direction tones. **Validation recency**: the drawer shows each gate's
-`validated_at`, the strip the last validation pass. **Drawer**: the
-per-partition coverage rows (always fetched, never rendered before) are now a
-lane strip that retargets the drawer in place; failure rows show the machine
-check name next to the human node; ←/→ walks the filtered problem list. **New
-views**: a summary|grid toggle revives the bank×period dense grid on the
-existing-but-unreachable `?type=&kind=` endpoint with the STATUS_CELL glyphs;
-all filters live in the URL (shareable, back/forward); top problem banks are
-one-click filterable; a Refresh action and a post-dispatch refetch back the
-"coverage refreshes" toast. A minimal `web/vitest.config.ts` declares the
-`@/` alias — Vitest resolves no tsconfig paths itself, so test-reached
-components with value-level `@/` imports needed it.
-
-## Release train live; wire-contract fix; risk_profile in D1 (2026-09-16)
-
-The 2026-09-16 session committed and pushed everything that was sitting in
-the working tree (mobile wire contract, sector chart pass, audit repair
-hardening, the risk_profile lane, the recovered ceo-temp-web layout stash)
-and the release train ran live for the first time with the new safeguards:
-two pushes with red CI had their Deploys correctly **skipped**, and the
-green `b78dd4ee` deployed with migration `0054_risk_profile.sql` applied to
-D1 and the release smoke (overview, Akbank, public API metadata, mobile
-handshake) passing — the exact behaviour the 2026-09-06 entry said remained
-to be observed.
-
-One CI-only bug surfaced and was fixed: the web compatibility suite imported
-`negotiate()` from `../../mobile/src/api`, and Vitest 4's native
-(rolldown/oxc) transform resolves tsconfig per file — mobile's tsconfig
-extends `expo`, installed only in the mobile CI job, so the web job died
-with `TSCONFIG_ERROR` while staying green on any machine with mobile deps
-present. `contracts/compatibility-state.ts` is now canonical alongside
-`app-api-v1.ts`, `sync_app_contract.py` generates package-local copies with
-the import specifier rewritten per target, and nothing imports across a
-package boundary. Investigation note:
-`docs/knowledge/2026-09-16-vitest-cross-package-tsconfig.md`.
-
-The risk_profile entry below is unchanged except that its migration is now
-APPLIED to live D1 (still zero rows).
-
-## Pillar 3 risk profile lane — wired, not yet populated (2026-09-16)
-
-`bank_audit_risk_profile` (17 standardised-approach exposure classes + TL/FC/
-Total per sector row, same taxonomy as loans_by_sector) is registered as a §5
-annual-only narrow lane and wired end to end: extractor (`src/audit_reports/
-risk_profile.py`, x-position header alignment with a text fallback), local
-schema, D1 migration 0054, migration-0030 section backfill, units money
-columns with a read-back test, `fetch_recent` routing, `reextract_statement`
-support with the workflow/UI allowlist, and a first validator (`check_risk_
-profile`: TL+FC=Total per row, Σ classes = Total when the full set was read
-and a partial set may not exceed it, Σ top-level sectors = the total row,
-child ≤ parent, unknown sector rows fail). **Zero partitions extracted so
-far** — the table is empty in D1 until the next annual refresh or a deliberate
-backfill populates it; the coverage spine will mark it missing until then,
-which is the honest state. The wide-lane counterpart on the sector template
-(`bank_audit_sector_full`, local-only) already reads this table's shape and is
-the cross-check candidate once rows exist.
-
-## Sector chart consistency (2026-09-14)
-
-The eight sector routes share stable series colours across line histories,
-composition stacks, categorical breakdowns and small multiples. English entity
-labels disambiguate weekly/monthly bank-group codes; range filtering and mobile
-layouts retain those identities. The categorical palette uses readable teal and
-slate for domestic-private and development-investment groups, in lockstep with
-CSS and mobile tokens. Stage 2/watchlist and Stage 3/NPL retain semantic warning
-and negative colours.
-
-Sector history plots use shared 320px full-width / 280px comparison / 260px narrow
-heights and 180px facet plots, with readouts outside the fixed plot. Reserve
-levels now use a labelled latest-value row, distinct outlines and restrained gap
-fills. Consumer-credit and consumer-NPL facets have full-width comparison cards.
-The underlying series, calculations, sources and exports are preserved.
-
-
-## Sector report analytical coverage (2026-09-14)
-
-The eight sector reports use the Garanti BBVA sector-outlook framework and the
-private BDDK visualization catalogue to broaden analysis beyond headline ratios.
-Credit now leads with constant-FX 13-week momentum, product and bank-group
-distribution; real/constant-FX comparisons remain in a dedicated later section.
-The assessment no longer automatically describes all lending growth as inflation
-or asserts a real contraction when the input is positive.
-
-New cached, read-only BDDK views cover balance-sheet composition and the operating
-network; credit by economic sector, maturity, SME size/currency, overdrafts and
-guarantees; deposit customer/currency/maturity and amount bands; published
-liquidity gaps and selected funding sources; regulatory-capital and FX bridges;
-manufacturing and SME credit risk; monthly profit and fee/OPEX coverage; and
-securities accounting and non-derivative commitments. Existing analytical views,
-data controls and sources remain accessible. Signals remain admin-only.
-
-Cross-sections display their own reporting period and retain exact source-unit
-values in data tables/CSV. T05 thousand-TL amounts convert to million TL;
-incomplete identities stay unavailable, and monthly profit de-cumulation
-preserves missing periods. No schema or ingestion change is needed. Source
-mappings, deliberately deferred experiments and verification evidence are in
-`docs/knowledge/2026-09-14-sector-analytics/` and its linked route investigations.
-
-## NPL comparative cells and signed reclassifications (2026-09-14)
-
-The existing NPL extractor reads bounded movement disclosures across pages,
-including comparative tables. Signed `other_movement` keeps reclassifications
-separate from debt sales, FX and accruals. Migration 0051 is deployed. Upserts
-compare facts and retain unchanged timestamps.
-
-Actions preview 34783477236 and publication 34783722932 at commit 42e8868 passed
-for the two exact GARAN 2022Q4 filings. Independent readback matched all twelve
-normalized group rows in D1 and the published R2 snapshot: three comparative rows
-added and 15 NULL cells filled, preserving all 93 existing non-null numeric cells.
-Each filing has six normalized rows, 30 mapped physical data rows (including
-debt-sale categories), zero unmapped rows, and 110 passed checks with zero failed
-or skipped. All 180 native source cells, their line/token references and linked
-dipnote wording match the retained source. Only bounding-box coordinates are
-compared at the native-word artifact's declared four-decimal precision.
-Unrelated NPL partitions and timestamps, and the other twelve statement tables
-for these filings, are unchanged. CI 34783464869 and deployment 34783582388 passed.
-
-The existing R2 snapshot ledger retains native dash/zero states, displaced dash
-glyphs and literal star-note references. GARAN's conflicting current/prior star
-markers remain ambiguous, with separate candidates supported by the note's
-wording and amounts. These links are retained pipeline evidence; their admin
-reader integration remains pending. The revalidation path checks main cells,
-category sums and both periods' movement identities at source precision.
-
-The workflow's coverage follow-up revalidates the whole snapshot. The stronger
-NPL gate now exposes 84 previously-green filings without changing their figures:
-49 lack the new native-cell evidence, while 35 have comparative movement
-mismatches (GARAN 6, HALKB 21, VAKBN 8). These are unresolved evidence/validation
-failures, not a claim that all 84 contain wrong amounts. Source-only backfill
-`only_failing` now selects NPL `npl_source_cells_missing` and
-`npl_source_cell_reference` failures alongside `capture_*` failures. It
-revalidates selected filings even when their retained evidence is unchanged,
-logs each lane verdict, and pushes only metadata tables whose facts changed.
-The 49-filing evidence backfill has not been dispatched; this code change
-does not resolve the stored backlog or alter analytical figures.
-Comparative repairs require individual source review and scoped Actions previews.
-
-Both analyst paths carry the signed Other field. The report assembler also
-retains FX, accruals, provision, net balance and PDF pages; a column total stays
-unavailable when any BRSA group or contributing cell is missing. This repair
-verifies these disclosures, not other bank layouts or complete reports. Evidence:
-`docs/knowledge/2026-09-13-npl-completeness/`.
-
-## Wrapped sector headers and independent completeness checks (2026-09-13)
-
-The existing sector extractor retains column headers above and beside period
-captions, including Turkish wrapped ECL headings. Explicit table starts keep
-Stage references in preceding prose out of the column anchors. Both reporting
-periods retain all three printed cells, including all-dash rows; the observed
-Turkish real-estate abbreviation has an exact taxonomy entry. Source discovery
-also retains heading-only pages and the closing disclosure independently of
-extraction results. The source-cell validator checks these layouts independently
-of the coordinate parser and rejects missing current cells or entire periods.
-
-Actions preview 34780144337 at d52e1d0 rejected GARAN 2023Q4 solo and 2025Q4
-consolidated candidates, protecting production from incorrect parsing. It also
-exposed an existing 2025Q4 solo professional-services row containing education
-figures and a missing separate education row. Commit 310cdf3 fixed those layouts;
-preview 34780961260 and publication 34781104486 passed for the six exact GARAN
-2023Q4–2025Q4 annual filings. Independent D1/R2 readback matched all 240 rows and
-720 printed cells: 81 rows added, 80 NULL cells filled, and three misplaced
-professional-services figures corrected. Each filing has 40 mapped source rows,
-zero unmapped rows, and 134 passing checks with zero failures or skips. Other
-statement data and unrelated sector partitions stayed unchanged; 78 unchanged
-rows retained their timestamps. The existing manual coverage provenance for
-2023Q4 solo was preserved. CI 34780947782 and deployment 34781067264 succeeded.
-Earlier GARAN 2022Q4 publication also matches all 240 printed cells in D1/R2.
-This verifies these sector disclosures, not complete reports or other lanes.
-Evidence and current publication status:
-`docs/knowledge/2026-09-13-sector-registered-garan/` and
-`docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
-
-## Unified sector assessments (2026-09-13)
-
-All eight sector pages now present the dated assessment as a single panel after
-the first chapter's charts. The opening headline banner and separate notes block
-are replaced by one readable lead and topic-labelled notes. All prior headlines,
-supporting text, figures and analysis links remain visible, with a responsive
-one-, two- or three-column note layout. Charts and query calculations are unchanged.
-
-`Insight.label` is optional presentation metadata; the cached headline hash and
-numeric guards still use the original headline and note text. Other dashboard
-routes keep their existing Takeaway styles. Signals remain admin-only. Design
-and verification evidence: `docs/knowledge/2026-09-13-sector-assessment/`.
-
-## Sector-loan cells, comparatives and source validation (2026-09-13)
-
-The existing sector extractor now reads explicitly bounded three-column
-Stage 2 / Stage 3 / ECL disclosures across adjacent pages. It requires the
-printed period captions and column headers, preserves value-page citations,
-and retains the established fallback for wider or unsupported source layouts.
-The retained GARAN 2022Q4 fixtures contain 40 rows per filing and 240 printed
-cells across both kinds. The pre-repair production snapshot omitted 20
-consolidated comparative rows, all 40 solo Stage 3 cells and all 40 solo ECL
-cells. The source-backed regression restores them without changing an existing
-non-null amount; production execution remains a scoped Actions operation.
-
-Source capture uses explicit numbered disclosure boundaries when both ends
-are retained. Neighboring provisions and risk tables remain raw evidence;
-missing boundaries keep conservative classification. Parent labels cannot
-inherit a child key. The existing revalidation path independently compares
-supported three-column source rows with both stored periods, including ECL,
-using the source denomination. Missing rows, missing cells and conflicting
-values fail the same lane gate that protects publication.
-
-This is a bounded sector-table repair, not corpus-wide completeness. NPL
-write-offs/reclassifications, other native table layouts, dipnote integration
-and structured prose remain in the execution plan and Actions evidence:
-`docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
-
-## Standalone sector signals (2026-09-13)
-
-The admin-only `/admin/signals` workspace collects the 33 existing monitoring conditions from the sector
-overview, credit, deposits, liquidity, asset-quality, capital and profitability
-pages. Those pages retain their charts and analyses; their monitoring sections
-and navigation anchors are removed. Market risk had no such conditions.
-
-Signals are plain data records in `web/app/lib/sector-signals/`, separate from
-the React presentation. Stable IDs, original conditions, numerical facts, source
-bases and reporting dates are preserved. Missing inputs are explicitly
-unavailable, distinct from conditions evaluated as not triggered. The research
-page supports topic/status/search filters, source inspection and filtered JSON
-export; the read-only `/api/admin/sector-signals` endpoint exposes the full
-collection and any failed topics after checking the existing admin session.
-Both page and API authorize before querying data and return private, uncached
-responses. Public navigation and the sitemap omit Signals. The former `/signals`
-URL redirects to the protected workspace; the public API endpoint is removed.
-
-The records are leads for analysts to investigate before using material findings
-in articles. No automatic analyst execution or article publication is introduced.
-The endpoint describes latest-available observations, not a historical Analyst
-V2 snapshot. No schema or data write is needed. Release evidence is kept in
-`docs/knowledge/2026-09-13-sector-signals/`; the admin access correction is recorded
-in `docs/knowledge/2026-09-13-admin-signals/`.
-
-## Refresh previews do not trigger corpus publication (2026-09-13)
-
-Automatic document capture now requires a successful upstream run from this
-repository and, for refreshes, the explicit `Refresh audit reports (publish)`
-run title. Preview and older ambiguous refresh runs cannot start R2 capture
-workers. Manual corpus dispatch and successful acquisition follow-ups remain
-available. This closes a downstream escape from the refresh's `dry_run` flag.
-Evidence and the cancelled pre-fix follow-ups:
-`docs/knowledge/2026-09-13-audit-followup-containment/RESULTS.md`.
-
-## Audit loads abort on validation crashes (2026-09-13)
-
-The production audit loader now writes a filing's facts, P&L roles, source
-evidence, validation results and extraction status within one savepoint. A
-validator or persistence exception rolls back that filing and propagates to
-the caller. It can no longer leave a successful extraction record over an
-unchecked candidate or leak partial writes into a later caller commit.
-
-The existing guards for settled statements, units and unchanged role/validation
-timestamps remain in place. Ordinary failed financial checks remain recorded
-for the existing publication gates; this change handles execution failure and
-does not redefine a numerical pass. Regression checks cover six failure points,
-with and without preceding caller work, including exact persisted-row recovery.
-The existing Actions refresh workflow verifies scoped real filings after release.
-Evidence: `docs/knowledge/2026-09-13-audit-load-atomicity/RESULTS.md`.
-
-## Capital disclosure intervals and qualifications (2026-09-13)
-
-The source-table reader now links table fragments to their enclosing printed
-disclosure in risk and notes sections. Qualified numeric headings and Turkish
-Roman groups both retain continuation pages, qualifications and embedded grids.
-Each physical grid keeps its original columns, periods, units and cell states;
-the reader does not concatenate unlike grids or approve financial interpretation.
-Repeated report-section banners stay in their own page context. A missing
-intervening page or unread closing boundary leaves the interval incomplete.
-
-Source-backed tests cover GARAN 2022Q4 consolidated capital disclosure 4.1.1
-(PDF pages 55–58, four grids) and TOMK 2023Q3 unconsolidated capital group IV-I
-(pages 26–29, four grids). The GARAN interval includes the starred insurance
-qualification and the regulatory-adjustment explanation with the printed
-16.78% alternative ratio, alongside the table's 18.60% ratio. These are separate
-source assertions, not a correction of one figure to the other.
-
-This reader improvement uses existing retained structures and needs no corpus
-re-extraction or analytical D1 write. Registered-corpus completeness, publication
-validator repair and section-based prose coverage remain unfinished. Source
-inspection and release evidence: `docs/knowledge/2026-09-13-capital-disclosures/RESULTS.md`.
-
-## Wide equity source-table capture (2026-09-13)
-
-The source capture now supports framed equity statements with explicit period
-bands and one level of grouped amount headers. Native header wording and repeated
-body positions establish the column inventory; no fixed bank coordinates or
-accounting totals select the grid. Every literal amount, sign, dash, blank,
-period range, unit and dipnote stays linked to native words. Ambiguous headers,
-overlapping columns and unsupported period bands abstain.
-
-The independently read GARAN 2022Q4 consolidated page 20 fixture has 18 columns,
-544 printed amount cells, 34 numeric rows and separate 2021/2022 period labels.
-Both OCI groups retain their three child columns. Both 5.5 references resolve to
-the complete equity note on page 174 in reader tests. Source-corruption tests
-cover whole-table, row/column, header, date, note, unit and word removal, plus
-ambiguous inputs and distinct blank/dash/zero states. The tests also change page
-position, row count and amount-column count to guard against a fixed template.
-
-This is an unreviewed source grid, not approval of analytical D1 coverage or
-full registered-corpus completeness. A scoped Actions capture is required for
-older retained revisions. Other source formats, publication-validator repair
-and structured prose coverage remain unfinished. Run receipts and source proof:
-`docs/knowledge/2026-09-13-equity-tables/RESULTS.md`.
-
-## Framed source-table columns (2026-09-13)
-
-The existing capture engine now has a guarded path for tables whose outer frame
-is retained but inner rulings are unavailable to the table detector. Printed
-currency triplets establish every amount column; source-word alignment supplies
-the cells. Unit, period, date and currency headers retain their merged spans,
-and the dipnote column stays separate. No value is parsed or fitted to a sum.
-
-Exact GARAN 2022Q4 consolidated native pages 15–17 exercise assets, liabilities
-and off-balance sheet: 47, 49 and 86 body baseline bands, respectively, with all
-eight columns. Wrapped labels remain separate baseline bands pending logical-row
-review. Tests retain every source word and reject removal/alteration of complete
-tables, rows, columns, notes, dates, units and word/geometry evidence. A third
-disclosed period is also retained. The existing reader checks the resulting
-grids and follows the assets 5.1.1 link to pp. 121–123.
-
-This changes capture capability, not analytical D1 values or coverage approval.
-Earlier preserved revisions need a scoped Actions capture to gain this view.
-Equity, other unsupported formats, source completeness across the registered
-corpus, publication validators and structured prose coverage remain unfinished.
-Evidence and publication receipts: `docs/knowledge/2026-09-13-framed-tables/RESULTS.md`.
-
-## Source tables and dipnotes (2026-09-13)
-
-The existing admin coverage drawer and document browser now share a private
-source-table reader. It retains all detected physical columns and literal cell
-states, rechecks native word/character inventories and grid geometry, and reuses
-the named source-reviewed row assignments only after checking their evidence.
-Printed dipnot addresses link to section/group/note intervals, including their
-tables and qualifications. Source-page units and PDF citations remain visible.
-Unassigned legacy columns, rejected cells and unresolved or competing note
-addresses remain explicit; suggested table families are not coverage proof.
-
-Source-backed tests cover all six TOMK 2023Q3 assets dipnotes and prior figures
-1,004,154 and 1,545. A read-only probe of its 51 retained pages returned 83
-candidates (including alternatives), 47 with checked native cells and 26 note
-intervals. This is a single-report probe, not a corpus completion claim. The PDF
-itself prints a conflicting P&L continuation group on page 43; references to
-V-IV-4 remain unresolved rather than being redirected to III-4.
-
-The same reader supports GARAN's fully numbered hierarchy, including nested
-5.1.1.1 and whole-group 5.6 references. Its retained 184-page 2022Q4 consolidated
-report yields 498 candidates, 274 with checked native cells, 180 note intervals
-and 22 resolved references. PDF-checked regression cases retain the cash-flow
-note's prose and both beginning/end cash tables. Unassigned source columns and
-unresolved references remain; these are diagnostic counts, not coverage totals.
-
-This changes neither D1 financial rows nor coverage statuses. Full source-table
-completion across the registered corpus, source-completeness publication gates
-and the later structured prose coverage phase remain open. Evidence and release
-receipts: `docs/knowledge/2026-09-13-table-dipnotes/RESULTS.md`.
-
-## Audit measurement and repricing repair (2026-09-13)
-
-Code `9fbb64f` passed CI `34765040683` and deployment `34765139227`.
-The read-only `audit-extraction-gates.yml` run `34765053277` covered 1,146 filings,
-19 lanes and 21,774 fresh baselines; all eight shards used the same source
-snapshot, tested 261,917 isolated mutations and left their inputs unchanged.
-For sampled value/sign/zero changes, the gates accepted 81.0% in cash flow,
-45.4% in P&L and 55.0% in OCI. All 701 sampled footnote removals and eight source
-JSON removals passed. These are mutation escape rates, not production error
-estimates; failing, unproven and empty baselines are recorded separately.
-
-The audit also found 39 repricing filings marked OK but missing all serving rows.
-Read-only trial `34765080626` found 546 missing rows with no conflicting facts.
-Scoped repair `34765320472` restored them and verified exact factual equality and
-no-op replay. Independent D1 readback confirms all 12,143 existing rows and their
-timestamps are unchanged, exactly 546 rows were added to the 39 named filings,
-and 294 restored cells match the pre-repair audit. Repricing now has 12,689 rows.
-This repairs publication drift; it does not complete the native source tables.
-Detailed source/code evidence and per-lane results:
-`docs/knowledge/2026-09-13-extraction-gate-audit/RESULTS.md`.
-Full tables/dipnotes, source-completeness validators and structured prose coverage
-remain the active sequence in AUDIT_DOCUMENT_PLAN.md.
-
-
-## Audit completeness priority (2026-09-13)
-
-The user's active order is: independently audit all listed extractors and actual
-publication gates; fully capture their source tables with linked dipnotes; fix
-validators against that source contract; then structure prose by sections and
-passages. This supersedes selected-field expansion and prose-first priorities.
-The new manual `audit-extraction-gates.yml` measures isolated corruptions in a
-read-only snapshot's disposable copy. It records unproven/empty/failing baselines,
-exceptions and sampling limits separately; it is not source-completeness proof.
-Fresh review confirms that primary-statement comparative values are parsed but
-not retained in serving tables, and TOMK 2023Q3 assets' dipnot markers remain in
-item labels with NULL footnote fields. Summary-lane checks permit omitted detail.
-No financial rows are changed by this diagnostic. Full table/note integration,
-validator repairs and structured prose coverage remain active work. See
-[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for acceptance criteria.
-
-
-Concise snapshot of what's in the system right now. Updated as data
-coverage or known issues change.
-
-> **Reading order:** [README.md](../README.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
-> → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
-> [METRICS.md](METRICS.md); meta-knowledge about banking metrics (which are
-> disclosed, standardized across banks, on a regular cadence, and reproducible
-> from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 162-metric
-> registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
->
-> Last verified: 2026-08-16. Dated change history → [CHANGELOG.md](CHANGELOG.md).
-
----
-
-## Sector layout redesign (2026-09-13)
-
-The eight sector routes now share a redesigned analytics workspace: compact
-report/date headers, a labelled history selector, aligned current indicators,
-a dated assessment and financial-topic panels. Neutral ground and white panels
-replace the old continuous sheet. Each route groups related histories, breakdowns
-and exact comparisons; all distinct analytical content remains available.
-
-`SectorTrend` adds readable combined or faceted histories, full-name current
-comparisons, rounded data-driven axes, explicit reference lines, null gaps,
-lag dates and keyboard highlighting. The original range/data/export contracts
-remain. Credit uses a responsive horizontal growth waterfall and contribution
-bars; asset-quality stages/coverage and flows have readable external labels;
-profitability uses a horizontal income waterfall; capital differentiates the
-12% BDDK target from the 8% statutory minimum and preserves missing components.
-
-The server queries/calculations and client presentation boundaries are retained.
-Daily, weekly, monthly and audited sources keep their distinct bases. The new
-sector design contract lives in `web/DESIGN.md`; private research and content
-verification are in `docs/knowledge/2026-09-13-sector-redesign/`.
-
-## Liquidity component expansion (2026-09-13)
-
-The active direction is incremental expansion of the existing production lanes;
-whole-corpus completeness is a longer-term aspiration, not the release gate.
-The liquidity extractor now retains eight additional amounts: total/FC HQLA,
-weighted cash outflows, weighted cash inflows and capped net cash outflows.
-Four explicit TR/EN currency columns and current/prior headings determine the
-assignment. Blank cells keep their positions; dashes remain NULL. The existing
-unit context normalizes amounts to thousand TRY and leaves ratios untouched.
-`lcr_components_source_json` carries literals, geometry, period and scale.
-Missing/ambiguous rows in a recognized table fail validation. Unsupported table
-layouts remain absent, not certified complete. Repeated or unchanged period
-rows are not restamped. Analyst v2 statement/history tools and the SQL assistant
-expose the added fields and their source evidence.
-
-Six original tables across TOMK 2024Q1 solo, GARAN 2022Q4 consolidated and AKBNK
-2026Q2 consolidated were visually checked: 48 selected monetary cells. The latter
-filing is in millions. TOMK's prior FC net outflows are 33,346 against weighted
-outflows of 25,188 in its own PDF; the new cash-flow bound flags this discrepancy.
-TOMK is excluded from publication. Code `23b6d1c` passed CI `34758671451`;
-deployment `34758762977` applied migration 0050. Read-only Actions trial
-`34758685354` and publication `34758921549` both passed for exactly GARAN
-2022Q4 consolidated and AKBNK 2026Q2 consolidated. Independent live D1 readback
-matched all 32 new component amounts and their complete source evidence across
-four period rows. AKBNK's missing prior LCR values are now 151.64% total and
-250.24% FC. All other 2,160 liquidity rows, including their timestamps, were
-unchanged; all previously populated ratios in the target rows were preserved.
-Validation: 2,979 Python tests passed (2 skipped), 905 website tests passed,
-all web/mobile checks and nine standalone gates passed. The live liquidity page
-loads; the new registry label was confirmed in D1. The admin session has expired,
-so this release does not claim a fresh authenticated admin UI check.
-This does not add full LCR rows, NSFR/leverage components or a historical backfill.
-Evidence: `docs/knowledge/2026-09-13-liquidity-components/`.
-
-## Structured audit prose (2026-09-08)
-
-The existing private document corpus now has a report-wide prose contract and
-admin reader: `audit-prose-1`, served by `artifact=prose` on the existing
-`/api/admin/document-corpus` route. It streams retained source and structure from
-R2, verifies each page checksum and independently reconstructs every passage
-from native source spans. Missing, duplicated, reordered or altered wording,
-false heading references and false table-note text stop the response.
-
-The contract retains raw line breaks, readable text, paragraph/list/heading/note
-roles, printed section roles, heading references, source page/span/line/bounding
-box addresses, language candidates, table references and possible continuations.
-Explicit numbered headings can carry across pages within a section; uncertain
-relationships remain marked. Table text and page furniture are retained in the
-export and available through the reader's filter. Older captures fall back to
-unclassified source lines; pages without native text are reported explicitly.
-
-Separately positioned note numbers are linked to a uniquely adjacent heading
-on the same source line. For example, GARAN's `3.24` now accompanies “Segment
-reporting” and participates in the heading address across pages. Both original
-fragments remain intact. Ambiguous marker matches stay unassigned; an absolute
-decimal address never inherits an unrelated preceding note.
-
-Read-only checks against current cloud artifacts cover TOMK 2023Q3 solo (51
-pages, 6,830 spans, 1,387 elements) and GARAN 2022Q4 consolidated (184 pages,
-25,713 spans, 7,061 elements). All 14 previously source-reviewed TOMK management
-and risk passages match exactly, including short nil disclosures. This is source
-fidelity and access, not a full-report semantic or paragraph-boundary approval.
-Release verification: `8272089` and `6d00c53` passed CI and deployed successfully.
-Authenticated production checks passed on both source-test filings plus AKBNK
-2026Q2 consolidated (99 pages / 14,989 native spans), for 334 pages / 47,532
-spans in total. Live search, section filtering and complete JSON downloads were
-checked. The GARAN download equals the checked local contract exactly; the TOMK
-download retains all 14 reviewed passages. Full checks passed: 2,962 Python tests
-(2 skipped), 904 website tests, web/mobile lint and types, token checks and all
-nine standalone gates.
-
-The legacy 369,007-row local `bank_audit_prose` database has not been published;
-no D1 migration, row writes or extraction backfill is required for this reader.
-The analyst-facing contract is available for retrieval/export; automatic memo
-generation has not been connected to this prose reader. Evidence and release
-checks: `docs/knowledge/2026-09-08-structured-prose/`.
-
-## Existing audit lanes: broader repair (2026-09-08)
-
-The broader primary-statement source probe also found a shared parser defect:
-TOMK 2023Q3 P&L and cash-flow reporting-date headers became a fake `30 EYLÜL`
-financial row with amounts 202 and 3. The follow-up filters explicit calendar
-headers before amount tokenization while retaining financial labels containing
-dates or month names. Source-page fixtures exercise both statements. This code
-repair has not re-extracted or published settled P&L/cash-flow partitions.
-
-The active scope includes all 19 registered lanes, structured prose and unserved
-report tables; equity/capital were examples. The code-based repair map is in
-[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md#all-lane-repair-map-2026-09-08).
-The liquidity repair retains current/prior LCR headings, literal cells and actual
-source pages in `lcr_source_json`; it fixes dropped comparative ratios, displaced
-value bands and multi-group percentage literals. Explicit nil dashes remain NULL.
-Identical liquidity upserts preserve timestamps. Source regressions reuse TOMK
-2023Q3/2024Q1 and GARAN 2022Q4 consolidated originals. TOMK 2023Q3 remains excluded
-from publication because its current LCR conflicts with the printed high/low table.
-The validator also flags a retained LCR outside an unambiguously read, explicitly
-headed Turkish dated high/low range; the TOMK 2023Q3 contradiction now fails this
-check without changing its transcription.
-Code `97e9a22` passed CI `34162563312`; deployment `34162680530` applied
-migration 0049. Read-only trial `34162579549` passed both filings; publication
-`34162893124` succeeded. D1 readback verifies exactly two filings / four rows
-with LCR evidence: TOMK 2024Q1 solo and GARAN 2022Q4 consolidated. All eight
-LCR values and complete literal/page/period JSON equal the original-PDF probes;
-four previously missing comparative cells are filled. Existing current LCR,
-NSFR, leverage and table-locator pages are unchanged. No other filing has LCR
-evidence. Receipts: `broad-lane-live-verification.json` and source/baseline/after
-files in `docs/knowledge/2026-09-06-document-corpus/`. The admin browser session
-expired on reload, so authenticated visual confirmation is still outstanding.
-
-Analyst tools also regain stored FX source pages and source pages in row histories;
-repricing buckets, loan sectors and current/prior histories become addressable.
-Admin/analyst descriptions now identify credit-quality closing balances and the
-liquidity, FX and repricing summaries. These changes do not deliver full tables or
-activate the prose corpus. The complete broader extraction objective remains open.
-
-## Complete audit document corpus (2026-09-07; content verification in progress)
-
-**Delivery direction, 2026-09-07:** further standalone corpus expansion is paused
-at the user's request. Preserve the reviewed outputs and use them to improve the
-existing analytical lanes. The first deployed increment (`d4923ee`) retains all 34 financial
-rows on TOMK 2024Q1's equity page, including the printed +1,288 OCI closing cell
-that fails arithmetic; the former parser returned 33 rows. TOMK 2023Q3's 17-row
-matrix keeps all values and complete TMS/formula labels. Five capital-buffer
-percentages, literal cells and their PDF pages are wired into the existing
-capital loader and analyst tools. Migration 0048 and deployment `34149123973`
-completed successfully. Capital dry-run `34149029119` passed; publication
-`34149311548` updated only the TOMK 2023Q3 solo capital partition plus its
-validation/source metadata and the regular coverage refresh. Both D1 rows and
-all ten buffer cells were read back and match the independently reviewed PDF
-and its literal/page evidence exactly. The nine headline capital figures are
-unchanged. The existing parser also populated `capital_deductions` from NULL to
-0 in both columns: original p28 shows nil deduction rows and identical pre/post
-own-funds totals; this is derived normalization, not a literal printed zero.
-
-Equity dry-run `34149047490` correctly rejected TOMK 2024Q1: the retained closing
-row has a 2,576 component discrepancy, and row IV disagrees in sign with the
-stored OCI statement. No equity D1 rows were changed and validation was not
-relaxed. Other historical capital-buffer fields remain unpopulated. Isolated
-release checks: 2,943 Python tests passed, two skipped; 872 web tests passed;
-all required web/mobile and standalone checks passed. CI `34149001890` passed.
-Independent receipts are in
-`docs/knowledge/2026-09-06-document-corpus/existing-lane-live-verification.json`.
-The legacy `build_capital_full.py` still builds a separate local table and is
-not the website's capital-serving path. Its aggregate checks do not establish
-full source-row coverage. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md)
-for the revised priority.
-
-The first scope is **1,146 registered filings across 38 banks, 2022Q1–2026Q2**.
-All have acquired PDFs, preserved originals/native evidence and published
-candidate structure. **Zero whole filings have completed source-content verification.** Older
-history and additional banks follow completion of this registered corpus.
-
-The completed full refresh `34098885624` at `8d9e449` reconciles all 1,146
-outcomes exactly once, with no missing/duplicate filings or metadata errors.
-All PDF hashes and native counts agree with the independent source baseline:
-**119,772 pages, 308,126,554 characters and 2,241,656 physical text blocks**.
-There are **320,433 overlapping table candidates**, not that many distinct
-printed tables. This is reconciliation of completed run metadata, not a new
-byte-read of every published artifact or content certification. On the same
-sources, pages with line/source mismatch observations fell from 747 to 175;
-table-cell/source mismatch observations fell from 341 to 269. Named diagnostics
-and original source limitations remain visible.
-
-The authenticated admin separates registered, acquired, preserved, structured,
-fully verified, failed and outdated filings. It serves original PDFs, source
-page evidence and full structured reports. It shows physical/merged/absent cells,
-source-linked table rows, printed period headings, narrative candidates, section
-navigation and unresolved review notes. Blank text, dashes and disclosed zero
-remain distinct. Its captured counts do not claim completeness of printed
-content, reading order or financial meaning. Existing analytical lanes remain
-unchanged; this work does not write their D1 partitions.
-
-**Combined character/region publication `34112697713` finished at `3f3f763`
-with 1,145 successful updates and one R2 read timeout.** All 1,146 outcomes
-are present exactly once. Successful filings retain their original hashes,
-native-artifact digests and text counts. ZIRAAT 2023Q4 solo retains its previous
-published capture; its newer publication failed while reading storage.
-Read-only fresh probe `34133959596` subsequently succeeds. Independent
-download checks all 151 pages, source/structure accounting and identical
-original/native artifact digests. This is not whole-report content approval. The running
-period-heading fleet already selects that filing for another publication attempt.
-It upgrades retained c6e429ce structures to ca66890e without repeating the entire
-native capture. Independent original/fresh/replay comparisons cover all 267
-EXIM/Garanti pages. Full downloaded-artifact probes across EXIM, Garanti and two
-TOMK filings preserve all 384 native pages, physical blocks and narrative span
-occurrences. Eight tables changed literal or empty-slot structure; all 241 slots
-were checked against original source pages and registered as regressions.
-CI `34110701474` and deployment `34110814831` pass.
-
-**Period-heading publication `34116379265` is running at `a0a026a`.** The exact ca66890e-to-dda3201c adapter opens/extracts no PDF
-pages. Independent readback of fresh cloud probes `34115439703`, `34115442398`,
-`34115445430` and `34115448020` matches the entire locally replayed structures
-on all 384 pages, with identical original/native records and 41 selected source
-cases passing. The cloud probes have no supported retained R2 base; equality
-is independently established against the actual local retained ca66890e
-artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
-are not yet published across the corpus. Neither running/queued fleet is
-restarted for subsequent source annotations.
-
-The source benchmark now contains **88 selected cases across eight reports**.
-Four independently transcribed TOMK 2023Q3 capital fragments cover
-all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
-restores the word finansal, whose final letter physically crosses into an amount
-cell, and separates page 26's dated labels inside a merged physical header.
-Every source character remains present exactly once. Printed wording mistakes
-and inconsistent bank figures are retained. A reviewed four-page connection
-supplies page 29's period association from page 28, explicitly recording that
-page 29 prints no dated heading. This relation is specific to the reviewed PDF.
-The 107-row table, original physical cells, source references, connected context
-and discrepancy notes are available locally as JSON and a readable HTML under
-`output/audit-corpus/TOMK_2023Q3_unconsolidated/capital-disclosure-source-reviewed.*`.
-It is a named disclosure review, not whole-report or financial-series approval.
-
-Admin integration of reviewed tables is deployed at `2b601f3` (CI `34121426927`
-and deployment `34121557991` passed), with review-record publication pending.
-Read-only run `34121459005` independently reconciles exactly eight annotated
-filings, all 63 cases at that commit and 21 complete table records. All those
-records equal fresh benchmark replay against four retained full PDF evidence
-packages. The additional ten-table review at `68ae767` passes CI `34123877149`
-and independent cloud readback `34123893259`: all 51 TOMK native pages and the
-entire structured extraction remain identical, all 42 TOMK cases pass, and its
-21 table records exactly equal independent replay. Restricted publication `34124160052` was superseded before any job started
-by the combined publication `34133467871` described below. The earlier
-review-only publication `34122513206` was also cancelled while pending.
-Passed complete-table annotations produce receipt records bound to
-both exact stored page views. The private reader validates grid slots, context,
-word occurrences, logical assignments and source/capture identity before serving
-rows and downloads. Ten further TOMK note tables on pages 39–44 have since been
-independently transcribed and checked locally: 82 rows and 272 physical slots.
-Magnified original inspection corrected one manual wording error. The bank's
-duplicated Cari Dönem header on its tax-loss table remains literal, alongside
-the distinct printed dates. Wrong digits, dates, currencies, missing references,
-covered slots and dash/zero substitutions fail the new checks. The ten new
-tables and corrected report-level review description are included in the
-combined publication `34133467871`; their live display is not yet verified.
-The four independently captured reports now provide 49 reviewed tables in
-`output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
-488 physical rows and 2,128 slots. The reviewed views contain 781 rows and
-4,100 slots after explicit source-reviewed assignments. These include table headings and
-are selected-review counts, not the corpus's printed-table total.
-
-TOMK 2023Q3's complete P&L on PDF page 13 has now been independently transcribed
-from the original image: 62 printed body rows, four columns and the dated header.
-The physical extraction has only two rows, with the entire body in one band.
-Explicit source-word assignments and literal numbered-line grouping recover the
-62 rows while conserving every character occurrence. Two wrapped labels, the
-bank's repeated XIII identifier, literal note `(11)` and the earnings-per-share
-`Tam TL` unit remain intact. The admin reader independently checks row groups,
-source occurrences, placement and complete literal wording before serving them.
-The local `profit-loss-reviewed.html` is visually inspected; Python and Worker
-corruption tests reject dropped, duplicated, reordered, misassigned and merged
-rows. CI `34127002293` passes at `0b654f6`. Independent readback of read-only
-probe `34127039166` confirms all 51 native pages and the entire structured
-extraction are unchanged, all 43 TOMK cases pass, and all 22 complete-table
-records exactly equal local replay against the pinned source annotations.
-Single-filing publication `34127300076` was superseded before any job
-started by combined publication `34133467871`. The P&L remains unverified
-live. Its printed-row review changes no PDF extraction or analytical facts.
-
-Further local source review covers complete TOMK comprehensive income (PDF
-page 14), cash flow (page 16), five management tables and all four management
-paragraphs (page 50). Cash flow retains 46 labelled body rows and three
-otherwise empty rows bearing displaced prior-period dashes. The merged physical
-amount band is retained alongside its independently reviewed dated columns.
-Comprehensive income retains 16 body rows, a wrapped label and the bank's literal
-Sınırlandırılmayacak wording. Management retains its printed Toplam Aktifler
-label under liabilities and its 31 Aralık 2022 P&L comparison date.
-
-The management review exposed a numerical candidate rectangle covering almost
-the full page and misclassifying four paragraphs and three headings as table
-text. The new narrative rule identifies envelopes around multiple separate ruled
-tables and releases their intervening prose; uncertain overlaps stay linked.
-An independently inspected Garanti balance-sheet region guards against broadly
-reclassifying real financial-table labels as prose. Four complete
-paragraph gold cases check wording, negation and the correct III/IV/V heading.
-The retained dda3201c-to-35500cc8 adapter rebuilds narrative, reading layout,
-table context and note links without extracting PDF pages. Local replay over
-all 384 pages of the four retained reports preserves native evidence, every
-table/cell and all other page fields; existing and new selected cases pass.
-Code `c6e4a90` passes the full Python suite, 831 web tests, mobile checks and
-all nine standalone gates. CI `34132777804` and deployment `34132920796` pass.
-Independent downloads of fresh probes `34132813060`, `34132820844`,
-`34132827954` and `34132840168` exactly match all 384 pages of retained
-replay and original/native bytes. Probe `34132849295` covers the four other
-annotated filings. All eight downloaded reports pass source/structure accounting
-and exactly reproduce all 85 selected benchmark cases and 39 table records.
-This validates the repair and selected reviews, not whole-report fidelity.
-
-**Combined publication `34133467871` is queued at `c6e4a90` for all 1,146
-registered filings**, after the running period-heading fleet.
-The two superseded review-only jobs had no jobs or writes when cancelled.
-The refreshed live admin reports 1,146 preserved/structured, zero fully verified
-and one failed update. New narrative/review data has not yet been verified
-there. All four completed region shards independently reconcile 1,146 unique
-outcomes; the only unsuccessful update is the named Ziraat storage timeout.
-Local reviewed prose is in `management-prose-reviewed.json`; a combined readable
-page is `management-source-reviewed.html` under the TOMK 2023Q3 output directory.
-Python-produced wire fixtures include original reviewed pages with explicit
-empty placeholders elsewhere solely for protocol tests. They are not complete
-report extracts. The new `annotated_only` capture input limits publication to
-registered annotated filings and does not restart either running/queued fleet.
-
-The complete TOMK 2023Q3 assets, liabilities and off-balance-sheet tables on
-PDF pages 10–12 are independently transcribed and pass local source checks:
-**163 reviewed rows and 1,304 slots**, retaining the 15 physical rows / 100
-physical slots. Explicit reviewed grids separate each dated TP/YP/Toplam
-heading and the off-balance sheet's combined amount bands. All physical
-boundaries and every original word/character occurrence are retained. Assets
-keeps both sets of six printed dashes beside the wrapped III label. Liabilities
-explicitly joins the 14.6.2 label with its six amounts printed on the following
-otherwise unlabelled baseline, while preserving those source coordinates.
-The private reader validates the complete assignments and displays the reviewed
-column count. Neither extraction engine `35500cc8` nor stored analytical facts
-change. This additional three-table batch is queued separately from pending
-full-corpus publication `34133467871`. Code `29c8af4` passes CI `34138492762`.
-Independent downloaded readback of fresh probe `34138514206` verifies identical
-original/native bytes on all 51 pages and exact equality of the entire structure
-with retained replay. All 57 TOMK cases and 32 complete table records match
-pinned local replay. Scoped publication `34138728663` queues that report's
-updated review receipt after the existing fleets; live display remains unverified.
-The isolated staged source passes 2,898 Python tests (two skipped), 858 web
-tests, web/mobile lint and types, mobile token checks and all nine standalone
-gates. Wrong values, dates, currencies, word occurrences, boundaries and spans
-fail review validation. Receipt: `reviewed-grid-cloud-independent-verification.json`
-under `docs/knowledge/2026-09-06-document-corpus/`. Whole-report content review
-remains open.
-
-
-TOMK 2023Q3 now has five further complete table reviews: the 17-column equity
-statement (PDF page 15), daily rates (page 30), the combined
-current/prior FX exposure table (page 31), the small liquidity high/low table
-(page 33) and prior liquidity coverage (page 34). The existing prior-rate review also gains its explicit date context.
-These add 97 reviewed rows / 740 slots, retaining 76 physical rows / 453 slots. The local collection now
-contains 47 complete table records / 732 reviewed rows / 3,877 slots across
-four reports; 93 selected cases are registered across eight reports. The
-equity statement retains its six numbered column explanations and complete
-closing balance. The high/low liquidity value remains the printed 80.980.325;
-the large current table prints 809.080.325 and has clipped row numbers, so it
-is still unresolved. Prior liquidity retains 142.085.400 and blank unweighted
-slots. None of these reviews certifies a complete filing.
-
-The daily-rate review exposed a missing full table: legacy numeric rows omitted
-the currency headings and printed cell structure. The repaired horizontal-rule
-candidate retains both printed bands, every source word and all original
-alternatives. Independent row assignments recover all six body rows. It requires
-matching column rules, separated source baselines, complete cell placement and
-a distinct header; a TOMK 2024Q1 tax-table holdout rejects taking the last line
-of a compound heading alone. The exact 35500cc8-to-c9134d44 retained adapter
-rebuilds table-dependent views without opening or extracting PDF pages. Bounded
-replay over all 384 pages of four retained reports changes tables only on
-TOMK 2023Q3 page 30 and preserves every existing table and source byte.
-Fresh cloud equality is independently proved below; publication is queued.
-Existing period/narrative/review publication runs are not restarted. The
-earlier reviewed-grid reader deployment `34138652324` has completed successfully.
-
-The isolated staged source passes 2,920 Python tests (two skipped), 865 web
-tests, all nine standalone gates, Python/web lint, web types and mobile
-lint/types/design-token checks. Duplicate complete reviews of one table
-are rejected, preventing selected coverage counts from being inflated.
-
-Remaining work is every printed table's coverage and logical structure across
-the corpus, complete prose ordering and analyst retrieval, whole-report source
-review, and resolution or explicit enumeration of nonnative source limitations.
-No successful run, consistent hash or selected benchmark certifies that end
-state. Source identity, alternate editions and recovery evidence remain in the
-separate corpus. Operational controls for `build-document-corpus.yml`,
-`capture-document-edition.yml`, `capture-related-documents.yml`,
-`review-document-origins.yml` and `recover-document-corpus.yml` are documented
-in [OPERATIONS.md](OPERATIONS.md).
-
-See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the execution record.
-Independent receipts are under `docs/knowledge/2026-09-06-document-corpus/`,
-including `registered-base-refresh-independent-reconciliation.json`,
-`registered-region-refresh-independent-reconciliation.json`,
-`narrative-cloud-independent-verification.json`,
-`region-direct-independent-verification.json` and
-`period-header-cloud-independent-verification.json`.
-
-
-## Architecture safeguards (2026-09-06; rolled out 2026-09-15/16, first live pass observed)
-
-The working tree now implements exact-SHA release checks, build-before-migration
-ordering, serialized release/audit locks and retained ingestion queues. Serving
-schema changes come only from versioned migrations; 0047 supplies the two missing
-extraction counters, with narrowly verified legacy adoption. Publishers require
-explicit table ownership and read-only schema preflights. Supported snapshot
-writers share verified candidate/committed checkpoints with unique run history.
-Mobile now has a generated runtime contract, an uncached compatibility gate and
-validated cache entries keyed by API origin and contract version.
-
-Read-only D1 metadata captured on 2026-09-06 matches the migration-built serving
-schema physically; the existing counters require only a 0047 migration-ledger
-adoption. All six current mobile API responses pass the new validators. No D1/R2
-write, workflow dispatch, deployment, commit or push was performed for this work.
-Local verification passed 2,017 Python tests, 679 web tests, the production web
-build, and iOS/Android Metro exports. Scoped Python lint and web/mobile checks
-pass; full-root lint still reports pre-existing `PY` names in scratch scripts.
-The separately added `build-document-corpus.yml` is now published and has passed
-sample runs; the live workflow-state gate passes. Live queue/release behavior
-was observed on 2026-09-16 (see the top entry): red-CI deploys skipped, the
-green exact-SHA release applied migration 0054 and passed smoke. Operating and
-recovery procedures are in OPERATIONS; implementation evidence is in
-`docs/knowledge/architecture-implementation-plan-2026-09-06.md`.
+The state of the system as it is comes first: what is in the database, how the
+banks are grouped, where the bytes live, what runs and when, and what is known
+to be wrong. The dated record of how it got here is the **change log** at the
+end, newest first. Its section titles are unchanged, so a link to any of them
+still resolves.
 
 ## Data coverage in D1
 
@@ -4059,3 +2988,1086 @@ publication `34144411936` queues its TOMK 2023Q3 unconsolidated receipt
 (74 cases / 39 unique complete tables) behind the existing corpus jobs. The
 local prose output was visually checked through its final hedging paragraph.
 The new receipt remains unverified live, and no whole report is certified complete.
+
+## Change log
+
+Dated entries, newest first. Each records what changed, what it was measured
+against, and what it left open. Titles are unchanged from when these sat at
+the top of the file.
+
+### A money-market rate and the credit-conditions survey are ingested (2026-11-27)
+
+Two EVDS additions, each read from upstream before it was listed — 42 codes,
+no duplicates, latest observations 2026-Q3 and 2026-11-26:
+
+- **BIST overnight repo rate** (`TP.AOFOBAP`, business days): where the
+  market's overnight print sits against the policy corridor, which is itself
+  a one-week repo rate. Polled by the daily EVDS run.
+- **Bank Loans Tendency Survey** (`bie_bkea`, quarterly): TCMB's survey of
+  banks — 41 of its 128 series. Standards, pricing terms and demand for
+  corporate and consumer lending, the drivers behind them, the next-quarter
+  outlook, and banks' own funding conditions. Polled by the Saturday run.
+
+Neither is charted yet. For the survey that is deliberate: which direction is
+positive is stated in TCMB's report table, not in the EVDS metadata, so the
+stored labels name the question and assert no direction —
+`tests/test_evds_series_registry.py` keeps them neutral. Read the convention
+off the report before drawing or describing a value as tightening or easing.
+
+**The sovereign curve was not added, and the reason is a finding.** EVDS
+publishes no 2-, 5- or 10-year government yield. Its government-paper group
+(`bie_pydibs`) is 4,254 per-issue series — an indicative value and a coupon
+rate for every GDDS and lease certificate — and a sample does not establish
+what the value is (10.92 on 2026-10-01 for a two-year with a 15.03% coupon).
+A curve would be a model fitted to those: benchmark selection, rollover as
+issues mature, a price-to-yield convention. There is no independent published
+figure in the repo to verify one against, so it is a design task with a
+verification anchor to find first, not an ingestion.
+
+### The public API labelled every weekly series 1,000× too small (2026-11-27)
+
+`/api/v1/series` returned sector TL loans of **18,523,337.66** on 2026-11-06
+with `"unit": "thousand TL"` — 18.5 billion lira, against 18.5 trillion. BDDK
+prints the weekly bulletin in million TL (`Birim: Milyon TL` on its tables),
+the scraper's own docstring said so, and `build_api_catalog.WEEKLY_UNIT` said
+`thousand TL`. Every one of the ~2,200 weekly series carried it from the API's
+launch, and `API.md` / `API_MANUAL.md` repeated it — next to a worked example
+(`51,760,765` is 51.76 trillion) that only made sense in millions.
+
+The values were always right and the dashboard was never affected: it uses
+weekly values in ratios and growth rates, where the unit cancels. A consumer
+who trusted `unit` was 1,000× short. `WEEKLY_UNIT` is now `million TL`, both
+docs say so and tell pre-2026-11-27 consumers to rescale, and
+`tests/test_weekly_categories.py` pins it. **The correction reaches D1 with
+the next Saturday refresh**, which rebuilds `api_series` (~20k rows, a real
+change); until then the live API still says thousand.
+
+Found by the probe for the item below, not by anything in the repo: no check
+compared a stated unit with a printed one.
+
+### Two more tables of the weekly bulletin are read (2026-11-27)
+
+The bulletin has ten tables; the scraper read seven. A probe of the whole id
+space on 2026-11-27 (1,300 calls, no rate limiting) found what the other three
+hold:
+
+- **Table 8 — securities held at banks, market value**
+  (`saklanan_menkul_degerler`): 45 charts by holder (residents and
+  non-residents; households, insurers, other corporates, banks, other
+  financial) and instrument (government paper, Eurobonds, other), in TL / FX /
+  total. Table 7, already read, is the same custody table at nominal value.
+- **Table 9 — FX position** (`yp_pozisyonu`): 10 charts — on- and
+  off-balance-sheet position, assets and liabilities on each, the **net
+  general position**, **regulatory capital**, and FX-indexed assets and
+  liabilities. Ids `9.0.1`–`9.0.10` are the same rows under a retired
+  numbering (empty axes, last data 06.01.2023); the live ones are
+  `9.0.11`–`9.0.20`.
+- **Table 10 — the maturity split: not read.** Every cell has been `0.0`
+  since 11.12.2020.
+
+Two rules came out of it. **Not every table prints three columns**: table 9
+has a single TOPLAM column, and asked for `sutun` 1 or 2 it answers with a
+real title and a full series of `0.0` — "this leg does not exist", not a
+disclosed zero. `columns_for()` is the rule and both the refresh loop and the
+backfill use it; fetching all three would have written two rows of invented
+zeros for every real one. **The catalogue is measured**: `update_weekly.py`
+now probes every table in `CATEGORY_NAMES` (200 ids, stopping after 40 empty
+in a row — the old bound of 59 was assumed, and table 8 prints 45) and
+regenerates a local cache that predates a table.
+
+**A rule that was tried and removed.** The first probe kept only charts with
+a non-zero value, to keep table 10 out. Run against BDDK it retired five
+charts of the tables already read — `4.0.12`, FX-protected deposits, now
+zero across the window *because the stock has wound down*, and four of table
+7 — which would have ended each series at its last non-zero week. Zeros are
+data. Empty axes are the only test; table 10 stays out by not being listed.
+
+Both tables fill from the first weekly refresh after this change, so their
+history starts there (~13 weeks at first). Older weeks need the existing
+anchor-walking backfill: about 21,600 calls for table 9 alone back to 2019,
+not run. The catalogue is 179 charts; a Friday refresh that scrapes goes from
+~2,230 to ~3,100 calls, so the job's timeout went from 60 to 90 minutes
+(measured 35–39 before). Nothing on the dashboard reads the new tables yet;
+the sector's monthly FX position was already on `/market-risk`.
+
+### Eight chart anchors re-based after upstream revisions (2026-11-27)
+
+`verify_chart_spec.py --alert` had reported `62 pass · 2 fail` every day from
+10-19 and `59 pass · 5 fail` from 11-14, all on April-2026 anchors transcribed
+from Albaraka's monthly reports: the Treasury's December-2025 budget rows were
+revised in October and TCMB re-released its balance-of-payments series on
+11-14. The stored data was right — a fresh EVDS read matched D1 on all 144
+underlying cells — and the anchors were what was old. Every anchor in the
+three affected specs was recomputed from that upstream read, three of them
+while still inside tolerance. The catalog's `source.note` records which
+revision, when, and what the report printed before it, and the procedure is
+in `REPRODUCING_CHARTS.md`. Rolling-12-month anchors will drift again the
+next time a month inside their window is revised.
+
+### The daily health check has a red tier and reads the regulator's registry (2026-11-27)
+
+**The 2026Q3 gap below was reported, at the wrong volume.** From the end of
+October the daily health check printed `2026Q3 published but not acquired: N
+bank(s)` under `🟡 BDDK data health` — 17 banks on 11-16, the oldest 20 days —
+on the same line as `TEFAS funds: stale`, and every run exited green. Nothing
+in the check could say that this one mattered.
+
+- **Red.** A filing that has gone ≥ `FILING_GAP_RED_DAYS` (10) unheld now leads
+  the message as `🔴 BDDK data health` and **fails the run** (`main` returns 1;
+  the steps after it in `healthcheck.yml` run on `if: always()`). The quarter's
+  first KAP filing was 10-23, so 2026Q3 would have gone red on 11-02.
+- **The registry as the second census.** `filing_gap_problem` read KAP's
+  `results_filing` alone, which can only name banks that file on KAP: three of
+  the 38 never do, and it said 17 against the 24 reports the regulator held.
+  `registry_gap_rows` now reads BDDK's listing for its newest period and names
+  every bank the lane holds no extraction of, tagged `registry`. The listing
+  carries the reporting period, not the day of receipt, so those rows are aged
+  from the quarter's first KAP filing, and an undated one is listed but can
+  never be the red one. An unreadable registry leaves the KAP half standing.
+  First live read: 7,744 listing rows, 38 banks listed for 2026Q3, 38 held, no
+  gap on either side.
+- **TEFAS was a structural false alarm.** Only the Saturday `refresh-data` run
+  fetches TEFAS since the 2026-08-07 cadence change, so a Friday data date is
+  8.1 days old when the next run starts — against a 120h limit. It went amber
+  every Wed–Fri (6.7 days on 11-26) whatever the pipeline did. The limit is
+  240h: it fires on the Monday after a missed Saturday run and on nothing else.
+  The lane itself was not moved.
+
+### Audit acquisition reads BDDK's registry (2026-11-27)
+
+**2026Q3 is complete in D1: 38 of 38 banks, 68 partitions, every extraction
+successful** — from 14 banks the day before. The run that closed it
+(`refresh-audit.yml` dispatch `45897084707`) acquired 44 reports and extracted
+45 partitions with 0 failures — the 45th is a standing retry, TAKAS 2022Q1 —
+and wrote 75,286 rows to D1 in one batch: the new partitions and their coverage
+rows, nothing re-stamped. The same-day reconcile found 0 errors across the 44,
+and the cross-period watch reported no reporting-unit change. Every lane that
+publishes interim periods holds 2026Q3 (read from D1): balance sheet 11,887
+rows across 68 partitions, P&L 4,287, cash flow 2,882, equity change 2,200 (66
+partitions), OCI 1,052, repricing 714 (51 — participation banks omit it), credit
+quality 642, FX position 544, NPL movement 288 (67), opinion (65 partitions),
+profile (63), free provision (16).
+
+**What was wrong.** The scraper's targets were the hand-maintained URL config
+plus IR-page discovery for 13 banks, so 24 banks had no Q3 target at all. All
+24 had filed, and BDDK's own registry listed every filing — for up to 30 days —
+while each daily run printed `new=0` and exited green. Discovery missed three
+more whose only change was the filename (ANADOLU dropped `as`, PASHA dropped
+`tr`, VAKIFK gained a `(1)`).
+
+**The fix — a third target source.** `scrape_to_r2` reads the registry listing
+once per run (`src/audit_reports/bddk_registry_source.py`) and adds every
+(bank, period, basis) the config and discovery do not name. Precedence is the
+config, then the bank's own page, then the regulator's copy; it only adds. The
+census taken before shipping found no untargeted registry partition older than
+2026Q3, so it backfills nothing. An unreadable listing adds nothing and raises
+a `BDDK registry fallback unavailable` job warning.
+
+Reading the registry for real needed three fixes in `fetch_pdf_bytes`, each
+pinned by `tests/test_bddk_registry_source.py`:
+
+- five zips (DUNYAK, EMLAK ×2, EXIM, VAKIFK) hold the PDF behind the 27-byte
+  Java header already stripped for VAKIFK's own site — it was being stripped
+  from the download, not from the member inside the zip;
+- ANADOLU's zips gained a one-page "Sorumluluk Beyanı" that sorts ahead of the
+  report: companions are set aside by name and, of what remains, the member
+  that is a report wins;
+- a zip with no PDF in it is `pending`, not a failure — QNB files `.docx` +
+  `.xls` with the regulator, so the registry can never supply it.
+
+**QNB is the one bank still bound by hand.** Its real 2026Q3 reports were on
+its CMS, uploaded and never linked from the BRSA section (which still points at
+4-page English convenience translations): `document-file-4713` (114pp,
+consolidated) and `-4714` (110pp, unconsolidated), covers read 30 Eylül 2026.
+Found by probing document IDs above the linked slots; recorded in the bank's
+`_note`.
+
+**What the quarter's validation says, none of it caused by the source.** The
+banks loaded today carry the same kinds of flags as the 14 that arrived in
+October.
+
+- `loans_currency` fails `capture_rows_missed` on 67 of 68 partitions — for 1
+  to 202 rows each, typically tens (GARAN consolidated: 202) — while its
+  arithmetic checks pass 10/10 everywhere. **That is a defect in the check, not
+  the data.** The
+  lane's capture anchors accept any page holding "sektor"/"sector",
+  "kredi"/"loan" and a two-letter fragment such as `tl`, `yp`, `tp`, `fc`,
+  matched against space-stripped text — true of nearly every page in a filing —
+  so balance-sheet and policy pages are captured and their numeric lines counted
+  as missed. The lane dates from 2026-09-15, after 2026Q2 was captured, which is
+  why it shows at scale this quarter; the two 2026Q2 partitions that carry a
+  manifest for it fail the same way. Both loans lanes are `annual_only`, so nothing
+  is published from them for an interim quarter and the flag is noise today —
+  but it will meet the lane's first real publication when the 2026Q4 reports
+  arrive. **Unfixed.**
+- `npl_movement` fails identity checks on 45 of 68 partitions — the same count
+  as 2026Q2, though only 31 filings are common to both.
+- `free_provision` flags 12 partitions, ten of them "auditor qualified over a
+  free provision but none was extracted", plus an EMLAK prior-field mismatch.
+  Not investigated here.
+- `fx_position` fails on the same ten filings as 2026Q2 plus TOMK unconsolidated.
+- Five of today's filings fail a few checks on a core statement: ATBANK
+  consolidated (liabilities, 1 of 90), ODEA unconsolidated (P&L, 2 of 12), TAKAS
+  unconsolidated (assets 2 of 97, capital 1 of 18), YKBNK consolidated (assets,
+  2 of 97) and unconsolidated (assets 4 of 97, liabilities 1 of 88).
+
+**Also changed: the filing window now runs through month-end.** `refresh-audit.yml`
+used to stop on the 20th of the month after the deadline month, and 2026Q3 filed
+straight past it — ANADOLU on the last scheduled day, QNB's reports still
+unlinked six days later — with nothing left to look until January. The May/Aug/Nov
+cron now runs `1-31`, and `/admin`'s filing-season panel mirrors it. It is still
+a window rather than year-round: one day costs about 28 minutes across nine jobs,
+because the corpus and text-recovery follow-ups run on every completed refresh,
+quiet or not, and year-round would add about 215 such days. Going year-round
+wants those follow-ups gated on a refresh that actually changed something first.
+
+### Admin coverage monitoring: vitals, grid, trend (2026-09-18)
+
+The /admin coverage panel gained the four things its 2026-09-18 review found
+missing, plus an interaction pass. **Spine visibility**: `push_to_d1` stamps
+`source_freshness ('audit_spine', latest_period = lane count)` on every push
+that ships the spine tables; the Coverage vitals strip renders "spine synced
+Xh ago · N/M lanes in D1" and goes amber on a lane-parity gap, a missing
+marker, or an >8-day-old sync — a registered-but-never-synced lane (the
+risk_profile blind spot) is now stated instead of silently absent.
+`healthcheck.py` alerts on the same three conditions daily
+(`audit_spine_problem`) and snapshots one `coverage_trend` row per run
+(migration 0055, direct wrangler write outside SYNC_TABLES per the 0028
+precedent); the strip renders error/missing deltas ("errors 41→12 (8d)") with
+direction tones. **Validation recency**: the drawer shows each gate's
+`validated_at`, the strip the last validation pass. **Drawer**: the
+per-partition coverage rows (always fetched, never rendered before) are now a
+lane strip that retargets the drawer in place; failure rows show the machine
+check name next to the human node; ←/→ walks the filtered problem list. **New
+views**: a summary|grid toggle revives the bank×period dense grid on the
+existing-but-unreachable `?type=&kind=` endpoint with the STATUS_CELL glyphs;
+all filters live in the URL (shareable, back/forward); top problem banks are
+one-click filterable; a Refresh action and a post-dispatch refetch back the
+"coverage refreshes" toast. A minimal `web/vitest.config.ts` declares the
+`@/` alias — Vitest resolves no tsconfig paths itself, so test-reached
+components with value-level `@/` imports needed it.
+
+### Release train live; wire-contract fix; risk_profile in D1 (2026-09-16)
+
+The 2026-09-16 session committed and pushed everything that was sitting in
+the working tree (mobile wire contract, sector chart pass, audit repair
+hardening, the risk_profile lane, the recovered ceo-temp-web layout stash)
+and the release train ran live for the first time with the new safeguards:
+two pushes with red CI had their Deploys correctly **skipped**, and the
+green `b78dd4ee` deployed with migration `0054_risk_profile.sql` applied to
+D1 and the release smoke (overview, Akbank, public API metadata, mobile
+handshake) passing — the exact behaviour the 2026-09-06 entry said remained
+to be observed.
+
+One CI-only bug surfaced and was fixed: the web compatibility suite imported
+`negotiate()` from `../../mobile/src/api`, and Vitest 4's native
+(rolldown/oxc) transform resolves tsconfig per file — mobile's tsconfig
+extends `expo`, installed only in the mobile CI job, so the web job died
+with `TSCONFIG_ERROR` while staying green on any machine with mobile deps
+present. `contracts/compatibility-state.ts` is now canonical alongside
+`app-api-v1.ts`, `sync_app_contract.py` generates package-local copies with
+the import specifier rewritten per target, and nothing imports across a
+package boundary. Investigation note:
+`docs/knowledge/2026-09-16-vitest-cross-package-tsconfig.md`.
+
+The risk_profile entry below is unchanged except that its migration is now
+APPLIED to live D1 (still zero rows).
+
+### Pillar 3 risk profile lane — wired, not yet populated (2026-09-16)
+
+`bank_audit_risk_profile` (17 standardised-approach exposure classes + TL/FC/
+Total per sector row, same taxonomy as loans_by_sector) is registered as a §5
+annual-only narrow lane and wired end to end: extractor (`src/audit_reports/
+risk_profile.py`, x-position header alignment with a text fallback), local
+schema, D1 migration 0054, migration-0030 section backfill, units money
+columns with a read-back test, `fetch_recent` routing, `reextract_statement`
+support with the workflow/UI allowlist, and a first validator (`check_risk_
+profile`: TL+FC=Total per row, Σ classes = Total when the full set was read
+and a partial set may not exceed it, Σ top-level sectors = the total row,
+child ≤ parent, unknown sector rows fail). **Zero partitions extracted so
+far** — the table is empty in D1 until the next annual refresh or a deliberate
+backfill populates it; the coverage spine will mark it missing until then,
+which is the honest state. The wide-lane counterpart on the sector template
+(`bank_audit_sector_full`, local-only) already reads this table's shape and is
+the cross-check candidate once rows exist.
+
+### Sector chart consistency (2026-09-14)
+
+The eight sector routes share stable series colours across line histories,
+composition stacks, categorical breakdowns and small multiples. English entity
+labels disambiguate weekly/monthly bank-group codes; range filtering and mobile
+layouts retain those identities. The categorical palette uses readable teal and
+slate for domestic-private and development-investment groups, in lockstep with
+CSS and mobile tokens. Stage 2/watchlist and Stage 3/NPL retain semantic warning
+and negative colours.
+
+Sector history plots use shared 320px full-width / 280px comparison / 260px narrow
+heights and 180px facet plots, with readouts outside the fixed plot. Reserve
+levels now use a labelled latest-value row, distinct outlines and restrained gap
+fills. Consumer-credit and consumer-NPL facets have full-width comparison cards.
+The underlying series, calculations, sources and exports are preserved.
+
+
+### Sector report analytical coverage (2026-09-14)
+
+The eight sector reports use the Garanti BBVA sector-outlook framework and the
+private BDDK visualization catalogue to broaden analysis beyond headline ratios.
+Credit now leads with constant-FX 13-week momentum, product and bank-group
+distribution; real/constant-FX comparisons remain in a dedicated later section.
+The assessment no longer automatically describes all lending growth as inflation
+or asserts a real contraction when the input is positive.
+
+New cached, read-only BDDK views cover balance-sheet composition and the operating
+network; credit by economic sector, maturity, SME size/currency, overdrafts and
+guarantees; deposit customer/currency/maturity and amount bands; published
+liquidity gaps and selected funding sources; regulatory-capital and FX bridges;
+manufacturing and SME credit risk; monthly profit and fee/OPEX coverage; and
+securities accounting and non-derivative commitments. Existing analytical views,
+data controls and sources remain accessible. Signals remain admin-only.
+
+Cross-sections display their own reporting period and retain exact source-unit
+values in data tables/CSV. T05 thousand-TL amounts convert to million TL;
+incomplete identities stay unavailable, and monthly profit de-cumulation
+preserves missing periods. No schema or ingestion change is needed. Source
+mappings, deliberately deferred experiments and verification evidence are in
+`docs/knowledge/2026-09-14-sector-analytics/` and its linked route investigations.
+
+### NPL comparative cells and signed reclassifications (2026-09-14)
+
+The existing NPL extractor reads bounded movement disclosures across pages,
+including comparative tables. Signed `other_movement` keeps reclassifications
+separate from debt sales, FX and accruals. Migration 0051 is deployed. Upserts
+compare facts and retain unchanged timestamps.
+
+Actions preview 34783477236 and publication 34783722932 at commit 42e8868 passed
+for the two exact GARAN 2022Q4 filings. Independent readback matched all twelve
+normalized group rows in D1 and the published R2 snapshot: three comparative rows
+added and 15 NULL cells filled, preserving all 93 existing non-null numeric cells.
+Each filing has six normalized rows, 30 mapped physical data rows (including
+debt-sale categories), zero unmapped rows, and 110 passed checks with zero failed
+or skipped. All 180 native source cells, their line/token references and linked
+dipnote wording match the retained source. Only bounding-box coordinates are
+compared at the native-word artifact's declared four-decimal precision.
+Unrelated NPL partitions and timestamps, and the other twelve statement tables
+for these filings, are unchanged. CI 34783464869 and deployment 34783582388 passed.
+
+The existing R2 snapshot ledger retains native dash/zero states, displaced dash
+glyphs and literal star-note references. GARAN's conflicting current/prior star
+markers remain ambiguous, with separate candidates supported by the note's
+wording and amounts. These links are retained pipeline evidence; their admin
+reader integration remains pending. The revalidation path checks main cells,
+category sums and both periods' movement identities at source precision.
+
+The workflow's coverage follow-up revalidates the whole snapshot. The stronger
+NPL gate now exposes 84 previously-green filings without changing their figures:
+49 lack the new native-cell evidence, while 35 have comparative movement
+mismatches (GARAN 6, HALKB 21, VAKBN 8). These are unresolved evidence/validation
+failures, not a claim that all 84 contain wrong amounts. Source-only backfill
+`only_failing` now selects NPL `npl_source_cells_missing` and
+`npl_source_cell_reference` failures alongside `capture_*` failures. It
+revalidates selected filings even when their retained evidence is unchanged,
+logs each lane verdict, and pushes only metadata tables whose facts changed.
+The 49-filing evidence backfill has not been dispatched; this code change
+does not resolve the stored backlog or alter analytical figures.
+Comparative repairs require individual source review and scoped Actions previews.
+
+Both analyst paths carry the signed Other field. The report assembler also
+retains FX, accruals, provision, net balance and PDF pages; a column total stays
+unavailable when any BRSA group or contributing cell is missing. This repair
+verifies these disclosures, not other bank layouts or complete reports. Evidence:
+`docs/knowledge/2026-09-13-npl-completeness/`.
+
+### Wrapped sector headers and independent completeness checks (2026-09-13)
+
+The existing sector extractor retains column headers above and beside period
+captions, including Turkish wrapped ECL headings. Explicit table starts keep
+Stage references in preceding prose out of the column anchors. Both reporting
+periods retain all three printed cells, including all-dash rows; the observed
+Turkish real-estate abbreviation has an exact taxonomy entry. Source discovery
+also retains heading-only pages and the closing disclosure independently of
+extraction results. The source-cell validator checks these layouts independently
+of the coordinate parser and rejects missing current cells or entire periods.
+
+Actions preview 34780144337 at d52e1d0 rejected GARAN 2023Q4 solo and 2025Q4
+consolidated candidates, protecting production from incorrect parsing. It also
+exposed an existing 2025Q4 solo professional-services row containing education
+figures and a missing separate education row. Commit 310cdf3 fixed those layouts;
+preview 34780961260 and publication 34781104486 passed for the six exact GARAN
+2023Q4–2025Q4 annual filings. Independent D1/R2 readback matched all 240 rows and
+720 printed cells: 81 rows added, 80 NULL cells filled, and three misplaced
+professional-services figures corrected. Each filing has 40 mapped source rows,
+zero unmapped rows, and 134 passing checks with zero failures or skips. Other
+statement data and unrelated sector partitions stayed unchanged; 78 unchanged
+rows retained their timestamps. The existing manual coverage provenance for
+2023Q4 solo was preserved. CI 34780947782 and deployment 34781067264 succeeded.
+Earlier GARAN 2022Q4 publication also matches all 240 printed cells in D1/R2.
+This verifies these sector disclosures, not complete reports or other lanes.
+Evidence and current publication status:
+`docs/knowledge/2026-09-13-sector-registered-garan/` and
+`docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
+
+### Unified sector assessments (2026-09-13)
+
+All eight sector pages now present the dated assessment as a single panel after
+the first chapter's charts. The opening headline banner and separate notes block
+are replaced by one readable lead and topic-labelled notes. All prior headlines,
+supporting text, figures and analysis links remain visible, with a responsive
+one-, two- or three-column note layout. Charts and query calculations are unchanged.
+
+`Insight.label` is optional presentation metadata; the cached headline hash and
+numeric guards still use the original headline and note text. Other dashboard
+routes keep their existing Takeaway styles. Signals remain admin-only. Design
+and verification evidence: `docs/knowledge/2026-09-13-sector-assessment/`.
+
+### Sector-loan cells, comparatives and source validation (2026-09-13)
+
+The existing sector extractor now reads explicitly bounded three-column
+Stage 2 / Stage 3 / ECL disclosures across adjacent pages. It requires the
+printed period captions and column headers, preserves value-page citations,
+and retains the established fallback for wider or unsupported source layouts.
+The retained GARAN 2022Q4 fixtures contain 40 rows per filing and 240 printed
+cells across both kinds. The pre-repair production snapshot omitted 20
+consolidated comparative rows, all 40 solo Stage 3 cells and all 40 solo ECL
+cells. The source-backed regression restores them without changing an existing
+non-null amount; production execution remains a scoped Actions operation.
+
+Source capture uses explicit numbered disclosure boundaries when both ends
+are retained. Neighboring provisions and risk tables remain raw evidence;
+missing boundaries keep conservative classification. Parent labels cannot
+inherit a child key. The existing revalidation path independently compares
+supported three-column source rows with both stored periods, including ECL,
+using the source denomination. Missing rows, missing cells and conflicting
+values fail the same lane gate that protects publication.
+
+This is a bounded sector-table repair, not corpus-wide completeness. NPL
+write-offs/reclassifications, other native table layouts, dipnote integration
+and structured prose remain in the execution plan and Actions evidence:
+`docs/knowledge/2026-09-13-pipeline-source-mapping/PLAN.md`.
+
+### Standalone sector signals (2026-09-13)
+
+The admin-only `/admin/signals` workspace collects the 33 existing monitoring conditions from the sector
+overview, credit, deposits, liquidity, asset-quality, capital and profitability
+pages. Those pages retain their charts and analyses; their monitoring sections
+and navigation anchors are removed. Market risk had no such conditions.
+
+Signals are plain data records in `web/app/lib/sector-signals/`, separate from
+the React presentation. Stable IDs, original conditions, numerical facts, source
+bases and reporting dates are preserved. Missing inputs are explicitly
+unavailable, distinct from conditions evaluated as not triggered. The research
+page supports topic/status/search filters, source inspection and filtered JSON
+export; the read-only `/api/admin/sector-signals` endpoint exposes the full
+collection and any failed topics after checking the existing admin session.
+Both page and API authorize before querying data and return private, uncached
+responses. Public navigation and the sitemap omit Signals. The former `/signals`
+URL redirects to the protected workspace; the public API endpoint is removed.
+
+The records are leads for analysts to investigate before using material findings
+in articles. No automatic analyst execution or article publication is introduced.
+The endpoint describes latest-available observations, not a historical Analyst
+V2 snapshot. No schema or data write is needed. Release evidence is kept in
+`docs/knowledge/2026-09-13-sector-signals/`; the admin access correction is recorded
+in `docs/knowledge/2026-09-13-admin-signals/`.
+
+### Refresh previews do not trigger corpus publication (2026-09-13)
+
+Automatic document capture now requires a successful upstream run from this
+repository and, for refreshes, the explicit `Refresh audit reports (publish)`
+run title. Preview and older ambiguous refresh runs cannot start R2 capture
+workers. Manual corpus dispatch and successful acquisition follow-ups remain
+available. This closes a downstream escape from the refresh's `dry_run` flag.
+Evidence and the cancelled pre-fix follow-ups:
+`docs/knowledge/2026-09-13-audit-followup-containment/RESULTS.md`.
+
+### Audit loads abort on validation crashes (2026-09-13)
+
+The production audit loader now writes a filing's facts, P&L roles, source
+evidence, validation results and extraction status within one savepoint. A
+validator or persistence exception rolls back that filing and propagates to
+the caller. It can no longer leave a successful extraction record over an
+unchecked candidate or leak partial writes into a later caller commit.
+
+The existing guards for settled statements, units and unchanged role/validation
+timestamps remain in place. Ordinary failed financial checks remain recorded
+for the existing publication gates; this change handles execution failure and
+does not redefine a numerical pass. Regression checks cover six failure points,
+with and without preceding caller work, including exact persisted-row recovery.
+The existing Actions refresh workflow verifies scoped real filings after release.
+Evidence: `docs/knowledge/2026-09-13-audit-load-atomicity/RESULTS.md`.
+
+### Capital disclosure intervals and qualifications (2026-09-13)
+
+The source-table reader now links table fragments to their enclosing printed
+disclosure in risk and notes sections. Qualified numeric headings and Turkish
+Roman groups both retain continuation pages, qualifications and embedded grids.
+Each physical grid keeps its original columns, periods, units and cell states;
+the reader does not concatenate unlike grids or approve financial interpretation.
+Repeated report-section banners stay in their own page context. A missing
+intervening page or unread closing boundary leaves the interval incomplete.
+
+Source-backed tests cover GARAN 2022Q4 consolidated capital disclosure 4.1.1
+(PDF pages 55–58, four grids) and TOMK 2023Q3 unconsolidated capital group IV-I
+(pages 26–29, four grids). The GARAN interval includes the starred insurance
+qualification and the regulatory-adjustment explanation with the printed
+16.78% alternative ratio, alongside the table's 18.60% ratio. These are separate
+source assertions, not a correction of one figure to the other.
+
+This reader improvement uses existing retained structures and needs no corpus
+re-extraction or analytical D1 write. Registered-corpus completeness, publication
+validator repair and section-based prose coverage remain unfinished. Source
+inspection and release evidence: `docs/knowledge/2026-09-13-capital-disclosures/RESULTS.md`.
+
+### Wide equity source-table capture (2026-09-13)
+
+The source capture now supports framed equity statements with explicit period
+bands and one level of grouped amount headers. Native header wording and repeated
+body positions establish the column inventory; no fixed bank coordinates or
+accounting totals select the grid. Every literal amount, sign, dash, blank,
+period range, unit and dipnote stays linked to native words. Ambiguous headers,
+overlapping columns and unsupported period bands abstain.
+
+The independently read GARAN 2022Q4 consolidated page 20 fixture has 18 columns,
+544 printed amount cells, 34 numeric rows and separate 2021/2022 period labels.
+Both OCI groups retain their three child columns. Both 5.5 references resolve to
+the complete equity note on page 174 in reader tests. Source-corruption tests
+cover whole-table, row/column, header, date, note, unit and word removal, plus
+ambiguous inputs and distinct blank/dash/zero states. The tests also change page
+position, row count and amount-column count to guard against a fixed template.
+
+This is an unreviewed source grid, not approval of analytical D1 coverage or
+full registered-corpus completeness. A scoped Actions capture is required for
+older retained revisions. Other source formats, publication-validator repair
+and structured prose coverage remain unfinished. Run receipts and source proof:
+`docs/knowledge/2026-09-13-equity-tables/RESULTS.md`.
+
+### Framed source-table columns (2026-09-13)
+
+The existing capture engine now has a guarded path for tables whose outer frame
+is retained but inner rulings are unavailable to the table detector. Printed
+currency triplets establish every amount column; source-word alignment supplies
+the cells. Unit, period, date and currency headers retain their merged spans,
+and the dipnote column stays separate. No value is parsed or fitted to a sum.
+
+Exact GARAN 2022Q4 consolidated native pages 15–17 exercise assets, liabilities
+and off-balance sheet: 47, 49 and 86 body baseline bands, respectively, with all
+eight columns. Wrapped labels remain separate baseline bands pending logical-row
+review. Tests retain every source word and reject removal/alteration of complete
+tables, rows, columns, notes, dates, units and word/geometry evidence. A third
+disclosed period is also retained. The existing reader checks the resulting
+grids and follows the assets 5.1.1 link to pp. 121–123.
+
+This changes capture capability, not analytical D1 values or coverage approval.
+Earlier preserved revisions need a scoped Actions capture to gain this view.
+Equity, other unsupported formats, source completeness across the registered
+corpus, publication validators and structured prose coverage remain unfinished.
+Evidence and publication receipts: `docs/knowledge/2026-09-13-framed-tables/RESULTS.md`.
+
+### Source tables and dipnotes (2026-09-13)
+
+The existing admin coverage drawer and document browser now share a private
+source-table reader. It retains all detected physical columns and literal cell
+states, rechecks native word/character inventories and grid geometry, and reuses
+the named source-reviewed row assignments only after checking their evidence.
+Printed dipnot addresses link to section/group/note intervals, including their
+tables and qualifications. Source-page units and PDF citations remain visible.
+Unassigned legacy columns, rejected cells and unresolved or competing note
+addresses remain explicit; suggested table families are not coverage proof.
+
+Source-backed tests cover all six TOMK 2023Q3 assets dipnotes and prior figures
+1,004,154 and 1,545. A read-only probe of its 51 retained pages returned 83
+candidates (including alternatives), 47 with checked native cells and 26 note
+intervals. This is a single-report probe, not a corpus completion claim. The PDF
+itself prints a conflicting P&L continuation group on page 43; references to
+V-IV-4 remain unresolved rather than being redirected to III-4.
+
+The same reader supports GARAN's fully numbered hierarchy, including nested
+5.1.1.1 and whole-group 5.6 references. Its retained 184-page 2022Q4 consolidated
+report yields 498 candidates, 274 with checked native cells, 180 note intervals
+and 22 resolved references. PDF-checked regression cases retain the cash-flow
+note's prose and both beginning/end cash tables. Unassigned source columns and
+unresolved references remain; these are diagnostic counts, not coverage totals.
+
+This changes neither D1 financial rows nor coverage statuses. Full source-table
+completion across the registered corpus, source-completeness publication gates
+and the later structured prose coverage phase remain open. Evidence and release
+receipts: `docs/knowledge/2026-09-13-table-dipnotes/RESULTS.md`.
+
+### Audit measurement and repricing repair (2026-09-13)
+
+Code `9fbb64f` passed CI `34765040683` and deployment `34765139227`.
+The read-only `audit-extraction-gates.yml` run `34765053277` covered 1,146 filings,
+19 lanes and 21,774 fresh baselines; all eight shards used the same source
+snapshot, tested 261,917 isolated mutations and left their inputs unchanged.
+For sampled value/sign/zero changes, the gates accepted 81.0% in cash flow,
+45.4% in P&L and 55.0% in OCI. All 701 sampled footnote removals and eight source
+JSON removals passed. These are mutation escape rates, not production error
+estimates; failing, unproven and empty baselines are recorded separately.
+
+The audit also found 39 repricing filings marked OK but missing all serving rows.
+Read-only trial `34765080626` found 546 missing rows with no conflicting facts.
+Scoped repair `34765320472` restored them and verified exact factual equality and
+no-op replay. Independent D1 readback confirms all 12,143 existing rows and their
+timestamps are unchanged, exactly 546 rows were added to the 39 named filings,
+and 294 restored cells match the pre-repair audit. Repricing now has 12,689 rows.
+This repairs publication drift; it does not complete the native source tables.
+Detailed source/code evidence and per-lane results:
+`docs/knowledge/2026-09-13-extraction-gate-audit/RESULTS.md`.
+Full tables/dipnotes, source-completeness validators and structured prose coverage
+remain the active sequence in AUDIT_DOCUMENT_PLAN.md.
+
+
+### Audit completeness priority (2026-09-13)
+
+The user's active order is: independently audit all listed extractors and actual
+publication gates; fully capture their source tables with linked dipnotes; fix
+validators against that source contract; then structure prose by sections and
+passages. This supersedes selected-field expansion and prose-first priorities.
+The new manual `audit-extraction-gates.yml` measures isolated corruptions in a
+read-only snapshot's disposable copy. It records unproven/empty/failing baselines,
+exceptions and sampling limits separately; it is not source-completeness proof.
+Fresh review confirms that primary-statement comparative values are parsed but
+not retained in serving tables, and TOMK 2023Q3 assets' dipnot markers remain in
+item labels with NULL footnote fields. Summary-lane checks permit omitted detail.
+No financial rows are changed by this diagnostic. Full table/note integration,
+validator repairs and structured prose coverage remain active work. See
+[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for acceptance criteria.
+
+
+Concise snapshot of what's in the system right now. Updated as data
+coverage or known issues change.
+
+> **Reading order:** [README.md](../README.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
+> → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
+> [METRICS.md](METRICS.md); meta-knowledge about banking metrics (which are
+> disclosed, standardized across banks, on a regular cadence, and reproducible
+> from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 162-metric
+> registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
+>
+> Last verified: 2026-08-16. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+### Sector layout redesign (2026-09-13)
+
+The eight sector routes now share a redesigned analytics workspace: compact
+report/date headers, a labelled history selector, aligned current indicators,
+a dated assessment and financial-topic panels. Neutral ground and white panels
+replace the old continuous sheet. Each route groups related histories, breakdowns
+and exact comparisons; all distinct analytical content remains available.
+
+`SectorTrend` adds readable combined or faceted histories, full-name current
+comparisons, rounded data-driven axes, explicit reference lines, null gaps,
+lag dates and keyboard highlighting. The original range/data/export contracts
+remain. Credit uses a responsive horizontal growth waterfall and contribution
+bars; asset-quality stages/coverage and flows have readable external labels;
+profitability uses a horizontal income waterfall; capital differentiates the
+12% BDDK target from the 8% statutory minimum and preserves missing components.
+
+The server queries/calculations and client presentation boundaries are retained.
+Daily, weekly, monthly and audited sources keep their distinct bases. The new
+sector design contract lives in `web/DESIGN.md`; private research and content
+verification are in `docs/knowledge/2026-09-13-sector-redesign/`.
+
+### Liquidity component expansion (2026-09-13)
+
+The active direction is incremental expansion of the existing production lanes;
+whole-corpus completeness is a longer-term aspiration, not the release gate.
+The liquidity extractor now retains eight additional amounts: total/FC HQLA,
+weighted cash outflows, weighted cash inflows and capped net cash outflows.
+Four explicit TR/EN currency columns and current/prior headings determine the
+assignment. Blank cells keep their positions; dashes remain NULL. The existing
+unit context normalizes amounts to thousand TRY and leaves ratios untouched.
+`lcr_components_source_json` carries literals, geometry, period and scale.
+Missing/ambiguous rows in a recognized table fail validation. Unsupported table
+layouts remain absent, not certified complete. Repeated or unchanged period
+rows are not restamped. Analyst v2 statement/history tools and the SQL assistant
+expose the added fields and their source evidence.
+
+Six original tables across TOMK 2024Q1 solo, GARAN 2022Q4 consolidated and AKBNK
+2026Q2 consolidated were visually checked: 48 selected monetary cells. The latter
+filing is in millions. TOMK's prior FC net outflows are 33,346 against weighted
+outflows of 25,188 in its own PDF; the new cash-flow bound flags this discrepancy.
+TOMK is excluded from publication. Code `23b6d1c` passed CI `34758671451`;
+deployment `34758762977` applied migration 0050. Read-only Actions trial
+`34758685354` and publication `34758921549` both passed for exactly GARAN
+2022Q4 consolidated and AKBNK 2026Q2 consolidated. Independent live D1 readback
+matched all 32 new component amounts and their complete source evidence across
+four period rows. AKBNK's missing prior LCR values are now 151.64% total and
+250.24% FC. All other 2,160 liquidity rows, including their timestamps, were
+unchanged; all previously populated ratios in the target rows were preserved.
+Validation: 2,979 Python tests passed (2 skipped), 905 website tests passed,
+all web/mobile checks and nine standalone gates passed. The live liquidity page
+loads; the new registry label was confirmed in D1. The admin session has expired,
+so this release does not claim a fresh authenticated admin UI check.
+This does not add full LCR rows, NSFR/leverage components or a historical backfill.
+Evidence: `docs/knowledge/2026-09-13-liquidity-components/`.
+
+### Structured audit prose (2026-09-08)
+
+The existing private document corpus now has a report-wide prose contract and
+admin reader: `audit-prose-1`, served by `artifact=prose` on the existing
+`/api/admin/document-corpus` route. It streams retained source and structure from
+R2, verifies each page checksum and independently reconstructs every passage
+from native source spans. Missing, duplicated, reordered or altered wording,
+false heading references and false table-note text stop the response.
+
+The contract retains raw line breaks, readable text, paragraph/list/heading/note
+roles, printed section roles, heading references, source page/span/line/bounding
+box addresses, language candidates, table references and possible continuations.
+Explicit numbered headings can carry across pages within a section; uncertain
+relationships remain marked. Table text and page furniture are retained in the
+export and available through the reader's filter. Older captures fall back to
+unclassified source lines; pages without native text are reported explicitly.
+
+Separately positioned note numbers are linked to a uniquely adjacent heading
+on the same source line. For example, GARAN's `3.24` now accompanies “Segment
+reporting” and participates in the heading address across pages. Both original
+fragments remain intact. Ambiguous marker matches stay unassigned; an absolute
+decimal address never inherits an unrelated preceding note.
+
+Read-only checks against current cloud artifacts cover TOMK 2023Q3 solo (51
+pages, 6,830 spans, 1,387 elements) and GARAN 2022Q4 consolidated (184 pages,
+25,713 spans, 7,061 elements). All 14 previously source-reviewed TOMK management
+and risk passages match exactly, including short nil disclosures. This is source
+fidelity and access, not a full-report semantic or paragraph-boundary approval.
+Release verification: `8272089` and `6d00c53` passed CI and deployed successfully.
+Authenticated production checks passed on both source-test filings plus AKBNK
+2026Q2 consolidated (99 pages / 14,989 native spans), for 334 pages / 47,532
+spans in total. Live search, section filtering and complete JSON downloads were
+checked. The GARAN download equals the checked local contract exactly; the TOMK
+download retains all 14 reviewed passages. Full checks passed: 2,962 Python tests
+(2 skipped), 904 website tests, web/mobile lint and types, token checks and all
+nine standalone gates.
+
+The legacy 369,007-row local `bank_audit_prose` database has not been published;
+no D1 migration, row writes or extraction backfill is required for this reader.
+The analyst-facing contract is available for retrieval/export; automatic memo
+generation has not been connected to this prose reader. Evidence and release
+checks: `docs/knowledge/2026-09-08-structured-prose/`.
+
+### Existing audit lanes: broader repair (2026-09-08)
+
+The broader primary-statement source probe also found a shared parser defect:
+TOMK 2023Q3 P&L and cash-flow reporting-date headers became a fake `30 EYLÜL`
+financial row with amounts 202 and 3. The follow-up filters explicit calendar
+headers before amount tokenization while retaining financial labels containing
+dates or month names. Source-page fixtures exercise both statements. This code
+repair has not re-extracted or published settled P&L/cash-flow partitions.
+
+The active scope includes all 19 registered lanes, structured prose and unserved
+report tables; equity/capital were examples. The code-based repair map is in
+[AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md#all-lane-repair-map-2026-09-08).
+The liquidity repair retains current/prior LCR headings, literal cells and actual
+source pages in `lcr_source_json`; it fixes dropped comparative ratios, displaced
+value bands and multi-group percentage literals. Explicit nil dashes remain NULL.
+Identical liquidity upserts preserve timestamps. Source regressions reuse TOMK
+2023Q3/2024Q1 and GARAN 2022Q4 consolidated originals. TOMK 2023Q3 remains excluded
+from publication because its current LCR conflicts with the printed high/low table.
+The validator also flags a retained LCR outside an unambiguously read, explicitly
+headed Turkish dated high/low range; the TOMK 2023Q3 contradiction now fails this
+check without changing its transcription.
+Code `97e9a22` passed CI `34162563312`; deployment `34162680530` applied
+migration 0049. Read-only trial `34162579549` passed both filings; publication
+`34162893124` succeeded. D1 readback verifies exactly two filings / four rows
+with LCR evidence: TOMK 2024Q1 solo and GARAN 2022Q4 consolidated. All eight
+LCR values and complete literal/page/period JSON equal the original-PDF probes;
+four previously missing comparative cells are filled. Existing current LCR,
+NSFR, leverage and table-locator pages are unchanged. No other filing has LCR
+evidence. Receipts: `broad-lane-live-verification.json` and source/baseline/after
+files in `docs/knowledge/2026-09-06-document-corpus/`. The admin browser session
+expired on reload, so authenticated visual confirmation is still outstanding.
+
+Analyst tools also regain stored FX source pages and source pages in row histories;
+repricing buckets, loan sectors and current/prior histories become addressable.
+Admin/analyst descriptions now identify credit-quality closing balances and the
+liquidity, FX and repricing summaries. These changes do not deliver full tables or
+activate the prose corpus. The complete broader extraction objective remains open.
+
+### Complete audit document corpus (2026-09-07; content verification in progress)
+
+**Delivery direction, 2026-09-07:** further standalone corpus expansion is paused
+at the user's request. Preserve the reviewed outputs and use them to improve the
+existing analytical lanes. The first deployed increment (`d4923ee`) retains all 34 financial
+rows on TOMK 2024Q1's equity page, including the printed +1,288 OCI closing cell
+that fails arithmetic; the former parser returned 33 rows. TOMK 2023Q3's 17-row
+matrix keeps all values and complete TMS/formula labels. Five capital-buffer
+percentages, literal cells and their PDF pages are wired into the existing
+capital loader and analyst tools. Migration 0048 and deployment `34149123973`
+completed successfully. Capital dry-run `34149029119` passed; publication
+`34149311548` updated only the TOMK 2023Q3 solo capital partition plus its
+validation/source metadata and the regular coverage refresh. Both D1 rows and
+all ten buffer cells were read back and match the independently reviewed PDF
+and its literal/page evidence exactly. The nine headline capital figures are
+unchanged. The existing parser also populated `capital_deductions` from NULL to
+0 in both columns: original p28 shows nil deduction rows and identical pre/post
+own-funds totals; this is derived normalization, not a literal printed zero.
+
+Equity dry-run `34149047490` correctly rejected TOMK 2024Q1: the retained closing
+row has a 2,576 component discrepancy, and row IV disagrees in sign with the
+stored OCI statement. No equity D1 rows were changed and validation was not
+relaxed. Other historical capital-buffer fields remain unpopulated. Isolated
+release checks: 2,943 Python tests passed, two skipped; 872 web tests passed;
+all required web/mobile and standalone checks passed. CI `34149001890` passed.
+Independent receipts are in
+`docs/knowledge/2026-09-06-document-corpus/existing-lane-live-verification.json`.
+The legacy `build_capital_full.py` still builds a separate local table and is
+not the website's capital-serving path. Its aggregate checks do not establish
+full source-row coverage. See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md)
+for the revised priority.
+
+The first scope is **1,146 registered filings across 38 banks, 2022Q1–2026Q2**.
+All have acquired PDFs, preserved originals/native evidence and published
+candidate structure. **Zero whole filings have completed source-content verification.** Older
+history and additional banks follow completion of this registered corpus.
+
+The completed full refresh `34098885624` at `8d9e449` reconciles all 1,146
+outcomes exactly once, with no missing/duplicate filings or metadata errors.
+All PDF hashes and native counts agree with the independent source baseline:
+**119,772 pages, 308,126,554 characters and 2,241,656 physical text blocks**.
+There are **320,433 overlapping table candidates**, not that many distinct
+printed tables. This is reconciliation of completed run metadata, not a new
+byte-read of every published artifact or content certification. On the same
+sources, pages with line/source mismatch observations fell from 747 to 175;
+table-cell/source mismatch observations fell from 341 to 269. Named diagnostics
+and original source limitations remain visible.
+
+The authenticated admin separates registered, acquired, preserved, structured,
+fully verified, failed and outdated filings. It serves original PDFs, source
+page evidence and full structured reports. It shows physical/merged/absent cells,
+source-linked table rows, printed period headings, narrative candidates, section
+navigation and unresolved review notes. Blank text, dashes and disclosed zero
+remain distinct. Its captured counts do not claim completeness of printed
+content, reading order or financial meaning. Existing analytical lanes remain
+unchanged; this work does not write their D1 partitions.
+
+**Combined character/region publication `34112697713` finished at `3f3f763`
+with 1,145 successful updates and one R2 read timeout.** All 1,146 outcomes
+are present exactly once. Successful filings retain their original hashes,
+native-artifact digests and text counts. ZIRAAT 2023Q4 solo retains its previous
+published capture; its newer publication failed while reading storage.
+Read-only fresh probe `34133959596` subsequently succeeds. Independent
+download checks all 151 pages, source/structure accounting and identical
+original/native artifact digests. This is not whole-report content approval. The running
+period-heading fleet already selects that filing for another publication attempt.
+It upgrades retained c6e429ce structures to ca66890e without repeating the entire
+native capture. Independent original/fresh/replay comparisons cover all 267
+EXIM/Garanti pages. Full downloaded-artifact probes across EXIM, Garanti and two
+TOMK filings preserve all 384 native pages, physical blocks and narrative span
+occurrences. Eight tables changed literal or empty-slot structure; all 241 slots
+were checked against original source pages and registered as regressions.
+CI `34110701474` and deployment `34110814831` pass.
+
+**Period-heading publication `34116379265` is running at `a0a026a`.** The exact ca66890e-to-dda3201c adapter opens/extracts no PDF
+pages. Independent readback of fresh cloud probes `34115439703`, `34115442398`,
+`34115445430` and `34115448020` matches the entire locally replayed structures
+on all 384 pages, with identical original/native records and 41 selected source
+cases passing. The cloud probes have no supported retained R2 base; equality
+is independently established against the actual local retained ca66890e
+artifacts. CI `34115396870` and deployment `34115519475` pass. Header artifacts
+are not yet published across the corpus. Neither running/queued fleet is
+restarted for subsequent source annotations.
+
+The source benchmark now contains **88 selected cases across eight reports**.
+Four independently transcribed TOMK 2023Q3 capital fragments cover
+all **321 physical slots on pages 26–29**. A separate, explicitly reviewed view
+restores the word finansal, whose final letter physically crosses into an amount
+cell, and separates page 26's dated labels inside a merged physical header.
+Every source character remains present exactly once. Printed wording mistakes
+and inconsistent bank figures are retained. A reviewed four-page connection
+supplies page 29's period association from page 28, explicitly recording that
+page 29 prints no dated heading. This relation is specific to the reviewed PDF.
+The 107-row table, original physical cells, source references, connected context
+and discrepancy notes are available locally as JSON and a readable HTML under
+`output/audit-corpus/TOMK_2023Q3_unconsolidated/capital-disclosure-source-reviewed.*`.
+It is a named disclosure review, not whole-report or financial-series approval.
+
+Admin integration of reviewed tables is deployed at `2b601f3` (CI `34121426927`
+and deployment `34121557991` passed), with review-record publication pending.
+Read-only run `34121459005` independently reconciles exactly eight annotated
+filings, all 63 cases at that commit and 21 complete table records. All those
+records equal fresh benchmark replay against four retained full PDF evidence
+packages. The additional ten-table review at `68ae767` passes CI `34123877149`
+and independent cloud readback `34123893259`: all 51 TOMK native pages and the
+entire structured extraction remain identical, all 42 TOMK cases pass, and its
+21 table records exactly equal independent replay. Restricted publication `34124160052` was superseded before any job started
+by the combined publication `34133467871` described below. The earlier
+review-only publication `34122513206` was also cancelled while pending.
+Passed complete-table annotations produce receipt records bound to
+both exact stored page views. The private reader validates grid slots, context,
+word occurrences, logical assignments and source/capture identity before serving
+rows and downloads. Ten further TOMK note tables on pages 39–44 have since been
+independently transcribed and checked locally: 82 rows and 272 physical slots.
+Magnified original inspection corrected one manual wording error. The bank's
+duplicated Cari Dönem header on its tax-loss table remains literal, alongside
+the distinct printed dates. Wrong digits, dates, currencies, missing references,
+covered slots and dash/zero substitutions fail the new checks. The ten new
+tables and corrected report-level review description are included in the
+combined publication `34133467871`; their live display is not yet verified.
+The four independently captured reports now provide 49 reviewed tables in
+`output/audit-corpus/reviewed-tables-index.html` and per-filing JSON, preserving
+488 physical rows and 2,128 slots. The reviewed views contain 781 rows and
+4,100 slots after explicit source-reviewed assignments. These include table headings and
+are selected-review counts, not the corpus's printed-table total.
+
+TOMK 2023Q3's complete P&L on PDF page 13 has now been independently transcribed
+from the original image: 62 printed body rows, four columns and the dated header.
+The physical extraction has only two rows, with the entire body in one band.
+Explicit source-word assignments and literal numbered-line grouping recover the
+62 rows while conserving every character occurrence. Two wrapped labels, the
+bank's repeated XIII identifier, literal note `(11)` and the earnings-per-share
+`Tam TL` unit remain intact. The admin reader independently checks row groups,
+source occurrences, placement and complete literal wording before serving them.
+The local `profit-loss-reviewed.html` is visually inspected; Python and Worker
+corruption tests reject dropped, duplicated, reordered, misassigned and merged
+rows. CI `34127002293` passes at `0b654f6`. Independent readback of read-only
+probe `34127039166` confirms all 51 native pages and the entire structured
+extraction are unchanged, all 43 TOMK cases pass, and all 22 complete-table
+records exactly equal local replay against the pinned source annotations.
+Single-filing publication `34127300076` was superseded before any job
+started by combined publication `34133467871`. The P&L remains unverified
+live. Its printed-row review changes no PDF extraction or analytical facts.
+
+Further local source review covers complete TOMK comprehensive income (PDF
+page 14), cash flow (page 16), five management tables and all four management
+paragraphs (page 50). Cash flow retains 46 labelled body rows and three
+otherwise empty rows bearing displaced prior-period dashes. The merged physical
+amount band is retained alongside its independently reviewed dated columns.
+Comprehensive income retains 16 body rows, a wrapped label and the bank's literal
+Sınırlandırılmayacak wording. Management retains its printed Toplam Aktifler
+label under liabilities and its 31 Aralık 2022 P&L comparison date.
+
+The management review exposed a numerical candidate rectangle covering almost
+the full page and misclassifying four paragraphs and three headings as table
+text. The new narrative rule identifies envelopes around multiple separate ruled
+tables and releases their intervening prose; uncertain overlaps stay linked.
+An independently inspected Garanti balance-sheet region guards against broadly
+reclassifying real financial-table labels as prose. Four complete
+paragraph gold cases check wording, negation and the correct III/IV/V heading.
+The retained dda3201c-to-35500cc8 adapter rebuilds narrative, reading layout,
+table context and note links without extracting PDF pages. Local replay over
+all 384 pages of the four retained reports preserves native evidence, every
+table/cell and all other page fields; existing and new selected cases pass.
+Code `c6e4a90` passes the full Python suite, 831 web tests, mobile checks and
+all nine standalone gates. CI `34132777804` and deployment `34132920796` pass.
+Independent downloads of fresh probes `34132813060`, `34132820844`,
+`34132827954` and `34132840168` exactly match all 384 pages of retained
+replay and original/native bytes. Probe `34132849295` covers the four other
+annotated filings. All eight downloaded reports pass source/structure accounting
+and exactly reproduce all 85 selected benchmark cases and 39 table records.
+This validates the repair and selected reviews, not whole-report fidelity.
+
+**Combined publication `34133467871` is queued at `c6e4a90` for all 1,146
+registered filings**, after the running period-heading fleet.
+The two superseded review-only jobs had no jobs or writes when cancelled.
+The refreshed live admin reports 1,146 preserved/structured, zero fully verified
+and one failed update. New narrative/review data has not yet been verified
+there. All four completed region shards independently reconcile 1,146 unique
+outcomes; the only unsuccessful update is the named Ziraat storage timeout.
+Local reviewed prose is in `management-prose-reviewed.json`; a combined readable
+page is `management-source-reviewed.html` under the TOMK 2023Q3 output directory.
+Python-produced wire fixtures include original reviewed pages with explicit
+empty placeholders elsewhere solely for protocol tests. They are not complete
+report extracts. The new `annotated_only` capture input limits publication to
+registered annotated filings and does not restart either running/queued fleet.
+
+The complete TOMK 2023Q3 assets, liabilities and off-balance-sheet tables on
+PDF pages 10–12 are independently transcribed and pass local source checks:
+**163 reviewed rows and 1,304 slots**, retaining the 15 physical rows / 100
+physical slots. Explicit reviewed grids separate each dated TP/YP/Toplam
+heading and the off-balance sheet's combined amount bands. All physical
+boundaries and every original word/character occurrence are retained. Assets
+keeps both sets of six printed dashes beside the wrapped III label. Liabilities
+explicitly joins the 14.6.2 label with its six amounts printed on the following
+otherwise unlabelled baseline, while preserving those source coordinates.
+The private reader validates the complete assignments and displays the reviewed
+column count. Neither extraction engine `35500cc8` nor stored analytical facts
+change. This additional three-table batch is queued separately from pending
+full-corpus publication `34133467871`. Code `29c8af4` passes CI `34138492762`.
+Independent downloaded readback of fresh probe `34138514206` verifies identical
+original/native bytes on all 51 pages and exact equality of the entire structure
+with retained replay. All 57 TOMK cases and 32 complete table records match
+pinned local replay. Scoped publication `34138728663` queues that report's
+updated review receipt after the existing fleets; live display remains unverified.
+The isolated staged source passes 2,898 Python tests (two skipped), 858 web
+tests, web/mobile lint and types, mobile token checks and all nine standalone
+gates. Wrong values, dates, currencies, word occurrences, boundaries and spans
+fail review validation. Receipt: `reviewed-grid-cloud-independent-verification.json`
+under `docs/knowledge/2026-09-06-document-corpus/`. Whole-report content review
+remains open.
+
+
+TOMK 2023Q3 now has five further complete table reviews: the 17-column equity
+statement (PDF page 15), daily rates (page 30), the combined
+current/prior FX exposure table (page 31), the small liquidity high/low table
+(page 33) and prior liquidity coverage (page 34). The existing prior-rate review also gains its explicit date context.
+These add 97 reviewed rows / 740 slots, retaining 76 physical rows / 453 slots. The local collection now
+contains 47 complete table records / 732 reviewed rows / 3,877 slots across
+four reports; 93 selected cases are registered across eight reports. The
+equity statement retains its six numbered column explanations and complete
+closing balance. The high/low liquidity value remains the printed 80.980.325;
+the large current table prints 809.080.325 and has clipped row numbers, so it
+is still unresolved. Prior liquidity retains 142.085.400 and blank unweighted
+slots. None of these reviews certifies a complete filing.
+
+The daily-rate review exposed a missing full table: legacy numeric rows omitted
+the currency headings and printed cell structure. The repaired horizontal-rule
+candidate retains both printed bands, every source word and all original
+alternatives. Independent row assignments recover all six body rows. It requires
+matching column rules, separated source baselines, complete cell placement and
+a distinct header; a TOMK 2024Q1 tax-table holdout rejects taking the last line
+of a compound heading alone. The exact 35500cc8-to-c9134d44 retained adapter
+rebuilds table-dependent views without opening or extracting PDF pages. Bounded
+replay over all 384 pages of four retained reports changes tables only on
+TOMK 2023Q3 page 30 and preserves every existing table and source byte.
+Fresh cloud equality is independently proved below; publication is queued.
+Existing period/narrative/review publication runs are not restarted. The
+earlier reviewed-grid reader deployment `34138652324` has completed successfully.
+
+The isolated staged source passes 2,920 Python tests (two skipped), 865 web
+tests, all nine standalone gates, Python/web lint, web types and mobile
+lint/types/design-token checks. Duplicate complete reviews of one table
+are rejected, preventing selected coverage counts from being inflated.
+
+Remaining work is every printed table's coverage and logical structure across
+the corpus, complete prose ordering and analyst retrieval, whole-report source
+review, and resolution or explicit enumeration of nonnative source limitations.
+No successful run, consistent hash or selected benchmark certifies that end
+state. Source identity, alternate editions and recovery evidence remain in the
+separate corpus. Operational controls for `build-document-corpus.yml`,
+`capture-document-edition.yml`, `capture-related-documents.yml`,
+`review-document-origins.yml` and `recover-document-corpus.yml` are documented
+in [OPERATIONS.md](OPERATIONS.md).
+
+See [AUDIT_DOCUMENT_PLAN.md](AUDIT_DOCUMENT_PLAN.md) for the execution record.
+Independent receipts are under `docs/knowledge/2026-09-06-document-corpus/`,
+including `registered-base-refresh-independent-reconciliation.json`,
+`registered-region-refresh-independent-reconciliation.json`,
+`narrative-cloud-independent-verification.json`,
+`region-direct-independent-verification.json` and
+`period-header-cloud-independent-verification.json`.
+
+
+### Architecture safeguards (2026-09-06; rolled out 2026-09-15/16, first live pass observed)
+
+The working tree now implements exact-SHA release checks, build-before-migration
+ordering, serialized release/audit locks and retained ingestion queues. Serving
+schema changes come only from versioned migrations; 0047 supplies the two missing
+extraction counters, with narrowly verified legacy adoption. Publishers require
+explicit table ownership and read-only schema preflights. Supported snapshot
+writers share verified candidate/committed checkpoints with unique run history.
+Mobile now has a generated runtime contract, an uncached compatibility gate and
+validated cache entries keyed by API origin and contract version.
+
+Read-only D1 metadata captured on 2026-09-06 matches the migration-built serving
+schema physically; the existing counters require only a 0047 migration-ledger
+adoption. All six current mobile API responses pass the new validators. No D1/R2
+write, workflow dispatch, deployment, commit or push was performed for this work.
+Local verification passed 2,017 Python tests, 679 web tests, the production web
+build, and iOS/Android Metro exports. Scoped Python lint and web/mobile checks
+pass; full-root lint still reports pre-existing `PY` names in scratch scripts.
+The separately added `build-document-corpus.yml` is now published and has passed
+sample runs; the live workflow-state gate passes. Live queue/release behavior
+was observed on 2026-09-16 (see the top entry): red-CI deploys skipped, the
+green exact-SHA release applied migration 0054 and passed smoke. Operating and
+recovery procedures are in OPERATIONS; implementation evidence is in
+`docs/knowledge/architecture-implementation-plan-2026-09-06.md`.
