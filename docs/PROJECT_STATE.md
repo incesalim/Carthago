@@ -1,5 +1,19 @@
 # Project State
 
+## Eight chart anchors re-based after upstream revisions (2026-11-27)
+
+`verify_chart_spec.py --alert` had reported `62 pass · 2 fail` every day from
+10-19 and `59 pass · 5 fail` from 11-14, all on April-2026 anchors transcribed
+from Albaraka's monthly reports: the Treasury's December-2025 budget rows were
+revised in October and TCMB re-released its balance-of-payments series on
+11-14. The stored data was right — a fresh EVDS read matched D1 on all 144
+underlying cells — and the anchors were what was old. Every anchor in the
+three affected specs was recomputed from that upstream read, three of them
+while still inside tolerance. The catalog's `source.note` records which
+revision, when, and what the report printed before it, and the procedure is
+in `REPRODUCING_CHARTS.md`. Rolling-12-month anchors will drift again the
+next time a month inside their window is revised.
+
 ## The daily health check has a red tier and reads the regulator's registry (2026-11-27)
 
 **The 2026Q3 gap below was reported, at the wrong volume.** From the end of

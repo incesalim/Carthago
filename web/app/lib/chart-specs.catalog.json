@@ -417,7 +417,7 @@
   {
     "id": "economy.bop_currency_deposits_12m",
     "title": "Currency & deposits — asset acquisition vs liabilities (12m rolling, USD bn)",
-    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 8", "as_of": "2026-04" },
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 8", "as_of": "2026-04", "note": "Anchors re-based 2026-11-27: TCMB re-released its balance-of-payments series on 2026-11-14, and these values are recomputed from a fresh EVDS read that matched D1 cell for cell. Albaraka's report printed 19.909 and 1.122 before that revision." },
     "placement": { "tab": "economy", "section": "Balance of Payments" },
     "unit": "USD bn",
     "format": "bn",
@@ -428,8 +428,8 @@
       { "key": "liab", "label": "Net incurrence of liabilities", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q143", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] }
     ],
     "verify": [
-      { "series": "assets", "date": "2026-04", "value": 19.909, "tolerance": 0.6 },
-      { "series": "liab", "date": "2026-04", "value": 1.122, "tolerance": 0.6 }
+      { "series": "assets", "date": "2026-04", "value": 19.040, "tolerance": 0.6 },
+      { "series": "liab", "date": "2026-04", "value": 1.099, "tolerance": 0.6 }
     ],
     "registry_additions": [
       { "code": "TP.ODEAYRSUNUM6.Q138", "label": "Currency & Deposits — net asset acq. (USD m)", "kind": "monthly" },
@@ -467,7 +467,7 @@
   {
     "id": "economy.bop_financing_monthly",
     "title": "Financing of the current account — need / net foreign investment / reserves−errors (monthly, USD bn)",
-    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 10", "as_of": "2026-04" },
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 10", "as_of": "2026-04", "note": "Anchors re-based 2026-11-27: TCMB re-released its balance-of-payments series on 2026-11-14, and these values are recomputed from a fresh EVDS read that matched D1 cell for cell. Albaraka's report printed -5.695, -19.189 and 13.483 before that revision." },
     "placement": { "tab": "economy", "section": "Balance of Payments" },
     "unit": "USD bn",
     "format": "bn",
@@ -484,9 +484,9 @@
       { "key": "resneo", "label": "Reserves − net errors", "source": "derived", "transform": [{ "op": "derive", "formula": { "op": "sub", "args": [{ "ref": "res" }, { "ref": "neo" }] } }] }
     ],
     "verify": [
-      { "series": "need", "date": "2026-04", "value": -5.695, "tolerance": 0.3 },
-      { "series": "nfi", "date": "2026-04", "value": -19.189, "tolerance": 0.4 },
-      { "series": "resneo", "date": "2026-04", "value": 13.483, "tolerance": 0.4 }
+      { "series": "need", "date": "2026-04", "value": -5.617, "tolerance": 0.3 },
+      { "series": "nfi", "date": "2026-04", "value": -20.169, "tolerance": 0.4 },
+      { "series": "resneo", "date": "2026-04", "value": 13.979, "tolerance": 0.4 }
     ],
     "registry_additions": [
       { "code": "TP.ODEAYRSUNUM6.Q102", "label": "Direct Investment, net (USD m)", "kind": "monthly" },
@@ -563,7 +563,7 @@
   {
     "id": "economy.budget_balances",
     "title": "Central-government budget — balance, primary balance, tax revenue (12m, ₺ bn)",
-    "source": { "report": "Albaraka — Bütçe Görünümü", "page": "Şekil 1 + table", "as_of": "2026-04" },
+    "source": { "report": "Albaraka — Bütçe Görünümü", "page": "Şekil 1 + table", "as_of": "2026-04", "note": "Anchors re-based 2026-11-27: the Treasury's December-2025 budget rows were revised (in D1 since 2026-10-17), and these values are recomputed from a fresh EVDS read that matched D1 cell for cell. Albaraka's report printed -1672.4, 791.1 and 12611.9 before that revision." },
     "placement": { "tab": "economy", "section": "Central Government Budget" },
     "unit": "TL bn",
     "format": "bn",
@@ -578,9 +578,9 @@
       { "key": "tax12", "label": "Tax revenue (12m)", "source": "evds", "locator": { "code": "TP.KB.GEL003", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.000001 }] }
     ],
     "verify": [
-      { "series": "balance12", "date": "2026-04", "value": -1672.4, "tolerance": 6 },
-      { "series": "primary12", "date": "2026-04", "value": 791.1, "tolerance": 6 },
-      { "series": "tax12", "date": "2026-04", "value": 12611.9, "tolerance": 12 }
+      { "series": "balance12", "date": "2026-04", "value": -1686.8, "tolerance": 6 },
+      { "series": "primary12", "date": "2026-04", "value": 776.7, "tolerance": 6 },
+      { "series": "tax12", "date": "2026-04", "value": 12612.3, "tolerance": 12 }
     ],
     "registry_additions": [
       { "code": "TP.KB.GEL001", "label": "Central Govt Budget Revenues (TL)", "kind": "monthly" },

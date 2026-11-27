@@ -106,6 +106,36 @@ Defaults to `pp` when `format` is `pct`, else `abs`. `date` is a prefix match â€
 use a full `YYYY-MM-DD` for daily series; the harness picks the last point in the
 matched window.
 
+### When an anchor goes stale after an upstream revision
+
+An anchor is a value frozen on the day it was read. EVDS is not frozen: TCMB
+revises balance-of-payments and budget rows for many months after first
+publication, and the scraper writes those revisions (that is what
+compare-and-write is for). Every rolling-12-month anchor therefore moves a
+little each time a month inside its window is revised, and the daily
+`MISMATCH` alert repeats until someone re-bases it. Five anchors sat in that
+state from 2026-10-18 to 2026-11-27.
+
+Do not silence it by copying the number the verifier prints: that makes the
+anchor agree with the pipeline by construction. Re-base it from upstream:
+
+1. **Confirm it is a revision, not corruption.** Read the underlying codes
+   straight from EVDS (`evds_client.fetch_series(..., cache=False)`) for the
+   anchor's window and compare with D1 cell for cell. Zero differences means D1
+   is a faithful copy and the anchor is what is old. A change of unit or
+   definition shows up here as a jump of orders of magnitude, not a few percent.
+   That is a different problem, and the chart needs re-deriving, not re-anchoring.
+2. **Recompute each anchor** from that upstream read by the spec's own
+   transforms, and write the recomputed value.
+3. **Record the provenance** in the spec's `source.note`: which revision, the
+   date, and what the report printed before it. A re-based anchor is no longer
+   transcribed from the report, and the next reader has to be able to tell.
+4. **Re-verify** with `python scripts/verify_chart_spec.py --only <id>`.
+
+Re-base every anchor in an affected spec, not only the ones past tolerance:
+the rest are from the same vintage and will drift over the line on the next
+revision.
+
 ## The loop
 
 1. **Research** â€” run the `metric-finder` agent on the chart image. It identifies

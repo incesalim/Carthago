@@ -25,7 +25,8 @@
           "properties": {
             "report": { "type": "string", "description": "e.g. 'Garanti BBVA Research — Türkiye Banking Sector Outlook'." },
             "page": { "type": "string", "description": "Section/page in the source report." },
-            "as_of": { "type": "string", "description": "Report vintage, e.g. '2026-03'." }
+            "as_of": { "type": "string", "description": "Report vintage, e.g. '2026-03'." },
+            "note": { "type": "string", "description": "Provenance of a re-based anchor: when an upstream revision moved the verify[] values past tolerance, which revision it was, the date the values were recomputed, and what the report printed before it." }
           }
         },
         "placement": {
